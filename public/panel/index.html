@@ -3,73 +3,90 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TENKA ICHI · Panel de producción</title>
+<title>Panel de draft · Tenka Ichi</title>
+<link rel="icon" href="/marca/koryu-budo.png">
+<link rel="stylesheet" href="/marca.css">
 <link rel="stylesheet" href="panel.css">
 </head>
 <body>
-<header>
-  <img src="/marca/koryu-budo.png" alt="">
-  <div><h1>TENKA ICHI · Panel de draft</h1><p id="estadoConexion">Conectando…</p></div>
+<header class="barra">
+  <a class="marca" href="/"><span class="hanko sello">天</span><span>Panel de draft</span></a>
+  <p id="estadoConexion" class="pastilla">Conectando…</p>
   <label class="clave">Contraseña <input id="clave" type="password" autocomplete="current-password"></label>
 </header>
 
-<main>
-  <section>
-    <h2>1 · DraftCore</h2>
-    <p class="ayuda">Pega el enlace de <b>espectador</b> del draft (lol.draftcore.net/XXXXXXX).</p>
-    <div class="fila"><input id="enlace" placeholder="https://lol.draftcore.net/…"><button id="conectar">Conectar</button><button id="desconectar" class="secundario">Desconectar</button></div>
-    <p id="fuente" class="estado"></p>
-  </section>
+<div class="disposicion">
+  <main>
+    <section>
+      <h2>DraftCore</h2>
+      <p class="ayuda">Pega el enlace de espectador del draft, el que acaba en el código del draft.</p>
+      <div class="fila">
+        <input id="enlace" placeholder="https://lol.draftcore.net/…" aria-label="Enlace de espectador de DraftCore">
+        <button id="conectar">Conectar</button>
+        <button id="desconectar" class="secundario">Desconectar</button>
+      </div>
+      <p id="fuente" class="estado"></p>
+    </section>
 
-  <section>
-    <h2>2 · Enfrentamiento</h2>
-    <div class="rejilla">
-      <label>Jornada <input id="jornada"></label>
-      <label>Fase <select id="fase"><option>Fase de liga</option><option>Fase final</option></select></label>
-      <label>Formato <select id="formato"><option value="bo1">Bo1</option><option value="bo3f">Bo3 fearless</option></select></label>
-      <label>Partida <input id="partida" type="number" min="1" max="5"></label>
-    </div>
-    <button id="guardarConfig">Guardar enfrentamiento</button>
-  </section>
+    <section>
+      <h2>Enfrentamiento</h2>
+      <div class="rejilla">
+        <label>Jornada <input id="jornada"></label>
+        <label>Fase <select id="fase"><option>Fase de liga</option><option>Fase final</option></select></label>
+        <label>Formato <select id="formato"><option value="bo1">Bo1</option><option value="bo3f">Bo3 fearless</option></select></label>
+        <label>Partida <input id="partida" type="number" min="1" max="5"></label>
+      </div>
+      <button id="guardarConfig">Guardar enfrentamiento</button>
+    </section>
 
-  <section class="equipos">
-    <h2>3 · Equipos</h2>
-    <div class="dos">
-      <div class="equipo azul"><h3>Lado azul</h3><select class="clan"></select><div class="jugadores"></div></div>
-      <div class="equipo rojo"><h3>Lado rojo</h3><select class="clan"></select><div class="jugadores"></div></div>
-    </div>
-    <div class="fila"><button id="guardarEquipos">Guardar equipos</button><button id="invertir" class="secundario">Invertir lados</button></div>
-  </section>
+    <section>
+      <h2>Equipos</h2>
+      <p class="ayuda">Al elegir un clan se rellena su plantilla. Si cambias algún jugador, guárdalo en la plantilla para la próxima vez.</p>
+      <div class="dos">
+        <div class="equipo azul" data-lado="azul">
+          <div class="equipo-cabeza"><img class="escudo" alt=""><div><h3>Lado azul</h3><select class="clan" aria-label="Clan del lado azul"></select></div></div>
+          <div class="jugadores"></div>
+          <button class="guardarPlantilla secundario">Guardar en la plantilla del clan</button>
+        </div>
+        <div class="equipo rojo" data-lado="rojo">
+          <div class="equipo-cabeza"><img class="escudo" alt=""><div><h3>Lado rojo</h3><select class="clan" aria-label="Clan del lado rojo"></select></div></div>
+          <div class="jugadores"></div>
+          <button class="guardarPlantilla secundario">Guardar en la plantilla del clan</button>
+        </div>
+      </div>
+      <div class="fila"><button id="guardarEquipos">Poner en el overlay</button><button id="invertir" class="secundario">Invertir lados</button></div>
+    </section>
 
-  <section>
-    <h2>4 · Draft en directo</h2>
-    <p class="ayuda">Se rellena solo desde DraftCore. Si algo falla, corrige un hueco eligiendo el campeón.</p>
-    <div class="dos draft">
-      <div class="lado azul"></div>
-      <div class="lado rojo"></div>
-    </div>
-    <datalist id="listaCampeones"></datalist>
-  </section>
+    <section>
+      <h2>Draft en directo</h2>
+      <p class="ayuda">Se rellena solo desde DraftCore. Si algo falla, escribe el campeón en su hueco.</p>
+      <div class="dos draft">
+        <div class="lado azul"></div>
+        <div class="lado rojo"></div>
+      </div>
+      <datalist id="listaCampeones"></datalist>
+    </section>
 
-  <section>
-    <h2>5 · Resultado</h2>
-    <p class="ayuda">Al acabar la partida marca el ganador: se guarda en el registro (y en Google Sheets si está configurado).</p>
-    <div class="fila">
-      <button id="ganaAzul" class="azul">Gana lado azul</button>
-      <button id="ganaRojo" class="rojo">Gana lado rojo</button>
-      <button id="siguiente" class="secundario">Siguiente partida</button>
-      <button id="nuevaSerie" class="secundario">Nueva serie</button>
-    </div>
-    <p id="resultados" class="estado"></p>
-  </section>
+    <section>
+      <h2>Resultado</h2>
+      <p class="ayuda" id="ayudaHoja"></p>
+      <div class="fila">
+        <button id="ganaAzul" class="azul">Gana el lado azul</button>
+        <button id="ganaRojo" class="rojo">Gana el lado rojo</button>
+        <button id="siguiente" class="secundario">Siguiente partida</button>
+        <button id="nuevaSerie" class="secundario">Nueva serie</button>
+      </div>
+      <ol id="resultados" class="resultados"></ol>
+    </section>
+  </main>
 
-  <section>
-    <h2>Overlay</h2>
-    <p class="ayuda">En OBS: fuente de navegador, 1920×1080, con esta dirección: <code id="urlOverlay"></code></p>
-    <div class="vista"><iframe id="vista" title="Vista previa del overlay"></iframe></div>
-  </section>
-</main>
-<div id="aviso" hidden></div>
+  <aside>
+    <div class="vista"><iframe id="vista" title="Vista previa del overlay" tabindex="-1"></iframe></div>
+    <p class="ayuda">En OBS añade una fuente de navegador de 1920×1080 con <code id="urlOverlay"></code></p>
+    <p class="ayuda">Portada pública: <a id="urlPortada" href="/" target="_blank"></a></p>
+  </aside>
+</div>
+<div id="aviso" role="status" hidden></div>
 <script type="module" src="panel.js"></script>
 </body>
 </html>

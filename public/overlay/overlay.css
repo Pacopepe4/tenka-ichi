@@ -1,103 +1,118 @@
-:root {
-  --tinta: #14120F; --placa: #1C1915; --hueso: #E0D7CA; --apagado: #9A917C;
-  --rojo: #C1272D; --rojo-claro: #E5484E; --azul: #2FA4E7;
-}
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
-body.fondo { background: var(--tinta); }
-body { font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; color: var(--hueso); }
+body.fondo { background: var(--sumi); }
+body { font-family: var(--gothic); color: var(--washi); }
 #lienzo { position: relative; width: 1920px; height: 1080px; }
 
 /* Cabeceras */
-.cabecera { position: absolute; top: 40px; height: 120px; background: var(--placa); display: flex; align-items: center; }
-.cabecera.azul { left: 60px; width: 600px; padding-left: 25px; gap: 20px; }
-.cabecera.rojo { left: 1260px; width: 600px; padding-right: 25px; gap: 20px; justify-content: flex-end; }
+.cabecera { position: absolute; top: 40px; height: 120px; background: var(--sumi-alzado); display: flex; align-items: center; }
+.cabecera.azul { left: 60px; width: 600px; padding: 0 28px 0 26px; gap: 20px; }
+.cabecera.rojo { left: 1260px; width: 600px; padding: 0 26px 0 28px; gap: 20px; }
 .cabecera .acento { position: absolute; top: 0; width: 8px; height: 100%; }
-.cabecera.azul .acento { left: 0; background: var(--azul); }
-.cabecera.rojo .acento { right: 0; background: var(--rojo); }
-.cabecera .logo { width: 110px; height: 105px; object-fit: contain; }
-.cabecera .equipo { display: flex; flex-direction: column; line-height: 1.1; }
+.cabecera.azul .acento { left: 0; background: var(--azul-lado); }
+.cabecera.rojo .acento { right: 0; background: var(--rojo-lado); }
+.cabecera .logo { width: 104px; height: 100px; object-fit: contain; flex: none; }
+.cabecera .equipo { display: flex; flex-direction: column; flex: 1; min-width: 0; }
 .cabecera.rojo .equipo { text-align: right; }
-.cabecera .nombre { font-size: 38px; font-weight: 700; text-transform: uppercase; }
-.cabecera .kanji { font-size: 22px; color: var(--apagado); }
+.cabecera .nombre { font-family: var(--mincho); font-weight: 800; font-size: 46px; line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cabecera .lema { font-size: 20px; color: var(--hai); white-space: nowrap; }
+.cabecera .kanji { writing-mode: vertical-rl; font-family: var(--mincho); font-weight: 800; font-size: 34px; line-height: 1; color: var(--color-clan, var(--hai)); }
 .cabecera.centro { left: 700px; width: 520px; flex-direction: column; justify-content: center; }
-.cabecera.centro .fase { font-size: 44px; font-weight: 700; }
-.cabecera.centro .partida { font-size: 24px; color: var(--apagado); }
-.cabecera.centro .rayita { position: absolute; bottom: -4px; left: 0; width: 100%; height: 4px; background: var(--rojo); }
-.lado { position: absolute; top: 176px; font-size: 22px; font-weight: 700; letter-spacing: 1px; }
-.lado.azul { left: 60px; color: var(--azul); }
-.lado.rojo { right: 60px; color: var(--rojo-claro); }
-.temporizador { position: absolute; top: 172px; left: 860px; width: 200px; text-align: center; font-size: 30px; font-weight: 700; color: var(--hueso); }
-.temporizador.urgente { color: var(--rojo-claro); }
+.cabecera.centro .fase { font-family: var(--mincho); font-weight: 800; font-size: 46px; line-height: 1.1; }
+.cabecera.centro .partida { font-size: 22px; color: var(--hai); }
+.cabecera.centro .rayita { position: absolute; bottom: -4px; left: 0; width: 100%; height: 4px; background: var(--shu); }
+.temporizador { position: absolute; top: 176px; left: 860px; width: 200px; text-align: center; font-family: var(--mincho); font-weight: 800; font-size: 40px; line-height: 1; font-variant-numeric: tabular-nums; }
+.temporizador.urgente { color: var(--shu-claro); }
 
 /* Picks */
 .picks { position: absolute; top: 220px; width: 600px; display: flex; flex-direction: column; gap: 15px; }
 .picks.azul { left: 60px; }
 .picks.rojo { left: 1260px; }
-.slot { position: relative; height: 120px; background: var(--placa); overflow: hidden; }
-.slot .arte { position: absolute; inset: 0; background-size: cover; background-position: 50% 22%; opacity: 0; transition: opacity .4s; }
+.slot { position: relative; height: 120px; background: var(--sumi-alzado); overflow: hidden; }
+.slot .arte { position: absolute; inset: 0; background-size: cover; background-position: 50% 22%; opacity: 0; transition: opacity .3s; }
 .slot.lleno .arte { opacity: 1; }
-.slot.hover .arte { opacity: .45; }
+.slot.hover .arte { opacity: .4; filter: grayscale(.4); }
 .slot .velo { position: absolute; inset: 0; }
-.picks.azul .velo { background: linear-gradient(90deg, rgba(28,25,21,.97) 0%, rgba(28,25,21,.85) 40%, rgba(28,25,21,0) 80%); }
-.picks.rojo .velo { background: linear-gradient(270deg, rgba(28,25,21,.97) 0%, rgba(28,25,21,.85) 40%, rgba(28,25,21,0) 80%); }
+.picks.azul .velo { background: linear-gradient(90deg, rgba(34,30,26,.97) 0%, rgba(34,30,26,.8) 42%, rgba(34,30,26,0) 82%); }
+.picks.rojo .velo { background: linear-gradient(270deg, rgba(34,30,26,.97) 0%, rgba(34,30,26,.8) 42%, rgba(34,30,26,0) 82%); }
 .slot .barra { position: absolute; top: 0; width: 8px; height: 100%; }
-.picks.azul .barra { left: 0; background: var(--azul); }
-.picks.rojo .barra { right: 0; background: var(--rojo); }
-.slot .textos { position: absolute; top: 18px; display: flex; flex-direction: column; gap: 6px; }
-.picks.azul .textos { left: 35px; }
-.picks.rojo .textos { right: 35px; text-align: right; }
-.slot .rol { font-size: 22px; font-weight: 700; color: var(--apagado); text-transform: uppercase; }
-.slot .campeon { font-size: 38px; font-weight: 700; text-transform: uppercase; }
-.slot.activo { outline: 4px solid var(--hueso); outline-offset: -4px; animation: latido 1.2s ease-in-out infinite; }
-.picks.azul .slot.activo { outline-color: var(--azul); }
-.picks.rojo .slot.activo { outline-color: var(--rojo); }
-@keyframes latido { 50% { outline-color: transparent; } }
+.picks.azul .barra { left: 0; background: var(--azul-lado); }
+.picks.rojo .barra { right: 0; background: var(--rojo-lado); }
+.slot .textos { position: absolute; top: 16px; display: flex; flex-direction: column; }
+.picks.azul .textos { left: 34px; }
+.picks.rojo .textos { right: 34px; text-align: right; }
+.slot .linea-rol { display: flex; gap: 10px; font-size: 20px; }
+.picks.rojo .linea-rol { flex-direction: row-reverse; }
+.slot .rol { color: var(--hai); }
+.slot .jugador { font-weight: 700; }
+.slot .campeon { font-family: var(--mincho); font-weight: 800; font-size: 44px; line-height: 1.15; }
+.slot.activo { box-shadow: inset 0 0 0 3px var(--azul-lado); animation: latido 1.2s ease-in-out infinite; }
+.picks.rojo .slot.activo { box-shadow: inset 0 0 0 3px var(--rojo-lado); }
+@keyframes latido { 50% { box-shadow: inset 0 0 0 3px transparent; } }
+
+/* Pincelada al fijar un pick: el trazo bermellón barre el hueco y deja el splash detrás */
+.slot .trazo { position: absolute; inset: -10px -40px; background: var(--shu); opacity: 0; pointer-events: none;
+  clip-path: polygon(0 20%, 100% 0, 100% 80%, 0 100%); }
+.slot.recien .arte { animation: revelar .7s cubic-bezier(.6, .1, .2, 1) both; }
+.slot.recien .trazo { animation: barrer .7s cubic-bezier(.6, .1, .2, 1) both; }
+.picks.rojo .slot.recien .arte { animation-name: revelar-rojo; }
+.picks.rojo .slot.recien .trazo { animation-name: barrer-rojo; }
+@keyframes revelar { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes revelar-rojo { from { clip-path: inset(0 0 0 100%); } to { clip-path: inset(0 0 0 0); } }
+@keyframes barrer { 0% { opacity: .95; transform: translateX(-105%); } 70% { opacity: .95; } 100% { opacity: 0; transform: translateX(105%); } }
+@keyframes barrer-rojo { 0% { opacity: .95; transform: translateX(105%); } 70% { opacity: .95; } 100% { opacity: 0; transform: translateX(-105%); } }
 
 /* Centro */
 .centro-vs { position: absolute; left: 760px; top: 300px; width: 400px; display: flex; flex-direction: column; align-items: center; transition: opacity .3s; }
-.centro-vs .vs { font-size: 110px; font-weight: 700; color: var(--rojo-claro); line-height: 1.2; }
-.centro-vs .koryu { width: 200px; height: 191px; object-fit: contain; margin: 20px 0; }
-.centro-vs .tenka { font-size: 44px; font-weight: 700; }
+.centro-vs .vs { font-family: var(--mincho); font-weight: 800; font-size: 120px; line-height: 1.1; color: var(--shu-claro); }
+.centro-vs .koryu { width: 190px; height: 182px; object-fit: contain; margin: 16px 0; }
+.centro-vs .tenka { font-family: var(--mincho); font-weight: 800; font-size: 46px; }
 .centro-vs.oculto { opacity: 0; }
 
-/* Tarjeta de estadísticas al pickear o banear */
-.tarjeta { position: absolute; left: 700px; top: 230px; width: 520px; background: var(--placa); border-top: 6px solid var(--azul);
-  padding: 28px 30px 30px; display: flex; flex-direction: column; align-items: center; gap: 14px; animation: entrada .35s ease-out; }
-.tarjeta.rojo { border-top-color: var(--rojo); }
-.tarjeta .icono { width: 150px; height: 150px; border: 3px solid var(--hueso); }
+/* Tarjeta de estadísticas */
+.tarjeta { position: absolute; left: 700px; top: 240px; width: 520px; background: var(--sumi-alzado); padding: 28px 30px 26px;
+  display: grid; grid-template-columns: 132px 1fr; column-gap: 22px; row-gap: 18px; animation: entrada .4s cubic-bezier(.2, .8, .2, 1); }
+.tarjeta[hidden], .fearless[hidden] { display: none; }
+.tarjeta::before { content: ''; position: absolute; inset: 0 0 auto; height: 6px; background: var(--azul-lado); }
+.tarjeta.rojo::before { background: var(--rojo-lado); }
+.tarjeta .retrato { position: relative; }
+.tarjeta .icono { width: 132px; height: 132px; display: block; }
 .tarjeta.ban .icono { filter: grayscale(1) contrast(1.1); }
-.tarjeta .tipo { font-size: 22px; font-weight: 700; letter-spacing: 2px; color: var(--apagado); }
-.tarjeta .nombre { font-size: 46px; font-weight: 700; text-transform: uppercase; line-height: 1; }
-.tarjeta .quien { font-size: 22px; color: var(--apagado); text-align: center; }
-.tarjeta .datos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 100%; margin-top: 6px; }
-.tarjeta .dato { background: var(--tinta); padding: 12px 6px; text-align: center; }
-.tarjeta .dato b { display: block; font-size: 34px; color: var(--hueso); }
-.tarjeta .dato span { font-size: 16px; font-weight: 700; color: var(--apagado); letter-spacing: 1px; }
-.tarjeta .historial { font-size: 22px; font-weight: 700; color: var(--rojo-claro); text-align: center; min-height: 26px; }
-.tarjeta .muestra { font-size: 16px; color: var(--apagado); }
-@keyframes entrada { from { opacity: 0; transform: translateY(20px); } }
+.tarjeta .sello { position: absolute; right: -12px; bottom: -12px; width: 52px; height: 52px; font-size: 32px; box-shadow: 0 4px 10px rgba(0,0,0,.5); }
+.tarjeta .cabeza { align-self: center; }
+.tarjeta .quien { font-size: 20px; color: var(--hai); }
+.tarjeta .nombre { font-family: var(--mincho); font-weight: 800; font-size: 50px; line-height: 1.05; }
+.tarjeta .datos { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.tarjeta .dato { background: var(--sumi); padding: 12px 6px 10px; text-align: center; }
+.tarjeta .dato b { display: block; font-family: var(--mincho); font-weight: 800; font-size: 38px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.tarjeta .dato span { font-size: 16px; color: var(--hai); }
+.tarjeta .historial { grid-column: 1 / -1; font-size: 21px; font-weight: 700; color: var(--shu-claro); }
+.tarjeta .historial:empty { display: none; }
+.tarjeta .muestra { grid-column: 1 / -1; font-size: 16px; color: var(--hai); margin-top: -8px; }
+@keyframes entrada { from { opacity: 0; transform: translateY(18px); } }
 
 /* Fearless */
-.fearless { position: absolute; left: 680px; top: 800px; width: 560px; text-align: center; }
-.fearless .titulo { font-size: 18px; font-weight: 700; color: var(--apagado); letter-spacing: 2px; margin-bottom: 8px; }
+.fearless { position: absolute; left: 680px; top: 812px; width: 560px; text-align: center; }
+.fearless .titulo { font-size: 18px; color: var(--hai); margin-bottom: 8px; }
 .fearless .iconos { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
-.fearless img { width: 44px; height: 44px; filter: grayscale(1) brightness(.7); }
+.fearless img { width: 42px; height: 42px; filter: grayscale(1) brightness(.65); }
 
 /* Bans */
 .bans { position: absolute; top: 935px; display: flex; gap: 20px; }
 .bans.azul { left: 60px; }
 .bans.rojo { left: 1380px; flex-direction: row-reverse; }
-.ban { position: relative; width: 80px; height: 80px; background: var(--placa); border-bottom: 4px solid var(--azul); overflow: hidden; }
-.bans.rojo .ban { border-bottom-color: var(--rojo); }
-.ban img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) brightness(.8); }
-.ban.activo { outline: 3px solid var(--hueso); animation: latido 1.2s ease-in-out infinite; }
+.ban { position: relative; width: 80px; height: 80px; background: var(--sumi-alzado); border-bottom: 4px solid var(--azul-lado); overflow: hidden; }
+.bans.rojo .ban { border-bottom-color: var(--rojo-lado); }
+.ban img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) brightness(.75); }
+.ban.lleno::after { content: ''; position: absolute; left: -10%; top: 46%; width: 120%; height: 5px; background: var(--shu); transform: rotate(-38deg); opacity: .9; }
+.ban.activo { box-shadow: inset 0 0 0 3px var(--washi); animation: latido-ban 1.2s ease-in-out infinite; }
+@keyframes latido-ban { 50% { box-shadow: inset 0 0 0 3px transparent; } }
 .ban.hover img { opacity: .5; }
-.rotulo-bans { position: absolute; top: 962px; font-size: 22px; font-weight: 700; color: var(--apagado); }
+.rotulo-bans { position: absolute; top: 960px; font-size: 22px; color: var(--hai); }
 .rotulo-bans.azul { left: 560px; }
 .rotulo-bans.rojo { left: 1265px; width: 100px; text-align: right; }
 
 /* Pie */
-.pie { position: absolute; left: 680px; top: 944px; width: 560px; text-align: center; }
-.pie .liga { font-size: 24px; font-weight: 700; }
-.pie .jornada { font-size: 22px; color: var(--apagado); margin-top: 10px; }
+.pie { position: absolute; left: 680px; top: 940px; width: 560px; text-align: center; }
+.pie .liga { font-family: var(--mincho); font-weight: 800; font-size: 30px; line-height: 1.1; }
+.pie .jornada { font-size: 20px; color: var(--hai); margin-top: 6px; }

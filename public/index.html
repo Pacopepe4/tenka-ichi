@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tenka Ichi · Koryu Budo League</title>
+<meta name="description" content="Tenka Ichi, la liga de League of Legends de Koryu Budo: trece clanes samuráis caídos del cielo luchan por volver a ser el primero bajo el cielo.">
+<link rel="icon" href="/marca/koryu-budo.png">
+<link rel="stylesheet" href="/marca.css">
+<link rel="stylesheet" href="/inicio.css">
+</head>
+<body>
+<header class="barra">
+  <a class="marca" href="#inicio"><img src="/marca/koryu-budo.png" alt=""><span>Koryu Budo League</span></a>
+  <nav><a href="#clanes">Clanes</a><a href="#liga">Liga</a></nav>
+</header>
+
+<main>
+  <section id="inicio" class="portada">
+    <div class="tategaki" aria-hidden="true">天下一</div>
+    <div class="portada-texto">
+      <h1>Tenka Ichi</h1>
+      <p class="traduccion">El primero bajo el cielo</p>
+      <p class="lore">Tras la cuarta Pelea de Cinturones, los samuráis cayeron de la divinidad a la tierra. Trece clanes, un solo trono. Quien gane, volverá al cielo.</p>
+      <a class="boton" href="#clanes">Conoce a los clanes</a>
+    </div>
+    <figure class="sol"><img src="/marca/sol-partido.jpg" alt="El sol partido, emblema de Tenka Ichi"></figure>
+  </section>
+
+  <section id="clanes" class="clanes">
+    <div class="cabecera-seccion">
+      <h2>Los trece clanes</h2>
+      <p class="solo-raton">Pasa el ratón por la baraja para sacar una carta. Haz clic para ver su plantilla.</p>
+      <p class="solo-tactil">Desliza para ver las cartas y toca una para ver su plantilla.</p>
+    </div>
+    <div class="baraja" role="list"></div>
+  </section>
+
+  <section id="liga" class="liga">
+    <div class="cabecera-seccion">
+      <h2>La liga</h2>
+      <p class="resumen-liga"></p>
+    </div>
+    <div class="liga-rejilla">
+      <div class="bloque">
+        <h3>Clasificación</h3>
+        <ol class="clasificacion"></ol>
+      </div>
+      <div class="bloque">
+        <h3>Campeones con más presencia</h3>
+        <ol class="campeones"></ol>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <img src="/marca/koryu-budo.png" alt="">
+  <p>Tenka Ichi es la liga de League of Legends de Koryu Budo.</p>
+</footer>
+
+<dialog class="ficha" aria-labelledby="ficha-nombre">
+  <button class="cerrar" aria-label="Cerrar">×</button>
+  <div class="ficha-arte"><img alt=""></div>
+  <div class="ficha-texto">
+    <div class="ficha-cabeza">
+      <img class="ficha-logo" alt="">
+      <div>
+        <h3 id="ficha-nombre"></h3>
+        <p class="ficha-lema"></p>
+      </div>
+      <span class="ficha-kanji" aria-hidden="true"></span>
+    </div>
+    <p class="ficha-descripcion"></p>
+    <h4>Plantilla</h4>
+    <dl class="ficha-plantilla"></dl>
+    <p class="ficha-suplentes"></p>
+    <p class="ficha-record"></p>
+  </div>
+</dialog>
+
+<script type="module" src="/inicio.js"></script>
+</body>
+</html>

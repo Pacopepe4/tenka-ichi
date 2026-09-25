@@ -1,0 +1,121 @@
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--sumi); color: var(--washi); font: 17px/1.6 var(--gothic); }
+img { display: block; max-width: 100%; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--shu-claro); outline-offset: 3px; }
+
+/* Barra superior */
+.barra { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between;
+  padding: 12px clamp(16px, 4vw, 48px); background: rgba(22, 20, 18, .92); backdrop-filter: blur(6px); border-bottom: 1px solid var(--sumi-linea); }
+.marca { display: flex; align-items: center; gap: 12px; text-decoration: none; font-weight: 700; }
+.marca img { width: 40px; height: 38px; object-fit: contain; }
+.barra nav { display: flex; gap: clamp(14px, 3vw, 32px); }
+.barra nav a { text-decoration: none; color: var(--hai); font-weight: 500; }
+.barra nav a:hover { color: var(--washi); }
+
+/* Portada */
+.portada { position: relative; min-height: calc(100vh - 64px); display: grid; grid-template-columns: auto 1fr minmax(260px, 38%);
+  align-items: center; gap: clamp(20px, 4vw, 64px); padding: clamp(32px, 6vw, 88px) clamp(16px, 5vw, 64px); overflow: hidden; }
+.tategaki { writing-mode: vertical-rl; font-family: var(--mincho); font-weight: 800; color: var(--shu);
+  font-size: clamp(84px, 14vw, 200px); line-height: .95; letter-spacing: .06em; user-select: none; }
+.portada h1 { margin: 0; font-family: var(--mincho); font-weight: 800; font-size: clamp(56px, 9vw, 132px); line-height: .95; letter-spacing: -.01em; }
+.traduccion { margin: 10px 0 28px; font-family: var(--mincho); font-size: clamp(20px, 2.2vw, 28px); color: var(--hai); }
+.lore { max-width: 34em; margin: 0 0 32px; color: var(--washi); }
+.boton { display: inline-block; padding: 12px 22px; background: var(--shu); color: var(--washi); text-decoration: none; font-weight: 700; border-radius: 3px; }
+.boton:hover { background: var(--shu-claro); }
+.sol { margin: 0; justify-self: end; width: 100%; max-width: 480px; aspect-ratio: 4 / 5; overflow: hidden; }
+.sol img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Cabeceras de sección */
+.cabecera-seccion { max-width: 1180px; margin: 0 auto; padding: 0 clamp(16px, 5vw, 64px); }
+.cabecera-seccion h2 { margin: 0 0 6px; font-family: var(--mincho); font-weight: 800; font-size: clamp(36px, 5vw, 60px); line-height: 1.05; }
+.cabecera-seccion p { margin: 0; color: var(--hai); max-width: 40em; }
+
+/* Baraja */
+.clanes { padding: clamp(56px, 8vw, 110px) 0 clamp(40px, 6vw, 80px); border-top: 1px solid var(--sumi-linea); }
+.baraja { position: relative; height: 470px; max-width: 1180px; margin: 36px auto 0; }
+.carta { --x: 0px; --y: 0px; --r: 0deg; --s: 1;
+  position: absolute; left: 50%; bottom: 20px; width: 208px; height: 312px; margin-left: -104px;
+  transform: translate(var(--x), var(--y)) rotate(var(--r)) scale(var(--s)); transform-origin: 50% 110%;
+  transition: transform .38s cubic-bezier(.2, .8, .2, 1), box-shadow .38s;
+  border: 0; padding: 0; background: var(--sumi-alzado); color: var(--washi); cursor: pointer; text-align: left;
+  border-radius: 6px; overflow: hidden; box-shadow: 0 10px 24px rgba(0, 0, 0, .55); font: inherit; }
+.carta::before { content: ''; position: absolute; inset: 0 0 auto; height: 5px; background: var(--color); z-index: 2; }
+.carta img.arte { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.carta .velo { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(22,20,18,0) 45%, rgba(22,20,18,.92) 82%); }
+.carta .pie-carta { position: absolute; left: 14px; right: 14px; bottom: 12px; }
+.carta .nombre { display: block; font-family: var(--mincho); font-weight: 800; font-size: 28px; line-height: 1.05; }
+.carta .lema { display: block; font-size: 14px; color: var(--hai); }
+.carta .kanji { position: absolute; top: 14px; right: 10px; writing-mode: vertical-rl; font-family: var(--mincho); font-weight: 800;
+  font-size: 26px; color: var(--washi); text-shadow: 0 2px 8px rgba(0,0,0,.7); }
+.carta .logo-carta { position: absolute; top: 12px; left: 10px; width: 46px; height: 44px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,.6)); }
+.carta.activa { box-shadow: 0 24px 48px rgba(0, 0, 0, .7), 0 0 0 2px var(--color); }
+
+.solo-tactil { display: none; }
+@media (max-width: 760px) {
+  .solo-raton { display: none; }
+  .solo-tactil { display: block; }
+  .portada { grid-template-columns: 1fr; min-height: 0; }
+  .tategaki { position: absolute; right: 8px; top: 20px; font-size: 96px; opacity: .9; }
+  .sol { justify-self: start; max-width: 240px; }
+  .baraja { height: auto; display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 8px 16px 20px; }
+  .carta { position: relative; left: auto; bottom: auto; margin: 0; flex: 0 0 208px; transform: none !important; scroll-snap-align: center; }
+}
+
+/* Liga */
+.liga { padding: clamp(56px, 8vw, 110px) 0; border-top: 1px solid var(--sumi-linea); }
+.liga-rejilla { max-width: 1180px; margin: 32px auto 0; padding: 0 clamp(16px, 5vw, 64px); display: grid; grid-template-columns: 1fr 1.3fr; gap: clamp(24px, 4vw, 56px); }
+@media (max-width: 860px) { .liga-rejilla { grid-template-columns: 1fr; } }
+.bloque h3 { margin: 0 0 14px; font-family: var(--mincho); font-size: 26px; }
+.clasificacion, .campeones { list-style: none; margin: 0; padding: 0; }
+.clasificacion li { display: grid; grid-template-columns: 34px 40px 1fr auto; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--sumi-linea); }
+.clasificacion .puesto { font-family: var(--mincho); font-weight: 800; font-size: 22px; color: var(--hai); }
+.clasificacion li:first-child .puesto { color: var(--shu-claro); }
+.clasificacion img { width: 40px; height: 38px; object-fit: contain; }
+.clasificacion .record { font-variant-numeric: tabular-nums; font-weight: 700; }
+.campeones li { display: grid; grid-template-columns: 44px 1fr; gap: 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--sumi-linea); }
+.campeones img { width: 44px; height: 44px; border-radius: 3px; }
+.campeones .fila-nombre { display: flex; justify-content: space-between; gap: 8px; }
+.campeones .fila-nombre b { font-weight: 700; }
+.campeones .cifras { color: var(--hai); font-size: 14px; font-variant-numeric: tabular-nums; }
+.campeones .barra-presencia { height: 4px; background: var(--sumi-linea); margin-top: 6px; }
+.campeones .barra-presencia span { display: block; height: 100%; background: var(--shu); }
+.clasificacion li.vacio, .campeones li.vacio { display: block; color: var(--hai); padding: 16px 0; border-bottom: 0; }
+
+footer { display: flex; align-items: center; gap: 14px; padding: 32px clamp(16px, 5vw, 64px); border-top: 1px solid var(--sumi-linea); color: var(--hai); font-size: 15px; }
+footer img { width: 34px; height: 32px; object-fit: contain; }
+
+/* Ficha del clan */
+.ficha { width: min(920px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 0; border: 0; border-radius: 8px;
+  background: var(--sumi-alzado); color: var(--washi); display: none; grid-template-columns: 5fr 7fr; overflow: hidden; }
+.ficha[open] { display: grid; animation: abrir .3s cubic-bezier(.2, .8, .2, 1); }
+.ficha::backdrop { background: rgba(10, 9, 8, .78); }
+@keyframes abrir { from { opacity: 0; transform: translateY(24px) scale(.98); } }
+.ficha-arte { position: relative; min-height: 100%; border-right: 5px solid var(--color, var(--shu)); }
+.ficha-arte img { width: 100%; height: 100%; object-fit: cover; }
+.ficha-texto { padding: 28px 30px 30px; overflow-y: auto; }
+.ficha-cabeza { display: grid; grid-template-columns: 64px 1fr auto; gap: 16px; align-items: center; }
+.ficha-logo { width: 64px; height: 61px; object-fit: contain; }
+.ficha h3 { margin: 0; font-family: var(--mincho); font-weight: 800; font-size: 42px; line-height: 1; }
+.ficha-lema { margin: 4px 0 0; color: var(--color-texto, var(--hai)); font-weight: 700; }
+.ficha-kanji { writing-mode: vertical-rl; font-family: var(--mincho); font-weight: 800; font-size: 44px; color: var(--color-texto, var(--shu)); }
+.ficha-descripcion { margin: 20px 0 24px; font-size: 18px; }
+.ficha h4 { margin: 0 0 8px; font-family: var(--mincho); font-size: 22px; }
+.ficha-plantilla { display: grid; grid-template-columns: 110px 1fr; margin: 0; }
+.ficha-plantilla dt, .ficha-plantilla dd { margin: 0; padding: 9px 0; border-bottom: 1px solid var(--sumi-linea); }
+.ficha-plantilla dt { color: var(--hai); }
+.ficha-plantilla dd { font-weight: 700; }
+.ficha-plantilla dd.pendiente { color: var(--hai); font-weight: 400; font-style: italic; }
+.ficha-suplentes, .ficha-record { margin: 14px 0 0; color: var(--hai); font-size: 15px; }
+.cerrar { position: absolute; top: 10px; right: 12px; z-index: 2; width: 38px; height: 38px; border: 0; border-radius: 50%;
+  background: rgba(22, 20, 18, .8); color: var(--washi); font-size: 24px; line-height: 1; cursor: pointer; }
+@media (max-width: 760px) {
+  .ficha[open] { grid-template-columns: 1fr; }
+  .ficha-arte { height: 260px; min-height: 0; border-right: 0; border-bottom: 5px solid var(--color, var(--shu)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .carta, .ficha[open] { transition: none; animation: none; }
+}

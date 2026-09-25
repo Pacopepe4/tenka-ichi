@@ -1,0 +1,16 @@
+# Despliegue en Render (plan gratuito). En Render: New → Blueprint → elige este repositorio.
+services:
+  - type: web
+    name: tenka-ichi
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /salud
+    envVars:
+      - key: PANEL_CLAVE
+        sync: false        # Render te la pedirá al crear el servicio
+      - key: GOOGLE_SHEET_ID
+        sync: false
+      - key: GOOGLE_CREDENTIALS
+        sync: false

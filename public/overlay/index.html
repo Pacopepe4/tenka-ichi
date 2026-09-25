@@ -2,39 +2,33 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<title>TENKA ICHI · Overlay de draft</title>
+<title>Overlay de draft · Tenka Ichi</title>
+<link rel="stylesheet" href="/marca.css">
 <link rel="stylesheet" href="overlay.css">
 </head>
 <body>
 <div id="lienzo">
-  <!-- Cabeceras de equipo -->
-  <div class="cabecera azul"><div class="acento"></div><img class="logo" alt=""><div class="equipo"><span class="nombre"></span><span class="kanji"></span></div></div>
-  <div class="cabecera centro"><div class="fase">FASE DE DRAFT</div><div class="partida"></div><div class="rayita"></div></div>
-  <div class="cabecera rojo"><div class="acento"></div><div class="equipo"><span class="kanji"></span><span class="nombre"></span></div><img class="logo" alt=""></div>
-  <div class="lado azul">LADO AZUL</div>
-  <div class="lado rojo">LADO ROJO</div>
+  <div class="cabecera azul"><div class="acento"></div><img class="logo" alt=""><div class="equipo"><span class="nombre"></span><span class="lema"></span></div><span class="kanji"></span></div>
+  <div class="cabecera centro"><div class="fase">Fase de draft</div><div class="partida"></div><div class="rayita"></div></div>
+  <div class="cabecera rojo"><div class="acento"></div><span class="kanji"></span><div class="equipo"><span class="nombre"></span><span class="lema"></span></div><img class="logo" alt=""></div>
   <div class="temporizador"></div>
 
-  <!-- Picks -->
   <div class="picks azul"></div>
   <div class="picks rojo"></div>
 
-  <!-- Centro: VS o tarjeta de estadísticas -->
   <div class="centro-vs">
     <div class="vs">VS</div>
-    <img class="koryu" src="/marca/koryu-budo.png" alt="Koryu Budo">
+    <img class="koryu" src="/marca/koryu-budo.png" alt="">
     <div class="tenka">天下一</div>
   </div>
   <div class="tarjeta" hidden></div>
 
-  <!-- Fearless -->
-  <div class="fearless" hidden><div class="titulo">BLOQUEADOS · FEARLESS</div><div class="iconos"></div></div>
+  <div class="fearless" hidden><div class="titulo">Bloqueados en la serie</div><div class="iconos"></div></div>
 
-  <!-- Bans -->
-  <div class="bans azul"></div><div class="rotulo-bans azul">BANS</div>
-  <div class="bans rojo"></div><div class="rotulo-bans rojo">BANS</div>
+  <div class="bans azul"></div><div class="rotulo-bans azul">Bans</div>
+  <div class="bans rojo"></div><div class="rotulo-bans rojo">Bans</div>
 
-  <div class="pie"><div class="liga">TENKA ICHI · KORYU BUDO LEAGUE</div><div class="jornada"></div></div>
+  <div class="pie"><div class="liga">Tenka Ichi</div><div class="jornada"></div></div>
 </div>
 <script type="module" src="overlay.js"></script>
 </body>
