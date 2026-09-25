@@ -10,7 +10,7 @@ import { cargar, guardarPartida } from './registro.js';
 import { statsCampeon, statsLiga } from './stats.js';
 import { CLANES, ROLES } from './clanes.js';
 import { cargarPlantillas, plantilla, guardarPlantilla } from './plantillas.js';
-import { hojaActiva } from './sheets.js';
+import { estadoHoja } from './sheets.js';
 
 // Clanes con su plantilla actual (lema, descripción, jugadores) para las páginas
 const clanesConPlantilla = () => CLANES.map(c => ({ ...c, ...plantilla(c.id) }));
@@ -32,7 +32,7 @@ const estado = {
   fearless: [],
   resultados: [],
   aviso: null,
-  hoja: false,
+  hoja: { configurada: false, ok: false, error: null, cuenta: null },
 };
 
 // ---------- reparto en directo ----------
@@ -125,7 +125,9 @@ async function accion(nombre, d = {}) {
         picks: structuredClone(estado.draft.picks), bans: structuredClone(estado.draft.bans),
         jugadores: { azul: [...estado.equipos.azul.jugadores], rojo: [...estado.equipos.rojo.jugadores] },
       };
-      const r = await guardarPartida(p);
+      let r;
+      try { r = await guardarPartida(p); }
+      finally { estado.hoja = estadoHoja(); }
       estado.resultados.push({ partida: p.partida, ganador: d.lado, clan: d.lado === 'azul' ? p.clanAzul : p.clanRojo });
       if (estado.config.formato === 'bo3f') {
         for (const lado of ['azul', 'rojo']) estado.fearless.push(...p.picks[lado].filter(Boolean));
@@ -147,6 +149,10 @@ async function accion(nombre, d = {}) {
     case 'plantilla':
       await guardarPlantilla(d.clan, d);
       break;
+    case 'probarHoja':
+      await cargar().catch(() => {});
+      estado.hoja = estadoHoja();
+      return { ok: estado.hoja.ok, error: estado.hoja.ok ? null : (estado.hoja.error || 'Google Sheets no está configurado') };
     case 'limpiarAviso':
       estado.aviso = null;
       break;
@@ -170,6 +176,10 @@ const servidor = http.createServer(async (req, res) => {
   if (url.pathname === '/api/liga') {
     res.writeHead(200, { 'Content-Type': TIPOS['.json'], 'Cache-Control': 'no-cache' });
     return res.end(JSON.stringify(statsLiga()));
+  }
+  if (url.pathname === '/api/diagnostico') {
+    res.writeHead(200, { 'Content-Type': TIPOS['.json'], 'Cache-Control': 'no-cache' });
+    return res.end(JSON.stringify({ hoja: estadoHoja() }));
   }
   if (url.pathname === '/salud') { res.writeHead(200); return res.end('ok'); }
   let ruta = decodeURIComponent(url.pathname);
@@ -214,7 +224,7 @@ wss.on('connection', ws => {
 setInterval(() => { for (const ws of clientes) if (ws.readyState === 1) ws.ping(); }, 25000);
 
 await Promise.all([cargar(), cargarPlantillas()]);
-estado.hoja = hojaActiva();
+estado.hoja = estadoHoja();
 servidor.listen(PUERTO, () => {
   console.log(`TENKA ICHI Draft en http://localhost:${PUERTO}`);
   console.log(`  Panel:   http://localhost:${PUERTO}/panel/`);

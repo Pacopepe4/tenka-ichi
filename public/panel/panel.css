@@ -22,6 +22,7 @@ h2 { margin: 0 0 4px; font-family: var(--mincho); font-weight: 800; font-size: 2
 h3 { margin: 0 0 4px; font-size: 14px; color: var(--hai); font-weight: 500; }
 .ayuda { margin: 0 0 14px; color: var(--hai); font-size: 13.5px; }
 aside .ayuda { margin: 12px 0 0; }
+.ayuda.mal { color: var(--shu-claro); }
 .estado { margin: 12px 0 0; font-size: 14px; color: var(--hai); }
 .estado.ok { color: #9CD9A6; } .estado.mal { color: var(--shu-claro); }
 

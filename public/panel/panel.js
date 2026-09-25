@@ -116,9 +116,15 @@ function pintar() {
     h.classList.toggle('activo', Boolean(a && `${a.tipo}s` === h.dataset.tipo && a.lado === h.dataset.lado && a.indice === Number(h.dataset.i)));
   });
 
-  $('#ayudaHoja').textContent = e.hoja
+  const h = e.hoja || {};
+  const ayudaHoja = $('#ayudaHoja');
+  ayudaHoja.textContent = h.ok
     ? 'Al acabar la partida marca el ganador: los picks y bans se guardan en Google Sheets.'
-    : 'Al acabar la partida marca el ganador. Google Sheets aún no está conectado: el registro se guarda en un archivo local.';
+    : h.configurada
+      ? `Google Sheets no responde: ${h.error || 'error desconocido'}. El registro se guarda de momento en un archivo local.`
+      : 'Al acabar la partida marca el ganador. Google Sheets aún no está conectado: el registro se guarda en un archivo local.';
+  ayudaHoja.classList.toggle('mal', Boolean(h.configurada && !h.ok));
+  $('#probarHoja').hidden = !h.configurada || h.ok;
   $('#resultados').innerHTML = e.resultados.map(r => `<li>Partida ${r.partida}: gana <b>${clanes.clan(r.clan).nombre}</b> (lado ${r.ganador})</li>`).join('');
 }
 
@@ -145,6 +151,7 @@ const ganador = lado => async () => {
 $('#ganaAzul').onclick = ganador('azul');
 $('#ganaRojo').onclick = ganador('rojo');
 $('#siguiente').onclick = () => enviar('siguiente');
+$('#probarHoja').onclick = async () => { const r = await enviar('probarHoja'); if (r.ok) aviso('Google Sheets conectado'); };
 $('#nuevaSerie').onclick = () => { if (confirm('¿Empezar una serie nueva? Se quitan los bloqueos fearless.')) enviar('nuevaSerie'); };
 
 // ---------- Vista previa y enlaces ----------

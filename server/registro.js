@@ -7,7 +7,7 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ROLES } from './clanes.js';
-import { hojaActiva, asegurarPestana, leer, anadir } from './sheets.js';
+import { hojaActiva, asegurarPestana, leer, anadir, marcarError } from './sheets.js';
 
 const ARCHIVO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'data', 'registro.json');
 const PESTANA = 'Registro';
@@ -61,6 +61,7 @@ export async function cargar() {
       console.log(`Registro: ${partidas.length} partidas leídas de Google Sheets`);
       return partidas;
     } catch (e) {
+      marcarError(e.message);
       console.error('No se pudo leer el registro de Google Sheets, uso el archivo local:', e.message);
     }
   }
@@ -79,6 +80,8 @@ export async function guardarPartida(p) {
   partidas.push(p);
   await mkdir(path.dirname(ARCHIVO), { recursive: true });
   await writeFile(ARCHIVO, JSON.stringify(partidas, null, 1));
-  if (hojaActiva()) await anadir(PESTANA, aFilas(p));
-  return { enHoja: hojaActiva() };
+  if (!hojaActiva()) return { enHoja: false };
+  await asegurarPestana(PESTANA, CABECERA);
+  await anadir(PESTANA, aFilas(p));
+  return { enHoja: true };
 }
