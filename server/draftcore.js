@@ -2,26 +2,27 @@
 // Se une a un draft como espectador por Socket.IO y traduce su formato al nuestro.
 //
 // Formato de DraftCore (comprobado el 23/09/2026 con un draft de prueba):
-//   ban1..ban10  bans por orden de turno       b1..b5 / r1..r5  picks azul / rojo
+//   ban1..ban5 / ban6..ban10  bans azul / rojo      b1..b5 / r1..r5  picks azul / rojo
 //   turn         turno actual (1..20)          hovered          campeón en hover
 //   Los campeones vienen con el id de Data Dragon ("Ahri", "MonkeyKing"...).
 import { io } from 'socket.io-client';
 
 const SERVIDOR = 'https://ws.lol.draftcore.net';
 
+// Los bans de DraftCore son posicionales: ban1..ban5 = lado azul, ban6..ban10 = lado rojo
+// (comprobado con un draft real el 25/09/2026).
 // Orden de turnos de un draft de torneo (fase de bans 1, picks 1, bans 2, picks 2)
 export const TURNOS = [
-  'ban1', 'ban2', 'ban3', 'ban4', 'ban5', 'ban6',
+  'ban1', 'ban6', 'ban2', 'ban7', 'ban3', 'ban8',
   'b1', 'r1', 'r2', 'b2', 'b3', 'r3',
-  'ban7', 'ban8', 'ban9', 'ban10',
+  'ban9', 'ban4', 'ban10', 'ban5',
   'r4', 'b4', 'b5', 'r5',
 ];
 
 // A qué lado y posición corresponde cada ban de DraftCore
 const BANS = {
-  ban1: ['azul', 0], ban2: ['rojo', 0], ban3: ['azul', 1], ban4: ['rojo', 1],
-  ban5: ['azul', 2], ban6: ['rojo', 2], ban7: ['rojo', 3], ban8: ['azul', 3],
-  ban9: ['rojo', 4], ban10: ['azul', 4],
+  ban1: ['azul', 0], ban2: ['azul', 1], ban3: ['azul', 2], ban4: ['azul', 3], ban5: ['azul', 4],
+  ban6: ['rojo', 0], ban7: ['rojo', 1], ban8: ['rojo', 2], ban9: ['rojo', 3], ban10: ['rojo', 4],
 };
 
 // Extrae el código de un enlace de DraftCore ("https://lol.draftcore.net/EN5AQ2N" → "EN5AQ2N")
