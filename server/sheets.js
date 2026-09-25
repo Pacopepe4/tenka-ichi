@@ -10,10 +10,16 @@ export function hojaActiva() {
 }
 
 // Acepta el código de la hoja o la dirección entera
+// (los códigos de Google Sheets tienen unos 44 caracteres de letras, números, _ y -)
 function idHoja() {
   const v = String(process.env.GOOGLE_SHEET_ID || '').trim();
-  const m = v.match(/\/d\/([A-Za-z0-9_-]+)/);
+  const m = v.match(/\/d\/([A-Za-z0-9_-]{20,})/) || v.match(/([A-Za-z0-9_-]{25,})/);
   return m ? m[1] : v;
+}
+
+function idResumido() {
+  const id = idHoja();
+  return id ? `${id.slice(0, 4)}…${id.slice(-4)} (${id.length} caracteres)` : null;
 }
 
 // Acepta el JSON pegado con espacios, saltos o comillas alrededor
@@ -43,6 +49,8 @@ function jwt() {
 function explicar(e) {
   const estado = e?.response?.status;
   const msg = e?.response?.data?.error?.message || e.message;
+  if (/^\s*</.test(String(msg))) return `Google no encuentra la hoja con el código ${idResumido()}: revisa GOOGLE_SHEET_ID (el código entre /d/ y /edit) y que sea una hoja de Google, no un .xlsx subido.`;
+  if (estado === 400 && /not supported for this document/i.test(msg)) return 'El archivo es un Excel subido a Drive, no una hoja de Google: ábrelo y usa Archivo → Guardar como Hojas de cálculo de Google, y pon el código de la nueva hoja.';
   if (estado === 403 && /has not been used|disabled/i.test(msg)) return 'La Google Sheets API no está habilitada en el proyecto de Google Cloud.';
   if (estado === 403) return `La cuenta de servicio no tiene permiso en la hoja: compártela como Editor con ${correoCuenta()}.`;
   if (estado === 404) return 'No se encuentra la hoja: revisa GOOGLE_SHEET_ID (el código entre /d/ y /edit).';
@@ -62,7 +70,8 @@ async function peticion(opciones) {
 }
 
 export function estadoHoja() {
-  return { configurada: hojaActiva(), ok: hojaActiva() && !ultimoError, error: ultimoError, cuenta: correoCuenta() };
+  return { configurada: hojaActiva(), ok: hojaActiva() && !ultimoError, error: ultimoError, cuenta: correoCuenta(),
+    hoja: hojaActiva() ? idResumido() : null };
 }
 
 export function marcarError(msg) {
