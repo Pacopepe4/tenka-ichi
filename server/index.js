@@ -6,9 +6,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
 import { conectar, codigoDeEnlace, destinoDeSlot } from './draftcore.js';
-import { cargar, guardarPartida, usaHoja } from './registro.js';
-import { statsCampeon } from './stats.js';
+import { cargar, guardarPartida } from './registro.js';
+import { statsCampeon, statsLiga } from './stats.js';
 import { CLANES, ROLES } from './clanes.js';
+import { cargarPlantillas, plantilla, guardarPlantilla } from './plantillas.js';
+import { hojaActiva } from './sheets.js';
+
+// Clanes con su plantilla actual (lema, descripción, jugadores) para las páginas
+const clanesConPlantilla = () => CLANES.map(c => ({ ...c, ...plantilla(c.id) }));
 
 const PUERTO = Number(process.env.PORT) || 3000;
 const CLAVE = process.env.PANEL_CLAVE || 'tenkaichi';
@@ -139,6 +144,9 @@ async function accion(nombre, d = {}) {
       estado.draft = { turno: 0, activo: null, hover: null, tiempo: null, bans: vacio(), picks: vacio() };
       estado.aviso = null;
       break;
+    case 'plantilla':
+      await guardarPlantilla(d.clan, d);
+      break;
     case 'limpiarAviso':
       estado.aviso = null;
       break;
@@ -156,12 +164,15 @@ const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; ch
 const servidor = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   if (url.pathname === '/api/clanes') {
-    res.writeHead(200, { 'Content-Type': TIPOS['.json'] });
-    return res.end(JSON.stringify({ clanes: CLANES, roles: ROLES }));
+    res.writeHead(200, { 'Content-Type': TIPOS['.json'], 'Cache-Control': 'no-cache' });
+    return res.end(JSON.stringify({ clanes: clanesConPlantilla(), roles: ROLES }));
+  }
+  if (url.pathname === '/api/liga') {
+    res.writeHead(200, { 'Content-Type': TIPOS['.json'], 'Cache-Control': 'no-cache' });
+    return res.end(JSON.stringify(statsLiga()));
   }
   if (url.pathname === '/salud') { res.writeHead(200); return res.end('ok'); }
   let ruta = decodeURIComponent(url.pathname);
-  if (ruta === '/') { res.writeHead(302, { Location: '/panel/' }); return res.end(); }
   if (ruta.endsWith('/')) ruta += 'index.html';
   const archivo = path.join(PUBLICO, path.normalize(ruta));
   if (!archivo.startsWith(PUBLICO)) { res.writeHead(403); return res.end(); }
@@ -202,8 +213,8 @@ wss.on('connection', ws => {
 // Mantiene vivas las conexiones (Render corta las que están inactivas)
 setInterval(() => { for (const ws of clientes) if (ws.readyState === 1) ws.ping(); }, 25000);
 
-await cargar();
-estado.hoja = usaHoja();
+await Promise.all([cargar(), cargarPlantillas()]);
+estado.hoja = hojaActiva();
 servidor.listen(PUERTO, () => {
   console.log(`TENKA ICHI Draft en http://localhost:${PUERTO}`);
   console.log(`  Panel:   http://localhost:${PUERTO}/panel/`);

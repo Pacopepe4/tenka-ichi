@@ -1,52 +1,32 @@
 // Registro de partidas terminadas.
 // - Siempre se guarda en data/registro.json (útil en local).
-// - Si hay credenciales de Google (GOOGLE_SHEET_ID + GOOGLE_CREDENTIALS), además se
-//   escribe en la pestaña "Registro" de la hoja, y al arrancar se lee de ahí
-//   (en Render el disco se borra al reiniciar, así que la hoja es la fuente de verdad).
+// - Con Google Sheets configurado, además se escribe en la pestaña "Registro", y al
+//   arrancar se lee de ahí (en Render el disco se borra al reiniciar, así que la hoja
+//   es la fuente de verdad).
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { JWT } from 'google-auth-library';
 import { ROLES } from './clanes.js';
+import { hojaActiva, asegurarPestana, leer, anadir } from './sheets.js';
 
 const ARCHIVO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'data', 'registro.json');
 const PESTANA = 'Registro';
 const CABECERA = ['Fecha', 'Jornada', 'Fase', 'Serie', 'Partida', 'Clan azul', 'Clan rojo', 'Ganador',
-  'Lado', 'Tipo', 'Orden', 'Rol', 'Jugador', 'Clan', 'Campeón'];
+  'Lado', 'Tipo', 'Orden', 'Rol', 'Jugador', 'Clan', 'Campeón', 'Resultado'];
 
 let partidas = [];
-
-function hoja() {
-  const id = process.env.GOOGLE_SHEET_ID;
-  const cred = process.env.GOOGLE_CREDENTIALS;
-  if (!id || !cred) return null;
-  const c = JSON.parse(cred);
-  const jwt = new JWT({ email: c.client_email, key: c.private_key, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
-  const base = `https://sheets.googleapis.com/v4/spreadsheets/${id}/values`;
-  return {
-    async leer() {
-      const r = await jwt.request({ url: `${base}/${encodeURIComponent(PESTANA)}!A:O` });
-      return r.data.values || [];
-    },
-    async anadir(filas) {
-      await jwt.request({
-        url: `${base}/${encodeURIComponent(PESTANA)}!A:O:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
-        method: 'POST',
-        data: { values: filas },
-      });
-    },
-  };
-}
 
 // Una fila por pick y por ban (20 por partida): fácil de filtrar y de hacer tablas dinámicas
 function aFilas(p) {
   const filas = [];
   for (const lado of ['azul', 'rojo']) {
     const clanLado = lado === 'azul' ? p.clanAzul : p.clanRojo;
+    const clanGanador = p.ganador === 'azul' ? p.clanAzul : p.clanRojo;
+    const resultado = p.ganador === lado ? 'Victoria' : 'Derrota';
     p.picks[lado].forEach((campeon, i) => filas.push([p.fecha, p.jornada, p.fase, p.serie, p.partida, p.clanAzul, p.clanRojo,
-      p.ganador, lado, 'pick', i + 1, ROLES[i], p.jugadores[lado][i] || '', clanLado, campeon || '']));
+      clanGanador, lado, 'pick', i + 1, ROLES[i], p.jugadores[lado][i] || '', clanLado, campeon || '', resultado]));
     p.bans[lado].forEach((campeon, i) => filas.push([p.fecha, p.jornada, p.fase, p.serie, p.partida, p.clanAzul, p.clanRojo,
-      p.ganador, lado, 'ban', i + 1, '', '', clanLado, campeon || '']));
+      clanGanador, lado, 'ban', i + 1, '', '', clanLado, campeon || '', resultado]));
   }
   return filas;
 }
@@ -56,7 +36,8 @@ function deFilas(filas) {
   const mapa = new Map();
   for (const f of filas) {
     if (f[0] === 'Fecha' || f.length < 15) continue;
-    const [fecha, jornada, fase, serie, partida, clanAzul, clanRojo, ganador, lado, tipo, orden, , jugador, , campeon] = f;
+    const [fecha, jornada, fase, serie, partida, clanAzul, clanRojo, clanGanador, lado, tipo, orden, , jugador, , campeon] = f;
+    const ganador = clanGanador === 'azul' || clanGanador === 'rojo' ? clanGanador : (clanGanador === clanAzul ? 'azul' : 'rojo');
     const clave = `${fecha}|${serie}|${partida}`;
     if (!mapa.has(clave)) mapa.set(clave, {
       fecha, jornada, fase, serie, partida: Number(partida), clanAzul, clanRojo, ganador,
@@ -73,16 +54,14 @@ function deFilas(filas) {
 }
 
 export async function cargar() {
-  const h = hoja();
-  if (h) {
+  if (hojaActiva()) {
     try {
-      const filas = await h.leer();
-      if (!filas.length) await h.anadir([CABECERA]);
-      partidas = deFilas(filas);
+      await asegurarPestana(PESTANA, CABECERA);
+      partidas = deFilas(await leer(PESTANA));
       console.log(`Registro: ${partidas.length} partidas leídas de Google Sheets`);
       return partidas;
     } catch (e) {
-      console.error('No se pudo leer Google Sheets, uso el archivo local:', e.message);
+      console.error('No se pudo leer el registro de Google Sheets, uso el archivo local:', e.message);
     }
   }
   try {
@@ -100,11 +79,6 @@ export async function guardarPartida(p) {
   partidas.push(p);
   await mkdir(path.dirname(ARCHIVO), { recursive: true });
   await writeFile(ARCHIVO, JSON.stringify(partidas, null, 1));
-  const h = hoja();
-  if (h) await h.anadir(aFilas(p));
-  return { enHoja: Boolean(h) };
-}
-
-export function usaHoja() {
-  return Boolean(process.env.GOOGLE_SHEET_ID && process.env.GOOGLE_CREDENTIALS);
+  if (hojaActiva()) await anadir(PESTANA, aFilas(p));
+  return { enHoja: hojaActiva() };
 }

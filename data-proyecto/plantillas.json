@@ -1,0 +1,182 @@
+{
+ "SARU": {
+  "lema": "El Rey Mono",
+  "descripcion": "Fuerza y agilidad infinitas. Arrogante: lucha por diversión, no por honor.",
+  "jugadores": [
+   "",
+   "",
+   "",
+   "",
+   ""
+  ],
+  "suplentes": ""
+ },
+ "KAMIKAZE": {
+  "lema": "El Samurái del Viento",
+  "descripcion": "Corte huracanado. Estoico: máximo impacto con el mínimo esfuerzo.",
+  "jugadores": [
+   "",
+   "",
+   "",
+   "",
+   ""
+  ],
+  "suplentes": ""
+ },
+ "KURU": {
+  "lema": "El Samurái del Tiempo",
+  "descripcion": "Fallas temporales. Manipula pasado y futuro. Campeón de los desafíos anteriores.",
+  "jugadores": [
+   "",
+   "",
+   "",
+   "",
+   ""
+  ],
+  "suplentes": ""
+ },
+ "DORAGON": {
+  "lema": "El Samurái del Dragón",
+  "descripcion": "Furia azul del dragón. Disciplinado y frío: nadie ha roto su defensa.",
+  "jugadores": [
+   "",
+   "",
+   "",
+   "",
+   ""
+  ],
+  "suplentes": ""
+ },
+ "ATSUI": {
+  "lema": "El Samurái del Fuego Azul",
+  "descripcion": "Llama pura. Rápido y pasional: su fuego consume energía, no carne.",
+  "jugadores": [
+   "",
+   "",
+   "",
+   "",
+   ""
+  ],
+  "suplentes": ""
+ },
+ "RAIJIN": {
+  "lema": "El Samurái del Rayo",
+  "descripcion": "El rayo sin control. Más potencia bruta que ningún otro clan.",
+  "jugadores": [
+   "",
+   "",
+   "",
+   "",
+   ""
+  ],
+  "suplentes": ""
+ },
+ "KAIJU": {
+  "lema": "El Samurái Berserker",
+  "descripcion": "Transformación bestial. Su fuerza crece con cada golpe que recibe.",
+  "jugadores": [
+   "",
+   "",
+   "",
+   "",
+   ""
+  ],
+  "suplentes": ""
+ },
+ "KEMONO": {
+  "lema": "El Rey de las Bestias",
+  "descripcion": "Mimetismo animal. Astucia, camuflaje y hambre.",
+  "jugadores": [
+   "",
+   "",
+   "",
+   "",
+   ""
+  ],
+  "suplentes": ""
+ },
+ "TORA": {
+  "lema": "El Samurái Tigre",
+  "descripcion": "Garras de espíritu. Orgulloso y felino: ataca solo con ventaja.",
+  "jugadores": [
+   "",
+   "",
+   "",
+   "",
+   ""
+  ],
+  "suplentes": ""
+ },
+ "KANJI": {
+  "lema": "El Samurái de las Runas",
+  "descripcion": "Sello mágico. Trampas y conjuros rúnicos: el mejor cerebro del torneo.",
+  "jugadores": [
+   "",
+   "",
+   "",
+   "",
+   ""
+  ],
+  "suplentes": ""
+ },
+ "CHIRU": {
+  "lema": "El Samurái Calmado",
+  "descripcion": "Meditación defensiva. Anula la intención de cada ataque.",
+  "jugadores": [
+   "",
+   "",
+   "",
+   "",
+   ""
+  ],
+  "suplentes": ""
+ },
+ "BUSHI": {
+  "lema": "El Rey Guerrero",
+  "descripcion": "Aura de guerra y dominio técnico absoluto. Combate tradicional puro.",
+  "jugadores": [
+   "",
+   "",
+   "",
+   "",
+   ""
+  ],
+  "suplentes": ""
+ },
+ "AMATERATSU": {
+  "lema": "La Reina del Sol",
+  "descripcion": "Luz y fuego negro. Busca vencer en equilibrio, nunca por la espalda.",
+  "jugadores": [
+   "",
+   "",
+   "",
+   "",
+   ""
+  ],
+  "suplentes": ""
+ },
+ "NEGROCLARO": {
+  "lema": "",
+  "descripcion": "",
+  "jugadores": [
+   "",
+   "",
+   "",
+   "",
+   ""
+  ],
+  "suplentes": ""
+ },
+ "NONAME": {
+  "lema": "",
+  "descripcion": "",
+  "jugadores": [
+   "",
+   "",
+   "",
+   "",
+   ""
+  ],
+  "suplentes": ""
+ }
+}
