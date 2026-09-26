@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "node server/index.js",
-    "ddragon": "node scripts/ddragon.js"
+    "ddragon": "node scripts/ddragon.js",
+    "simular": "node scripts/simular.js"
   },
   "engines": {
     "node": ">=20"

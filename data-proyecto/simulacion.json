@@ -1,0 +1,2619 @@
+{
+ "semilla": 1509,
+ "generado": "2026-09-26T09:45:22.296Z",
+ "calendario": {
+  "semilla": 1509,
+  "participantes": [
+   "KURU",
+   "KEMONO",
+   "TORA",
+   "ATSUI",
+   "KANJI",
+   "KAIJU",
+   "SARU",
+   "KAMIKAZE",
+   "DORAGON",
+   "RAIJIN"
+  ],
+  "jornadas": [
+   [
+    {
+     "id": "J1-1",
+     "jornada": 1,
+     "azul": "SARU",
+     "rojo": "KANJI"
+    },
+    {
+     "id": "J1-2",
+     "jornada": 1,
+     "azul": "KURU",
+     "rojo": "KAIJU"
+    },
+    {
+     "id": "J1-3",
+     "jornada": 1,
+     "azul": "KAMIKAZE",
+     "rojo": "TORA"
+    },
+    {
+     "id": "J1-4",
+     "jornada": 1,
+     "azul": "KEMONO",
+     "rojo": "DORAGON"
+    },
+    {
+     "id": "J1-5",
+     "jornada": 1,
+     "azul": "ATSUI",
+     "rojo": "RAIJIN"
+    }
+   ],
+   [
+    {
+     "id": "J2-1",
+     "jornada": 2,
+     "azul": "KAIJU",
+     "rojo": "RAIJIN"
+    },
+    {
+     "id": "J2-2",
+     "jornada": 2,
+     "azul": "SARU",
+     "rojo": "ATSUI"
+    },
+    {
+     "id": "J2-3",
+     "jornada": 2,
+     "azul": "TORA",
+     "rojo": "KURU"
+    },
+    {
+     "id": "J2-4",
+     "jornada": 2,
+     "azul": "DORAGON",
+     "rojo": "KAMIKAZE"
+    },
+    {
+     "id": "J2-5",
+     "jornada": 2,
+     "azul": "KANJI",
+     "rojo": "KEMONO"
+    }
+   ],
+   [
+    {
+     "id": "J3-1",
+     "jornada": 3,
+     "azul": "RAIJIN",
+     "rojo": "DORAGON"
+    },
+    {
+     "id": "J3-2",
+     "jornada": 3,
+     "azul": "KANJI",
+     "rojo": "KAMIKAZE"
+    },
+    {
+     "id": "J3-3",
+     "jornada": 3,
+     "azul": "ATSUI",
+     "rojo": "KAIJU"
+    },
+    {
+     "id": "J3-4",
+     "jornada": 3,
+     "azul": "KURU",
+     "rojo": "KEMONO"
+    },
+    {
+     "id": "J3-5",
+     "jornada": 3,
+     "azul": "TORA",
+     "rojo": "SARU"
+    }
+   ],
+   [
+    {
+     "id": "J4-1",
+     "jornada": 4,
+     "azul": "KANJI",
+     "rojo": "ATSUI"
+    },
+    {
+     "id": "J4-2",
+     "jornada": 4,
+     "azul": "DORAGON",
+     "rojo": "KURU"
+    },
+    {
+     "id": "J4-3",
+     "jornada": 4,
+     "azul": "KAMIKAZE",
+     "rojo": "KEMONO"
+    },
+    {
+     "id": "J4-4",
+     "jornada": 4,
+     "azul": "KAIJU",
+     "rojo": "SARU"
+    },
+    {
+     "id": "J4-5",
+     "jornada": 4,
+     "azul": "RAIJIN",
+     "rojo": "TORA"
+    }
+   ],
+   [
+    {
+     "id": "J5-1",
+     "jornada": 5,
+     "azul": "ATSUI",
+     "rojo": "TORA"
+    },
+    {
+     "id": "J5-2",
+     "jornada": 5,
+     "azul": "KAMIKAZE",
+     "rojo": "KURU"
+    },
+    {
+     "id": "J5-3",
+     "jornada": 5,
+     "azul": "KAIJU",
+     "rojo": "KANJI"
+    },
+    {
+     "id": "J5-4",
+     "jornada": 5,
+     "azul": "DORAGON",
+     "rojo": "SARU"
+    },
+    {
+     "id": "J5-5",
+     "jornada": 5,
+     "azul": "KEMONO",
+     "rojo": "RAIJIN"
+    }
+   ]
+  ]
+ },
+ "partidas": [
+  {
+   "fecha": "2026-10-05",
+   "jornada": "Jornada 1",
+   "fase": "Fase de liga",
+   "serie": "Jornada 1 · SARU vs KANJI",
+   "partida": 1,
+   "clanAzul": "SARU",
+   "clanRojo": "KANJI",
+   "ganador": "azul",
+   "picks": {
+    "azul": [
+     "Khazix",
+     "Smolder",
+     "Malphite",
+     "Neeko",
+     "Zoe"
+    ],
+    "rojo": [
+     "Shaco",
+     "Kennen",
+     "Poppy",
+     "Vi",
+     "Cassiopeia"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Kaisa",
+     "Blitzcrank",
+     "Heimerdinger",
+     "Warwick",
+     "Karthus"
+    ],
+    "rojo": [
+     "Twitch",
+     "Riven",
+     "Nasus",
+     "Skarner",
+     "Ekko"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Tora",
+     "Shiro",
+     "Aki",
+     "Sato",
+     "Shin"
+    ],
+    "rojo": [
+     "Kaze",
+     "Moku",
+     "Hana",
+     "Toshi",
+     "Oni"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-10-05",
+   "jornada": "Jornada 1",
+   "fase": "Fase de liga",
+   "serie": "Jornada 1 · KURU vs KAIJU",
+   "partida": 1,
+   "clanAzul": "KURU",
+   "clanRojo": "KAIJU",
+   "ganador": "rojo",
+   "picks": {
+    "azul": [
+     "Viego",
+     "Taliyah",
+     "Shen",
+     "DrMundo",
+     "Lux"
+    ],
+    "rojo": [
+     "Samira",
+     "Annie",
+     "Galio",
+     "Nasus",
+     "Renata"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Shaco",
+     "Yone",
+     "LeeSin",
+     "MissFortune",
+     "Malzahar"
+    ],
+    "rojo": [
+     "Karthus",
+     "Sett",
+     "Tryndamere",
+     "Nidalee",
+     "Heimerdinger"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Goro",
+     "Kiba",
+     "Nami",
+     "Hotaru",
+     "Jin"
+    ],
+    "rojo": [
+     "Hayate",
+     "Ren",
+     "Daichi",
+     "Sen",
+     "Gin"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-10-05",
+   "jornada": "Jornada 1",
+   "fase": "Fase de liga",
+   "serie": "Jornada 1 · KAMIKAZE vs TORA",
+   "partida": 1,
+   "clanAzul": "KAMIKAZE",
+   "clanRojo": "TORA",
+   "ganador": "azul",
+   "picks": {
+    "azul": [
+     "Rakan",
+     "Yorick",
+     "Nasus",
+     "Shaco",
+     "Jax"
+    ],
+    "rojo": [
+     "Talon",
+     "Annie",
+     "Viego",
+     "Karthus",
+     "Leblanc"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Hwei",
+     "Sett",
+     "Vi",
+     "Xerath",
+     "Camille"
+    ],
+    "rojo": [
+     "Neeko",
+     "Zoe",
+     "TwistedFate",
+     "Jayce",
+     "Cassiopeia"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Ko",
+     "Yuki",
+     "Yoru",
+     "Ichi",
+     "Nobu"
+    ],
+    "rojo": [
+     "Yama",
+     "Tetsu",
+     "Ryu",
+     "Kage",
+     "Hikari"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-10-05",
+   "jornada": "Jornada 1",
+   "fase": "Fase de liga",
+   "serie": "Jornada 1 · KEMONO vs DORAGON",
+   "partida": 1,
+   "clanAzul": "KEMONO",
+   "clanRojo": "DORAGON",
+   "ganador": "rojo",
+   "picks": {
+    "azul": [
+     "Sivir",
+     "AurelionSol",
+     "Qiyana",
+     "Rakan",
+     "Karthus"
+    ],
+    "rojo": [
+     "TwistedFate",
+     "Zeri",
+     "Ashe",
+     "Nasus",
+     "Corki"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Ornn",
+     "Sona",
+     "Samira",
+     "Kindred",
+     "Annie"
+    ],
+    "rojo": [
+     "Neeko",
+     "Fiddlesticks",
+     "Twitch",
+     "Xayah",
+     "Galio"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Taka",
+     "Masa",
+     "Ikki",
+     "Haru",
+     "Fuyu"
+    ],
+    "rojo": [
+     "Arashi",
+     "Raiden",
+     "Rin",
+     "Kaito",
+     "Sora"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-10-05",
+   "jornada": "Jornada 1",
+   "fase": "Fase de liga",
+   "serie": "Jornada 1 · ATSUI vs RAIJIN",
+   "partida": 1,
+   "clanAzul": "ATSUI",
+   "clanRojo": "RAIJIN",
+   "ganador": "rojo",
+   "picks": {
+    "azul": [
+     "Sivir",
+     "Pyke",
+     "LeeSin",
+     "Ezreal",
+     "Yone"
+    ],
+    "rojo": [
+     "Draven",
+     "Orianna",
+     "Viktor",
+     "Nidalee",
+     "Tryndamere"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Malzahar",
+     "Zoe",
+     "Twitch",
+     "Lulu",
+     "Vi"
+    ],
+    "rojo": [
+     "Samira",
+     "Annie",
+     "Kayn",
+     "Karthus",
+     "Kayle"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Natsu",
+     "Tsubame",
+     "Akuma",
+     "Kuro",
+     "Washi"
+    ],
+    "rojo": [
+     "Kenshin",
+     "Umi",
+     "Enma",
+     "Mizu",
+     "Zen"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-10-12",
+   "jornada": "Jornada 2",
+   "fase": "Fase de liga",
+   "serie": "Jornada 2 · KAIJU vs RAIJIN",
+   "partida": 1,
+   "clanAzul": "KAIJU",
+   "clanRojo": "RAIJIN",
+   "ganador": "azul",
+   "picks": {
+    "azul": [
+     "Malzahar",
+     "Viktor",
+     "Swain",
+     "LeeSin",
+     "DrMundo"
+    ],
+    "rojo": [
+     "Tryndamere",
+     "Nasus",
+     "Zoe",
+     "Fizz",
+     "Varus"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Teemo",
+     "Yorick",
+     "Zeri",
+     "Talon",
+     "Jax"
+    ],
+    "rojo": [
+     "Karthus",
+     "Pantheon",
+     "Leblanc",
+     "Lissandra",
+     "Warwick"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Hayate",
+     "Ren",
+     "Daichi",
+     "Sen",
+     "Gin"
+    ],
+    "rojo": [
+     "Kenshin",
+     "Umi",
+     "Enma",
+     "Mizu",
+     "Zen"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-10-12",
+   "jornada": "Jornada 2",
+   "fase": "Fase de liga",
+   "serie": "Jornada 2 · SARU vs ATSUI",
+   "partida": 1,
+   "clanAzul": "SARU",
+   "clanRojo": "ATSUI",
+   "ganador": "rojo",
+   "picks": {
+    "azul": [
+     "Irelia",
+     "Neeko",
+     "Taliyah",
+     "Kayn",
+     "Fiddlesticks"
+    ],
+    "rojo": [
+     "Karthus",
+     "Malphite",
+     "Tryndamere",
+     "Sona",
+     "Galio"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Aurora",
+     "MonkeyKing",
+     "Sett",
+     "Annie",
+     "DrMundo"
+    ],
+    "rojo": [
+     "Mel",
+     "Talon",
+     "Nasus",
+     "Udyr",
+     "Senna"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Tora",
+     "Shiro",
+     "Aki",
+     "Sato",
+     "Shin"
+    ],
+    "rojo": [
+     "Natsu",
+     "Tsubame",
+     "Akuma",
+     "Kuro",
+     "Washi"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-10-12",
+   "jornada": "Jornada 2",
+   "fase": "Fase de liga",
+   "serie": "Jornada 2 · TORA vs KURU",
+   "partida": 1,
+   "clanAzul": "TORA",
+   "clanRojo": "KURU",
+   "ganador": "azul",
+   "picks": {
+    "azul": [
+     "Illaoi",
+     "Neeko",
+     "Rakan",
+     "Sivir",
+     "Fiddlesticks"
+    ],
+    "rojo": [
+     "Shen",
+     "Rammus",
+     "Lillia",
+     "Renata",
+     "Vayne"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Blitzcrank",
+     "Qiyana",
+     "Swain",
+     "Heimerdinger",
+     "MasterYi"
+    ],
+    "rojo": [
+     "Zoe",
+     "Xerath",
+     "Camille",
+     "Viego",
+     "Nasus"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Yama",
+     "Tetsu",
+     "Ryu",
+     "Kage",
+     "Hikari"
+    ],
+    "rojo": [
+     "Goro",
+     "Kiba",
+     "Nami",
+     "Hotaru",
+     "Jin"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-10-12",
+   "jornada": "Jornada 2",
+   "fase": "Fase de liga",
+   "serie": "Jornada 2 · DORAGON vs KAMIKAZE",
+   "partida": 1,
+   "clanAzul": "DORAGON",
+   "clanRojo": "KAMIKAZE",
+   "ganador": "rojo",
+   "picks": {
+    "azul": [
+     "Pantheon",
+     "Karthus",
+     "TwistedFate",
+     "Viktor",
+     "Jax"
+    ],
+    "rojo": [
+     "Tryndamere",
+     "Hwei",
+     "Shaco",
+     "Heimerdinger",
+     "Annie"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Malzahar",
+     "Kalista",
+     "Senna",
+     "Talon",
+     "Illaoi"
+    ],
+    "rojo": [
+     "Thresh",
+     "Yone",
+     "Vex",
+     "Sivir",
+     "Nidalee"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Arashi",
+     "Raiden",
+     "Rin",
+     "Kaito",
+     "Sora"
+    ],
+    "rojo": [
+     "Ko",
+     "Yuki",
+     "Yoru",
+     "Ichi",
+     "Nobu"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-10-12",
+   "jornada": "Jornada 2",
+   "fase": "Fase de liga",
+   "serie": "Jornada 2 · KANJI vs KEMONO",
+   "partida": 1,
+   "clanAzul": "KANJI",
+   "clanRojo": "KEMONO",
+   "ganador": "rojo",
+   "picks": {
+    "azul": [
+     "Locke",
+     "Jax",
+     "AurelionSol",
+     "Ryze",
+     "Warwick"
+    ],
+    "rojo": [
+     "Renata",
+     "Annie",
+     "Kassadin",
+     "Nasus",
+     "Shaco"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Blitzcrank",
+     "Draven",
+     "Malphite",
+     "Briar",
+     "Talon"
+    ],
+    "rojo": [
+     "Yone",
+     "Galio",
+     "Zoe",
+     "Gangplank",
+     "Sona"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Kaze",
+     "Moku",
+     "Hana",
+     "Toshi",
+     "Oni"
+    ],
+    "rojo": [
+     "Taka",
+     "Masa",
+     "Ikki",
+     "Haru",
+     "Fuyu"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-10-19",
+   "jornada": "Jornada 3",
+   "fase": "Fase de liga",
+   "serie": "Jornada 3 · RAIJIN vs DORAGON",
+   "partida": 1,
+   "clanAzul": "RAIJIN",
+   "clanRojo": "DORAGON",
+   "ganador": "rojo",
+   "picks": {
+    "azul": [
+     "Heimerdinger",
+     "Annie",
+     "Draven",
+     "Xayah",
+     "Varus"
+    ],
+    "rojo": [
+     "MasterYi",
+     "Nocturne",
+     "Renata",
+     "Taliyah",
+     "Swain"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Samira",
+     "Cassiopeia",
+     "Ziggs",
+     "Sylas",
+     "Lux"
+    ],
+    "rojo": [
+     "Warwick",
+     "Viktor",
+     "Belveth",
+     "Jinx",
+     "Tryndamere"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Kenshin",
+     "Umi",
+     "Enma",
+     "Mizu",
+     "Zen"
+    ],
+    "rojo": [
+     "Arashi",
+     "Raiden",
+     "Rin",
+     "Kaito",
+     "Sora"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-10-19",
+   "jornada": "Jornada 3",
+   "fase": "Fase de liga",
+   "serie": "Jornada 3 · KANJI vs KAMIKAZE",
+   "partida": 1,
+   "clanAzul": "KANJI",
+   "clanRojo": "KAMIKAZE",
+   "ganador": "rojo",
+   "picks": {
+    "azul": [
+     "DrMundo",
+     "Tryndamere",
+     "Nasus",
+     "Hwei",
+     "Ashe"
+    ],
+    "rojo": [
+     "Urgot",
+     "MasterYi",
+     "Taric",
+     "Vex",
+     "Ryze"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Qiyana",
+     "Rakan",
+     "Nunu",
+     "Viego",
+     "Galio"
+    ],
+    "rojo": [
+     "Renata",
+     "Heimerdinger",
+     "Sett",
+     "Camille",
+     "Karthus"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Kaze",
+     "Moku",
+     "Hana",
+     "Toshi",
+     "Oni"
+    ],
+    "rojo": [
+     "Ko",
+     "Yuki",
+     "Yoru",
+     "Ichi",
+     "Nobu"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-10-19",
+   "jornada": "Jornada 3",
+   "fase": "Fase de liga",
+   "serie": "Jornada 3 · ATSUI vs KAIJU",
+   "partida": 1,
+   "clanAzul": "ATSUI",
+   "clanRojo": "KAIJU",
+   "ganador": "rojo",
+   "picks": {
+    "azul": [
+     "Skarner",
+     "Kaisa",
+     "Heimerdinger",
+     "Pyke",
+     "Karthus"
+    ],
+    "rojo": [
+     "Corki",
+     "Annie",
+     "Hwei",
+     "Qiyana",
+     "AurelionSol"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Swain",
+     "Warwick",
+     "Poppy",
+     "Sona",
+     "Ornn"
+    ],
+    "rojo": [
+     "DrMundo",
+     "Nidalee",
+     "Malzahar",
+     "Quinn",
+     "Xayah"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Natsu",
+     "Tsubame",
+     "Akuma",
+     "Kuro",
+     "Washi"
+    ],
+    "rojo": [
+     "Hayate",
+     "Ren",
+     "Daichi",
+     "Sen",
+     "Gin"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-10-19",
+   "jornada": "Jornada 3",
+   "fase": "Fase de liga",
+   "serie": "Jornada 3 · KURU vs KEMONO",
+   "partida": 1,
+   "clanAzul": "KURU",
+   "clanRojo": "KEMONO",
+   "ganador": "azul",
+   "picks": {
+    "azul": [
+     "Kaisa",
+     "Neeko",
+     "Poppy",
+     "Blitzcrank",
+     "Warwick"
+    ],
+    "rojo": [
+     "Zoe",
+     "Nasus",
+     "Rakan",
+     "Yorick",
+     "Lillia"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Qiyana",
+     "Katarina",
+     "Malphite",
+     "Viktor",
+     "Sejuani"
+    ],
+    "rojo": [
+     "Sona",
+     "Senna",
+     "Swain",
+     "Aurora",
+     "LeeSin"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Goro",
+     "Kiba",
+     "Nami",
+     "Hotaru",
+     "Jin"
+    ],
+    "rojo": [
+     "Taka",
+     "Masa",
+     "Ikki",
+     "Haru",
+     "Fuyu"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-10-19",
+   "jornada": "Jornada 3",
+   "fase": "Fase de liga",
+   "serie": "Jornada 3 · TORA vs SARU",
+   "partida": 1,
+   "clanAzul": "TORA",
+   "clanRojo": "SARU",
+   "ganador": "azul",
+   "picks": {
+    "azul": [
+     "Sylas",
+     "Samira",
+     "Nidalee",
+     "Shaco",
+     "Jayce"
+    ],
+    "rojo": [
+     "Galio",
+     "Viego",
+     "MissFortune",
+     "Graves",
+     "Viktor"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Ornn",
+     "AurelionSol",
+     "Orianna",
+     "Camille",
+     "Nasus"
+    ],
+    "rojo": [
+     "Twitch",
+     "Thresh",
+     "Taliyah",
+     "Warwick",
+     "Zed"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Yama",
+     "Tetsu",
+     "Ryu",
+     "Kage",
+     "Hikari"
+    ],
+    "rojo": [
+     "Tora",
+     "Shiro",
+     "Aki",
+     "Sato",
+     "Shin"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-10-26",
+   "jornada": "Jornada 4",
+   "fase": "Fase de liga",
+   "serie": "Jornada 4 · KANJI vs ATSUI",
+   "partida": 1,
+   "clanAzul": "KANJI",
+   "clanRojo": "ATSUI",
+   "ganador": "azul",
+   "picks": {
+    "azul": [
+     "Samira",
+     "Skarner",
+     "Shaco",
+     "Zeri",
+     "Locke"
+    ],
+    "rojo": [
+     "Viktor",
+     "Twitch",
+     "Talon",
+     "LeeSin",
+     "Camille"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Fizz",
+     "Pyke",
+     "Poppy",
+     "MissFortune",
+     "Nidalee"
+    ],
+    "rojo": [
+     "Warwick",
+     "DrMundo",
+     "Lillia",
+     "Annie",
+     "Rakan"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Kaze",
+     "Moku",
+     "Hana",
+     "Toshi",
+     "Oni"
+    ],
+    "rojo": [
+     "Natsu",
+     "Tsubame",
+     "Akuma",
+     "Kuro",
+     "Washi"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-10-26",
+   "jornada": "Jornada 4",
+   "fase": "Fase de liga",
+   "serie": "Jornada 4 · DORAGON vs KURU",
+   "partida": 1,
+   "clanAzul": "DORAGON",
+   "clanRojo": "KURU",
+   "ganador": "rojo",
+   "picks": {
+    "azul": [
+     "Talon",
+     "Sivir",
+     "MissFortune",
+     "Yone",
+     "Pyke"
+    ],
+    "rojo": [
+     "Urgot",
+     "Renata",
+     "Poppy",
+     "Nocturne",
+     "Jayce"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "DrMundo",
+     "Shen",
+     "Leblanc",
+     "Locke",
+     "Malzahar"
+    ],
+    "rojo": [
+     "Vi",
+     "Ryze",
+     "Taliyah",
+     "Renekton",
+     "Sona"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Arashi",
+     "Raiden",
+     "Rin",
+     "Kaito",
+     "Sora"
+    ],
+    "rojo": [
+     "Goro",
+     "Kiba",
+     "Nami",
+     "Hotaru",
+     "Jin"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-10-26",
+   "jornada": "Jornada 4",
+   "fase": "Fase de liga",
+   "serie": "Jornada 4 · KAMIKAZE vs KEMONO",
+   "partida": 1,
+   "clanAzul": "KAMIKAZE",
+   "clanRojo": "KEMONO",
+   "ganador": "rojo",
+   "picks": {
+    "azul": [
+     "Urgot",
+     "Cassiopeia",
+     "Xerath",
+     "Ahri",
+     "AurelionSol"
+    ],
+    "rojo": [
+     "Malphite",
+     "Poppy",
+     "Khazix",
+     "Yone",
+     "Ornn"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Nocturne",
+     "Kayle",
+     "Sivir",
+     "DrMundo",
+     "Graves"
+    ],
+    "rojo": [
+     "Nunu",
+     "Vex",
+     "Qiyana",
+     "Pantheon",
+     "Locke"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Ko",
+     "Yuki",
+     "Yoru",
+     "Ichi",
+     "Nobu"
+    ],
+    "rojo": [
+     "Taka",
+     "Masa",
+     "Ikki",
+     "Haru",
+     "Fuyu"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-10-26",
+   "jornada": "Jornada 4",
+   "fase": "Fase de liga",
+   "serie": "Jornada 4 · KAIJU vs SARU",
+   "partida": 1,
+   "clanAzul": "KAIJU",
+   "clanRojo": "SARU",
+   "ganador": "azul",
+   "picks": {
+    "azul": [
+     "Nasus",
+     "Nidalee",
+     "Ezreal",
+     "Ashe",
+     "Jax"
+    ],
+    "rojo": [
+     "Heimerdinger",
+     "Locke",
+     "Annie",
+     "Xerath",
+     "Vi"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Shaco",
+     "Rakan",
+     "Viego",
+     "Sett",
+     "Fiddlesticks"
+    ],
+    "rojo": [
+     "Sejuani",
+     "Renata",
+     "Irelia",
+     "Zoe",
+     "Qiyana"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Hayate",
+     "Ren",
+     "Daichi",
+     "Sen",
+     "Gin"
+    ],
+    "rojo": [
+     "Tora",
+     "Shiro",
+     "Aki",
+     "Sato",
+     "Shin"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-10-26",
+   "jornada": "Jornada 4",
+   "fase": "Fase de liga",
+   "serie": "Jornada 4 · RAIJIN vs TORA",
+   "partida": 1,
+   "clanAzul": "RAIJIN",
+   "clanRojo": "TORA",
+   "ganador": "rojo",
+   "picks": {
+    "azul": [
+     "Sett",
+     "Annie",
+     "Sylas",
+     "Senna",
+     "Malzahar"
+    ],
+    "rojo": [
+     "Galio",
+     "Vi",
+     "Poppy",
+     "Pyke",
+     "Warwick"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Renekton",
+     "Nocturne",
+     "Viego",
+     "Camille",
+     "LeeSin"
+    ],
+    "rojo": [
+     "DrMundo",
+     "Sivir",
+     "Taliyah",
+     "Renata",
+     "Locke"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Kenshin",
+     "Umi",
+     "Enma",
+     "Mizu",
+     "Zen"
+    ],
+    "rojo": [
+     "Yama",
+     "Tetsu",
+     "Ryu",
+     "Kage",
+     "Hikari"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-11-02",
+   "jornada": "Jornada 5",
+   "fase": "Fase de liga",
+   "serie": "Jornada 5 · ATSUI vs TORA",
+   "partida": 1,
+   "clanAzul": "ATSUI",
+   "clanRojo": "TORA",
+   "ganador": "rojo",
+   "picks": {
+    "azul": [
+     "Xerath",
+     "Evelynn",
+     "Kassadin",
+     "Taliyah",
+     "Lulu"
+    ],
+    "rojo": [
+     "Ezreal",
+     "MissFortune",
+     "Qiyana",
+     "Aurora",
+     "Ornn"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "XinZhao",
+     "Ashe",
+     "Karthus",
+     "Talon",
+     "Viktor"
+    ],
+    "rojo": [
+     "Khazix",
+     "Cassiopeia",
+     "Annie",
+     "Leblanc",
+     "Locke"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Natsu",
+     "Tsubame",
+     "Akuma",
+     "Kuro",
+     "Washi"
+    ],
+    "rojo": [
+     "Yama",
+     "Tetsu",
+     "Ryu",
+     "Kage",
+     "Hikari"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-11-02",
+   "jornada": "Jornada 5",
+   "fase": "Fase de liga",
+   "serie": "Jornada 5 · KAMIKAZE vs KURU",
+   "partida": 1,
+   "clanAzul": "KAMIKAZE",
+   "clanRojo": "KURU",
+   "ganador": "azul",
+   "picks": {
+    "azul": [
+     "Nidalee",
+     "Viego",
+     "Cassiopeia",
+     "Varus",
+     "Nautilus"
+    ],
+    "rojo": [
+     "Malzahar",
+     "Vex",
+     "Rumble",
+     "Draven",
+     "Aatrox"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Sivir",
+     "Locke",
+     "Khazix",
+     "Twitch",
+     "Poppy"
+    ],
+    "rojo": [
+     "Karma",
+     "Warwick",
+     "Irelia",
+     "AurelionSol",
+     "Fiddlesticks"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Ko",
+     "Yuki",
+     "Yoru",
+     "Ichi",
+     "Nobu"
+    ],
+    "rojo": [
+     "Goro",
+     "Kiba",
+     "Nami",
+     "Hotaru",
+     "Jin"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-11-02",
+   "jornada": "Jornada 5",
+   "fase": "Fase de liga",
+   "serie": "Jornada 5 · KAIJU vs KANJI",
+   "partida": 1,
+   "clanAzul": "KAIJU",
+   "clanRojo": "KANJI",
+   "ganador": "azul",
+   "picks": {
+    "azul": [
+     "Camille",
+     "Leblanc",
+     "Warwick",
+     "Thresh",
+     "Annie"
+    ],
+    "rojo": [
+     "Zoe",
+     "Sona",
+     "Gwen",
+     "Sett",
+     "DrMundo"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Anivia",
+     "Locke",
+     "Hwei",
+     "Aurora",
+     "Skarner"
+    ],
+    "rojo": [
+     "Malzahar",
+     "Tryndamere",
+     "Urgot",
+     "Rakan",
+     "Karthus"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Hayate",
+     "Ren",
+     "Daichi",
+     "Sen",
+     "Gin"
+    ],
+    "rojo": [
+     "Kaze",
+     "Moku",
+     "Hana",
+     "Toshi",
+     "Oni"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-11-02",
+   "jornada": "Jornada 5",
+   "fase": "Fase de liga",
+   "serie": "Jornada 5 · DORAGON vs SARU",
+   "partida": 1,
+   "clanAzul": "DORAGON",
+   "clanRojo": "SARU",
+   "ganador": "azul",
+   "picks": {
+    "azul": [
+     "AurelionSol",
+     "Xerath",
+     "Heimerdinger",
+     "Sona",
+     "Taliyah"
+    ],
+    "rojo": [
+     "Xayah",
+     "Zeri",
+     "Zoe",
+     "Pantheon",
+     "Karthus"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Soraka",
+     "Leblanc",
+     "Zaahen",
+     "Locke",
+     "Illaoi"
+    ],
+    "rojo": [
+     "Nunu",
+     "Vi",
+     "Cassiopeia",
+     "Galio",
+     "Yone"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Arashi",
+     "Raiden",
+     "Rin",
+     "Kaito",
+     "Sora"
+    ],
+    "rojo": [
+     "Tora",
+     "Shiro",
+     "Aki",
+     "Sato",
+     "Shin"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-11-02",
+   "jornada": "Jornada 5",
+   "fase": "Fase de liga",
+   "serie": "Jornada 5 · KEMONO vs RAIJIN",
+   "partida": 1,
+   "clanAzul": "KEMONO",
+   "clanRojo": "RAIJIN",
+   "ganador": "azul",
+   "picks": {
+    "azul": [
+     "Swain",
+     "Fizz",
+     "Zoe",
+     "Soraka",
+     "Irelia"
+    ],
+    "rojo": [
+     "Aurora",
+     "Talon",
+     "Nasus",
+     "Viego",
+     "Karthus"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Malzahar",
+     "Varus",
+     "Fiora",
+     "Leblanc",
+     "Sona"
+    ],
+    "rojo": [
+     "Sion",
+     "Rakan",
+     "Pantheon",
+     "XinZhao",
+     "Locke"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Taka",
+     "Masa",
+     "Ikki",
+     "Haru",
+     "Fuyu"
+    ],
+    "rojo": [
+     "Kenshin",
+     "Umi",
+     "Enma",
+     "Mizu",
+     "Zen"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-11-09",
+   "jornada": "Desempate",
+   "fase": "Desempate",
+   "serie": "Desempate · KANJI vs SARU",
+   "partida": 1,
+   "clanAzul": "KANJI",
+   "clanRojo": "SARU",
+   "ganador": "rojo",
+   "picks": {
+    "azul": [
+     "Renata",
+     "Annie",
+     "Camille",
+     "Galio",
+     "Ornn"
+    ],
+    "rojo": [
+     "Akali",
+     "Vi",
+     "Mel",
+     "Jayce",
+     "Warwick"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Cassiopeia",
+     "Sona",
+     "Sion",
+     "Poppy",
+     "Qiyana"
+    ],
+    "rojo": [
+     "Karthus",
+     "Nautilus",
+     "Fizz",
+     "Taliyah",
+     "Viktor"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Kaze",
+     "Moku",
+     "Hana",
+     "Toshi",
+     "Oni"
+    ],
+    "rojo": [
+     "Tora",
+     "Shiro",
+     "Aki",
+     "Sato",
+     "Shin"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-11-16",
+   "jornada": "Cuartos de final",
+   "fase": "Fase final",
+   "serie": "Cuartos de final · KAIJU vs SARU",
+   "partida": 1,
+   "clanAzul": "KAIJU",
+   "clanRojo": "SARU",
+   "ganador": "rojo",
+   "picks": {
+    "azul": [
+     "Viktor",
+     "Riven",
+     "DrMundo",
+     "Warwick",
+     "Pyke"
+    ],
+    "rojo": [
+     "Kaisa",
+     "Zeri",
+     "Annie",
+     "Hwei",
+     "Nasus"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Qiyana",
+     "Fizz",
+     "Udyr",
+     "Vi",
+     "Ashe"
+    ],
+    "rojo": [
+     "Evelynn",
+     "Xerath",
+     "Nautilus",
+     "Sivir",
+     "Heimerdinger"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Hayate",
+     "Ren",
+     "Daichi",
+     "Sen",
+     "Gin"
+    ],
+    "rojo": [
+     "Tora",
+     "Shiro",
+     "Aki",
+     "Sato",
+     "Shin"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-11-16",
+   "jornada": "Cuartos de final",
+   "fase": "Fase final",
+   "serie": "Cuartos de final · KAIJU vs SARU",
+   "partida": 2,
+   "clanAzul": "KAIJU",
+   "clanRojo": "SARU",
+   "ganador": "azul",
+   "picks": {
+    "azul": [
+     "Sett",
+     "Swain",
+     "Sona",
+     "Camille",
+     "Zoe"
+    ],
+    "rojo": [
+     "Hecarim",
+     "Poppy",
+     "Nocturne",
+     "Nidalee",
+     "Galio"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Vi",
+     "TwistedFate",
+     "Karthus",
+     "Mel",
+     "Malzahar"
+    ],
+    "rojo": [
+     "Neeko",
+     "Cassiopeia",
+     "Leblanc",
+     "KogMaw",
+     "MissFortune"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Hayate",
+     "Ren",
+     "Daichi",
+     "Sen",
+     "Gin"
+    ],
+    "rojo": [
+     "Tora",
+     "Shiro",
+     "Aki",
+     "Sato",
+     "Shin"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-11-16",
+   "jornada": "Cuartos de final",
+   "fase": "Fase final",
+   "serie": "Cuartos de final · KAIJU vs SARU",
+   "partida": 3,
+   "clanAzul": "KAIJU",
+   "clanRojo": "SARU",
+   "ganador": "rojo",
+   "picks": {
+    "azul": [
+     "Twitch",
+     "Urgot",
+     "Malzahar",
+     "MasterYi",
+     "MissFortune"
+    ],
+    "rojo": [
+     "Blitzcrank",
+     "Varus",
+     "Senna",
+     "Rakan",
+     "Teemo"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Leblanc",
+     "KogMaw",
+     "TwistedFate",
+     "Fiddlesticks",
+     "Skarner"
+    ],
+    "rojo": [
+     "Locke",
+     "Jax",
+     "Karthus",
+     "Sivir",
+     "Evelynn"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Hayate",
+     "Ren",
+     "Daichi",
+     "Sen",
+     "Gin"
+    ],
+    "rojo": [
+     "Tora",
+     "Shiro",
+     "Aki",
+     "Sato",
+     "Shin"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-11-16",
+   "jornada": "Cuartos de final",
+   "fase": "Fase final",
+   "serie": "Cuartos de final · DORAGON vs KEMONO",
+   "partida": 1,
+   "clanAzul": "DORAGON",
+   "clanRojo": "KEMONO",
+   "ganador": "rojo",
+   "picks": {
+    "azul": [
+     "Nasus",
+     "Sona",
+     "Fiddlesticks",
+     "Zeri",
+     "Malphite"
+    ],
+    "rojo": [
+     "Nunu",
+     "AurelionSol",
+     "Aurora",
+     "Mordekaiser",
+     "Zoe"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "MissFortune",
+     "Talon",
+     "DrMundo",
+     "Skarner",
+     "Thresh"
+    ],
+    "rojo": [
+     "Rengar",
+     "Vex",
+     "Pyke",
+     "MasterYi",
+     "Kalista"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Arashi",
+     "Raiden",
+     "Rin",
+     "Kaito",
+     "Sora"
+    ],
+    "rojo": [
+     "Taka",
+     "Masa",
+     "Ikki",
+     "Haru",
+     "Fuyu"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-11-16",
+   "jornada": "Cuartos de final",
+   "fase": "Fase final",
+   "serie": "Cuartos de final · DORAGON vs KEMONO",
+   "partida": 2,
+   "clanAzul": "DORAGON",
+   "clanRojo": "KEMONO",
+   "ganador": "azul",
+   "picks": {
+    "azul": [
+     "Senna",
+     "Zed",
+     "Udyr",
+     "Camille",
+     "Evelynn"
+    ],
+    "rojo": [
+     "Fizz",
+     "Thresh",
+     "Varus",
+     "Renata",
+     "Kaisa"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Hwei",
+     "MissFortune",
+     "Ornn",
+     "Twitch",
+     "Sett"
+    ],
+    "rojo": [
+     "Viktor",
+     "Tryndamere",
+     "Ryze",
+     "Rakan",
+     "Shaco"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Arashi",
+     "Raiden",
+     "Rin",
+     "Kaito",
+     "Sora"
+    ],
+    "rojo": [
+     "Taka",
+     "Masa",
+     "Ikki",
+     "Haru",
+     "Fuyu"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-11-16",
+   "jornada": "Cuartos de final",
+   "fase": "Fase final",
+   "serie": "Cuartos de final · DORAGON vs KEMONO",
+   "partida": 3,
+   "clanAzul": "KEMONO",
+   "clanRojo": "DORAGON",
+   "ganador": "rojo",
+   "picks": {
+    "azul": [
+     "Rakan",
+     "Samira",
+     "Pyke",
+     "DrMundo",
+     "Cassiopeia"
+    ],
+    "rojo": [
+     "Volibear",
+     "Kassadin",
+     "Kayn",
+     "Warwick",
+     "Talon"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Illaoi",
+     "Sylas",
+     "Irelia",
+     "Galio",
+     "Sett"
+    ],
+    "rojo": [
+     "Ezreal",
+     "Ekko",
+     "Khazix",
+     "Jax",
+     "Malzahar"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Taka",
+     "Masa",
+     "Ikki",
+     "Haru",
+     "Fuyu"
+    ],
+    "rojo": [
+     "Arashi",
+     "Raiden",
+     "Rin",
+     "Kaito",
+     "Sora"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-11-16",
+   "jornada": "Cuartos de final",
+   "fase": "Fase final",
+   "serie": "Cuartos de final · KAMIKAZE vs RAIJIN",
+   "partida": 1,
+   "clanAzul": "KAMIKAZE",
+   "clanRojo": "RAIJIN",
+   "ganador": "azul",
+   "picks": {
+    "azul": [
+     "Vi",
+     "MasterYi",
+     "DrMundo",
+     "MissFortune",
+     "Aatrox"
+    ],
+    "rojo": [
+     "Pantheon",
+     "Fizz",
+     "Shaco",
+     "Blitzcrank",
+     "Shen"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Poppy",
+     "Malzahar",
+     "Renekton",
+     "Hwei",
+     "Bard"
+    ],
+    "rojo": [
+     "Anivia",
+     "Zoe",
+     "Khazix",
+     "Tryndamere",
+     "Karthus"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Ko",
+     "Yuki",
+     "Yoru",
+     "Ichi",
+     "Nobu"
+    ],
+    "rojo": [
+     "Kenshin",
+     "Umi",
+     "Enma",
+     "Mizu",
+     "Zen"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-11-16",
+   "jornada": "Cuartos de final",
+   "fase": "Fase final",
+   "serie": "Cuartos de final · KAMIKAZE vs RAIJIN",
+   "partida": 2,
+   "clanAzul": "RAIJIN",
+   "clanRojo": "KAMIKAZE",
+   "ganador": "rojo",
+   "picks": {
+    "azul": [
+     "Nidalee",
+     "Renata",
+     "Heimerdinger",
+     "Sett",
+     "Camille"
+    ],
+    "rojo": [
+     "Hwei",
+     "Sejuani",
+     "Viktor",
+     "Akali",
+     "Jax"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Viego",
+     "Leblanc",
+     "Orianna",
+     "Karthus",
+     "Taliyah"
+    ],
+    "rojo": [
+     "Kennen",
+     "Urgot",
+     "Varus",
+     "Aurora",
+     "Locke"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Kenshin",
+     "Umi",
+     "Enma",
+     "Mizu",
+     "Zen"
+    ],
+    "rojo": [
+     "Ko",
+     "Yuki",
+     "Yoru",
+     "Ichi",
+     "Nobu"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-11-16",
+   "jornada": "Cuartos de final",
+   "fase": "Fase final",
+   "serie": "Cuartos de final · TORA vs KURU",
+   "partida": 1,
+   "clanAzul": "TORA",
+   "clanRojo": "KURU",
+   "ganador": "azul",
+   "picks": {
+    "azul": [
+     "Locke",
+     "Sona",
+     "Nidalee",
+     "Cassiopeia",
+     "Malzahar"
+    ],
+    "rojo": [
+     "Sett",
+     "Sion",
+     "Warwick",
+     "Zeri",
+     "Camille"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Neeko",
+     "Urgot",
+     "Yone",
+     "Ornn",
+     "Twitch"
+    ],
+    "rojo": [
+     "Samira",
+     "Karthus",
+     "Skarner",
+     "Jax",
+     "Tryndamere"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Yama",
+     "Tetsu",
+     "Ryu",
+     "Kage",
+     "Hikari"
+    ],
+    "rojo": [
+     "Goro",
+     "Kiba",
+     "Nami",
+     "Hotaru",
+     "Jin"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-11-16",
+   "jornada": "Cuartos de final",
+   "fase": "Fase final",
+   "serie": "Cuartos de final · TORA vs KURU",
+   "partida": 2,
+   "clanAzul": "TORA",
+   "clanRojo": "KURU",
+   "ganador": "azul",
+   "picks": {
+    "azul": [
+     "Urgot",
+     "Irelia",
+     "XinZhao",
+     "Karthus",
+     "Galio"
+    ],
+    "rojo": [
+     "Evelynn",
+     "Viego",
+     "Jayce",
+     "Ashe",
+     "Yone"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Aurora",
+     "Annie",
+     "Kassadin",
+     "Soraka",
+     "Sivir"
+    ],
+    "rojo": [
+     "Twitch",
+     "Tryndamere",
+     "Poppy",
+     "Heimerdinger",
+     "Ornn"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Yama",
+     "Tetsu",
+     "Ryu",
+     "Kage",
+     "Hikari"
+    ],
+    "rojo": [
+     "Goro",
+     "Kiba",
+     "Nami",
+     "Hotaru",
+     "Jin"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-11-23",
+   "jornada": "Semifinales",
+   "fase": "Fase final",
+   "serie": "Semifinales · DORAGON vs SARU",
+   "partida": 1,
+   "clanAzul": "SARU",
+   "clanRojo": "DORAGON",
+   "ganador": "azul",
+   "picks": {
+    "azul": [
+     "Irelia",
+     "DrMundo",
+     "Malzahar",
+     "Samira",
+     "Sivir"
+    ],
+    "rojo": [
+     "Cassiopeia",
+     "Riven",
+     "Senna",
+     "Udyr",
+     "Kalista"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Heimerdinger",
+     "Hwei",
+     "Rakan",
+     "Pyke",
+     "Khazix"
+    ],
+    "rojo": [
+     "Briar",
+     "Sona",
+     "Taliyah",
+     "Tristana",
+     "MasterYi"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Tora",
+     "Shiro",
+     "Aki",
+     "Sato",
+     "Shin"
+    ],
+    "rojo": [
+     "Arashi",
+     "Raiden",
+     "Rin",
+     "Kaito",
+     "Sora"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-11-23",
+   "jornada": "Semifinales",
+   "fase": "Fase final",
+   "serie": "Semifinales · DORAGON vs SARU",
+   "partida": 2,
+   "clanAzul": "DORAGON",
+   "clanRojo": "SARU",
+   "ganador": "rojo",
+   "picks": {
+    "azul": [
+     "Jayce",
+     "Janna",
+     "Zoe",
+     "Vi",
+     "Poppy"
+    ],
+    "rojo": [
+     "Pantheon",
+     "LeeSin",
+     "Kassadin",
+     "MissFortune",
+     "Sion"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Ornn",
+     "Draven",
+     "Rakan",
+     "Tryndamere",
+     "Sylas"
+    ],
+    "rojo": [
+     "Renata",
+     "Jax",
+     "Zeri",
+     "Chogath",
+     "Camille"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Arashi",
+     "Raiden",
+     "Rin",
+     "Kaito",
+     "Sora"
+    ],
+    "rojo": [
+     "Tora",
+     "Shiro",
+     "Aki",
+     "Sato",
+     "Shin"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-11-23",
+   "jornada": "Semifinales",
+   "fase": "Fase final",
+   "serie": "Semifinales · KAMIKAZE vs TORA",
+   "partida": 1,
+   "clanAzul": "TORA",
+   "clanRojo": "KAMIKAZE",
+   "ganador": "azul",
+   "picks": {
+    "azul": [
+     "Malphite",
+     "Jax",
+     "Zoe",
+     "Nautilus",
+     "Soraka"
+    ],
+    "rojo": [
+     "Mel",
+     "Khazix",
+     "Hwei",
+     "Fiora",
+     "Swain"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Renata",
+     "Shaco",
+     "Pyke",
+     "Ambessa",
+     "Sett"
+    ],
+    "rojo": [
+     "Xerath",
+     "Neeko",
+     "Rakan",
+     "Taliyah",
+     "DrMundo"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Yama",
+     "Tetsu",
+     "Ryu",
+     "Kage",
+     "Hikari"
+    ],
+    "rojo": [
+     "Ko",
+     "Yuki",
+     "Yoru",
+     "Ichi",
+     "Nobu"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-11-23",
+   "jornada": "Semifinales",
+   "fase": "Fase final",
+   "serie": "Semifinales · KAMIKAZE vs TORA",
+   "partida": 2,
+   "clanAzul": "KAMIKAZE",
+   "clanRojo": "TORA",
+   "ganador": "rojo",
+   "picks": {
+    "azul": [
+     "Nocturne",
+     "Leblanc",
+     "Ashe",
+     "Shen",
+     "AurelionSol"
+    ],
+    "rojo": [
+     "Vi",
+     "Aurora",
+     "Viktor",
+     "Akali",
+     "Qiyana"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "MasterYi",
+     "Pyke",
+     "Camille",
+     "Malzahar",
+     "Twitch"
+    ],
+    "rojo": [
+     "Cassiopeia",
+     "Sett",
+     "Sylas",
+     "Pantheon",
+     "Zeri"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Ko",
+     "Yuki",
+     "Yoru",
+     "Ichi",
+     "Nobu"
+    ],
+    "rojo": [
+     "Yama",
+     "Tetsu",
+     "Ryu",
+     "Kage",
+     "Hikari"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-11-30",
+   "jornada": "Final",
+   "fase": "Fase final",
+   "serie": "Final · TORA vs SARU",
+   "partida": 1,
+   "clanAzul": "SARU",
+   "clanRojo": "TORA",
+   "ganador": "rojo",
+   "picks": {
+    "azul": [
+     "Kayn",
+     "Orianna",
+     "DrMundo",
+     "Ornn",
+     "Evelynn"
+    ],
+    "rojo": [
+     "Viego",
+     "Fizz",
+     "Twitch",
+     "Talon",
+     "Camille"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Viktor",
+     "Rakan",
+     "Zeri",
+     "Zed",
+     "Annie"
+    ],
+    "rojo": [
+     "Zoe",
+     "Warwick",
+     "Taliyah",
+     "Hwei",
+     "Pantheon"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Tora",
+     "Shiro",
+     "Aki",
+     "Sato",
+     "Shin"
+    ],
+    "rojo": [
+     "Yama",
+     "Tetsu",
+     "Ryu",
+     "Kage",
+     "Hikari"
+    ]
+   }
+  },
+  {
+   "fecha": "2026-11-30",
+   "jornada": "Final",
+   "fase": "Fase final",
+   "serie": "Final · TORA vs SARU",
+   "partida": 2,
+   "clanAzul": "TORA",
+   "clanRojo": "SARU",
+   "ganador": "azul",
+   "picks": {
+    "azul": [
+     "Zilean",
+     "Viktor",
+     "AurelionSol",
+     "Leblanc",
+     "Pyke"
+    ],
+    "rojo": [
+     "Renata",
+     "Ashe",
+     "Taliyah",
+     "Qiyana",
+     "Varus"
+    ]
+   },
+   "bans": {
+    "azul": [
+     "Hwei",
+     "Malzahar",
+     "Sivir",
+     "Jax",
+     "Hecarim"
+    ],
+    "rojo": [
+     "Swain",
+     "Skarner",
+     "Nocturne",
+     "Yone",
+     "Sett"
+    ]
+   },
+   "jugadores": {
+    "azul": [
+     "Yama",
+     "Tetsu",
+     "Ryu",
+     "Kage",
+     "Hikari"
+    ],
+    "rojo": [
+     "Tora",
+     "Shiro",
+     "Aki",
+     "Sato",
+     "Shin"
+    ]
+   }
+  }
+ ]
+}

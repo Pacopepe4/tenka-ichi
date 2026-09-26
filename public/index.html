@@ -37,6 +37,10 @@
   </section>
 
   <section id="liga" class="liga">
+    <div class="aviso-simulacion" hidden>
+      <span class="hanko">仮</span>
+      <p><b>Temporada simulada.</b> Resultados, jugadores y picks inventados para ver cómo quedará la web. <a href="/#liga">Ver la liga real</a></p>
+    </div>
     <div class="cabecera-seccion">
       <h2>La liga</h2>
       <p class="resumen-liga"></p>
@@ -44,9 +48,28 @@
     <div class="liga-rejilla">
       <div class="bloque">
         <h3>Clasificación</h3>
-        <ol class="clasificacion"></ol>
+        <p class="nota-bloque">Liguilla a Bo1: cinco partidas por clan. Los ocho primeros pasan a los playoffs.</p>
+        <table class="tabla">
+          <thead><tr><th scope="col"><span class="oculto">Puesto</span></th><th scope="col">Clan</th><th scope="col" title="Partidas jugadas">PJ</th><th scope="col" title="Victorias y derrotas">V–D</th><th scope="col" title="Fuerza de calendario: suma de victorias de los rivales">Fuerza</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <p class="desempate-nota"></p>
       </div>
       <div class="bloque">
+        <h3>Calendario</h3>
+        <div class="jornadas" role="tablist" aria-label="Jornadas"></div>
+        <ul class="cruces"></ul>
+      </div>
+    </div>
+
+    <div class="cabecera-seccion playoffs-cabecera">
+      <h3>Playoffs</h3>
+      <p class="nota-bloque">Bo3 fearless. El mejor clasificado elige lado en la primera partida; después elige quien perdió la anterior.</p>
+    </div>
+    <div class="cuadro"></div>
+
+    <div class="liga-rejilla">
+      <div class="bloque ancho">
         <h3>Campeones con más presencia</h3>
         <ol class="campeones"></ol>
       </div>

@@ -85,3 +85,19 @@ public/marca/          logo de Koryu Budo y sol partido
 ## Formato de DraftCore (comprobado con drafts reales en septiembre de 2026)
 
 Socket.IO en `https://ws.lol.draftcore.net` → `V3-joinDraft { draftId, url }`. Llegan `initializeDraft` / `V3-initialize` / `startDraft` con el draft completo (`ban1..ban5` azul y `ban6..ban10` rojo, `b1..b5`, `r1..r5`, `turn`, `hovered`), `V3-updateHover { hovered }` y `V2-timerTick { turn, timeLeft }`. Los campeones usan el id de Data Dragon.
+
+## Formato de la competición
+
+- **Liguilla (Bo1)**: 10 clanes en un único grupo. Cada clan juega 5 partidas contra 5 rivales distintos sorteados (5 jornadas de 5 partidas). Los lados se reparten para que nadie tenga más de 3 azules.
+- **Desempates**: si empatan dos clanes, cuenta el enfrentamiento directo. Si son más, cuenta la fuerza de calendario (suma de victorias de los rivales). Si aun así hay empate en la frontera del 8.º y el 9.º puesto, se juega un Bo1 de desempate; en cualquier otro puesto se ordena por sorteo con la semilla.
+- **Playoffs (Bo3 fearless)**: los 8 primeros. El cuadro es fijo: 1.º–8.º y 4.º–5.º por un lado, 2.º–7.º y 3.º–6.º por el otro. El mejor clasificado elige lado en la partida 1; después elige el que perdió la partida anterior.
+
+### Sorteo y día de partida
+
+1. En el panel, apartado **Competición**, marca los 10 clanes y pulsa **Sortear calendario**. La semilla es opcional; con la misma semilla el sorteo sale igual.
+2. El calendario se guarda en `data-proyecto/competicion.json`. **En Render el disco se borra al reiniciar**: después del sorteo, descarga ese archivo desde `/api/competicion` o repite el sorteo en local con la misma semilla, y súbelo al repositorio.
+3. Cada día de partida, elige en **Competición** la siguiente partida y pulsa **Cargar en el panel**. Se rellenan jornada, fase, formato, número de partida, clanes y jugadores. En playoffs te dice quién elige lado.
+
+### Simulación
+
+`npm run simular [semilla]` juega una temporada inventada entera y la guarda en `data-proyecto/simulacion.json`. Se ve en `/?simulacion#liga` sin tocar los datos reales.

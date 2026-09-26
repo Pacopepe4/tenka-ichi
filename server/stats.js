@@ -4,8 +4,7 @@ import { todas } from './registro.js';
 const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
 
 // Resumen de la liga para la portada: clasificación por clan y campeones con más presencia
-export function statsLiga({ limite = 10 } = {}) {
-  const partidas = todas();
+export function statsLiga({ limite = 10, partidas = todas() } = {}) {
   const clanes = {};
   const campeones = {};
   const sumar = (id, campo, extra = 0) => {

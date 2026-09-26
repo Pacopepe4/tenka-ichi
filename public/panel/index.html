@@ -17,6 +17,23 @@
 
 <div class="disposicion">
   <main>
+    <section id="competicion">
+      <h2>Competición</h2>
+      <div class="sin-calendario" hidden>
+        <p class="ayuda">Aún no hay calendario. Marca los 10 clanes que juegan y sortea. La semilla es opcional: con el mismo número, el sorteo sale igual y cualquiera puede comprobarlo.</p>
+        <div class="participantes"></div>
+        <div class="fila"><label class="semilla">Semilla <input id="semilla" type="number" placeholder="Al azar"></label><button id="sortear">Sortear calendario</button></div>
+      </div>
+      <div class="con-calendario" hidden>
+        <p class="ayuda" id="resumenCompeticion"></p>
+        <div class="fila">
+          <select id="proxima" aria-label="Partida del calendario"></select>
+          <button id="cargarProxima">Cargar en el panel</button>
+        </div>
+        <p class="estado" id="notaProxima"></p>
+      </div>
+    </section>
+
     <section>
       <h2>DraftCore</h2>
       <p class="ayuda">Pega el enlace de espectador del draft, el que acaba en el código del draft.</p>
@@ -32,7 +49,7 @@
       <h2>Enfrentamiento</h2>
       <div class="rejilla">
         <label>Jornada <input id="jornada"></label>
-        <label>Fase <select id="fase"><option>Fase de liga</option><option>Fase final</option></select></label>
+        <label>Fase <select id="fase"><option>Fase de liga</option><option>Desempate</option><option>Fase final</option></select></label>
         <label>Formato <select id="formato"><option value="bo1">Bo1</option><option value="bo3f">Bo3 fearless</option></select></label>
         <label>Partida <input id="partida" type="number" min="1" max="5"></label>
       </div>

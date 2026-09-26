@@ -33,7 +33,7 @@ a { color: inherit; }
 .cabecera-seccion p { margin: 0; color: var(--hai); max-width: 40em; }
 
 /* Baraja */
-.clanes { padding: clamp(56px, 8vw, 110px) 0 clamp(40px, 6vw, 80px); border-top: 1px solid var(--sumi-linea); }
+.clanes { padding: clamp(56px, 8vw, 110px) 0 clamp(40px, 6vw, 80px); border-top: 1px solid var(--sumi-linea); overflow-x: clip; }
 .baraja { position: relative; height: 470px; max-width: 1180px; margin: 36px auto 0; }
 .carta { --x: 0px; --y: 0px; --r: 0deg; --s: 1;
   position: absolute; left: 50%; bottom: 20px; width: 208px; height: 312px; margin-left: -104px;
@@ -119,3 +119,77 @@ footer img { width: 34px; height: 32px; object-fit: contain; }
   html { scroll-behavior: auto; }
   .carta, .ficha[open] { transition: none; animation: none; }
 }
+
+/* ---------- Competición ---------- */
+.oculto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.aviso-simulacion { max-width: 1180px; margin: 0 auto 32px; padding: 0 clamp(16px, 5vw, 64px); display: flex; gap: 14px; align-items: center; }
+.aviso-simulacion[hidden] { display: none; }
+.aviso-simulacion .hanko { width: 40px; height: 40px; font-size: 24px; flex: none; }
+.aviso-simulacion p { margin: 0; color: var(--hai); }
+.aviso-simulacion b { color: var(--washi); }
+.nota-bloque { margin: -6px 0 16px; color: var(--hai); font-size: 15px; }
+.bloque.ancho { grid-column: 1 / -1; }
+
+.tabla { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.tabla th { text-align: left; font-weight: 500; font-size: 14px; color: var(--hai); padding: 0 8px 8px; border-bottom: 1px solid var(--sumi-linea); }
+.tabla td { padding: 10px 8px; border-bottom: 1px solid var(--sumi-linea); }
+.tabla th:nth-child(n+3), .tabla td:nth-child(n+3) { text-align: right; }
+.tabla .puesto { width: 34px; font-family: var(--mincho); font-weight: 800; font-size: 20px; color: var(--hai); }
+.tabla tr:first-child .puesto { color: var(--shu-claro); }
+.tabla .clan-celda { display: flex; align-items: center; gap: 12px; }
+.tabla .clan-celda img { width: 36px; height: 34px; object-fit: contain; }
+.tabla .clan-celda span { display: flex; flex-direction: column; font-weight: 700; line-height: 1.2; }
+.tabla .clan-celda small { font-weight: 400; font-size: 12.5px; color: var(--hai); }
+.tabla .record { font-weight: 700; }
+.tabla .fuerza { color: var(--hai); }
+.tabla tr.fuera td { opacity: .55; }
+.tabla tr.corte td { border-bottom: 2px solid var(--shu); }
+.desempate-nota { margin: 12px 0 0; color: var(--hai); font-size: 15px; }
+.desempate-nota:empty { display: none; }
+
+.jornadas { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.jornadas button { border: 1px solid var(--sumi-linea); background: transparent; color: var(--hai); font: inherit; font-size: 14px; padding: 6px 12px; border-radius: 999px; cursor: pointer; }
+.jornadas button[aria-selected="true"] { background: var(--washi); color: var(--sumi); border-color: var(--washi); font-weight: 700; }
+.cruces { list-style: none; margin: 0; padding: 0; }
+.cruces li { display: grid; grid-template-columns: 1fr 34px 1fr; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--sumi-linea); }
+.lado-cruce { display: flex; align-items: center; gap: 8px; font-weight: 500; min-width: 0; }
+.cruces li .lado-cruce:last-child { flex-direction: row-reverse; text-align: right; }
+.lado-cruce img { width: 30px; height: 29px; object-fit: contain; }
+.lado-cruce.gana { font-weight: 700; }
+.lado-cruce.pierde { color: var(--hai); }
+.lado-cruce.pierde img { opacity: .5; }
+.punto { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+.punto.azul { background: var(--azul-lado); } .punto.rojo { background: var(--rojo-lado); }
+.vs-cruce { text-align: center; color: var(--hai); font-size: 14px; }
+.lado-cruce.gana::after { content: '勝'; font-family: var(--mincho); font-weight: 800; color: var(--shu-claro); font-size: 15px; }
+
+.playoffs-cabecera { margin-top: clamp(48px, 7vw, 88px); }
+.playoffs-cabecera h3 { margin: 0 0 6px; font-family: var(--mincho); font-weight: 800; font-size: clamp(30px, 4vw, 44px); }
+.cuadro { max-width: 1180px; margin: 24px auto clamp(48px, 7vw, 88px); padding: 0 clamp(16px, 5vw, 64px);
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, .8fr); gap: clamp(12px, 2vw, 28px); align-items: stretch; }
+.ronda { display: grid; grid-template-rows: auto 1fr; gap: 10px; }
+.ronda .series { display: flex; flex-direction: column; justify-content: space-around; gap: 14px; }
+.ronda h4 { margin: 0 0 4px; font-family: var(--mincho); font-size: 20px; color: var(--hai); font-weight: 700; }
+.serie { background: var(--sumi-alzado); border-radius: 5px; overflow: hidden; }
+.fila-serie { display: grid; grid-template-columns: 22px 30px 1fr auto; align-items: center; gap: 8px; padding: 8px 12px; font-variant-numeric: tabular-nums; }
+.fila-serie + .fila-serie { border-top: 1px solid var(--sumi-linea); }
+.fila-serie img { width: 30px; height: 29px; object-fit: contain; }
+.fila-serie .semilla { color: var(--hai); font-size: 13px; }
+.fila-serie .nombre-serie { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fila-serie b { font-family: var(--mincho); font-weight: 800; font-size: 20px; }
+.fila-serie.gana .nombre-serie { font-weight: 700; }
+.fila-serie.gana b { color: var(--shu-claro); }
+.fila-serie.pierde { color: var(--hai); }
+.fila-serie.pierde img { opacity: .5; }
+.fila-serie.pendiente { color: var(--hai); font-style: italic; grid-template-columns: 1fr; }
+.campeon { position: relative; border-radius: 6px; overflow: hidden; aspect-ratio: 3 / 4; border-top: 5px solid var(--color); }
+.campeon img { width: 100%; height: 100%; object-fit: cover; }
+.campeon::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 50%, rgba(22,20,18,.9)); }
+.campeon b { position: absolute; left: 14px; bottom: 10px; z-index: 1; font-family: var(--mincho); font-weight: 800; font-size: 30px; }
+.campeon .hanko { position: absolute; top: 10px; right: 10px; z-index: 1; width: 40px; height: 40px; font-size: 26px; }
+@media (max-width: 900px) {
+  .cuadro { grid-template-columns: 1fr 1fr; }
+  .campeon-ronda { grid-column: 1 / -1; }
+  .campeon { max-width: 240px; }
+}
+@media (max-width: 560px) { .cuadro { grid-template-columns: 1fr; } }

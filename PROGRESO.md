@@ -26,3 +26,9 @@
 3. Plantillas por clan en la hoja (pestaña "Plantillas") para rellenar jugadores solos al elegir clan.
 4. Revisar el diseño del overlay en OBS a tamaño real y ajustar (fuentes de marca, animaciones de entrada).
 5. Posibles variantes B y C del overlay (como en Canva).
+
+## 26/09: competición
+
+- Hecho: motor de liguilla + desempates + cuadro de playoffs (`server/competicion.js`), sorteo con semilla (`server/calendario.js`), simulación completa (`npm run simular`), sección de liga en la portada (clasificación, jornadas, cuadro, campeón), apartado Competición en el panel (sorteo y cargar la siguiente partida), opción Desempate en Fase.
+- Simulación visible en https://tenka-ichi.onrender.com/?simulacion#liga (semilla 1509, campeón Tora).
+- Pendiente: marcador de la serie Bo3 en el overlay; hacer el sorteo real cuando estén los 10 clanes y subir `competicion.json` al repo.

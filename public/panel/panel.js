@@ -162,3 +162,74 @@ const vista = $('#vista');
 vista.src = '/overlay/?fondo=1';
 const escalar = () => { vista.style.transform = `scale(${vista.parentElement.clientWidth / 1920})`; };
 new ResizeObserver(escalar).observe(vista.parentElement);
+
+// ---------- Competición: sorteo y siguiente partida ----------
+const nombreClan = id => clanes.clan(id).nombre;
+let proximas = [];
+
+async function cargarCompeticion() {
+  const comp = await fetch('/api/competicion').then(r => r.json());
+  $('.sin-calendario').hidden = Boolean(comp.calendario);
+  $('.con-calendario').hidden = !comp.calendario;
+  if (!comp.calendario) {
+    $('.participantes').innerHTML = clanes.clanes.filter(c => !c.invitado).map(c =>
+      `<label><input type="checkbox" value="${c.id}"><img src="${logo(c.id)}" alt="">${c.nombre}</label>`).join('');
+    return;
+  }
+  const cls = comp.clasificacion;
+  $('#resumenCompeticion').textContent = `Semilla ${comp.calendario.semilla}. Liguilla: ${cls.jugadas} de ${cls.total} partidas jugadas.`
+    + (comp.cuadro?.campeon ? ` Campeón: ${nombreClan(comp.cuadro.campeon)}.` : '');
+
+  // Lista de lo que queda por jugar, en orden
+  proximas = [];
+  for (const cruce of comp.calendario.jornadas.flat()) {
+    if (!cls.resultados[cruce.id]) proximas.push({ texto: `Jornada ${cruce.jornada}: ${nombreClan(cruce.azul)} vs ${nombreClan(cruce.rojo)}`,
+      config: { jornada: `Jornada ${cruce.jornada}`, fase: 'Fase de liga', formato: 'bo1', partida: 1 }, azul: cruce.azul, rojo: cruce.rojo });
+  }
+  if (cls.desempate && !cls.desempate.ganador) {
+    const [a, b] = cls.desempate.clanes;
+    proximas.push({ texto: `Desempate por el 8.º puesto: ${nombreClan(a)} vs ${nombreClan(b)}`,
+      config: { jornada: 'Desempate', fase: 'Desempate', formato: 'bo1', partida: 1 }, azul: a, rojo: b });
+  }
+  if (comp.cuadro) {
+    for (const s of [...comp.cuadro.cuartos, ...comp.cuadro.semis, comp.cuadro.final]) {
+      if (!s.alto || !s.bajo || s.ganador) continue;
+      const elige = s.siguiente.eligeLado;
+      const otro = elige === s.alto ? s.bajo : s.alto;
+      proximas.push({ texto: `${s.ronda}, partida ${s.siguiente.partida}: ${nombreClan(s.alto)} vs ${nombreClan(s.bajo)} (${s.victorias[s.alto]}-${s.victorias[s.bajo]})`,
+        config: { jornada: s.ronda, fase: 'Fase final', formato: 'bo3f', partida: s.siguiente.partida }, azul: elige, rojo: otro,
+        nota: `Elige lado ${nombreClan(elige)}${s.siguiente.partida === 1 ? ', por ser el mejor clasificado' : ', por haber perdido la partida anterior'}. Si elige rojo, pulsa «Invertir lados».` });
+    }
+  }
+  $('#proxima').innerHTML = proximas.length
+    ? proximas.map((p, i) => `<option value="${i}">${p.texto}</option>`).join('')
+    : '<option>No queda nada por jugar</option>';
+  $('#cargarProxima').disabled = !proximas.length;
+  $('#notaProxima').textContent = '';
+}
+
+$('#sortear').onclick = async () => {
+  const participantes = [...document.querySelectorAll('.participantes input:checked')].map(i => i.value);
+  if (participantes.length !== 10) return aviso(`Marca 10 clanes (llevas ${participantes.length})`);
+  if (!confirm('¿Sortear el calendario con estos 10 clanes?')) return;
+  const r = await enviar('sortear', { participantes, semilla: $('#semilla').value });
+  if (r.ok) { aviso(`Calendario sorteado con la semilla ${r.semilla}`); cargarCompeticion(); }
+};
+
+$('#cargarProxima').onclick = async () => {
+  const p = proximas[Number($('#proxima').value)];
+  if (!p) return;
+  if (!(await enviar('config', p.config)).ok) return;
+  for (const [lado, clan] of [['azul', p.azul], ['rojo', p.rojo]]) {
+    const r = await enviar('equipo', { lado, clan, jugadores: clanes.clan(clan).jugadores || Array(5).fill('') });
+    if (!r.ok) return;
+  }
+  // En fearless, una serie nueva empieza sin bloqueos
+  if (p.config.formato === 'bo3f' && p.config.partida === 1) await enviar('nuevaSerie');
+  rellenado = false;
+  pintar();
+  $('#notaProxima').textContent = p.nota || '';
+  aviso('Partida cargada en el overlay');
+};
+
+cargarCompeticion();

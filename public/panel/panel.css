@@ -75,3 +75,9 @@ section > .fila:first-of-type { margin-top: 0; }
 code { background: var(--sumi-alzado); padding: 2px 6px; border-radius: 3px; word-break: break-all; }
 
 #aviso { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--washi); color: var(--sumi); padding: 10px 18px; font-weight: 700; border-radius: 4px; box-shadow: 0 8px 24px rgba(0,0,0,.5); }
+.participantes { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; }
+.participantes label { flex-direction: row; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--sumi-linea); border-radius: 4px; color: var(--washi); cursor: pointer; }
+.participantes label:has(input:checked) { border-color: var(--washi); }
+.participantes img { width: 26px; height: 25px; object-fit: contain; }
+.semilla { flex: 0 0 160px; }
+#proxima { flex: 1 1 320px; }

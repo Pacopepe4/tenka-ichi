@@ -6,7 +6,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
 import { conectar, codigoDeEnlace, destinoDeSlot } from './draftcore.js';
-import { cargar, guardarPartida } from './registro.js';
+import { cargar, guardarPartida, todas } from './registro.js';
+import { competicion } from './competicion.js';
+import { cargarCalendario, calendarioActual, temporadaSimulada, sortearCalendario } from './calendario.js';
 import { statsCampeon, statsLiga } from './stats.js';
 import { CLANES, ROLES } from './clanes.js';
 import { cargarPlantillas, plantilla, guardarPlantilla } from './plantillas.js';
@@ -149,6 +151,10 @@ async function accion(nombre, d = {}) {
     case 'plantilla':
       await guardarPlantilla(d.clan, d);
       break;
+    case 'sortear': {
+      const cal = await sortearCalendario(d.participantes || [], d.semilla);
+      return { ok: true, semilla: cal.semilla };
+    }
     case 'probarHoja':
       await cargar().catch(() => {});
       estado.hoja = estadoHoja();
@@ -173,9 +179,15 @@ const servidor = http.createServer(async (req, res) => {
     res.writeHead(200, { 'Content-Type': TIPOS['.json'], 'Cache-Control': 'no-cache' });
     return res.end(JSON.stringify({ clanes: clanesConPlantilla(), roles: ROLES }));
   }
+  const sim = url.searchParams.has('simulacion') ? temporadaSimulada() : null;
   if (url.pathname === '/api/liga') {
     res.writeHead(200, { 'Content-Type': TIPOS['.json'], 'Cache-Control': 'no-cache' });
-    return res.end(JSON.stringify(statsLiga()));
+    return res.end(JSON.stringify(sim ? { ...statsLiga({ partidas: sim.partidas }), simulacion: true } : statsLiga()));
+  }
+  if (url.pathname === '/api/competicion') {
+    res.writeHead(200, { 'Content-Type': TIPOS['.json'], 'Cache-Control': 'no-cache' });
+    const datos = sim ? competicion(sim.calendario, sim.partidas) : competicion(calendarioActual(), todas());
+    return res.end(JSON.stringify({ ...datos, simulacion: Boolean(sim) }));
   }
   if (url.pathname === '/api/diagnostico') {
     res.writeHead(200, { 'Content-Type': TIPOS['.json'], 'Cache-Control': 'no-cache' });
@@ -223,7 +235,7 @@ wss.on('connection', ws => {
 // Mantiene vivas las conexiones (Render corta las que están inactivas)
 setInterval(() => { for (const ws of clientes) if (ws.readyState === 1) ws.ping(); }, 25000);
 
-await Promise.all([cargar(), cargarPlantillas()]);
+await Promise.all([cargar(), cargarPlantillas(), cargarCalendario()]);
 estado.hoja = estadoHoja();
 servidor.listen(PUERTO, () => {
   console.log(`TENKA ICHI Draft en http://localhost:${PUERTO}`);
