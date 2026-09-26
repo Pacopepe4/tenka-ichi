@@ -183,7 +183,7 @@ async function accion(nombre, d = {}) {
 // ---------- servidor HTTP estático ----------
 const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
   '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
-  '.svg': 'image/svg+xml', '.webp': 'image/webp', '.woff2': 'font/woff2' };
+  '.svg': 'image/svg+xml', '.webp': 'image/webp', '.woff2': 'font/woff2', '.mp4': 'video/mp4', '.webm': 'video/webm' };
 
 const servidor = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');

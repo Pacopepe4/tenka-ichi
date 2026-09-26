@@ -50,6 +50,65 @@
     <div class="disposiciones"></div>
   </section>
 
+  <section id="paquete">
+    <h2>Inicio, transición y final</h2>
+    <p>Los vídeos del directo, con los logos de Tenka Ichi y Koryu Budo. Descárgalos una vez y guárdalos en una carpeta del ordenador donde está OBS.</p>
+    <div class="enlaces">
+      <div class="enlace">
+        <div><b>Bucle de inicio, con «Empezamos en breve»</b><span class="url">inicio.mp4 (5,9 MB)</span></div>
+        <a class="copiar" href="/stream/inicio.mp4" download>Descargar</a>
+      </div>
+      <div class="enlace">
+        <div><b>Bucle de inicio, sin texto</b><span class="url">inicio-limpio.mp4 (5,8 MB)</span></div>
+        <a class="copiar" href="/stream/inicio-limpio.mp4" download>Descargar</a>
+      </div>
+      <div class="enlace">
+        <div><b>Transición entre escenas</b><span class="url">transicion.webm (1 MB)</span></div>
+        <a class="copiar" href="/stream/transicion.webm" download>Descargar</a>
+      </div>
+      <div class="enlace">
+        <div><b>Final: atardecer</b><span class="url">final.mp4 (7 MB)</span></div>
+        <a class="copiar" href="/stream/final.mp4" download>Descargar</a>
+      </div>
+      <div class="enlace">
+        <div><b>Final: bucle de noche con el agradecimiento</b><span class="url">final-bucle.mp4 (6,4 MB)</span></div>
+        <a class="copiar" href="/stream/final-bucle.mp4" download>Descargar</a>
+      </div>
+    </div>
+
+    <h3>Escena de inicio</h3>
+    <ol class="pasos">
+      <li>Crea una escena llamada «Inicio» y añade una <b>Fuente multimedia</b> con <b>inicio.mp4</b>.</li>
+      <li>Marca <b>Repetir</b>. El vídeo no tiene sonido: la música va en otra fuente.</li>
+    </ol>
+    <p class="nota">Si quieres escribir tu propio texto encima, por ejemplo la hora de inicio, usa inicio-limpio.mp4, que no lleva rótulo.</p>
+
+    <h3>Transición entre escenas</h3>
+    <ol class="pasos">
+      <li>En el panel <b>Transiciones de escena</b>, pulsa <b>+</b> y elige <b>Stinger</b>.</li>
+      <li>En <b>Archivo de vídeo</b>, elige <b>transicion.webm</b>.</li>
+      <li>En <b>Tipo de punto de transición</b>, elige <b>Tiempo (milisegundos)</b> y escribe <b>700</b>. Es el momento en que el papel tapa toda la pantalla y OBS cambia de escena por debajo.</li>
+      <li>Déjala como transición activa. Dura 2,1 segundos y no tiene sonido.</li>
+    </ol>
+
+    <h3>Escena final</h3>
+    <ol class="pasos">
+      <li>Crea una escena llamada «Final» con dos fuentes multimedia. En las dos, marca <b>Reiniciar la reproducción cuando la fuente se active</b>.</li>
+      <li>Abajo en la lista de fuentes, <b>final-bucle.mp4</b>, con <b>Repetir</b>.</li>
+      <li>Encima, <b>final.mp4</b>, sin repetir y con la opción de <b>no mostrar nada cuando termine la reproducción</b>.</li>
+      <li>Al entrar en la escena se ve el atardecer y, cuando acaba, queda la noche con el agradecimiento sin ningún salto. El atardecer lleva viento y una campana; si molesta, baja su volumen en el mezclador de audio.</li>
+    </ol>
+
+    <h3>Orden de las escenas en el directo</h3>
+    <ol class="pasos">
+      <li>Antes de empezar: <b>Inicio</b>.</li>
+      <li>Durante el draft: la escena del overlay con las cámaras.</li>
+      <li>Durante la partida: la escena del juego.</li>
+      <li>Al terminar la jornada: <b>Final</b>.</li>
+    </ol>
+    <p class="nota">Los nombres de las opciones son los de OBS en español. Si lo tienes en inglés: Fuente multimedia es Media Source, Repetir es Loop, Reiniciar la reproducción cuando la fuente se active es Restart playback when source becomes active, no mostrar nada cuando termine es Show nothing when playback ends, Transiciones de escena es Scene Transitions, Archivo de vídeo es Video File, Tipo de punto de transición es Transition Point Type y Tiempo (milisegundos) es Time (milliseconds).</p>
+  </section>
+
   <section>
     <h2>Durante la partida, en el panel</h2>
     <ol class="pasos">

@@ -11,7 +11,7 @@ const enlaces = {
 
 document.querySelectorAll('.url[data-enlace]').forEach(el => { el.textContent = enlaces[el.dataset.enlace]; });
 
-document.querySelectorAll('.copiar').forEach(boton => boton.addEventListener('click', async () => {
+document.querySelectorAll('button.copiar').forEach(boton => boton.addEventListener('click', async () => {
   try {
     await navigator.clipboard.writeText(enlaces[boton.dataset.enlace]);
     boton.textContent = 'Copiado';

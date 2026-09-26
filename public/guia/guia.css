@@ -25,6 +25,8 @@ section > p { margin: 0 0 16px; max-width: 38em; }
 .url.en-linea { padding: 1px 6px; background: var(--sumi-alzado); border-radius: 3px; font-weight: 500; }
 .copiar { flex: none; background: var(--washi); color: var(--sumi); border: 0; padding: 8px 16px; font: inherit; font-size: 15px; font-weight: 700; border-radius: 4px; cursor: pointer; }
 .copiar:hover { background: #fff6e8; }
+a.copiar { text-decoration: none; }
+h3 { margin: 32px 0 12px; font-family: var(--mincho); font-weight: 800; font-size: 22px; line-height: 1.2; }
 
 /* Pasos: son una secuencia real, van numerados */
 .pasos { margin: 0 0 16px; padding: 0; list-style: none; counter-reset: paso; display: grid; gap: 14px; }

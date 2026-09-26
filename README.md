@@ -4,7 +4,7 @@ Web de la liga TENKA ICHI de Koryu Budo. Refleja en directo un draft de **DraftC
 
 - **Portada pública:** `/` (los trece clanes en baraja, su plantilla, clasificación y campeones más presentes)
 - **Panel de producción:** `/panel/` (con contraseña)
-- **Guía de retransmisión:** `/guia/` (enlaces, montaje en OBS y dónde va cada cámara; es lo que se le pasa a quien lleva OBS)
+- **Guía de retransmisión:** `/guia/` (enlaces, montaje en OBS, dónde va cada cámara y los vídeos de inicio, transición y final para descargar; es lo que se le pasa a quien lleva OBS)
 - **Overlay para OBS:** `/overlay/` (1920×1080, con fondo de tinta y de 0 a 4 cámaras; `?transparente=1` quita el fondo y `?guia=1` marca los huecos de las cámaras)
 
 ## Arrancar en tu PC
@@ -125,3 +125,7 @@ El overlay tiene de 0 a 4 huecos transparentes en el centro, entre los picks. Se
 | 2 | 480×270 en 720, 224 · 480×270 en 720, 552 |
 | 3 | 560×315 en 680, 226 · 334×188 en 620, 607 · 334×188 en 966, 607 |
 | 4 | 334×188 en 620, 290 · 966, 290 · 620, 544 · 966, 544 |
+
+## Vídeos del stream
+
+`public/stream/` tiene los vídeos terminados (inicio, transición y final) que se descargan desde la guía. Se hacen en `koryu-budo/flow/` (prompts y montaje en `flow/bucles-stream.md`); si se rehacen, se copian aquí desde `flow/final/`.
