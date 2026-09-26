@@ -98,8 +98,8 @@ function pintar() {
       caja.querySelectorAll('.jugadores input').forEach((inp, i) => { inp.value = e.equipos[lado].jugadores[i]; });
     }
   }
-  if (!camarasRellenas) { camarasRellenas = true; camaras = structuredClone(e.camaras.lista); pintarFilasCamaras(e.camaras.cantidad); }
-  pintarCantidad(e.camaras.cantidad);
+  if (!camarasRellenas && e.camaras) { camarasRellenas = true; camaras = structuredClone(e.camaras.lista); pintarFilasCamaras(e.camaras.cantidad); }
+  pintarCantidad(e.camaras?.cantidad ?? 0);
   $('#partida').value = e.config.partida;
 
   const f = e.fuente;
@@ -159,6 +159,7 @@ $('#nuevaSerie').onclick = () => { if (confirm('¿Empezar una serie nueva? Se qu
 // ---------- Vista previa y enlaces ----------
 $('#urlOverlay').textContent = `${location.origin}/overlay/`;
 $('#urlPortada').textContent = `${location.origin}/`;
+$('#urlGuiaRetransmision').textContent = `${location.origin}/guia/`;
 $('#urlPortada').href = '/';
 const vista = $('#vista');
 vista.src = '/overlay/?guia=1';

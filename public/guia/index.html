@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Guía de retransmisión · Tenka Ichi</title>
+<link rel="icon" href="/marca/koryu-budo.png">
+<link rel="stylesheet" href="/marca.css">
+<link rel="stylesheet" href="guia.css">
+</head>
+<body>
+<header class="barra">
+  <a class="marca" href="/"><img src="/marca/koryu-budo.png" alt=""><span>Tenka Ichi</span></a>
+</header>
+
+<main>
+  <h1>Guía de retransmisión</h1>
+  <p class="entrada">Lo que necesita quien lleva OBS en las partidas de Tenka Ichi. El overlay se actualiza solo desde el panel: en OBS se monta una vez y ya está.</p>
+
+  <section>
+    <h2>Enlaces</h2>
+    <div class="enlaces">
+      <div class="enlace">
+        <div><b>Overlay para OBS</b><span class="url" data-enlace="overlay"></span></div>
+        <button class="copiar" data-enlace="overlay">Copiar</button>
+      </div>
+      <div class="enlace">
+        <div><b>Panel de producción</b><span class="url" data-enlace="panel"></span></div>
+        <button class="copiar" data-enlace="panel">Copiar</button>
+      </div>
+    </div>
+    <p class="nota">El panel pide una contraseña: te la da la organización por privado. No la pegues en canales públicos ni en el chat del directo.</p>
+  </section>
+
+  <section>
+    <h2>Montar la escena en OBS</h2>
+    <ol class="pasos">
+      <li>Añade una <b>fuente de navegador</b> con la dirección del overlay, <b>1920</b> de ancho y <b>1080</b> de alto.</li>
+      <li>Añade las cámaras (de los casters o de los jugadores) y ponlas <b>por debajo</b> del overlay en la lista de fuentes. El overlay tiene huecos transparentes en el centro y las cámaras se ven a través de ellos.</li>
+      <li>Encaja cada cámara en su hueco: selecciónala, pulsa <b>Ctrl+E</b> (Editar transformación) y escribe la posición y el tamaño del cuadro delimitador que salen en la tabla de abajo.</li>
+      <li>Para ver los huecos mientras colocas, cambia un momento la dirección del overlay por <span class="url en-linea" data-enlace="guia"></span>. Salen marcados con su medida. Al acabar, vuelve a la dirección normal.</li>
+    </ol>
+    <p class="nota">Si tu escena ya tiene su propio fondo y no quieres el de tinta del overlay, usa <span class="url en-linea" data-enlace="transparente"></span>.</p>
+  </section>
+
+  <section>
+    <h2>Dónde va cada cámara</h2>
+    <p>Quien lleva el panel elige cuántas cámaras salen, de ninguna a cuatro, y los huecos cambian según el número. Lo más cómodo es tener en OBS una escena de draft por cada número de cámaras, con las cámaras ya colocadas, y cambiar de escena cuando cambie en el panel.</p>
+    <div class="disposiciones"></div>
+  </section>
+
+  <section>
+    <h2>Durante la partida, en el panel</h2>
+    <ol class="pasos">
+      <li>En <b>Competición</b>, elige la partida del calendario y pulsa <b>Cargar en el panel</b>. Se rellenan la jornada, el formato, los clanes y los jugadores.</li>
+      <li>En <b>DraftCore</b>, pega el enlace de espectador del draft y pulsa <b>Conectar</b>. Los picks y bans salen solos en el overlay.</li>
+      <li>En <b>Cámaras</b>, elige cuántas salen y qué es cada una, y pulsa <b>Poner en el overlay</b>.</li>
+      <li>Al acabar la partida, pulsa <b>Gana el lado azul</b> o <b>Gana el lado rojo</b>. El resultado se guarda en la clasificación.</li>
+      <li>Para la siguiente, vuelve al primer paso.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Si algo falla</h2>
+    <dl class="problemas">
+      <dt>El overlay sale vacío o no se mueve</dt>
+      <dd>La web se duerme si nadie la usa durante 15 minutos y tarda alrededor de un minuto en despertar. Abre el panel unos minutos antes de empezar. En OBS, haz clic derecho en la fuente del overlay y pulsa <b>Actualizar</b>.</dd>
+      <dt>Los picks no aparecen</dt>
+      <dd>En el panel, el apartado DraftCore debe decir «Conectado al draft». Si no, vuelve a pegar el enlace de espectador y pulsa Conectar.</dd>
+      <dt>Las cámaras no encajan con los huecos</dt>
+      <dd>Mira cuántas cámaras hay elegidas en el panel y pasa a la escena de OBS de ese número.</dd>
+    </dl>
+  </section>
+</main>
+
+<script type="module" src="guia.js"></script>
+</body>
+</html>

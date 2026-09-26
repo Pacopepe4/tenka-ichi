@@ -9,6 +9,15 @@ a { color: var(--washi); }
 .sello { width: 36px; height: 36px; font-size: 22px; }
 .pastilla { margin: 0; padding: 4px 12px; border-radius: 999px; background: var(--sumi); color: var(--hai); font-size: 13px; }
 .pastilla.vivo { color: #9CD9A6; }
+.indice { display: flex; gap: 2px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.indice a { padding: 6px 10px; border-radius: 4px; color: var(--hai); text-decoration: none; font-size: 14px; white-space: nowrap; }
+.indice a:hover { color: var(--washi); background: var(--sumi); }
+section { scroll-margin-top: 84px; }
+@media (max-width: 1100px) {
+  .barra { flex-wrap: wrap; row-gap: 6px; }
+  .indice { order: 3; width: 100%; }
+  section { scroll-margin-top: 124px; }
+}
 .clave { margin-left: auto; display: flex; gap: 8px; align-items: center; color: var(--hai); font-size: 13px; }
 .clave input { width: 150px; }
 

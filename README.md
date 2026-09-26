@@ -4,6 +4,7 @@ Web de la liga TENKA ICHI de Koryu Budo. Refleja en directo un draft de **DraftC
 
 - **Portada pública:** `/` (los trece clanes en baraja, su plantilla, clasificación y campeones más presentes)
 - **Panel de producción:** `/panel/` (con contraseña)
+- **Guía de retransmisión:** `/guia/` (enlaces, montaje en OBS y dónde va cada cámara; es lo que se le pasa a quien lleva OBS)
 - **Overlay para OBS:** `/overlay/` (1920×1080, con fondo de tinta y de 0 a 4 cámaras; `?transparente=1` quita el fondo y `?guia=1` marca los huecos de las cámaras)
 
 ## Arrancar en tu PC

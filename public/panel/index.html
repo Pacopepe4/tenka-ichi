@@ -12,6 +12,9 @@
 <header class="barra">
   <a class="marca" href="/"><span class="hanko sello">天</span><span>Panel de draft</span></a>
   <p id="estadoConexion" class="pastilla">Conectando…</p>
+  <nav class="indice" aria-label="Apartados del panel">
+    <a href="#competicion">Competición</a><a href="#draftcore">DraftCore</a><a href="#enfrentamiento">Enfrentamiento</a><a href="#equipos">Equipos</a><a href="#camaras">Cámaras</a><a href="#draft">Draft</a><a href="#resultado">Resultado</a>
+  </nav>
   <label class="clave">Contraseña <input id="clave" type="password" autocomplete="current-password"></label>
 </header>
 
@@ -34,7 +37,7 @@
       </div>
     </section>
 
-    <section>
+    <section id="draftcore">
       <h2>DraftCore</h2>
       <p class="ayuda">Pega el enlace de espectador del draft, el que acaba en el código del draft.</p>
       <div class="fila">
@@ -45,7 +48,7 @@
       <p id="fuente" class="estado"></p>
     </section>
 
-    <section>
+    <section id="enfrentamiento">
       <h2>Enfrentamiento</h2>
       <div class="rejilla">
         <label>Jornada <input id="jornada"></label>
@@ -56,7 +59,7 @@
       <button id="guardarConfig">Guardar enfrentamiento</button>
     </section>
 
-    <section>
+    <section id="equipos">
       <h2>Equipos</h2>
       <p class="ayuda">Al elegir un clan se rellena su plantilla. Si cambias algún jugador, guárdalo en la plantilla para la próxima vez.</p>
       <div class="dos">
@@ -88,7 +91,7 @@
       <div class="fila"><button id="guardarCamaras">Poner en el overlay</button></div>
     </section>
 
-    <section>
+    <section id="draft">
       <h2>Draft en directo</h2>
       <p class="ayuda">Se rellena solo desde DraftCore. Si algo falla, escribe el campeón en su hueco.</p>
       <div class="dos draft">
@@ -98,7 +101,7 @@
       <datalist id="listaCampeones"></datalist>
     </section>
 
-    <section>
+    <section id="resultado">
       <h2>Resultado</h2>
       <p class="ayuda" id="ayudaHoja"></p>
       <div class="fila">
@@ -115,6 +118,7 @@
   <aside>
     <div class="vista"><iframe id="vista" title="Vista previa del overlay" tabindex="-1"></iframe></div>
     <p class="ayuda">En OBS añade una fuente de navegador de 1920×1080 con <code id="urlOverlay"></code> y ponla por encima de las cámaras. Para colocarlas, abre <a id="urlGuia" target="_blank">la guía de cámaras</a>. Si no quieres el fondo de tinta, añade <code>?transparente=1</code> a la dirección.</p>
+    <p class="ayuda">Guía para quien lleva OBS: <a id="urlGuiaRetransmision" href="/guia/" target="_blank"></a></p>
     <p class="ayuda">Portada pública: <a id="urlPortada" href="/" target="_blank"></a></p>
   </aside>
 </div>

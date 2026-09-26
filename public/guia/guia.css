@@ -1,0 +1,53 @@
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--grano), var(--sumi); color: var(--washi); font: 17px/1.65 var(--gothic); }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--shu-claro); outline-offset: 3px; }
+
+.barra { display: flex; align-items: center; padding: 12px clamp(16px, 4vw, 48px); border-bottom: 1px solid var(--sumi-linea); }
+.marca { display: flex; align-items: center; gap: 12px; text-decoration: none; font-weight: 700; }
+.marca img { width: 40px; height: 38px; object-fit: contain; }
+
+main { max-width: 780px; margin: 0 auto; padding: clamp(40px, 7vw, 88px) clamp(16px, 5vw, 32px) 96px; }
+h1 { margin: 0; font-family: var(--mincho); font-weight: 800; font-size: clamp(40px, 7vw, 64px); line-height: 1.05; }
+.entrada { margin: 16px 0 0; font-size: 19px; color: var(--hai); max-width: 34em; }
+
+section { margin-top: clamp(44px, 6vw, 64px); padding-top: 28px; border-top: 1px solid var(--sumi-linea); }
+h2 { margin: 0 0 16px; font-family: var(--mincho); font-weight: 800; font-size: clamp(26px, 4vw, 32px); line-height: 1.15; }
+section > p { margin: 0 0 16px; max-width: 38em; }
+.nota { color: var(--hai); font-size: 15.5px; }
+
+/* Enlaces con botón de copiar */
+.enlaces { display: grid; gap: 10px; margin-bottom: 14px; }
+.enlace { display: flex; align-items: center; gap: 16px; padding: 14px 16px; background: var(--sumi-alzado); border-radius: 5px; }
+.enlace > div { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.enlace b { font-size: 15px; color: var(--hai); font-weight: 500; }
+.url { font-weight: 700; overflow-wrap: anywhere; }
+.url.en-linea { padding: 1px 6px; background: var(--sumi-alzado); border-radius: 3px; font-weight: 500; }
+.copiar { flex: none; background: var(--washi); color: var(--sumi); border: 0; padding: 8px 16px; font: inherit; font-size: 15px; font-weight: 700; border-radius: 4px; cursor: pointer; }
+.copiar:hover { background: #fff6e8; }
+
+/* Pasos: son una secuencia real, van numerados */
+.pasos { margin: 0 0 16px; padding: 0; list-style: none; counter-reset: paso; display: grid; gap: 14px; }
+.pasos li { position: relative; padding-left: 46px; counter-increment: paso; max-width: 38em; }
+.pasos li::before { content: counter(paso); position: absolute; left: 0; top: 0; width: 30px; height: 30px; display: grid; place-items: center;
+  border: 1.5px solid var(--washi); border-radius: 50%; font-family: var(--mincho); font-weight: 800; font-size: 16px; line-height: 1; }
+
+/* Disposición de las cámaras: miniatura del lienzo 1920×1080 y tabla para OBS */
+.disposiciones { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 28px 24px; margin-top: 24px; }
+.disposicion { margin: 0; }
+.disposicion h3 { margin: 0 0 10px; font-family: var(--mincho); font-weight: 800; font-size: 22px; }
+.miniatura { position: relative; aspect-ratio: 16 / 9; background: var(--sumi-alzado); border-radius: 4px; overflow: hidden; }
+.miniatura i { position: absolute; top: 18.5%; height: 61.9%; width: 28.1%; background: rgba(231, 223, 210, .06); }
+.miniatura i.izq { left: 2.5%; box-shadow: inset 3px 0 0 var(--azul-lado); }
+.miniatura i.der { right: 2.5%; box-shadow: inset -3px 0 0 var(--rojo-lado); }
+.miniatura span { position: absolute; display: grid; place-items: center; border: 1.5px solid var(--washi); background: rgba(231, 223, 210, .12);
+  font-family: var(--mincho); font-weight: 800; font-size: 15px; }
+.disposicion table { width: 100%; margin-top: 12px; border-collapse: collapse; font-size: 15px; font-variant-numeric: tabular-nums; }
+.disposicion th { text-align: left; font-weight: 500; color: var(--hai); padding: 0 6px 6px 0; border-bottom: 1px solid var(--sumi-linea); }
+.disposicion td { padding: 7px 6px 7px 0; border-bottom: 1px solid var(--sumi-linea); }
+
+/* Problemas frecuentes */
+.problemas { margin: 0; }
+.problemas dt { font-weight: 700; margin-top: 18px; }
+.problemas dt:first-child { margin-top: 0; }
+.problemas dd { margin: 4px 0 0; color: var(--hai); max-width: 38em; }

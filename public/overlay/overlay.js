@@ -146,7 +146,7 @@ function pintarCamaras(e) {
     const dt = datos[i];
     const pequena = h.w < 400;
     return `<div class="camara${pequena ? ' pequena' : ''}" style="left:${h.x - ESCENARIO.x}px; top:${h.y - ESCENARIO.y}px; width:${h.w}px; height:${h.h + PLACA_CAMARA}px; --color-cam:${dt.color}">
-      <div class="hueco" style="height:${h.h}px"><div class="medidas">Cámara ${i + 1}<br>${h.w}×${h.h} en x ${h.x}, y ${h.y}</div></div>
+      <div class="hueco" style="height:${h.h}px"><div class="medidas"><span>Cámara ${i + 1}<br>${h.w}×${h.h} en x ${h.x}, y ${h.y}</span></div></div>
       <div class="placa-cam" style="top:${h.h}px">${dt.logo ? `<img src="${dt.logo}" alt="">` : ''}<span class="nombre-cam">${escapar(dt.nombre)}</span><span class="detalle-cam">${escapar(dt.detalle || '')}</span></div>
     </div>`;
   }).join('');
