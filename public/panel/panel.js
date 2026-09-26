@@ -293,3 +293,75 @@ $('#guardarCamaras').onclick = async () => {
   const r = await enviar('camaras', { cantidad: cantidadVisible, lista: [0, 1, 2, 3].map(i => camaras[i] || { tipo: 'caster', nombre: '', detalle: '' }) });
   if (r.ok) aviso('Cámaras en el overlay');
 };
+
+// ---------- Tier list ----------
+const TIERS = ['S', 'A', 'B', 'C', 'D'];
+let tierlist = await fetch('/api/tierlist').then(r => r.json()).catch(() => ({ jugadores: [], equipos: [] }));
+let tipoTier = 'jugadores';
+
+const selectorTier = (tipo, id, actual) => `<span class="selector-tier" role="group" aria-label="Tier">${[...TIERS, ''].map(t =>
+  `<button type="button" data-tipo="${tipo}" data-id="${id}" data-tier="${t}" aria-pressed="${(actual || '') === t}" style="--color-tier: var(--tier-${t || 'D'})">${t || 'Sin'}</button>`).join('')}</span>`;
+
+function pintarEditorTier() {
+  const caja = $('.editor-tier');
+  if (tipoTier === 'equipos') {
+    caja.innerHTML = tierlist.equipos.map(e => `<div class="fila-tier equipo"><img src="${logo(e.id)}" alt=""><span class="quien">${e.nombre}</span>${selectorTier('equipo', e.id, e.tier)}</div>`).join('');
+  } else {
+    const porClan = new Map();
+    for (const j of tierlist.jugadores) (porClan.get(j.clan) || porClan.set(j.clan, []).get(j.clan)).push(j);
+    caja.innerHTML = [...porClan].map(([clan, lista]) => `<div class="clan-tier"><h3><img src="${logo(clan)}" alt="">${clanes.clan(clan).nombre}</h3>
+      ${lista.map(j => `<div class="fila-tier"><span class="rol">${ROL_LEGIBLE[j.rol]}</span><span class="quien${j.nombre ? '' : ' sin'}">${j.nombre || 'Sin nombre en la plantilla'}</span>${selectorTier('jugador', j.id, j.tier)}</div>`).join('')}</div>`).join('');
+  }
+  caja.querySelectorAll('.selector-tier button').forEach(b => b.addEventListener('click', async () => {
+    const r = await enviar('tier', { tipo: b.dataset.tipo, id: b.dataset.id, tier: b.dataset.tier || null });
+    if (r.ok) { tierlist = r.tierlist; pintarEditorTier(); }
+  }));
+}
+document.querySelectorAll('.pestanas-tier button').forEach(b => b.addEventListener('click', () => {
+  tipoTier = b.dataset.tipo;
+  document.querySelectorAll('.pestanas-tier button').forEach(x => x.setAttribute('aria-selected', String(x === b)));
+  pintarEditorTier();
+}));
+pintarEditorTier();
+
+// ---------- Gachapon ----------
+const porcentaje = p => `${(p * 100).toLocaleString('es-ES', { maximumFractionDigits: 1 })} %`;
+function pintarGacha(g) {
+  $('#estadoLoginTwitch').textContent = g.login
+    ? 'El inicio de sesión con Twitch está activo: cualquiera puede entrar en /gachapon/ y recibir sus sobres.'
+    : 'Falta configurar el inicio de sesión con Twitch en Render (TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET y SESION_SECRETO). Los pasos están en la guía del README.';
+  $('#estadoLoginTwitch').classList.toggle('mal', !g.login);
+  const c = g.canal, est = $('#estadoCanal');
+  est.className = `estado ${c.error ? 'mal' : c.conectado ? 'ok' : ''}`;
+  est.textContent = c.error ? c.error
+    : c.conectado ? `Conectado como ${c.login}. La recompensa «${c.titulo}» cuesta ${c.coste} puntos.${c.ultimoSondeo ? ` Última recogida de canjes: ${new Date(c.ultimoSondeo).toLocaleTimeString('es-ES')}.` : ''}`
+      : `Sin conectar. Hay que entrar con la cuenta del canal (${c.canal}); la web crea la recompensa «${c.titulo}».`;
+  $('#conectarCanal').textContent = c.conectado ? 'Volver a conectar el canal' : 'Conectar el canal de Twitch';
+  if (c.coste && document.activeElement !== $('#costeSobre')) $('#costeSobre').value = c.coste;
+  const r = g.resumen, p = g.probabilidades;
+  const n = (x, uno, varios) => `${x} ${x === 1 ? uno : varios}`;
+  $('#resumenGacha').textContent = `${n(r.coleccionistas, 'coleccionista', 'coleccionistas')}, ${n(r.sobresAbiertos, 'sobre abierto', 'sobres abiertos')} y ${n(r.sobresSinAbrir, 'sin abrir', 'sin abrir')}. ${n(r.cartas, 'carta', 'cartas')} en los sobres. Probabilidad por carta: `
+    + TIERS.map(t => `${t} ${porcentaje(p[t] || 0)}`).join(', ') + '.';
+}
+async function actualizarGacha() {
+  let r;
+  try { r = await directo.enviar('gachaEstado', {}, claveInput.value); }
+  catch { setTimeout(actualizarGacha, 1500); return; } // la conexión aún no está abierta
+  if (r.ok) pintarGacha(r.gacha);
+  else $('#estadoLoginTwitch').textContent = 'Escribe la contraseña arriba a la derecha para ver el estado del gachapon.';
+}
+$('#conectarCanal').onclick = async () => {
+  const r = await enviar('twitchCanal');
+  if (r.ok) window.open(r.url, '_blank', 'noopener');
+};
+$('#recogerCanjes').onclick = async () => { const r = await enviar('gachaSondear'); if (r.ok) { pintarGacha(r.gacha); aviso('Canjes recogidos'); } };
+$('#guardarCoste').onclick = async () => { const r = await enviar('gachaCoste', { coste: $('#costeSobre').value }); if (r.ok) { pintarGacha(r.gacha); aviso('Coste cambiado en Twitch'); } };
+$('#regalar').onclick = async () => {
+  const usuario = $('#regaloUsuario').value.trim();
+  if (!usuario) return aviso('Escribe el nombre en Twitch');
+  const r = await enviar('gachaRegalar', { usuario, cantidad: $('#regaloCantidad').value });
+  if (r.ok) { pintarGacha(r.gacha); aviso(`Sobres regalados a ${r.nombre}`); $('#regaloUsuario').value = ''; }
+};
+claveInput.addEventListener('change', actualizarGacha);
+setTimeout(actualizarGacha, 800);
+setInterval(actualizarGacha, 60000);

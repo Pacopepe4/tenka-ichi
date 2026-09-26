@@ -39,3 +39,11 @@
 - Overlay rehecho: placas de equipo cortadas en diagonal con el kanji del clan de fondo, marcador de la serie en Bo3, temporizador en un sello hanko, escenario central con 0 a 4 cámaras (huecos transparentes con placa de nombre), franja inferior con la tarjeta de estadísticas y los bloqueados en fearless. Fondo de tinta propio con los huecos recortados.
 - Panel: apartado Cámaras (cuántas y qué es cada una, con su medida para OBS); vista previa con la guía de huecos; arreglados el campo de semilla y el desbordamiento del draft.
 - Portada: papel con el sol partido cortado en diagonal, como la portada de Canva; nueva sección «El camino al trono» con el formato.
+
+## 26/09 (noche): directo, tier list y gachapon
+
+- Directo: reproductor de twitch.tv/koryubudo en la portada, con ventanita flotante cuando hay directo.
+- Tier list de jugadores y equipos (S–D), editable en el panel y publicada en la portada. Pestaña Tierlist en Sheets.
+- Gachapon en /gachapon/: entrar con Twitch, 2 sobres al empezar, 3 cartas por sobre con rareza según la tier, más sobres con puntos del canal (recompensa creada por la web), regalos desde el panel. Pestañas Gachapon y Ajustes en Sheets.
+- Pendiente del usuario: registrar la app en dev.twitch.tv y poner TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET y SESION_SECRETO en Render; conectar el canal desde el panel.
+- Pendiente de decidir: si el gachapon será fantasy de verdad (alinear cartas y puntuar con los resultados).

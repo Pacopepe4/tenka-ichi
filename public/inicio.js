@@ -182,3 +182,36 @@ $('.campeones').innerHTML = liga.campeones.length
       <div><div class="fila-nombre"><b>${campeones.nombre(c.id)}</b><span class="cifras">Pick ${c.pick}%, ban ${c.ban}%${c.winrate === null ? '' : `, victorias ${c.winrate}%`}</span></div>
       <div class="barra-presencia" title="Presencia ${c.presenciaPct}%"><span style="width:${c.presenciaPct}%"></span></div></div></li>`).join('')
   : '<li class="vacio">Sin partidas todavía.</li>';
+
+// ---------- Directo ----------
+import('/directo.js').then(({ iniciarDirecto }) => iniciarDirecto({
+  marco: $('.directo-marco'),
+  alCambiar: vivo => { $('.directo-estado').textContent = vivo ? 'Ahora en directo en Twitch.' : 'Sin directo ahora mismo.'; },
+}));
+
+// ---------- Tier list ----------
+const TIERS = ['S', 'A', 'B', 'C', 'D'];
+const ROL_CORTO = { TOP: 'Top', JUNGLA: 'Jungla', MEDIO: 'Medio', ADC: 'ADC', SUPPORT: 'Support' };
+const tierlist = await fetch('/api/tierlist').then(r => r.json()).catch(() => ({ jugadores: [], equipos: [] }));
+let tipoTier = 'jugadores';
+
+function pintarTierlist() {
+  const lista = tierlist[tipoTier].filter(x => x.tier && (tipoTier === 'equipos' || x.nombre));
+  if (!lista.length) {
+    $('.tier-filas').innerHTML = `<p class="tier-aviso">La tier list de ${tipoTier === 'jugadores' ? 'jugadores' : 'equipos'} se publica cuando el staff la tenga lista.</p>`;
+    return;
+  }
+  $('.tier-filas').innerHTML = TIERS.map(t => {
+    const fichas = lista.filter(x => x.tier === t).map(x => tipoTier === 'equipos'
+      ? `<span class="ficha-tier"><img src="${logo(x.id)}" alt=""><b>${x.nombre}</b></span>`
+      : `<span class="ficha-tier"><img src="${logo(x.clan)}" alt=""><b>${x.nombre}</b><small>${ROL_CORTO[x.rol]}, ${nombre(x.clan)}</small></span>`).join('');
+    return `<div class="tier-fila" data-tier="${t}" style="--color-tier: var(--tier-${t})"><span class="tier-letra">${t}</span>
+      <div class="tier-fichas">${fichas || '<span class="tier-vacia">Nadie en esta tier</span>'}</div></div>`;
+  }).join('');
+}
+document.querySelectorAll('.tier-pestanas button').forEach(b => b.addEventListener('click', () => {
+  tipoTier = b.dataset.tipo;
+  document.querySelectorAll('.tier-pestanas button').forEach(x => x.setAttribute('aria-selected', String(x === b)));
+  pintarTierlist();
+}));
+pintarTierlist();

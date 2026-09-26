@@ -129,3 +129,36 @@ El overlay tiene de 0 a 4 huecos transparentes en el centro, entre los picks. Se
 ## Vídeos del stream
 
 `public/stream/` tiene los vídeos terminados (inicio, transición y final) que se descargan desde la guía. Se hacen en `koryu-budo/flow/` (prompts y montaje en `flow/bucles-stream.md`); si se rehacen, se copian aquí desde `flow/final/`.
+
+## Directo
+
+La portada tiene un apartado **Directo** con el reproductor de twitch.tv/koryubudo. Cuando hay directo, al bajar por la página el vídeo pasa a una ventanita en la esquina (también en el gachapon). Twitch solo deja incrustar el reproductor en el dominio de la web, que la página le indica sola.
+
+## Tier list
+
+Se edita en el panel, apartado **Tier list**: cada jugador (por su puesto en la plantilla del clan) y cada equipo tiene una tier S, A, B, C o D. Se publica en la portada. Los jugadores sin nombre en la plantilla no salen. Se guarda en la pestaña **Tierlist** de Google Sheets.
+
+## Gachapon
+
+`/gachapon/`: cada espectador entra con su cuenta de Twitch y recibe **2 sobres**. Cada sobre trae **3 cartas** de jugadores de la liga, y la rareza de cada carta es la tier del jugador: en el sorteo un S pesa 1, un A 3, un B 6, un C 10 y un D 15 (un S sale 15 veces menos que un D). La página enseña las probabilidades reales, que dependen de cuántos jugadores hay en cada tier.
+
+Más sobres: con la recompensa de puntos del canal **Sobre de Tenka Ichi**. La web recoge los canjes de la cola de Twitch cada minuto (y cuando alguien entra en el gachapon), da el sobre y marca el canje como hecho. Si la web está dormida, los canjes esperan en Twitch y no se pierden.
+
+Todo se guarda como movimientos en la pestaña **Gachapon** de Google Sheets (altas, canjes, regalos, aperturas y cartas), así que ahí se ve quién tiene qué. La conexión del canal va cifrada en la pestaña **Ajustes**.
+
+### Activarlo (gratis)
+
+1. Entra en https://dev.twitch.tv/console/apps con tu cuenta de Twitch y pulsa **Register Your Application**:
+   - Name: `Tenka Ichi` (o el que quieras).
+   - OAuth Redirect URLs: `https://tenka-ichi.onrender.com/auth/twitch/callback` y, para probar en local, `http://localhost:3030/auth/twitch/callback`.
+   - Category: **Website Integration**. Client Type: **Confidential**.
+2. En la app creada copia el **Client ID** y pulsa **New Secret** para sacar el **Client Secret**.
+3. En Render, en Environment del servicio, añade:
+   - `TWITCH_CLIENT_ID`: el Client ID.
+   - `TWITCH_CLIENT_SECRET`: el Client Secret.
+   - `SESION_SECRETO`: una cadena larga al azar. Puedes sacar una con `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. Si la cambias, se cierran todas las sesiones y hay que volver a conectar el canal.
+4. En el panel, apartado **Gachapon**, pulsa **Conectar el canal de Twitch** y entra con la cuenta **koryubudo**. La web crea la recompensa «Sobre de Tenka Ichi» a 3000 puntos; el coste se cambia desde el panel.
+
+Los puntos del canal solo existen en canales afiliados o partner de Twitch. El staff puede **regalar sobres** desde el panel (premios, sorteos).
+
+Sin las variables de Twitch, la página del gachapon dice que abre muy pronto. En local se puede probar sin Twitch entrando en `/auth/prueba?nombre=Alguien`.

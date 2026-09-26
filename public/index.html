@@ -8,11 +8,12 @@
 <link rel="icon" href="/marca/koryu-budo.png">
 <link rel="stylesheet" href="/marca.css">
 <link rel="stylesheet" href="/inicio.css">
+<link rel="stylesheet" href="/directo.css">
 </head>
 <body>
 <header class="barra">
   <a class="marca" href="#inicio"><img src="/marca/koryu-budo.png" alt=""><span>Koryu Budo League</span></a>
-  <nav><a href="#clanes">Clanes</a><a href="#formato">Formato</a><a href="#liga">Liga</a></nav>
+  <nav><a href="#directo" class="enlace-directo">Directo</a><a href="#clanes">Clanes</a><a href="#formato">Formato</a><a href="#liga">Liga</a><a href="#tierlist">Tier list</a><a href="/gachapon/">Gachapon</a></nav>
 </header>
 
 <main>
@@ -28,6 +29,21 @@
       </div>
       <p class="lore">Tras la cuarta Pelea de Cinturones, el cielo expulsó a los samuráis y cerró sus puertas. Arriba ya no hay sitio para ellos; abajo hay un trono vacío. Trece clanes, un solo reino. Quien gane, reinará bajo el cielo.</p>
       <a class="boton" href="#clanes">Conoce a los clanes</a>
+    </div>
+  </section>
+
+  <section id="directo" class="directo">
+    <div class="directo-rejilla">
+      <div class="directo-marco"></div>
+      <div class="directo-texto">
+        <h2>Directo</h2>
+        <p class="directo-estado">Sin directo ahora mismo.</p>
+        <p>Las jornadas de Tenka Ichi se emiten en el canal de Twitch de Koryu Budo, con el draft en directo y los casters.</p>
+        <div class="directo-acciones">
+          <a class="boton" href="https://twitch.tv/koryubudo" target="_blank" rel="noopener">Ver en Twitch</a>
+          <a class="boton-secundario" href="https://www.twitch.tv/popout/koryubudo/chat" target="_blank" rel="noopener">Abrir el chat</a>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -111,6 +127,17 @@
         <ol class="campeones"></ol>
       </div>
     </div>
+  </section>
+  <section id="tierlist" class="tierlist">
+    <div class="cabecera-seccion">
+      <h2>Tier list</h2>
+      <p>La clasificación del staff. La tier de cada jugador es también la rareza de su carta en el <a href="/gachapon/">gachapon</a>.</p>
+    </div>
+    <div class="tier-pestanas" role="tablist" aria-label="Tier list">
+      <button role="tab" aria-selected="true" data-tipo="jugadores">Jugadores</button>
+      <button role="tab" aria-selected="false" data-tipo="equipos">Equipos</button>
+    </div>
+    <div class="tier-filas"></div>
   </section>
 </main>
 

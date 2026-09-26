@@ -10,6 +10,8 @@
   --shu: #BE2A2F;         /* bermellón de laca */
   --shu-claro: #E0484D;
   --azul-lado: #2FA4E7;   /* lado azul del draft */
+  /* Tiers de la tier list, que son también la rareza de las cartas del gachapon */
+  --tier-S: #BE2A2F; --tier-A: #D9A441; --tier-B: #A9B3BC; --tier-C: #7FA36B; --tier-D: #8A8175;
   --rojo-lado: #C1272D;   /* lado rojo del draft */
 
   /* Grano de papel: ruido muy suave encima de la tinta */

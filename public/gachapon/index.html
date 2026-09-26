@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gachapon · Tenka Ichi</title>
+<meta name="description" content="El gachapon de Tenka Ichi: colecciona las cartas de los jugadores de la liga. Cuanto mejor es su tier, más difícil es que salga.">
+<link rel="icon" href="/marca/koryu-budo.png">
+<link rel="stylesheet" href="/marca.css">
+<link rel="stylesheet" href="/inicio.css">
+<link rel="stylesheet" href="/directo.css">
+<link rel="stylesheet" href="gachapon.css">
+</head>
+<body>
+<header class="barra">
+  <a class="marca" href="/"><img src="/marca/koryu-budo.png" alt=""><span>Koryu Budo League</span></a>
+  <nav><a href="/#directo" class="enlace-directo">Directo</a><a href="/#clanes">Clanes</a><a href="/#liga">Liga</a><a href="/#tierlist">Tier list</a><a href="/gachapon/" aria-current="page">Gachapon</a></nav>
+</header>
+
+<main>
+  <section class="cabeza-gacha">
+    <div class="intro">
+      <h1>Gachapon</h1>
+      <p class="sub">Colecciona a los jugadores de Tenka Ichi. Cada sobre trae tres cartas, y cuanto mejor es la tier de un jugador, más difícil es que salga.</p>
+      <div class="cuenta"></div>
+      <p class="como-mas"></p>
+    </div>
+    <button class="sobre" type="button" aria-label="Abrir un sobre" disabled>
+      <span class="sobre-papel"><img src="/marca/sol-partido-sin-fondo.png" alt=""></span>
+      <span class="sobre-banda"><span class="sobre-kanji">天下一</span><span class="sobre-texto">Sobre de Tenka Ichi</span></span>
+      <span class="sobre-contador"></span>
+    </button>
+  </section>
+
+  <section class="coleccion">
+    <div class="coleccion-cabeza">
+      <div>
+        <h2>Colección</h2>
+        <p class="progreso"></p>
+      </div>
+      <div class="filtros" role="tablist" aria-label="Qué cartas ver">
+        <button role="tab" aria-selected="true" data-filtro="todas">Todas</button>
+        <button role="tab" aria-selected="false" data-filtro="tengo">Las que tengo</button>
+        <button role="tab" aria-selected="false" data-filtro="faltan">Me faltan</button>
+      </div>
+    </div>
+    <div class="album"></div>
+  </section>
+
+  <section class="probabilidades">
+    <h2>Probabilidades</h2>
+    <p class="nota">Para cada carta del sobre, la probabilidad de que sea de cada tier. Dependen de cuántos jugadores hay en cada una.</p>
+    <div class="tabla-prob"></div>
+  </section>
+</main>
+
+<footer>
+  <img src="/marca/koryu-budo.png" alt="">
+  <p>Tenka Ichi es la liga de League of Legends de Koryu Budo.</p>
+</footer>
+
+<dialog class="apertura" aria-label="Abriendo un sobre">
+  <div class="escena">
+    <div class="sobre-abriendo" aria-hidden="true">
+      <span class="mitad arriba"><span class="sobre-papel"><img src="/marca/sol-partido-sin-fondo.png" alt=""></span></span>
+      <span class="mitad abajo"><span class="sobre-papel"><img src="/marca/sol-partido-sin-fondo.png" alt=""></span></span>
+      <span class="corte"></span>
+    </div>
+    <div class="reparto"></div>
+  </div>
+  <div class="acciones-apertura">
+    <button type="button" class="boton-claro descubrir">Descubrir todas</button>
+    <button type="button" class="boton-claro otro" hidden>Abrir otro</button>
+    <button type="button" class="boton-secundario cerrar-apertura" hidden>Guardar en la colección</button>
+  </div>
+</dialog>
+
+<script type="module" src="gachapon.js"></script>
+</body>
+</html>

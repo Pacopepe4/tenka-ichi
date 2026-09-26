@@ -13,7 +13,7 @@
   <a class="marca" href="/"><span class="hanko sello">天</span><span>Panel de draft</span></a>
   <p id="estadoConexion" class="pastilla">Conectando…</p>
   <nav class="indice" aria-label="Apartados del panel">
-    <a href="#competicion">Competición</a><a href="#draftcore">DraftCore</a><a href="#enfrentamiento">Enfrentamiento</a><a href="#equipos">Equipos</a><a href="#camaras">Cámaras</a><a href="#draft">Draft</a><a href="#resultado">Resultado</a>
+    <a href="#competicion">Competición</a><a href="#draftcore">DraftCore</a><a href="#enfrentamiento">Enfrentamiento</a><a href="#equipos">Equipos</a><a href="#camaras">Cámaras</a><a href="#draft">Draft</a><a href="#resultado">Resultado</a><a href="#tierlist">Tier list</a><a href="#gachapon">Gachapon</a>
   </nav>
   <label class="clave">Contraseña <input id="clave" type="password" autocomplete="current-password"></label>
 </header>
@@ -112,6 +112,43 @@
         <button id="probarHoja" class="secundario" hidden>Reintentar Google Sheets</button>
       </div>
       <ol id="resultados" class="resultados"></ol>
+    </section>
+
+    <section id="tierlist">
+      <h2>Tier list</h2>
+      <p class="ayuda">Se publica en la portada. La tier de cada jugador es también la rareza de su carta en el gachapon. Los jugadores sin nombre en la plantilla no salen ni en la web ni en los sobres.</p>
+      <div class="pestanas-tier" role="tablist" aria-label="Qué tier list editar">
+        <button type="button" role="tab" aria-selected="true" data-tipo="jugadores">Jugadores</button>
+        <button type="button" role="tab" aria-selected="false" data-tipo="equipos">Equipos</button>
+      </div>
+      <div class="editor-tier"></div>
+    </section>
+
+    <section id="gachapon">
+      <h2>Gachapon</h2>
+      <p class="ayuda" id="estadoLoginTwitch"></p>
+      <div class="caja-gacha">
+        <h3>Canal de Twitch</h3>
+        <p class="estado" id="estadoCanal"></p>
+        <div class="fila">
+          <button type="button" id="conectarCanal">Conectar el canal de Twitch</button>
+          <button type="button" id="recogerCanjes" class="secundario">Recoger canjes ahora</button>
+        </div>
+        <div class="fila">
+          <label class="coste">Puntos por sobre <input id="costeSobre" type="number" min="1" step="100"></label>
+          <button type="button" id="guardarCoste" class="secundario">Cambiar el coste</button>
+        </div>
+      </div>
+      <div class="caja-gacha">
+        <h3>Regalar sobres</h3>
+        <p class="ayuda">Para premios o sorteos. Vale el nombre de Twitch de alguien que ya haya entrado en el gachapon o cualquier cuenta de Twitch si el inicio de sesión está configurado.</p>
+        <div class="fila">
+          <input id="regaloUsuario" placeholder="Nombre en Twitch" aria-label="Nombre en Twitch">
+          <input id="regaloCantidad" type="number" min="1" max="20" value="1" aria-label="Número de sobres">
+          <button type="button" id="regalar">Regalar sobres</button>
+        </div>
+      </div>
+      <p class="ayuda" id="resumenGacha"></p>
     </section>
   </main>
 

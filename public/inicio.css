@@ -10,7 +10,10 @@ a { color: inherit; }
   padding: 12px clamp(16px, 4vw, 48px); background: rgba(22, 20, 18, .92); backdrop-filter: blur(6px); border-bottom: 1px solid var(--sumi-linea); }
 .marca { display: flex; align-items: center; gap: 12px; text-decoration: none; font-weight: 700; }
 .marca img { width: 40px; height: 38px; object-fit: contain; }
-.barra nav { display: flex; gap: clamp(14px, 3vw, 32px); }
+.barra nav { display: flex; gap: clamp(14px, 3vw, 32px); overflow-x: auto; scrollbar-width: none; white-space: nowrap; margin-left: 16px; }
+.enlace-directo { display: inline-flex; align-items: center; gap: 6px; }
+html[data-directo="si"] .enlace-directo { color: var(--washi); }
+html[data-directo="si"] .enlace-directo::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--shu-claro); }
 .barra nav a { text-decoration: none; color: var(--hai); font-weight: 500; }
 .barra nav a:hover { color: var(--washi); }
 
@@ -121,6 +124,35 @@ footer img { width: 34px; height: 32px; object-fit: contain; }
   .ficha[open] { grid-template-columns: 1fr; }
   .ficha-arte { height: 260px; min-height: 0; border-right: 0; border-bottom: 5px solid var(--color, var(--shu)); }
 }
+
+/* Directo */
+.directo { padding: clamp(40px, 6vw, 80px) 0; border-top: 1px solid var(--sumi-linea); }
+.directo-rejilla { max-width: 1180px; margin: 0 auto; padding: 0 clamp(16px, 5vw, 64px); display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: clamp(24px, 4vw, 48px); align-items: center; }
+.directo-texto h2 { margin: 0 0 8px; font-family: var(--mincho); font-weight: 800; font-size: clamp(36px, 5vw, 56px); line-height: 1.05; }
+.directo-texto p { margin: 0 0 14px; color: var(--hai); }
+.directo-texto .directo-estado { color: var(--washi); font-weight: 700; }
+html[data-directo="si"] .directo-estado { color: var(--shu-claro); }
+.directo-acciones { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+.boton-secundario { display: inline-block; padding: 12px 22px; border: 1px solid var(--sumi-linea); color: var(--washi); text-decoration: none; font-weight: 700; border-radius: 3px; }
+.boton-secundario:hover { border-color: var(--hai); }
+@media (max-width: 860px) { .directo-rejilla { grid-template-columns: 1fr; } }
+
+/* Tier list */
+.tierlist { padding: clamp(56px, 8vw, 110px) 0; border-top: 1px solid var(--sumi-linea); }
+.tier-pestanas { max-width: 1180px; margin: 28px auto 16px; padding: 0 clamp(16px, 5vw, 64px); display: flex; gap: 6px; }
+.tier-pestanas button { border: 1px solid var(--sumi-linea); background: transparent; color: var(--hai); font: inherit; font-size: 15px; padding: 7px 16px; border-radius: 999px; cursor: pointer; }
+.tier-pestanas button[aria-selected="true"] { background: var(--washi); color: var(--sumi); border-color: var(--washi); font-weight: 700; }
+.tier-filas { max-width: 1180px; margin: 0 auto; padding: 0 clamp(16px, 5vw, 64px); display: grid; gap: 8px; }
+.tier-fila { display: grid; grid-template-columns: 76px minmax(0, 1fr); min-height: 78px; background: var(--sumi-alzado); border-radius: 5px; overflow: hidden; }
+.tier-letra { display: grid; place-items: center; font-family: var(--mincho); font-weight: 800; font-size: 40px; color: var(--sumi); background: var(--color-tier); }
+.tier-fila[data-tier="S"] .tier-letra { color: var(--washi); }
+.tier-fichas { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px; align-content: center; }
+.ficha-tier { display: inline-flex; align-items: center; gap: 8px; padding: 5px 14px 5px 6px; background: var(--sumi); border: 1px solid var(--sumi-linea); border-radius: 999px; font-size: 15px; }
+.ficha-tier img { width: 30px; height: 29px; object-fit: contain; }
+.ficha-tier b { font-weight: 700; }
+.ficha-tier small { color: var(--hai); font-size: 13px; }
+.tier-vacia { color: var(--hai); font-size: 14px; align-self: center; }
+.tier-aviso { color: var(--hai); }
 
 /* El camino al trono: las fases de la temporada, en orden */
 .formato { padding: clamp(56px, 8vw, 110px) 0; border-top: 1px solid var(--sumi-linea); }

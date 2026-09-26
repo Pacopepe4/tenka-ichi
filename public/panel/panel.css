@@ -104,3 +104,33 @@ code { background: var(--sumi-alzado); padding: 2px 6px; border-radius: 3px; wor
 .fila-camara .donde { display: flex; flex-direction: column; font-size: 13px; color: var(--hai); line-height: 1.35; }
 .fila-camara .donde b { color: var(--washi); font-size: 15px; }
 @media (max-width: 760px) { .fila-camara { grid-template-columns: 1fr 1fr; } .fila-camara .donde { grid-column: 1 / -1; } }
+
+/* Tier list */
+.pestanas-tier { display: inline-flex; border: 1px solid var(--sumi-linea); border-radius: 4px; overflow: hidden; margin-bottom: 14px; }
+.pestanas-tier button { background: transparent; color: var(--hai); border-radius: 0; padding: 8px 18px; font-weight: 500; }
+.pestanas-tier button + button { border-left: 1px solid var(--sumi-linea); }
+.pestanas-tier button[aria-selected="true"] { background: var(--washi); color: var(--sumi); font-weight: 700; }
+.editor-tier { display: grid; gap: 14px; }
+.clan-tier { display: grid; gap: 4px; }
+.clan-tier h3 { display: flex; align-items: center; gap: 10px; margin: 0 0 2px; color: var(--washi); font-size: 15px; font-weight: 700; }
+.clan-tier h3 img { width: 30px; height: 29px; object-fit: contain; }
+.fila-tier { display: grid; grid-template-columns: 76px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 4px 0; border-bottom: 1px solid var(--sumi-linea); }
+.fila-tier .rol { color: var(--hai); font-size: 13px; }
+.fila-tier .quien { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fila-tier .quien.sin { color: var(--hai); font-weight: 400; font-style: italic; }
+.selector-tier { display: inline-flex; gap: 3px; }
+.selector-tier button { width: 32px; height: 30px; padding: 0; background: var(--sumi); color: var(--hai); border: 1px solid var(--sumi-linea); font-family: var(--mincho); font-weight: 800; }
+.selector-tier button:hover { border-color: var(--hai); background: var(--sumi); }
+.selector-tier button[aria-pressed="true"] { background: var(--color-tier); color: var(--sumi); border-color: var(--color-tier); }
+.selector-tier button[data-tier="S"][aria-pressed="true"] { color: var(--washi); }
+.selector-tier button[data-tier=""] { font-family: var(--gothic); font-weight: 500; font-size: 13px; width: 46px; }
+.fila-tier.equipo { grid-template-columns: 30px minmax(0, 1fr) auto; }
+.fila-tier.equipo img { width: 30px; height: 29px; object-fit: contain; }
+@media (max-width: 640px) { .fila-tier, .fila-tier.equipo { grid-template-columns: 1fr; } }
+
+/* Gachapon */
+.caja-gacha { padding: 14px 0 16px; border-top: 1px solid var(--sumi-linea); }
+.caja-gacha h3 { color: var(--washi); font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+.caja-gacha .estado { margin: 0 0 4px; }
+.coste { flex: 0 0 180px; }
+#regaloCantidad { flex: 0 0 90px; }

@@ -13,6 +13,14 @@ import { statsCampeon, statsLiga } from './stats.js';
 import { CLANES, ROLES } from './clanes.js';
 import { cargarPlantillas, plantilla, guardarPlantilla, refrescarPlantillas } from './plantillas.js';
 import { estadoHoja } from './sheets.js';
+import { cargarTierlist, vistaTierlist, ponerTier } from './tierlist.js';
+import { cargarAjustes } from './ajustes.js';
+import { cargarGacha, catalogo, probabilidades, abrirSobre, darAlta, darSobres, estadoUsuario, buscarUsuario, resumenGacha,
+  PESOS, CARTAS_POR_SOBRE, SOBRES_INICIALES } from './gacha.js';
+import { cargarCanal, conectarCanal, cambiarCoste, sondear, sondearSiHaceFalta, estadoCanal, SCOPE_CANAL } from './canal.js';
+import { firmar, verificar, leerCookies, ponerCookie } from './sesion.js';
+import { twitchActivo, urlAutorizar, canjearCodigo, usuarioDeToken, usuarioPorNombre, CANAL } from './twitch.js';
+import crypto from 'node:crypto';
 
 // Clanes con su plantilla actual (lema, descripción, jugadores) para las páginas
 const clanesConPlantilla = () => CLANES.map(c => ({ ...c, ...plantilla(c.id) }));
@@ -163,6 +171,33 @@ async function accion(nombre, d = {}) {
     case 'plantilla':
       await guardarPlantilla(d.clan, d);
       break;
+    case 'tier':
+      ponerTier(d.tipo, d.id, d.tier || null);
+      return { ok: true, tierlist: vistaTierlist() };
+    case 'gachaEstado':
+      return { ok: true, gacha: estadoGachaPanel() };
+    case 'twitchCanal': {
+      if (!twitchActivo()) return { ok: false, error: 'Falta configurar la app de Twitch en Render (TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET y SESION_SECRETO)' };
+      return { ok: true, url: `/auth/canal?t=${encodeURIComponent(firmar({ canal: true }, 300))}` };
+    }
+    case 'gachaCoste':
+      await cambiarCoste(d.coste);
+      return { ok: true, gacha: estadoGachaPanel() };
+    case 'gachaSondear':
+      await sondear();
+      return { ok: true, gacha: estadoGachaPanel() };
+    case 'gachaRegalar': {
+      const cantidad = Math.round(Number(d.cantidad));
+      if (!Number.isInteger(cantidad) || cantidad < 1 || cantidad > 20) return { ok: false, error: 'La cantidad tiene que estar entre 1 y 20 sobres' };
+      let u = buscarUsuario(d.usuario);
+      if (!u && twitchActivo()) {
+        const t = await usuarioPorNombre(d.usuario).catch(() => null);
+        if (t) u = { id: t.id, nombre: t.display_name };
+      }
+      if (!u) return { ok: false, error: `No encuentro a «${d.usuario}»: tiene que haber entrado en el gachapon o existir en Twitch` };
+      await darSobres({ id: u.id, nombre: u.nombre }, cantidad, 'regalo', d.motivo || 'Regalo del staff');
+      return { ok: true, nombre: u.nombre, gacha: estadoGachaPanel() };
+    }
     case 'sortear': {
       const cal = await sortearCalendario(d.participantes || [], d.semilla);
       return { ok: true, semilla: cal.semilla };
@@ -180,6 +215,126 @@ async function accion(nombre, d = {}) {
   return { ok: true };
 }
 
+// ---------- gachapon y sesiones de Twitch ----------
+const EN_RENDER = Boolean(process.env.RENDER);
+const loginActivo = () => twitchActivo() || !EN_RENDER; // en local se puede entrar sin Twitch para probar
+const origen = req => `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`;
+const usuarioDeSesion = req => verificar(leerCookies(req).tk_sesion);
+
+function estadoGachaPanel() {
+  return { login: twitchActivo(), canal: estadoCanal(), resumen: resumenGacha(), probabilidades: probabilidades() };
+}
+
+function infoGacha(u) {
+  const c = estadoCanal();
+  return {
+    activo: loginActivo(), twitch: twitchActivo(), canal: CANAL,
+    cartasPorSobre: CARTAS_POR_SOBRE, sobresIniciales: SOBRES_INICIALES, pesos: PESOS,
+    probabilidades: probabilidades(),
+    catalogo: catalogo().map(({ peso, ...carta }) => carta),
+    recompensa: c.conectado && c.recompensa ? { titulo: c.titulo, coste: c.coste } : null,
+    usuario: u ? { nombre: u.nombre, avatar: u.avatar || null, ...estadoUsuario(u.id) } : null,
+  };
+}
+
+function json(res, datos, codigo = 200) {
+  res.writeHead(codigo, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+  res.end(JSON.stringify(datos));
+  return true;
+}
+
+function redirigir(res, destino) {
+  res.writeHead(302, { Location: destino });
+  res.end();
+  return true;
+}
+
+// Página mínima para contar el resultado de conectar el canal
+function paginaAviso(res, titulo, texto, codigo = 200) {
+  res.writeHead(codigo, { 'Content-Type': 'text/html; charset=utf-8' });
+  res.end(`<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${titulo}</title>
+<link rel="stylesheet" href="/marca.css"><body style="margin:0;min-height:100vh;display:grid;place-items:center;background:var(--sumi);color:var(--washi);font-family:var(--gothic);padding:24px">
+<main style="max-width:32em"><h1 style="font-family:var(--mincho);font-weight:800">${titulo}</h1><p style="color:var(--hai);font-size:18px">${texto}</p><p><a href="/panel/" style="color:var(--washi)">Volver al panel</a></p></main></body></html>`);
+  return true;
+}
+
+async function rutasTwitch(req, res, url) {
+  const p = url.pathname;
+
+  if (p === '/auth/twitch') {
+    if (!loginActivo()) return paginaAviso(res, 'Muy pronto', 'El inicio de sesión con Twitch aún no está configurado.', 503);
+    if (!twitchActivo()) return redirigir(res, '/auth/prueba');
+    const state = crypto.randomBytes(16).toString('hex');
+    const volver = url.searchParams.get('volver')?.startsWith('/') ? url.searchParams.get('volver') : '/gachapon/';
+    ponerCookie(res, 'tk_oauth', firmar({ state, tipo: 'login', volver }, 600), 600, req);
+    return redirigir(res, urlAutorizar({ redirect: `${origen(req)}/auth/twitch/callback`, state }));
+  }
+
+  if (p === '/auth/canal') {
+    if (!verificar(url.searchParams.get('t'))?.canal) return paginaAviso(res, 'Enlace caducado', 'Vuelve a pulsar «Conectar el canal de Twitch» en el panel.', 403);
+    const state = crypto.randomBytes(16).toString('hex');
+    ponerCookie(res, 'tk_oauth', firmar({ state, tipo: 'canal' }, 600), 600, req);
+    return redirigir(res, urlAutorizar({ redirect: `${origen(req)}/auth/twitch/callback`, state, scope: SCOPE_CANAL }));
+  }
+
+  if (p === '/auth/twitch/callback') {
+    const guardado = verificar(leerCookies(req).tk_oauth);
+    ponerCookie(res, 'tk_oauth', '', 0, req);
+    if (!guardado || guardado.state !== url.searchParams.get('state')) return paginaAviso(res, 'No se pudo entrar', 'La petición a Twitch caducó o no es válida. Vuelve a intentarlo.', 400);
+    if (url.searchParams.get('error')) return redirigir(res, guardado.tipo === 'canal' ? '/panel/' : guardado.volver || '/gachapon/');
+    try {
+      const t = await canjearCodigo(url.searchParams.get('code'), `${origen(req)}/auth/twitch/callback`);
+      const u = await usuarioDeToken(t.access_token);
+      if (guardado.tipo === 'canal') {
+        await conectarCanal(t, u);
+        const c = estadoCanal();
+        return paginaAviso(res, 'Canal conectado', c.error ? `El canal ${u.display_name} está conectado, pero: ${c.error}` : `La recompensa «${c.titulo}» ya está en el canal de ${u.display_name}, a ${c.coste} puntos. Ya puedes cerrar esta pestaña.`);
+      }
+      const sesion = { id: u.id, nombre: u.display_name, avatar: u.profile_image_url };
+      await darAlta(sesion);
+      ponerCookie(res, 'tk_sesion', firmar(sesion, 30 * 86400), 30 * 86400, req);
+      return redirigir(res, guardado.volver || '/gachapon/');
+    } catch (e) {
+      console.error(e);
+      return paginaAviso(res, 'No se pudo entrar', e.message, 500);
+    }
+  }
+
+  // Solo en local: entrar sin Twitch para probar el gachapon
+  if (p === '/auth/prueba' && !EN_RENDER) {
+    const nombre = (url.searchParams.get('nombre') || 'Probador').slice(0, 25);
+    const sesion = { id: `prueba-${nombre.toLowerCase()}`, nombre, avatar: null };
+    await darAlta(sesion);
+    ponerCookie(res, 'tk_sesion', firmar(sesion, 86400), 86400, req);
+    return redirigir(res, '/gachapon/');
+  }
+
+  if (p === '/auth/salir' && req.method === 'POST') {
+    ponerCookie(res, 'tk_sesion', '', 0, req);
+    return json(res, { ok: true });
+  }
+
+  if (p === '/api/gacha') {
+    const u = usuarioDeSesion(req);
+    if (u) sondearSiHaceFalta();
+    return json(res, infoGacha(u));
+  }
+
+  if (p === '/api/gacha/abrir' && req.method === 'POST') {
+    const u = usuarioDeSesion(req);
+    if (!u) return json(res, { ok: false, error: 'Entra con tu cuenta de Twitch para abrir sobres' }, 401);
+    try {
+      const sobre = await abrirSobre(u);
+      return json(res, { ok: true, sobre, usuario: { nombre: u.nombre, avatar: u.avatar || null, ...estadoUsuario(u.id) } });
+    } catch (e) {
+      return json(res, { ok: false, error: e.message }, 400);
+    }
+  }
+
+  if (p === '/api/tierlist') return json(res, vistaTierlist());
+  return false;
+}
+
 // ---------- servidor HTTP estático ----------
 const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
   '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
@@ -187,6 +342,8 @@ const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; ch
 
 const servidor = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
+  const rutaTwitch = url.pathname.startsWith('/auth/') || url.pathname.startsWith('/api/gacha') || url.pathname === '/api/tierlist';
+  if (rutaTwitch && await rutasTwitch(req, res, url)) return;
   if (url.pathname === '/api/clanes') {
     await refrescarPlantillas();
     res.writeHead(200, { 'Content-Type': TIPOS['.json'], 'Cache-Control': 'no-cache' });
@@ -248,7 +405,9 @@ wss.on('connection', ws => {
 // Mantiene vivas las conexiones (Render corta las que están inactivas)
 setInterval(() => { for (const ws of clientes) if (ws.readyState === 1) ws.ping(); }, 25000);
 
-await Promise.all([cargar(), cargarPlantillas(), cargarCalendario()]);
+await Promise.all([cargar(), cargarPlantillas(), cargarCalendario(), cargarAjustes()]);
+await Promise.all([cargarTierlist(), cargarGacha()]);
+await cargarCanal().catch(e => console.error('Canal de Twitch:', e.message));
 estado.hoja = estadoHoja();
 servidor.listen(PUERTO, () => {
   console.log(`TENKA ICHI Draft en http://localhost:${PUERTO}`);
