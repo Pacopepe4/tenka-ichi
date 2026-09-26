@@ -31,4 +31,5 @@
 
 - Hecho: motor de liguilla + desempates + cuadro de playoffs (`server/competicion.js`), sorteo con semilla (`server/calendario.js`), simulación completa (`npm run simular`), sección de liga en la portada (clasificación, jornadas, cuadro, campeón), apartado Competición en el panel (sorteo y cargar la siguiente partida), opción Desempate en Fase.
 - Simulación visible en https://tenka-ichi.onrender.com/?simulacion#liga (semilla 1509, campeón Tora).
-- Pendiente: marcador de la serie Bo3 en el overlay; hacer el sorteo real cuando estén los 10 clanes y subir `competicion.json` al repo.
+- Pendiente: marcador de la serie Bo3 en el overlay; hacer el sorteo real desde el panel cuando estén los 10 clanes (se guarda en Sheets).
+- Calendario y plantillas persistentes en Google Sheets (pestañas Calendario y Plantillas); las plantillas se pueden editar desde la hoja.

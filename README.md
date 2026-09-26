@@ -95,9 +95,17 @@ Socket.IO en `https://ws.lol.draftcore.net` → `V3-joinDraft { draftId, url }`.
 ### Sorteo y día de partida
 
 1. En el panel, apartado **Competición**, marca los 10 clanes y pulsa **Sortear calendario**. La semilla es opcional; con la misma semilla el sorteo sale igual.
-2. El calendario se guarda en `data-proyecto/competicion.json`. **En Render el disco se borra al reiniciar**: después del sorteo, descarga ese archivo desde `/api/competicion` o repite el sorteo en local con la misma semilla, y súbelo al repositorio.
+2. El calendario se guarda en la pestaña **Calendario** de Google Sheets (y una copia en `data-proyecto/competicion.json`). Así sobrevive a los reinicios de Render y cualquiera que entre en la web lo ve.
 3. Cada día de partida, elige en **Competición** la siguiente partida y pulsa **Cargar en el panel**. Se rellenan jornada, fase, formato, número de partida, clanes y jugadores. En playoffs te dice quién elige lado.
 
 ### Simulación
 
 `npm run simular [semilla]` juega una temporada inventada entera y la guarda en `data-proyecto/simulacion.json`. Se ve en `/?simulacion#liga` sin tocar los datos reales.
+
+## Qué se guarda en Google Sheets
+
+- **Registro**: picks, bans, jugador, clan y resultado de cada partida (de aquí salen las estadísticas y la clasificación).
+- **Calendario**: el sorteo de la liguilla.
+- **Plantillas**: jugadores por rol, suplentes, lema y descripción de cada clan. Se puede editar a mano en la hoja; la web lo recoge en un minuto.
+
+Las pestañas se crean solas la primera vez. Si Sheets no está configurado, todo se guarda en archivos locales, que en Render se borran al reiniciar.

@@ -11,7 +11,7 @@ import { competicion } from './competicion.js';
 import { cargarCalendario, calendarioActual, temporadaSimulada, sortearCalendario } from './calendario.js';
 import { statsCampeon, statsLiga } from './stats.js';
 import { CLANES, ROLES } from './clanes.js';
-import { cargarPlantillas, plantilla, guardarPlantilla } from './plantillas.js';
+import { cargarPlantillas, plantilla, guardarPlantilla, refrescarPlantillas } from './plantillas.js';
 import { estadoHoja } from './sheets.js';
 
 // Clanes con su plantilla actual (lema, descripción, jugadores) para las páginas
@@ -176,6 +176,7 @@ const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; ch
 const servidor = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   if (url.pathname === '/api/clanes') {
+    await refrescarPlantillas();
     res.writeHead(200, { 'Content-Type': TIPOS['.json'], 'Cache-Control': 'no-cache' });
     return res.end(JSON.stringify({ clanes: clanesConPlantilla(), roles: ROLES }));
   }
