@@ -112,6 +112,13 @@
         <button id="probarHoja" class="secundario" hidden>Reintentar Google Sheets</button>
       </div>
       <ol id="resultados" class="resultados"></ol>
+      <div class="fantasy-panel">
+        <h3>Estadísticas para el fantasy</h3>
+        <p class="ayuda">Después de marcar el ganador y antes de pulsar «Siguiente partida»: el KDA de cada jugador y el MVP. Puntos: +1 por jugar, +3 si gana, +1 por asesinato, −1 por muerte, +0,5 por asistencia y +3 al MVP. Si te equivocas, corrígelo y vuelve a guardar.</p>
+        <div class="kda dos"></div>
+        <div class="fila"><button type="button" id="guardarKda">Guardar estadísticas</button></div>
+        <p class="estado" id="estadoKda"></p>
+      </div>
     </section>
 
     <section id="tierlist">
@@ -138,6 +145,12 @@
           <label class="coste">Puntos por sobre <input id="costeSobre" type="number" min="1" step="100"></label>
           <button type="button" id="guardarCoste" class="secundario">Cambiar el coste</button>
         </div>
+      </div>
+      <div class="caja-gacha">
+        <h3>Fantasy</h3>
+        <p class="estado" id="estadoAlineaciones"></p>
+        <div class="fila"><button type="button" id="alternarAlineaciones" class="secundario">Cerrar alineaciones</button></div>
+        <p class="ayuda">Ciérralas al empezar la jornada y ábrelas al acabar: así nadie cambia a un jugador sabiendo cómo le ha ido.</p>
       </div>
       <div class="caja-gacha">
         <h3>Regalar sobres</h3>

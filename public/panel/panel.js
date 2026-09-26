@@ -365,3 +365,53 @@ $('#regalar').onclick = async () => {
 claveInput.addEventListener('change', actualizarGacha);
 setTimeout(actualizarGacha, 800);
 setInterval(actualizarGacha, 60000);
+
+// ---------- Estadísticas para el fantasy ----------
+let partidaKda = null;
+function pintarKda(e) {
+  const caja = $('.kda');
+  // Partida nueva: se vacían los números
+  if (partidaKda !== `${e.config.jornada}|${e.config.partida}|${e.equipos.azul.clan}|${e.equipos.rojo.clan}`) {
+    partidaKda = `${e.config.jornada}|${e.config.partida}|${e.equipos.azul.clan}|${e.equipos.rojo.clan}`;
+    caja.innerHTML = ['azul', 'rojo'].map(lado => `<div class="lado-kda ${lado}" data-lado="${lado}"><h4>${clanes.clan(e.equipos[lado].clan).nombre}</h4>
+      <div class="cabeza-kda"><span>Jugador</span><span>Asesinatos</span><span>Muertes</span><span>Asist.</span><span>MVP</span></div>
+      ${ROLES.map((r, i) => `<div class="fila-kda" data-indice="${i}"><span class="quien"></span>
+        <input type="number" min="0" max="99" class="k" aria-label="Asesinatos"><input type="number" min="0" max="99" class="d" aria-label="Muertes"><input type="number" min="0" max="99" class="a" aria-label="Asistencias">
+        <label><input type="radio" name="mvp" value="${lado}-${i}" aria-label="MVP"></label></div>`).join('')}</div>`).join('');
+    $('#estadoKda').textContent = '';
+  }
+  for (const lado of ['azul', 'rojo']) {
+    caja.querySelectorAll(`.lado-kda[data-lado="${lado}"] .fila-kda`).forEach((f, i) => {
+      f.querySelector('.quien').innerHTML = `${e.equipos[lado].jugadores[i] || '—'} <small>${ROL_LEGIBLE[ROLES[i]]}</small>`;
+    });
+  }
+}
+const pintarAntes = pintar;
+pintar = function () { pintarAntes(); if (estado) pintarKda(estado); };
+if (estado) pintarKda(estado);
+
+$('#guardarKda').onclick = async () => {
+  const filas = [...document.querySelectorAll('.kda .fila-kda')].map(f => ({
+    lado: f.closest('.lado-kda').dataset.lado, indice: Number(f.dataset.indice),
+    k: f.querySelector('.k').value, d: f.querySelector('.d').value, a: f.querySelector('.a').value,
+  }));
+  const mvp = document.querySelector('.kda input[name="mvp"]:checked')?.value || null;
+  const r = await enviar('fantasyEstadisticas', { filas, mvp });
+  if (!r.ok) return;
+  $('#estadoKda').className = 'estado ok';
+  $('#estadoKda').textContent = `Guardado (${r.partida}): ` + r.puntos.filter(p => p.jugador).map(p => `${p.jugador} ${p.puntos.toLocaleString('es-ES')}`).join(', ') + ' puntos.';
+};
+
+// Cerrar y abrir las alineaciones del fantasy
+function pintarAlineaciones(cerrado) {
+  $('#estadoAlineaciones').className = `estado ${cerrado ? 'mal' : 'ok'}`;
+  $('#estadoAlineaciones').textContent = cerrado ? 'Alineaciones cerradas: nadie puede cambiar a sus jugadores.' : 'Alineaciones abiertas: cada coleccionista puede cambiar a sus jugadores.';
+  $('#alternarAlineaciones').textContent = cerrado ? 'Abrir alineaciones' : 'Cerrar alineaciones';
+  $('#alternarAlineaciones').dataset.cerrado = cerrado ? '1' : '0';
+}
+$('#alternarAlineaciones').onclick = async () => {
+  const r = await enviar('fantasyCerrar', { cerrado: $('#alternarAlineaciones').dataset.cerrado !== '1' });
+  if (r.ok) { pintarGacha(r.gacha); pintarAlineaciones(r.gacha.cerrado); }
+};
+const pintarGachaAntes = pintarGacha;
+pintarGacha = function (g) { pintarGachaAntes(g); pintarAlineaciones(g.cerrado); };

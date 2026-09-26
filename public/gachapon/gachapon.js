@@ -14,8 +14,13 @@ let info = null, filtro = 'todas', abriendo = false;
 
 iniciarDirecto();
 
+let fantasia = null, filtroRol = '';
+
 async function cargar() {
-  info = await fetch('/api/gacha', { cache: 'no-store' }).then(r => r.json());
+  [info, fantasia] = await Promise.all([
+    fetch('/api/gacha', { cache: 'no-store' }).then(r => r.json()),
+    fetch('/api/fantasy', { cache: 'no-store' }).then(r => r.json()),
+  ]);
   pintar();
 }
 
@@ -91,10 +96,100 @@ function pintarProbabilidades() {
     ? `<p class="resumen-prob">En cada sobre, la probabilidad de que salga al menos una S es del ${pct(1 - (1 - (info.probabilidades.S || 0)) ** info.cartasPorSobre)}.</p>` : '');
 }
 
+// ---------- fantasy ----------
+const ROLES = ['TOP', 'JUNGLA', 'MEDIO', 'ADC', 'SUPPORT'];
+const puntosTexto = n => `${n.toLocaleString('es-ES')} ${n === 1 ? 'punto' : 'puntos'}`;
+const cartaPorId = id => info.catalogo.find(c => c.id === id) || null;
+const puntosDe = id => fantasia.jugadores.find(j => j.id === id)?.puntos || 0;
+
+function pintarFantasy() {
+  const yo = fantasia.yo, caja = $('.alineacion');
+  const estado = $('.estado-alineacion');
+  if (!info.usuario) {
+    estado.textContent = 'Entra con Twitch y abre sobres para alinear a tus jugadores.';
+  } else if (fantasia.cerrado) {
+    estado.innerHTML = `Las alineaciones están <b>cerradas</b> mientras se juega la jornada. Llevas ${puntosTexto(yo.puntos)}${yo.puesto ? `, ${yo.puesto}.º en la clasificación` : ''}.`;
+  } else {
+    estado.innerHTML = yo.puesto ? `Llevas <b>${puntosTexto(yo.puntos)}</b>, ${yo.puesto}.º en la clasificación. Pulsa un hueco para cambiar al jugador.`
+      : 'Pulsa un hueco para elegir al jugador de ese rol entre tus cartas.';
+  }
+  caja.innerHTML = ROLES.map(rol => {
+    const carta = yo?.alineacion?.[rol] ? cartaPorId(yo.alineacion[rol]) : null;
+    return `<button type="button" class="hueco-ali" data-rol="${rol}" ${!info.usuario || fantasia.cerrado ? 'disabled' : ''}>
+      <span class="rol-ali">${ROL[rol]}</span>
+      ${carta ? cartaHTML(carta) : '<span class="vacio-ali">Elegir</span>'}
+      ${carta ? `<span class="puntos-ali">${puntosTexto(puntosDe(carta.id))}</span>` : ''}</button>`;
+  }).join('');
+  caja.querySelectorAll('.hueco-ali:not(:disabled)').forEach(b => b.addEventListener('click', () => elegir(b.dataset.rol)));
+
+  const lista = $('.clasificacion-fantasy');
+  lista.innerHTML = fantasia.clasificacion.length
+    ? fantasia.clasificacion.map(c => `<li class="${c.yo ? 'yo' : ''}"><span class="puesto">${c.puesto}</span><span class="quien">${escapar(c.nombre)}</span>
+        <span class="cuanto">${c.puntos.toLocaleString('es-ES')}${fantasia.ultimaJornada ? `<small>${c.ultima.toLocaleString('es-ES')} en ${escapar(fantasia.ultimaJornada)}</small>` : ''}</span></li>`).join('')
+    : '<li class="vacio">La clasificación empieza con la primera jornada.</li>';
+}
+
+// Elegir la carta de un hueco entre las que tienes de ese rol
+const dialogoElegir = $('.elegir');
+function elegir(rol) {
+  const mias = new Map((info.usuario?.cartas || []).map(c => [c.id, c.cantidad]));
+  const opciones = info.catalogo.filter(c => c.rol === rol && mias.get(c.id));
+  const actual = fantasia.yo?.alineacion?.[rol] || null;
+  $('#titulo-elegir').textContent = `Elige tu ${ROL[rol]}`;
+  $('.elegir .opciones').innerHTML = opciones.length
+    ? opciones.map(c => `<button type="button" class="opcion" data-id="${c.id}" aria-pressed="${c.id === actual}">${cartaHTML(c, mias.get(c.id))}</button>`).join('')
+    : `<p class="sin-cartas">No tienes ninguna carta de ${ROL[rol]} todavía. Abre sobres para conseguirla.</p>`;
+  dialogoElegir.querySelectorAll('.opcion').forEach(b => b.addEventListener('click', () => guardarHueco(rol, b.dataset.id)));
+  dialogoElegir.querySelector('.quitar').onclick = () => guardarHueco(rol, null);
+  dialogoElegir.querySelector('.cancelar').onclick = () => dialogoElegir.close();
+  dialogoElegir.showModal();
+}
+
+async function guardarHueco(rol, carta) {
+  const slots = { ...(fantasia.yo?.alineacion || {}), [rol]: carta };
+  const r = await fetch('/api/fantasy/alineacion', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(slots) })
+    .then(x => x.json()).catch(() => ({ ok: false, error: 'No hay conexión con la web' }));
+  dialogoElegir.close();
+  if (!r.ok) {
+    const e = $('.estado-alineacion');
+    e.textContent = r.error;
+    e.style.color = 'var(--shu-claro)';
+    setTimeout(() => { e.style.color = ''; pintarFantasy(); }, 4000);
+    return;
+  }
+  fantasia.yo.alineacion = r.alineacion;
+  pintarFantasy();
+}
+
+function pintarPuntos() {
+  const lista = fantasia.jugadores.filter(j => !filtroRol || j.rol === filtroRol);
+  $('.tabla-puntos tbody').innerHTML = lista.length ? lista.map(j => `<tr>
+      <td><span class="jugador-celda"><img src="${logo(j.clan)}" alt=""><span><b>${escapar(j.nombre)}</b><small>${ROL[j.rol]} de ${escapar(nombreClan(j.clan))}</small></span></span></td>
+      <td>${j.tier ? `<span class="letra-tier" data-tier="${j.tier}" style="--color-tier: var(--tier-${j.tier})">${j.tier}</span>` : '–'}</td>
+      <td>${j.partidas}</td><td class="total">${j.puntos.toLocaleString('es-ES')}</td></tr>`).join('')
+    : '<tr class="vacio"><td colspan="4">Todavía no hay jugadores en las plantillas.</td></tr>';
+}
+
+function pintarReglas() {
+  const r = fantasia.reglas;
+  const signo = n => `${n > 0 ? '+' : '−'}${Math.abs(n).toLocaleString('es-ES')}`;
+  $('.reglas').innerHTML = [[r.jugar, 'por jugar la partida'], [r.victoria, 'si gana'], [r.asesinato, 'por asesinato'], [r.muerte, 'por muerte'],
+    [r.asistencia, 'por asistencia'], [r.mvp, 'si es el MVP']].map(([n, texto]) => `<li><b>${signo(n)}</b>${texto}</li>`).join('');
+}
+
+document.querySelectorAll('.filtros-rol button').forEach(b => b.addEventListener('click', () => {
+  filtroRol = b.dataset.rol;
+  document.querySelectorAll('.filtros-rol button').forEach(x => x.setAttribute('aria-selected', String(x === b)));
+  pintarPuntos();
+}));
+
 function pintar() {
   pintarCuenta();
+  pintarFantasy();
   pintarAlbum();
+  pintarPuntos();
   pintarProbabilidades();
+  pintarReglas();
 }
 
 // ---------- abrir un sobre ----------

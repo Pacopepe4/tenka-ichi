@@ -134,3 +134,17 @@ code { background: var(--sumi-alzado); padding: 2px 6px; border-radius: 3px; wor
 .caja-gacha .estado { margin: 0 0 4px; }
 .coste { flex: 0 0 180px; }
 #regaloCantidad { flex: 0 0 90px; }
+
+/* Estadísticas para el fantasy */
+.fantasy-panel { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--sumi-linea); }
+.fantasy-panel h3 { color: var(--washi); font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+.kda .lado-kda { display: grid; gap: 6px; align-content: start; padding-left: 12px; border-left: 4px solid var(--azul-lado); }
+.kda .lado-kda.rojo { border-left-color: var(--rojo-lado); }
+.kda .lado-kda h4 { margin: 0 0 4px; font-size: 14px; color: var(--hai); font-weight: 500; }
+.fila-kda { display: grid; grid-template-columns: minmax(0, 1fr) repeat(3, 52px) 44px; gap: 6px; align-items: center; }
+.fila-kda .quien { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px; }
+.fila-kda .quien small { color: var(--hai); }
+.fila-kda input[type="number"] { padding: 6px 4px; text-align: center; }
+.fila-kda label { flex-direction: row; align-items: center; justify-content: center; gap: 4px; font-size: 12px; }
+.cabeza-kda { display: grid; grid-template-columns: minmax(0, 1fr) repeat(3, 52px) 44px; gap: 6px; font-size: 12px; color: var(--hai); text-align: center; }
+.cabeza-kda span:first-child { text-align: left; }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Gachapon · Tenka Ichi</title>
+<title>Gachapon y fantasy · Tenka Ichi</title>
 <meta name="description" content="El gachapon de Tenka Ichi: colecciona las cartas de los jugadores de la liga. Cuanto mejor es su tier, más difícil es que salga.">
 <link rel="icon" href="/marca/koryu-budo.png">
 <link rel="stylesheet" href="/marca.css">
@@ -32,6 +32,24 @@
     </button>
   </section>
 
+  <section class="fantasy" id="fantasy">
+    <div class="fantasy-cabeza">
+      <h2>Fantasy</h2>
+      <p class="nota">Alinea una carta de cada rol. Tus cinco jugadores suman los puntos que hagan en las partidas de Tenka Ichi, y el que más sume reina en la clasificación.</p>
+    </div>
+    <div class="fantasy-rejilla">
+      <div>
+        <h3>Tu alineación</h3>
+        <p class="estado-alineacion"></p>
+        <div class="alineacion"></div>
+      </div>
+      <div>
+        <h3>Clasificación</h3>
+        <ol class="clasificacion-fantasy"></ol>
+      </div>
+    </div>
+  </section>
+
   <section class="coleccion">
     <div class="coleccion-cabeza">
       <div>
@@ -47,10 +65,30 @@
     <div class="album"></div>
   </section>
 
+  <section class="puntos-jugadores">
+    <h2>Puntos de los jugadores</h2>
+    <p class="nota">Lo que lleva sumado cada jugador de la liga en el fantasy.</p>
+    <div class="filtros filtros-rol" role="tablist" aria-label="Filtrar por rol">
+      <button role="tab" aria-selected="true" data-rol="">Todos</button>
+      <button role="tab" aria-selected="false" data-rol="TOP">Top</button>
+      <button role="tab" aria-selected="false" data-rol="JUNGLA">Jungla</button>
+      <button role="tab" aria-selected="false" data-rol="MEDIO">Medio</button>
+      <button role="tab" aria-selected="false" data-rol="ADC">ADC</button>
+      <button role="tab" aria-selected="false" data-rol="SUPPORT">Support</button>
+    </div>
+    <table class="tabla-puntos">
+      <thead><tr><th scope="col">Jugador</th><th scope="col">Tier</th><th scope="col">Partidas</th><th scope="col">Puntos</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
   <section class="probabilidades">
     <h2>Probabilidades</h2>
     <p class="nota">Para cada carta del sobre, la probabilidad de que sea de cada tier. Dependen de cuántos jugadores hay en cada una.</p>
     <div class="tabla-prob"></div>
+    <h2 class="titulo-reglas">Cómo se puntúa</h2>
+    <p class="nota">Cada jugador, en cada partida que juega:</p>
+    <ul class="reglas"></ul>
   </section>
 </main>
 
@@ -72,6 +110,15 @@
     <button type="button" class="boton-claro descubrir">Descubrir todas</button>
     <button type="button" class="boton-claro otro" hidden>Abrir otro</button>
     <button type="button" class="boton-secundario cerrar-apertura" hidden>Guardar en la colección</button>
+  </div>
+</dialog>
+
+<dialog class="elegir" aria-labelledby="titulo-elegir">
+  <h3 id="titulo-elegir"></h3>
+  <div class="opciones"></div>
+  <div class="acciones-elegir">
+    <button type="button" class="boton-secundario quitar">Dejar el hueco vacío</button>
+    <button type="button" class="boton-claro cancelar">Cancelar</button>
   </div>
 </dialog>
 

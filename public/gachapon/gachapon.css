@@ -125,3 +125,72 @@ button.boton-secundario { background: transparent; font: inherit; font-weight: 7
   .sobre, .volteable, .volteable .giro { transition: none; }
   .apertura .corte, .apertura .mitad, .volteable .frente .carta-g { animation: none !important; }
 }
+
+/* ---------- Fantasy ---------- */
+.fantasy { padding: clamp(40px, 6vw, 72px) 0; border-top: 1px solid var(--sumi-linea); }
+.fantasy h2, .puntos-jugadores h2, .titulo-reglas { margin: 0; font-family: var(--mincho); font-weight: 800; font-size: clamp(32px, 4.5vw, 48px); line-height: 1.05; }
+.fantasy .nota, .puntos-jugadores .nota { color: var(--hai); max-width: 40em; margin: 8px 0 24px; }
+.fantasy h3 { margin: 0 0 10px; font-family: var(--mincho); font-weight: 800; font-size: 24px; }
+.fantasy-rejilla { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(260px, 1fr); gap: clamp(24px, 4vw, 48px); align-items: start; }
+.estado-alineacion { margin: -4px 0 14px; color: var(--hai); font-size: 15px; }
+.estado-alineacion b { color: var(--washi); }
+.alineacion { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.hueco-ali { display: flex; flex-direction: column; gap: 6px; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.hueco-ali:disabled { cursor: default; }
+.hueco-ali .rol-ali { font-size: 13px; color: var(--hai); }
+.hueco-ali .vacio-ali { display: grid; place-items: center; aspect-ratio: 5 / 7; border: 2px dashed var(--sumi-linea); border-radius: 8px; color: var(--hai); font-size: 14px; }
+.hueco-ali:not(:disabled):hover .vacio-ali { border-color: var(--hai); color: var(--washi); }
+.hueco-ali .carta-g .nick { font-size: 18px; }
+.hueco-ali .carta-g .rareza { width: 32px; height: 32px; font-size: 19px; }
+.hueco-ali .carta-g .logo { width: 30px; height: 28px; }
+.hueco-ali .puntos-ali { font-size: 13px; color: var(--hai); }
+.clasificacion-fantasy { list-style: none; margin: 0; padding: 0; }
+.clasificacion-fantasy li { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--sumi-linea); }
+.clasificacion-fantasy .puesto { font-family: var(--mincho); font-weight: 800; font-size: 20px; color: var(--hai); }
+.clasificacion-fantasy li:first-child .puesto { color: var(--shu-claro); }
+.clasificacion-fantasy .quien { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.clasificacion-fantasy .cuanto { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+.clasificacion-fantasy .cuanto small { display: block; color: var(--hai); font-weight: 400; font-size: 12.5px; }
+.clasificacion-fantasy li.yo { background: var(--sumi-alzado); padding-left: 8px; padding-right: 8px; border-radius: 4px; }
+.clasificacion-fantasy li.vacio { display: block; color: var(--hai); border-bottom: 0; }
+
+.puntos-jugadores { padding: clamp(40px, 6vw, 72px) 0; border-top: 1px solid var(--sumi-linea); }
+.filtros-rol { margin-bottom: 16px; }
+.tabla-puntos { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.tabla-puntos th { text-align: left; font-weight: 500; font-size: 14px; color: var(--hai); padding: 0 8px 8px; border-bottom: 1px solid var(--sumi-linea); }
+.tabla-puntos td { padding: 9px 8px; border-bottom: 1px solid var(--sumi-linea); }
+.tabla-puntos th:nth-child(n+2), .tabla-puntos td:nth-child(n+2) { text-align: right; }
+.tabla-puntos .jugador-celda { display: flex; align-items: center; gap: 10px; }
+.tabla-puntos .jugador-celda img { width: 30px; height: 29px; object-fit: contain; }
+.tabla-puntos .jugador-celda span { display: flex; flex-direction: column; line-height: 1.2; }
+.tabla-puntos .jugador-celda small { color: var(--hai); font-size: 12.5px; }
+.tabla-puntos .letra-tier { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 3px; background: var(--color-tier); color: var(--sumi); font-family: var(--mincho); font-weight: 800; }
+.tabla-puntos .letra-tier[data-tier="S"] { color: var(--washi); }
+.tabla-puntos .total { font-weight: 700; }
+.tabla-puntos .vacio td { color: var(--hai); text-align: left; }
+
+.titulo-reglas { margin-top: 48px; font-size: clamp(26px, 3.5vw, 36px); }
+.reglas { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px; }
+.reglas li { padding: 10px 16px; background: var(--sumi-alzado); border-radius: 4px; }
+.reglas b { font-family: var(--mincho); font-weight: 800; font-size: 20px; margin-right: 6px; }
+
+/* Elegir carta para un hueco */
+.elegir { width: min(860px, calc(100vw - 24px)); max-height: calc(100vh - 32px); padding: 22px; border: 0; border-radius: 8px; background: var(--sumi-alzado); color: var(--washi); }
+.elegir::backdrop { background: rgba(10, 9, 8, .8); }
+.elegir h3 { margin: 0 0 14px; font-family: var(--mincho); font-weight: 800; font-size: 26px; }
+.elegir .opciones { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+.elegir .opcion { padding: 0; border: 0; background: none; cursor: pointer; border-radius: 8px; }
+.elegir .opcion[aria-pressed="true"] .carta-g { outline: 3px solid var(--washi); outline-offset: 3px; }
+.elegir .opcion .carta-g .nick { font-size: 19px; }
+.elegir .sin-cartas { color: var(--hai); }
+.acciones-elegir { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+
+@media (max-width: 900px) {
+  .fantasy-rejilla { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .alineacion { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .tabla-puntos th:nth-child(3), .tabla-puntos td:nth-child(3) { display: none; }
+}
+.probabilidades .titulo-reglas { margin-top: 56px; }
+.hueco-ali .carta-g .rol { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }

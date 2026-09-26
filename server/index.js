@@ -21,6 +21,7 @@ import { cargarCanal, conectarCanal, cambiarCoste, sondear, sondearSiHaceFalta, 
 import { firmar, verificar, leerCookies, ponerCookie } from './sesion.js';
 import { twitchActivo, urlAutorizar, canjearCodigo, usuarioDeToken, usuarioPorNombre, CANAL } from './twitch.js';
 import crypto from 'node:crypto';
+import { cargarFantasy, infoFantasy, cambiarAlineacion, guardarEstadisticas, cerrarAlineaciones } from './fantasy.js';
 
 // Clanes con su plantilla actual (lema, descripción, jugadores) para las páginas
 const clanesConPlantilla = () => CLANES.map(c => ({ ...c, ...plantilla(c.id) }));
@@ -174,6 +175,26 @@ async function accion(nombre, d = {}) {
     case 'tier':
       ponerTier(d.tipo, d.id, d.tier || null);
       return { ok: true, tierlist: vistaTierlist() };
+    case 'fantasyEstadisticas': {
+      // KDA y MVP de la partida que está en el panel; hace falta haber marcado antes quién ganó
+      const res = [...estado.resultados].reverse().find(r => r.partida === estado.config.partida);
+      if (!res) return { ok: false, error: 'Marca antes quién ha ganado la partida' };
+      const { azul, rojo } = estado.equipos;
+      const partida = `${estado.config.jornada}: ${azul.clan} vs ${rojo.clan}, partida ${estado.config.partida}`;
+      const filas = [];
+      for (const lado of ['azul', 'rojo']) {
+        const eq = estado.equipos[lado];
+        ROLES.forEach((rol, i) => {
+          const s = d.filas?.find(x => x.lado === lado && Number(x.indice) === i) || {};
+          filas.push({ jornada: estado.config.jornada, fase: estado.config.fase, clan: eq.clan, rol, jugador: eq.jugadores[i] || '',
+            id: `${eq.clan}-${rol}`, victoria: res.ganador === lado, k: s.k, d: s.d, a: s.a, mvp: d.mvp === `${lado}-${i}` });
+        });
+      }
+      return { ok: true, partida, puntos: await guardarEstadisticas(partida, filas) };
+    }
+    case 'fantasyCerrar':
+      await cerrarAlineaciones(Boolean(d.cerrado));
+      return { ok: true, gacha: estadoGachaPanel() };
     case 'gachaEstado':
       return { ok: true, gacha: estadoGachaPanel() };
     case 'twitchCanal': {
@@ -222,7 +243,7 @@ const origen = req => `${req.headers['x-forwarded-proto'] || 'http'}://${req.hea
 const usuarioDeSesion = req => verificar(leerCookies(req).tk_sesion);
 
 function estadoGachaPanel() {
-  return { login: twitchActivo(), canal: estadoCanal(), resumen: resumenGacha(), probabilidades: probabilidades() };
+  return { login: twitchActivo(), canal: estadoCanal(), resumen: resumenGacha(), probabilidades: probabilidades(), cerrado: infoFantasy(null).cerrado };
 }
 
 function infoGacha(u) {
@@ -235,6 +256,15 @@ function infoGacha(u) {
     recompensa: c.conectado && c.recompensa ? { titulo: c.titulo, coste: c.coste } : null,
     usuario: u ? { nombre: u.nombre, avatar: u.avatar || null, ...estadoUsuario(u.id) } : null,
   };
+}
+
+function leerCuerpo(req) {
+  return new Promise((ok, mal) => {
+    let s = '';
+    req.on('data', d => { s += d; if (s.length > 1e5) { mal(new Error('Petición demasiado grande')); req.destroy(); } });
+    req.on('end', () => { try { ok(JSON.parse(s || '{}')); } catch { mal(new Error('Petición no válida')); } });
+    req.on('error', mal);
+  });
 }
 
 function json(res, datos, codigo = 200) {
@@ -332,6 +362,19 @@ async function rutasTwitch(req, res, url) {
   }
 
   if (p === '/api/tierlist') return json(res, vistaTierlist());
+
+  if (p === '/api/fantasy') return json(res, infoFantasy(usuarioDeSesion(req)));
+
+  if (p === '/api/fantasy/alineacion' && req.method === 'POST') {
+    const u = usuarioDeSesion(req);
+    if (!u) return json(res, { ok: false, error: 'Entra con tu cuenta de Twitch para alinear' }, 401);
+    try {
+      const slots = await leerCuerpo(req);
+      return json(res, { ok: true, alineacion: await cambiarAlineacion(u, slots) });
+    } catch (e) {
+      return json(res, { ok: false, error: e.message }, 400);
+    }
+  }
   return false;
 }
 
@@ -342,7 +385,7 @@ const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; ch
 
 const servidor = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
-  const rutaTwitch = url.pathname.startsWith('/auth/') || url.pathname.startsWith('/api/gacha') || url.pathname === '/api/tierlist';
+  const rutaTwitch = url.pathname.startsWith('/auth/') || url.pathname.startsWith('/api/gacha') || url.pathname.startsWith('/api/fantasy') || url.pathname === '/api/tierlist';
   if (rutaTwitch && await rutasTwitch(req, res, url)) return;
   if (url.pathname === '/api/clanes') {
     await refrescarPlantillas();
@@ -407,6 +450,7 @@ setInterval(() => { for (const ws of clientes) if (ws.readyState === 1) ws.ping(
 
 await Promise.all([cargar(), cargarPlantillas(), cargarCalendario(), cargarAjustes()]);
 await Promise.all([cargarTierlist(), cargarGacha()]);
+await cargarFantasy();
 await cargarCanal().catch(e => console.error('Canal de Twitch:', e.message));
 estado.hoja = estadoHoja();
 servidor.listen(PUERTO, () => {

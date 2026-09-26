@@ -46,4 +46,4 @@
 - Tier list de jugadores y equipos (S–D), editable en el panel y publicada en la portada. Pestaña Tierlist en Sheets.
 - Gachapon en /gachapon/: entrar con Twitch, 2 sobres al empezar, 3 cartas por sobre con rareza según la tier, más sobres con puntos del canal (recompensa creada por la web), regalos desde el panel. Pestañas Gachapon y Ajustes en Sheets.
 - Pendiente del usuario: registrar la app en dev.twitch.tv y poner TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET y SESION_SECRETO en Render; conectar el canal desde el panel.
-- Pendiente de decidir: si el gachapon será fantasy de verdad (alinear cartas y puntuar con los resultados).
+- Fantasy: alineación de una carta por rol, puntos por partida (jugar +1, ganar +3, K +1, D −1, A +0,5, MVP +3) con el KDA apuntado en el panel, clasificación de coleccionistas y cierre de alineaciones durante la jornada. Pestañas Estadisticas y Alineaciones en Sheets.

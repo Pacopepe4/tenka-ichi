@@ -162,3 +162,21 @@ Todo se guarda como movimientos en la pestaña **Gachapon** de Google Sheets (al
 Los puntos del canal solo existen en canales afiliados o partner de Twitch. El staff puede **regalar sobres** desde el panel (premios, sorteos).
 
 Sin las variables de Twitch, la página del gachapon dice que abre muy pronto. En local se puede probar sin Twitch entrando en `/auth/prueba?nombre=Alguien`.
+
+## Fantasy
+
+En `/gachapon/`, cada coleccionista alinea **una carta por rol** (Top, Jungla, Medio, ADC y Support) entre las que tiene. Esos cinco jugadores suman los puntos que hacen en las partidas reales:
+
+| | Puntos |
+|---|---|
+| Jugar la partida | +1 |
+| Ganar | +3 |
+| Cada asesinato | +1 |
+| Cada muerte | −1 |
+| Cada asistencia | +0,5 |
+| MVP de la partida | +3 |
+
+- **Estadísticas:** al acabar cada partida, en el panel (apartado Resultado, después de marcar el ganador) se apunta el KDA de los diez jugadores y el MVP, y se pulsa **Guardar estadísticas**. Si hay un error, se corrige y se vuelve a guardar. Van a la pestaña **Estadisticas** de Google Sheets.
+- **Alineaciones:** cada cambio se guarda en la pestaña **Alineaciones**. Una partida puntúa a la alineación que tenía cada uno cuando se guardaron sus estadísticas.
+- **Cerrar alineaciones:** en el panel, apartado Gachapon. Ciérralas al empezar la jornada y ábrelas al acabar, para que nadie cambie a un jugador sabiendo cómo le ha ido.
+- La página enseña la clasificación de coleccionistas (total y última jornada) y los puntos de cada jugador de la liga. Los premios (por ejemplo, sobres para los tres primeros de la jornada) se dan a mano con **Regalar sobres**.
