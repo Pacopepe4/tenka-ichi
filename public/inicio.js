@@ -103,7 +103,7 @@ const cls = comp.clasificacion;
 if (!comp.calendario) {
   $('.resumen-liga').textContent = 'El sorteo del calendario aún no se ha hecho. Aquí aparecerán la clasificación, las jornadas y el cuadro de playoffs.';
 } else if (cls.completa && comp.cuadro?.campeon) {
-  $('.resumen-liga').textContent = `Temporada terminada. ${nombre(comp.cuadro.campeon)} es el primero bajo el cielo.`;
+  $('.resumen-liga').textContent = `Temporada terminada. ${nombre(comp.cuadro.campeon)} reina bajo el cielo.`;
 } else if (cls.completa) {
   $('.resumen-liga').textContent = 'Liguilla terminada. Se juegan los playoffs.';
 } else {
