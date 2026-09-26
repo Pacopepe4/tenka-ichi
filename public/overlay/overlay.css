@@ -1,51 +1,72 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
-body.fondo { background: var(--sumi); }
 body { font-family: var(--gothic); color: var(--washi); }
 #lienzo { position: relative; width: 1920px; height: 1080px; }
 
-/* Cabeceras */
-.cabecera { position: absolute; top: 40px; height: 120px; background: var(--sumi-alzado); display: flex; align-items: center; }
-.cabecera.azul { left: 60px; width: 600px; padding: 0 28px 0 26px; gap: 20px; }
-.cabecera.rojo { left: 1260px; width: 600px; padding: 0 26px 0 28px; gap: 20px; }
-.cabecera .acento { position: absolute; top: 0; width: 8px; height: 100%; }
-.cabecera.azul .acento { left: 0; background: var(--azul-lado); }
-.cabecera.rojo .acento { right: 0; background: var(--rojo-lado); }
-.cabecera .logo { width: 104px; height: 100px; object-fit: contain; flex: none; }
-.cabecera .equipo { display: flex; flex-direction: column; flex: 1; min-width: 0; }
-.cabecera.rojo .equipo { text-align: right; }
-.cabecera .nombre { font-family: var(--mincho); font-weight: 800; font-size: 46px; line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cabecera .lema { font-size: 20px; color: var(--hai); white-space: nowrap; }
-.cabecera .kanji { writing-mode: vertical-rl; font-family: var(--mincho); font-weight: 800; font-size: 34px; line-height: 1; color: var(--color-clan, var(--hai)); }
-.cabecera.centro { left: 700px; width: 520px; flex-direction: column; justify-content: center; }
-.cabecera.centro .fase { font-family: var(--mincho); font-weight: 800; font-size: 46px; line-height: 1.1; }
-.cabecera.centro .partida { font-size: 22px; color: var(--hai); }
-.cabecera.centro .rayita { position: absolute; bottom: -4px; left: 0; width: 100%; height: 4px; background: var(--shu); }
-.temporizador { position: absolute; top: 176px; left: 860px; width: 200px; text-align: center; font-family: var(--mincho); font-weight: 800; font-size: 40px; line-height: 1; font-variant-numeric: tabular-nums; }
-.temporizador.urgente { color: var(--shu-claro); }
+/* Fondo de tinta. overlay.js le recorta los huecos de las cámaras con una máscara */
+.fondo { position: absolute; inset: 0; background: var(--grano), radial-gradient(ellipse 70% 60% at 50% 45%, #1D1A17 0%, var(--sumi) 70%); }
+body.transparente .fondo { display: none; }
 
-/* Picks */
-.picks { position: absolute; top: 220px; width: 600px; display: flex; flex-direction: column; gap: 15px; }
-.picks.azul { left: 60px; }
-.picks.rojo { left: 1260px; }
-.slot { position: relative; height: 120px; background: var(--sumi-alzado); overflow: hidden; }
+/* ---------- Placas de los equipos, cortadas en diagonal hacia el centro ---------- */
+.placa { position: absolute; top: 32px; width: 700px; height: 128px; background: var(--sumi-alzado);
+  display: flex; align-items: center; gap: 22px; overflow: hidden; }
+.placa.azul { left: 48px; padding: 0 70px 0 34px; clip-path: polygon(0 0, 100% 0, calc(100% - var(--corte)) 100%, 0 100%);
+  box-shadow: inset 10px 0 0 var(--azul-lado); }
+.placa.rojo { left: 1172px; padding: 0 34px 0 70px; clip-path: polygon(0 0, 100% 0, 100% 100%, var(--corte) 100%);
+  box-shadow: inset -10px 0 0 var(--rojo-lado); }
+.placa .logo { width: 100px; height: 96px; object-fit: contain; flex: none; position: relative; }
+.placa .equipo { display: flex; flex-direction: column; flex: 1; min-width: 0; position: relative; }
+.placa.rojo .equipo { text-align: right; }
+.placa .nombre { font-family: var(--mincho); font-weight: 800; font-size: 54px; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.placa .lema { font-size: 21px; color: var(--color-clan, var(--hai)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* El kanji del clan, enorme y apagado, como tinta que ha calado el papel */
+.placa .kanji-fondo { position: absolute; top: 50%; transform: translateY(-50%); font-family: var(--mincho); font-weight: 800;
+  font-size: 150px; line-height: 1; color: var(--color-clan, var(--hai)); opacity: .16; white-space: nowrap; pointer-events: none; }
+.placa.azul .kanji-fondo { right: 60px; }
+.placa.rojo .kanji-fondo { left: 60px; }
+
+/* ---------- Marcador central ---------- */
+.marcador { position: absolute; top: 26px; left: 748px; width: 424px; height: 104px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center; }
+.marcador .arriba, .marcador .abajo { font-size: 20px; color: var(--hai); line-height: 1.3; }
+.marcador .abajo:empty, .marcador .arriba:empty { display: none; }
+.marcador .grande { font-family: var(--mincho); font-weight: 800; font-size: 46px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.marcador .grande .v { display: inline-block; min-width: 50px; font-size: 58px; }
+.marcador .grande .v.azul { color: var(--azul-lado); }
+.marcador .grande .v.rojo { color: #E4474C; }
+.marcador .grande .raya { color: var(--hai); margin: 0 8px; }
+
+/* Temporizador: un sello que se estampa en cada turno */
+.sello-tiempo { position: absolute; left: 924px; top: 148px; width: 72px; height: 72px; font-size: 38px; font-variant-numeric: tabular-nums;
+  transform: rotate(-4deg); box-shadow: 0 6px 16px rgba(0, 0, 0, .45); }
+.sello-tiempo[hidden] { display: none; }
+.sello-tiempo.estampa { animation: estampar .35s cubic-bezier(.3, 1.6, .5, 1) both; }
+.sello-tiempo.urgente { animation: urgencia 1s ease-in-out infinite; }
+@keyframes estampar { from { transform: rotate(-4deg) scale(1.6); opacity: 0; } }
+@keyframes urgencia { 50% { background: #8E1C20; } }
+
+/* ---------- Picks ---------- */
+.picks { position: absolute; top: 200px; width: 540px; display: flex; flex-direction: column; gap: 12px; }
+.picks.azul { left: 48px; }
+.picks.rojo { left: 1332px; }
+.slot { position: relative; height: 124px; background: var(--sumi-alzado); overflow: hidden; }
 .slot .arte { position: absolute; inset: 0; background-size: cover; background-position: 50% 22%; opacity: 0; transition: opacity .3s; }
 .slot.lleno .arte { opacity: 1; }
-.slot.hover .arte { opacity: .4; filter: grayscale(.4); }
+.slot.hover .arte { opacity: .4; filter: grayscale(.5); }
 .slot .velo { position: absolute; inset: 0; }
-.picks.azul .velo { background: linear-gradient(90deg, rgba(34,30,26,.97) 0%, rgba(34,30,26,.8) 42%, rgba(34,30,26,0) 82%); }
-.picks.rojo .velo { background: linear-gradient(270deg, rgba(34,30,26,.97) 0%, rgba(34,30,26,.8) 42%, rgba(34,30,26,0) 82%); }
-.slot .barra { position: absolute; top: 0; width: 8px; height: 100%; }
+.picks.azul .velo { background: linear-gradient(90deg, rgba(34,30,26,.97) 0%, rgba(34,30,26,.78) 44%, rgba(34,30,26,0) 86%); }
+.picks.rojo .velo { background: linear-gradient(270deg, rgba(34,30,26,.97) 0%, rgba(34,30,26,.78) 44%, rgba(34,30,26,0) 86%); }
+.slot .barra { position: absolute; top: 0; width: 10px; height: 100%; }
 .picks.azul .barra { left: 0; background: var(--azul-lado); }
 .picks.rojo .barra { right: 0; background: var(--rojo-lado); }
-.slot .textos { position: absolute; top: 16px; display: flex; flex-direction: column; }
-.picks.azul .textos { left: 34px; }
-.picks.rojo .textos { right: 34px; text-align: right; }
+.slot .textos { position: absolute; top: 18px; display: flex; flex-direction: column; }
+.picks.azul .textos { left: 36px; }
+.picks.rojo .textos { right: 36px; text-align: right; }
 .slot .linea-rol { display: flex; gap: 10px; font-size: 20px; }
 .picks.rojo .linea-rol { flex-direction: row-reverse; }
 .slot .rol { color: var(--hai); }
 .slot .jugador { font-weight: 700; }
-.slot .campeon { font-family: var(--mincho); font-weight: 800; font-size: 44px; line-height: 1.15; }
+.slot .campeon { font-family: var(--mincho); font-weight: 800; font-size: 46px; line-height: 1.15; }
 .slot.activo { box-shadow: inset 0 0 0 3px var(--azul-lado); animation: latido 1.2s ease-in-out infinite; }
 .picks.rojo .slot.activo { box-shadow: inset 0 0 0 3px var(--rojo-lado); }
 @keyframes latido { 50% { box-shadow: inset 0 0 0 3px transparent; } }
@@ -62,57 +83,74 @@ body { font-family: var(--gothic); color: var(--washi); }
 @keyframes barrer { 0% { opacity: .95; transform: translateX(-105%); } 70% { opacity: .95; } 100% { opacity: 0; transform: translateX(105%); } }
 @keyframes barrer-rojo { 0% { opacity: .95; transform: translateX(105%); } 70% { opacity: .95; } 100% { opacity: 0; transform: translateX(-105%); } }
 
-/* Centro */
-.centro-vs { position: absolute; left: 760px; top: 300px; width: 400px; display: flex; flex-direction: column; align-items: center; transition: opacity .3s; }
-.centro-vs .vs { font-family: var(--mincho); font-weight: 800; font-size: 120px; line-height: 1.1; color: var(--shu-claro); }
-.centro-vs .koryu { width: 190px; height: 182px; object-fit: contain; margin: 16px 0; }
-.centro-vs .tenka { font-family: var(--mincho); font-weight: 800; font-size: 46px; }
-.centro-vs.oculto { opacity: 0; }
+/* ---------- Escenario central: emblema o cámaras ---------- */
+.escenario { position: absolute; left: 620px; top: 212px; width: 680px; height: 648px; }
+.kakemono { position: absolute; left: 190px; top: 40px; width: 300px; display: flex; flex-direction: column; align-items: center; gap: 22px; transition: opacity .3s; }
+.kakemono img { width: 300px; height: 380px; object-fit: cover; box-shadow: 0 18px 40px rgba(0, 0, 0, .55); }
+.kakemono figcaption { font-family: var(--mincho); font-weight: 700; font-size: 26px; color: var(--hai); white-space: nowrap; }
+.escenario.con-camaras .kakemono, .escenario.con-tarjeta-grande .kakemono { opacity: 0; }
 
-/* Tarjeta de estadísticas */
-.tarjeta { position: absolute; left: 700px; top: 240px; width: 520px; background: var(--sumi-alzado); padding: 28px 30px 26px;
-  display: grid; grid-template-columns: 132px 1fr; column-gap: 22px; row-gap: 18px; animation: entrada .4s cubic-bezier(.2, .8, .2, 1); }
-.tarjeta[hidden], .fearless[hidden] { display: none; }
-.tarjeta::before { content: ''; position: absolute; inset: 0 0 auto; height: 6px; background: var(--azul-lado); }
-.tarjeta.rojo::before { background: var(--rojo-lado); }
-.tarjeta .retrato { position: relative; }
-.tarjeta .icono { width: 132px; height: 132px; display: block; }
-.tarjeta.ban .icono { filter: grayscale(1) contrast(1.1); }
-.tarjeta .sello { position: absolute; right: -12px; bottom: -12px; width: 52px; height: 52px; font-size: 32px; box-shadow: 0 4px 10px rgba(0,0,0,.5); }
-.tarjeta .cabeza { align-self: center; }
-.tarjeta .quien { font-size: 20px; color: var(--hai); }
-.tarjeta .nombre { font-family: var(--mincho); font-weight: 800; font-size: 50px; line-height: 1.05; }
-.tarjeta .datos { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.tarjeta .dato { background: var(--sumi); padding: 12px 6px 10px; text-align: center; }
-.tarjeta .dato b { display: block; font-family: var(--mincho); font-weight: 800; font-size: 38px; line-height: 1.1; font-variant-numeric: tabular-nums; }
-.tarjeta .dato span { font-size: 16px; color: var(--hai); }
-.tarjeta .historial { grid-column: 1 / -1; font-size: 21px; font-weight: 700; color: var(--shu-claro); }
-.tarjeta .historial:empty { display: none; }
-.tarjeta .muestra { grid-column: 1 / -1; font-size: 16px; color: var(--hai); margin-top: -8px; }
-@keyframes entrada { from { opacity: 0; transform: translateY(18px); } }
+.camara { position: absolute; }
+.camara .hueco { position: absolute; inset: 0 0 auto; border: 2px solid rgba(231, 223, 210, .18); }
+.camara .placa-cam { position: absolute; left: 0; right: 0; height: 50px; display: flex; align-items: center; gap: 12px;
+  padding: 0 16px 0 20px; background: var(--sumi-alzado); box-shadow: inset 6px 0 0 var(--color-cam, var(--washi)); }
+.camara .placa-cam img { width: 36px; height: 34px; object-fit: contain; flex: none; }
+.camara .placa-cam .nombre-cam { font-family: var(--mincho); font-weight: 800; font-size: 26px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.camara .placa-cam .detalle-cam { margin-left: auto; font-size: 17px; color: var(--hai); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.camara.pequena .placa-cam { height: 44px; }
+.camara.pequena .placa-cam .nombre-cam { font-size: 22px; }
+.camara.pequena .placa-cam .detalle-cam { font-size: 15px; }
+/* Guía para colocar las cámaras en OBS (?guia=1 o vista previa del panel) */
+body.guia .camara .hueco { border: 2px dashed rgba(231, 223, 210, .45); background-color: #2A2622 !important;
+  background: repeating-linear-gradient(45deg, rgba(231,223,210,.05) 0 14px, transparent 14px 28px); }
+.camara .medidas { display: none; }
+body.guia .camara .medidas { display: grid; place-items: center; position: absolute; inset: 0; font-size: 18px; color: var(--hai); text-align: center; line-height: 1.4; }
 
-/* Fearless */
-.fearless { position: absolute; left: 680px; top: 812px; width: 560px; text-align: center; }
-.fearless .titulo { font-size: 18px; color: var(--hai); margin-bottom: 8px; }
-.fearless .iconos { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
-.fearless img { width: 42px; height: 42px; filter: grayscale(1) brightness(.65); }
-
-/* Bans */
-.bans { position: absolute; top: 935px; display: flex; gap: 20px; }
-.bans.azul { left: 60px; }
-.bans.rojo { left: 1380px; flex-direction: row-reverse; }
-.ban { position: relative; width: 80px; height: 80px; background: var(--sumi-alzado); border-bottom: 4px solid var(--azul-lado); overflow: hidden; }
+/* ---------- Bans ---------- */
+.bans { position: absolute; top: 916px; display: flex; gap: 12px; align-items: center; }
+.bans.azul { left: 48px; }
+.bans.rojo { right: 48px; flex-direction: row-reverse; }
+.bans .hanko { width: 44px; height: 44px; font-size: 26px; margin: 0 6px; }
+.ban { position: relative; width: 88px; height: 88px; background: var(--sumi-alzado); border-bottom: 4px solid var(--azul-lado); overflow: hidden; }
 .bans.rojo .ban { border-bottom-color: var(--rojo-lado); }
 .ban img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) brightness(.75); }
 .ban.lleno::after { content: ''; position: absolute; left: -10%; top: 46%; width: 120%; height: 5px; background: var(--shu); transform: rotate(-38deg); opacity: .9; }
 .ban.activo { box-shadow: inset 0 0 0 3px var(--washi); animation: latido-ban 1.2s ease-in-out infinite; }
 @keyframes latido-ban { 50% { box-shadow: inset 0 0 0 3px transparent; } }
 .ban.hover img { opacity: .5; }
-.rotulo-bans { position: absolute; top: 960px; font-size: 22px; color: var(--hai); }
-.rotulo-bans.azul { left: 560px; }
-.rotulo-bans.rojo { left: 1265px; width: 100px; text-align: right; }
 
-/* Pie */
-.pie { position: absolute; left: 680px; top: 940px; width: 560px; text-align: center; }
-.pie .liga { font-family: var(--mincho); font-weight: 800; font-size: 30px; line-height: 1.1; }
-.pie .jornada { font-size: 20px; color: var(--hai); margin-top: 6px; }
+/* ---------- Franja inferior: jornada y fearless, o la tarjeta del último pick ---------- */
+.franja { position: absolute; left: 620px; top: 892px; width: 680px; height: 144px; }
+.reposo { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; transition: opacity .25s; }
+.franja.con-tarjeta .reposo { opacity: 0; }
+.reposo .liga { display: flex; align-items: center; gap: 12px; font-family: var(--mincho); font-weight: 700; font-size: 26px; }
+.reposo .liga .hanko { width: 36px; height: 36px; font-size: 22px; }
+.fearless { display: flex; align-items: center; gap: 12px; }
+.fearless[hidden] { display: none; }
+.fearless .titulo { font-size: 17px; color: var(--hai); white-space: nowrap; }
+.fearless .iconos { display: flex; flex-wrap: wrap; gap: 5px; max-width: 480px; }
+.fearless img { width: 38px; height: 38px; filter: grayscale(1) brightness(.6); }
+
+.tarjeta { position: absolute; inset: 0; background: var(--sumi-alzado); padding: 16px 18px 14px 22px;
+  display: grid; grid-template-columns: 112px minmax(0, 1fr) auto; grid-template-rows: 1fr auto; column-gap: 18px; row-gap: 6px;
+  box-shadow: inset 0 5px 0 var(--azul-lado); animation: entrada .4s cubic-bezier(.2, .8, .2, 1); }
+.tarjeta.rojo { box-shadow: inset 0 5px 0 var(--rojo-lado); }
+.tarjeta[hidden] { display: none; }
+.tarjeta .retrato { position: relative; grid-row: 1 / -1; align-self: center; }
+.tarjeta .icono { width: 104px; height: 104px; display: block; }
+.tarjeta.es-ban .icono { filter: grayscale(1) contrast(1.1); }
+.tarjeta .sello { position: absolute; right: -8px; bottom: -8px; width: 42px; height: 42px; font-size: 26px; transform: rotate(-4deg); box-shadow: 0 4px 10px rgba(0,0,0,.5); }
+.tarjeta .cabeza { align-self: center; min-width: 0; }
+.tarjeta .quien { font-size: 18px; color: var(--hai); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tarjeta .nombre { font-family: var(--mincho); font-weight: 800; font-size: 40px; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tarjeta .datos { display: grid; grid-template-columns: repeat(4, 66px); gap: 6px; align-self: center; }
+.tarjeta .dato { background: var(--sumi); padding: 8px 2px 6px; text-align: center; }
+.tarjeta .dato b { display: block; font-family: var(--mincho); font-weight: 800; font-size: 24px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.tarjeta .dato span { font-size: 13px; color: var(--hai); }
+.tarjeta .pie-tarjeta { grid-column: 2 / -1; font-size: 16px; color: var(--hai); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tarjeta .pie-tarjeta b { color: var(--shu-claro); font-weight: 700; }
+@keyframes entrada { from { opacity: 0; transform: translateY(14px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0s !important; transition-duration: 0s !important; }
+}

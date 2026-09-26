@@ -12,19 +12,23 @@
 <body>
 <header class="barra">
   <a class="marca" href="#inicio"><img src="/marca/koryu-budo.png" alt=""><span>Koryu Budo League</span></a>
-  <nav><a href="#clanes">Clanes</a><a href="#liga">Liga</a></nav>
+  <nav><a href="#clanes">Clanes</a><a href="#formato">Formato</a><a href="#liga">Liga</a></nav>
 </header>
 
 <main>
   <section id="inicio" class="portada">
-    <div class="tategaki" aria-hidden="true">天下一</div>
+    <div class="papel"><img src="/marca/sol-partido.jpg" alt="El sol partido, emblema de Tenka Ichi"></div>
     <div class="portada-texto">
-      <h1>Tenka Ichi</h1>
-      <p class="traduccion">El que reina bajo el cielo</p>
+      <div class="titulo">
+        <span class="tategaki" aria-hidden="true">天下一</span>
+        <div>
+          <h1>Tenka Ichi</h1>
+          <p class="traduccion">El que reina bajo el cielo</p>
+        </div>
+      </div>
       <p class="lore">Tras la cuarta Pelea de Cinturones, el cielo expulsó a los samuráis y cerró sus puertas. Arriba ya no hay sitio para ellos; abajo hay un trono vacío. Trece clanes, un solo reino. Quien gane, reinará bajo el cielo.</p>
       <a class="boton" href="#clanes">Conoce a los clanes</a>
     </div>
-    <figure class="sol"><img src="/marca/sol-partido.jpg" alt="El sol partido, emblema de Tenka Ichi"></figure>
   </section>
 
   <section id="clanes" class="clanes">
@@ -34,6 +38,39 @@
       <p class="solo-tactil">Desliza para ver las cartas y toca una para ver su plantilla.</p>
     </div>
     <div class="baraja" role="list"></div>
+  </section>
+
+  <section id="formato" class="formato">
+    <div class="cabecera-seccion">
+      <h2>El camino al trono</h2>
+      <p>Diez de los trece clanes juegan la temporada. Así se decide quién reina.</p>
+    </div>
+    <ol class="camino">
+      <li>
+        <span class="paso" aria-hidden="true">一</span>
+        <h3>Liguilla</h3>
+        <p class="formato-partida">Bo1, cinco jornadas</p>
+        <p>Un solo grupo. Cada clan se enfrenta a cinco rivales sorteados y los ocho primeros pasan a los playoffs.</p>
+      </li>
+      <li>
+        <span class="paso" aria-hidden="true">二</span>
+        <h3>Desempate</h3>
+        <p class="formato-partida">Bo1, solo si hace falta</p>
+        <p>Los empates se resuelven por enfrentamiento directo y después por fuerza de calendario. Si el 8.º y el 9.º siguen igualados, se juegan la plaza.</p>
+      </li>
+      <li>
+        <span class="paso" aria-hidden="true">三</span>
+        <h3>Playoffs</h3>
+        <p class="formato-partida">Bo3 fearless</p>
+        <p>Cuadro fijo: 1.º contra 8.º, 4.º contra 5.º, 2.º contra 7.º y 3.º contra 6.º. El mejor clasificado elige lado en la primera partida; después elige quien perdió la anterior.</p>
+      </li>
+      <li class="final">
+        <span class="paso" aria-hidden="true">天</span>
+        <h3>Tenka Ichi</h3>
+        <p class="formato-partida">El que reina bajo el cielo</p>
+        <p>El campeón ocupa el trono hasta la temporada siguiente.</p>
+      </li>
+    </ol>
   </section>
 
   <section id="liga" class="liga">

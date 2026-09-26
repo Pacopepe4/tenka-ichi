@@ -1,6 +1,6 @@
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
-body { margin: 0; background: var(--sumi); color: var(--washi); font: 17px/1.6 var(--gothic); }
+body { margin: 0; background: var(--grano), var(--sumi); color: var(--washi); font: 17px/1.6 var(--gothic); }
 img { display: block; max-width: 100%; }
 a { color: inherit; }
 :focus-visible { outline: 2px solid var(--shu-claro); outline-offset: 3px; }
@@ -14,18 +14,25 @@ a { color: inherit; }
 .barra nav a { text-decoration: none; color: var(--hai); font-weight: 500; }
 .barra nav a:hover { color: var(--washi); }
 
-/* Portada */
-.portada { position: relative; min-height: calc(100vh - 64px); display: grid; grid-template-columns: auto 1fr minmax(260px, 38%);
-  align-items: center; gap: clamp(20px, 4vw, 64px); padding: clamp(32px, 6vw, 88px) clamp(16px, 5vw, 64px); overflow: hidden; }
+/* Portada: el papel con el sol partido, cortado en diagonal como el trazo del sol, y el título sobre la tinta */
+.portada { position: relative; min-height: clamp(560px, calc(100vh - 64px), 920px); min-height: clamp(560px, calc(100svh - 64px), 920px);
+  display: grid; grid-template-columns: 54% minmax(0, 1fr); align-items: center; overflow: hidden; }
+.papel { position: absolute; inset: 0 auto 0 0; width: 56%; background: #F1F1E8; clip-path: polygon(0 0, 100% 0, 78% 100%, 0 100%);
+  animation: desenrollar 1s cubic-bezier(.7, 0, .2, 1) both; }
+.papel img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; }
+.papel::after { content: ''; position: absolute; inset: 0; background: var(--grano-papel); pointer-events: none; }
+.portada-texto { grid-column: 2; position: relative; padding: clamp(40px, 6vw, 96px) clamp(16px, 5vw, 72px) clamp(40px, 6vw, 96px) clamp(12px, 2.5vw, 40px);
+  animation: aparecer .8s .5s cubic-bezier(.2, .8, .2, 1) both; }
+.titulo { display: flex; align-items: flex-start; gap: clamp(14px, 2vw, 28px); margin-bottom: 28px; }
 .tategaki { writing-mode: vertical-rl; font-family: var(--mincho); font-weight: 800; color: var(--shu);
-  font-size: clamp(84px, 14vw, 200px); line-height: .95; letter-spacing: .06em; user-select: none; }
-.portada h1 { margin: 0; font-family: var(--mincho); font-weight: 800; font-size: clamp(56px, 9vw, 132px); line-height: .95; letter-spacing: -.01em; }
-.traduccion { margin: 10px 0 28px; font-family: var(--mincho); font-size: clamp(20px, 2.2vw, 28px); color: var(--hai); }
-.lore { max-width: 34em; margin: 0 0 32px; color: var(--washi); }
+  font-size: clamp(38px, 4.6vw, 72px); line-height: 1; letter-spacing: .1em; user-select: none; }
+.portada h1 { margin: 0; font-family: var(--mincho); font-weight: 800; font-size: clamp(58px, 8vw, 132px); line-height: .92; letter-spacing: -.01em; }
+.traduccion { margin: 18px 0 0; font-family: var(--mincho); font-weight: 700; font-size: clamp(20px, 2vw, 28px); color: var(--hai); }
+.lore { max-width: 30em; margin: 0 0 32px; color: var(--washi); text-wrap: pretty; }
+@keyframes desenrollar { from { clip-path: polygon(0 0, 0 0, 0 100%, 0 100%); } }
+@keyframes aparecer { from { opacity: 0; transform: translateY(16px); } }
 .boton { display: inline-block; padding: 12px 22px; background: var(--shu); color: var(--washi); text-decoration: none; font-weight: 700; border-radius: 3px; }
 .boton:hover { background: var(--shu-claro); }
-.sol { margin: 0; justify-self: end; width: 100%; max-width: 480px; aspect-ratio: 4 / 5; overflow: hidden; }
-.sol img { width: 100%; height: 100%; object-fit: cover; }
 
 /* Cabeceras de sección */
 .cabecera-seccion { max-width: 1180px; margin: 0 auto; padding: 0 clamp(16px, 5vw, 64px); }
@@ -57,8 +64,8 @@ a { color: inherit; }
   .solo-raton { display: none; }
   .solo-tactil { display: block; }
   .portada { grid-template-columns: 1fr; min-height: 0; }
-  .tategaki { position: absolute; right: 8px; top: 20px; font-size: 96px; opacity: .9; }
-  .sol { justify-self: start; max-width: 240px; }
+  .papel { position: relative; width: 100%; height: 64vw; clip-path: polygon(0 0, 100% 0, 100% 80%, 0 100%); }
+  .portada-texto { grid-column: 1; padding: 20px 16px 56px; }
   .baraja { height: auto; display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 8px 16px 20px; }
   .carta { position: relative; left: auto; bottom: auto; margin: 0; flex: 0 0 208px; transform: none !important; scroll-snap-align: center; }
 }
@@ -115,9 +122,30 @@ footer img { width: 34px; height: 32px; object-fit: contain; }
   .ficha-arte { height: 260px; min-height: 0; border-right: 0; border-bottom: 5px solid var(--color, var(--shu)); }
 }
 
+/* El camino al trono: las fases de la temporada, en orden */
+.formato { padding: clamp(56px, 8vw, 110px) 0; border-top: 1px solid var(--sumi-linea); }
+.camino { --hueco: clamp(20px, 3vw, 44px); list-style: none; max-width: 1180px; margin: 40px auto 0; padding: 0 clamp(16px, 5vw, 64px);
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--hueco); }
+.camino li { position: relative; }
+.camino li:not(:last-child)::after { content: ''; position: absolute; top: 31px; left: 80px; right: calc(12px - var(--hueco)); height: 2px; background: var(--sumi-linea); }
+.paso { display: grid; place-items: center; width: 64px; height: 64px; margin-bottom: 18px; border: 2px solid var(--washi); border-radius: 50%;
+  font-family: var(--mincho); font-weight: 800; font-size: 30px; line-height: 1; }
+.camino .final .paso { border: 0; border-radius: 4px; background: var(--shu); transform: rotate(-4deg); }
+.camino h3 { margin: 0; font-family: var(--mincho); font-weight: 800; font-size: 30px; line-height: 1.15; }
+.camino p { margin: 0; color: var(--hai); max-width: 26em; }
+.camino .formato-partida { margin: 2px 0 10px; color: var(--washi); font-weight: 700; }
+@media (max-width: 860px) {
+  .camino { grid-template-columns: 1fr; }
+  .camino li { display: grid; grid-template-columns: 64px minmax(0, 1fr); column-gap: 18px; align-content: start; }
+  .camino li > :not(.paso) { grid-column: 2; }
+  .camino .paso { grid-row: 1 / span 3; margin: 0; }
+  .camino li:not(:last-child)::after { top: 76px; bottom: calc(8px - var(--hueco)); left: 31px; right: auto; width: 2px; height: auto; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .carta, .ficha[open] { transition: none; animation: none; }
+  .papel, .portada-texto { animation: none; }
 }
 
 /* ---------- Competición ---------- */

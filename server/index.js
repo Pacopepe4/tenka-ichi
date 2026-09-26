@@ -33,6 +33,9 @@ const estado = {
   draft: { turno: 0, activo: null, hover: null, tiempo: null, bans: vacio(), picks: vacio() },
   fearless: [],
   resultados: [],
+  // Cámaras del overlay: cuántas se ven (0-4) y qué es cada una
+  // tipo: 'caster', 'azul' o 'rojo' (sigue al clan de ese lado) o el id de un clan
+  camaras: { cantidad: 0, lista: Array.from({ length: 4 }, () => ({ tipo: 'caster', nombre: '', detalle: '' })) },
   aviso: null,
   hoja: { configurada: false, ok: false, error: null, cuenta: null },
 };
@@ -148,6 +151,15 @@ async function accion(nombre, d = {}) {
       estado.draft = { turno: 0, activo: null, hover: null, tiempo: null, bans: vacio(), picks: vacio() };
       estado.aviso = null;
       break;
+    case 'camaras': {
+      const n = Number(d.cantidad);
+      if (Number.isInteger(n) && n >= 0 && n <= 4) estado.camaras.cantidad = n;
+      if (Array.isArray(d.lista)) estado.camaras.lista = estado.camaras.lista.map((c, i) => {
+        const x = d.lista[i] || {};
+        return { tipo: String(x.tipo || c.tipo), nombre: String(x.nombre ?? c.nombre).slice(0, 40), detalle: String(x.detalle ?? c.detalle).slice(0, 60) };
+      });
+      break;
+    }
     case 'plantilla':
       await guardarPlantilla(d.clan, d);
       break;

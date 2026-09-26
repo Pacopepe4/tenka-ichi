@@ -45,3 +45,17 @@ export function conectarDirecto({ alEstado, alRespuesta, alConexion }) {
     },
   };
 }
+
+// Huecos de cámara del overlay (coordenadas del lienzo 1920×1080, sin la placa del nombre).
+// Todos en 16:9; la placa de 50 px va pegada debajo de cada hueco.
+export const PLACA_CAMARA = 50;
+export function disposicionCamaras(n) {
+  const X = 620, W = 680;
+  switch (n) {
+    case 1: return [{ x: X, y: 320, w: 680, h: 383 }];
+    case 2: return [{ x: X + 100, y: 224, w: 480, h: 270 }, { x: X + 100, y: 552, w: 480, h: 270 }];
+    case 3: return [{ x: X + 60, y: 226, w: 560, h: 315 }, { x: X, y: 607, w: 334, h: 188 }, { x: X + W - 334, y: 607, w: 334, h: 188 }];
+    case 4: return [0, 1, 2, 3].map(i => ({ x: i % 2 ? X + W - 334 : X, y: i < 2 ? 290 : 544, w: 334, h: 188 }));
+    default: return [];
+  }
+}

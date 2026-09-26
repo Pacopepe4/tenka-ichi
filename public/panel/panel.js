@@ -1,5 +1,5 @@
 // Panel de producción: conecta DraftCore, configura el enfrentamiento, corrige huecos y registra resultados
-import { cargarCampeones, cargarClanes, conectarDirecto, icono, logo } from '/comun.js';
+import { cargarCampeones, cargarClanes, conectarDirecto, icono, logo, disposicionCamaras } from '/comun.js';
 
 const $ = s => document.querySelector(s);
 const campeones = await cargarCampeones();
@@ -98,6 +98,8 @@ function pintar() {
       caja.querySelectorAll('.jugadores input').forEach((inp, i) => { inp.value = e.equipos[lado].jugadores[i]; });
     }
   }
+  if (!camarasRellenas) { camarasRellenas = true; camaras = structuredClone(e.camaras.lista); pintarFilasCamaras(e.camaras.cantidad); }
+  pintarCantidad(e.camaras.cantidad);
   $('#partida').value = e.config.partida;
 
   const f = e.fuente;
@@ -159,7 +161,8 @@ $('#urlOverlay').textContent = `${location.origin}/overlay/`;
 $('#urlPortada').textContent = `${location.origin}/`;
 $('#urlPortada').href = '/';
 const vista = $('#vista');
-vista.src = '/overlay/?fondo=1';
+vista.src = '/overlay/?guia=1';
+$('#urlGuia').href = '/overlay/?guia=1';
 const escalar = () => { vista.style.transform = `scale(${vista.parentElement.clientWidth / 1920})`; };
 new ResizeObserver(escalar).observe(vista.parentElement);
 
@@ -233,3 +236,59 @@ $('#cargarProxima').onclick = async () => {
 };
 
 cargarCompeticion();
+
+// ---------- Cámaras ----------
+// Lo que hay escrito en las filas, aunque aún no se haya puesto en el overlay
+let camaras = [], camarasRellenas = false, cantidadVisible = 0;
+const opcionesCamara = '<option value="caster">Caster</option><option value="azul">Lado azul</option><option value="rojo">Lado rojo</option>'
+  + '<optgroup label="Clan">' + clanes.clanes.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('') + '</optgroup>';
+const colorFila = tipo => tipo === 'caster' ? 'var(--washi)' : tipo === 'azul' ? 'var(--azul-lado)' : tipo === 'rojo' ? 'var(--rojo-lado)' : clanes.clan(tipo).color;
+
+function leerFilas() {
+  document.querySelectorAll('.fila-camara').forEach((f, i) => {
+    camaras[i] = { tipo: f.querySelector('select').value, nombre: f.querySelector('.nombre').value.trim(), detalle: f.querySelector('.detalle').value.trim() };
+  });
+}
+
+function pintarFilasCamaras(n) {
+  leerFilas();
+  cantidadVisible = n;
+  $('.lista-camaras').innerHTML = disposicionCamaras(n).map((h, i) => {
+    const c = camaras[i] || { tipo: 'caster', nombre: '', detalle: '' };
+    return `<div class="fila-camara" style="--color-fila:${colorFila(c.tipo)}">
+      <div class="donde"><b>Cámara ${i + 1}</b>${h.w}×${h.h} en x ${h.x}, y ${h.y}</div>
+      <select aria-label="Qué es la cámara ${i + 1}">${opcionesCamara}</select>
+      <input class="nombre" aria-label="Nombre en la cámara ${i + 1}" placeholder="Nombre">
+      <input class="detalle" aria-label="Detalle de la cámara ${i + 1}" placeholder="${c.tipo === 'caster' ? '@usuario' : 'Capitán, Top…'}">
+    </div>`;
+  }).join('');
+  document.querySelectorAll('.fila-camara').forEach((f, i) => {
+    const c = camaras[i] || { tipo: 'caster', nombre: '', detalle: '' };
+    const sel = f.querySelector('select');
+    sel.value = c.tipo;
+    f.querySelector('.nombre').value = c.nombre;
+    f.querySelector('.detalle').value = c.detalle;
+    sel.addEventListener('change', () => {
+      f.style.setProperty('--color-fila', colorFila(sel.value));
+      f.querySelector('.detalle').placeholder = sel.value === 'caster' ? '@usuario' : 'Capitán, Top…';
+    });
+  });
+}
+
+function pintarCantidad(n) {
+  document.querySelectorAll('.cantidad button').forEach(b => b.setAttribute('aria-checked', String(Number(b.dataset.n) === n)));
+}
+
+// El número de cámaras se aplica al momento; los nombres, con el botón
+document.querySelectorAll('.cantidad button').forEach(b => b.addEventListener('click', async () => {
+  const n = Number(b.dataset.n);
+  pintarFilasCamaras(n);
+  const r = await enviar('camaras', { cantidad: n });
+  if (r.ok) aviso(n ? `${n} ${n === 1 ? 'cámara' : 'cámaras'} en el overlay` : 'Overlay sin cámaras');
+}));
+
+$('#guardarCamaras').onclick = async () => {
+  leerFilas();
+  const r = await enviar('camaras', { cantidad: cantidadVisible, lista: [0, 1, 2, 3].map(i => camaras[i] || { tipo: 'caster', nombre: '', detalle: '' }) });
+  if (r.ok) aviso('Cámaras en el overlay');
+};

@@ -33,3 +33,9 @@
 - Simulación visible en https://tenka-ichi.onrender.com/?simulacion#liga (semilla 1509, campeón Tora).
 - Pendiente: marcador de la serie Bo3 en el overlay; hacer el sorteo real desde el panel cuando estén los 10 clanes (se guarda en Sheets).
 - Calendario y plantillas persistentes en Google Sheets (pestañas Calendario y Plantillas); las plantillas se pueden editar desde la hoja.
+
+## 26/09: reforma del frontend
+
+- Overlay rehecho: placas de equipo cortadas en diagonal con el kanji del clan de fondo, marcador de la serie en Bo3, temporizador en un sello hanko, escenario central con 0 a 4 cámaras (huecos transparentes con placa de nombre), franja inferior con la tarjeta de estadísticas y los bloqueados en fearless. Fondo de tinta propio con los huecos recortados.
+- Panel: apartado Cámaras (cuántas y qué es cada una, con su medida para OBS); vista previa con la guía de huecos; arreglados el campo de semilla y el desbordamiento del draft.
+- Portada: papel con el sol partido cortado en diagonal, como la portada de Canva; nueva sección «El camino al trono» con el formato.

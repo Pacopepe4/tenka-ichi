@@ -4,7 +4,7 @@ Web de la liga TENKA ICHI de Koryu Budo. Refleja en directo un draft de **DraftC
 
 - **Portada pública:** `/` (los trece clanes en baraja, su plantilla, clasificación y campeones más presentes)
 - **Panel de producción:** `/panel/` (con contraseña)
-- **Overlay para OBS:** `/overlay/` (1920×1080, fondo transparente; `?fondo=1` para verlo sobre tinta)
+- **Overlay para OBS:** `/overlay/` (1920×1080, con fondo de tinta y de 0 a 4 cámaras; `?transparente=1` quita el fondo y `?guia=1` marca los huecos de las cámaras)
 
 ## Arrancar en tu PC
 
@@ -24,7 +24,7 @@ Cada parche de LoL: `npm run ddragon` (descarga los campeones nuevos de Data Dra
 
 1. En DraftCore crea el draft como siempre y copia el enlace de **espectador** (`lol.draftcore.net/XXXXXXX`).
 2. En el panel: pega el enlace y pulsa **Conectar**. Elige jornada, fase y formato (Bo1 / Bo3 fearless) y los dos clanes: sus jugadores se rellenan desde la plantilla. Pulsa **Poner en el overlay**.
-3. En OBS: fuente de navegador 1920×1080 con la dirección `/overlay/`.
+3. En OBS: fuente de navegador 1920×1080 con la dirección `/overlay/`, por encima de las cámaras (ver «Cámaras en OBS»).
 4. Cada pick y ban aparece solo. Al pickear sale una tarjeta con pick %, ban %, presencia, victorias e historial del jugador y del clan.
 5. Al acabar: **Gana el lado azul / rojo** (se guarda en el registro) y **Siguiente partida**. En Bo3 fearless los campeones usados quedan bloqueados y se muestran en el overlay. **Nueva serie** limpia los bloqueos.
 
@@ -109,3 +109,18 @@ Socket.IO en `https://ws.lol.draftcore.net` → `V3-joinDraft { draftId, url }`.
 - **Plantillas**: jugadores por rol, suplentes, lema y descripción de cada clan. Se puede editar a mano en la hoja; la web lo recoge en un minuto.
 
 Las pestañas se crean solas la primera vez. Si Sheets no está configurado, todo se guarda en archivos locales, que en Render se borran al reiniciar.
+
+## Cámaras en OBS
+
+El overlay tiene de 0 a 4 huecos transparentes en el centro, entre los picks. Se eligen en el panel, apartado **Cámaras**: cuántas salen y qué es cada una (caster, lado azul, lado rojo o un clan). Las de lado azul y rojo siguen al clan que esté en ese lado aunque se inviertan los lados.
+
+1. En la escena de OBS, pon las fuentes de cámara **por debajo** de la fuente del overlay.
+2. El panel indica la medida y la posición de cada hueco (por ejemplo, «560×315 en x 680, y 226»). En OBS: clic derecho en la cámara, **Transformar**, **Editar transformación**, y escribe esa posición y ese tamaño del cuadro delimitador.
+3. Para verlo mientras colocas, abre `/overlay/?guia=1`: los huecos salen rayados con su medida.
+
+| Cámaras | Huecos (ancho×alto en x, y) |
+|---|---|
+| 1 | 680×383 en 620, 320 |
+| 2 | 480×270 en 720, 224 · 480×270 en 720, 552 |
+| 3 | 560×315 en 680, 226 · 334×188 en 620, 607 · 334×188 en 966, 607 |
+| 4 | 334×188 en 620, 290 · 966, 290 · 620, 544 · 966, 544 |

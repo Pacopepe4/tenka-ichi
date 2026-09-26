@@ -12,7 +12,14 @@
   --azul-lado: #2FA4E7;   /* lado azul del draft */
   --rojo-lado: #C1272D;   /* lado rojo del draft */
 
-  --mincho: 'Shippori Mincho B1', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+  /* Grano de papel: ruido muy suave encima de la tinta */
+  --grano: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .91 0 0 0 0 .87 0 0 0 0 .82 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  /* El mismo grano, en oscuro, para el papel */
+  --grano-papel: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .3 0 0 0 0 .24 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  /* El corte: la diagonal del sol partido, en píxeles de desplazamiento */
+  --corte: 44px;
+
+  --mincho:'Shippori Mincho B1', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
   --gothic: 'Zen Kaku Gothic New', 'Hiragino Sans', 'Yu Gothic', 'Segoe UI', sans-serif;
 }
 
