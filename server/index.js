@@ -73,6 +73,11 @@ function emitir() {
 // La partida en directo va en su propio mensaje: llega cada segundo y no hace falta reenviar todo el estado
 let partidaActiva = false, puenteConectado = false;
 let numeroDesarmado = 0;  // última partida terminada que ya apagó la búsqueda
+// Cada arranque del servidor tiene su sesión: si el puente estaba en plena partida y la web se reinicia
+// (una actualización, Render), sigue con ella en lugar de quedarse en espera, salvo que el panel haya
+// tocado la búsqueda desde el arranque
+const SESION = crypto.randomUUID();
+let busquedaTocada = false;
 function emitirPartida(partida = resumenPartida()) {
   partidaActiva = partida.activo;
   puenteConectado = partida.puente.conectado;
@@ -292,6 +297,7 @@ async function accion(nombre, d = {}) {
       break;
     case 'buscarPartida':
       estado.buscarPartida.activa = Boolean(d.activa);
+      busquedaTocada = true;
       break;
     case 'buscarAlAcabarDraft':
       estado.buscarPartida.alAcabarDraft = Boolean(d.activa);
@@ -490,6 +496,11 @@ const servidor = http.createServer(async (req, res) => {
     try {
       const cuerpo = await leerCuerpo(req, 3e6);
       if (enPrueba() && !cuerpo.sinPartida) pararPrueba();  // llega una partida de verdad: fuera la prueba
+      // El puente sigue con una partida que ya estaba mandando antes de que la web se reiniciara
+      if (cuerpo.continua && !cuerpo.sinPartida && !busquedaTocada && !estado.buscarPartida.activa) {
+        estado.buscarPartida.activa = true;
+        emitir();
+      }
       const partida = recibirPartida(cuerpo);
       // La partida que se buscaba ha terminado y el cliente ya la ha cerrado: se deja de buscar
       // (al acabar el siguiente draft vuelve a buscar sola)
@@ -501,7 +512,7 @@ const servidor = http.createServer(async (req, res) => {
       }
       // También los latidos: así el panel sabe si el puente está abierto y si está buscando
       emitirPartida(partida);
-      return json(res, { ok: true, tiempo: partida.tiempo, buscar: estado.buscarPartida.activa, ocultarMarcador: estado.partidaVisible,
+      return json(res, { ok: true, sesion: SESION, tiempo: partida.tiempo, buscar: estado.buscarPartida.activa, ocultarMarcador: estado.partidaVisible,
         reenviar: Boolean(partida.reenviar), sinReconocer: partida.eventosSinReconocer });
     } catch (e) {
       return json(res, { ok: false, error: e.message }, 400);

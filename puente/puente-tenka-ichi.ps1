@@ -90,7 +90,11 @@ function FalloWeb($err) {
 # Latido sin partida: la web sabe que el puente sigue abierto y contesta si el panel quiere que busque
 function Latido([bool]$espera) {
   $cuerpo = '{"sinPartida":true,"version":' + $Version + $(if ($espera) { ',"espera":true' } else { '' }) + '}'
-  try { return [bool](Enviar $cuerpo).buscar } catch { FalloWeb $_; return $script:buscar }
+  try {
+    $r = Enviar $cuerpo
+    if ($r.sesion) { $script:sesion = [string]$r.sesion }
+    return [bool]$r.buscar
+  } catch { FalloWeb $_; return $script:buscar }
 }
 
 Write-Host ''
@@ -101,6 +105,8 @@ Write-Host '  o solo al acabar el draft. Para cerrarlo, cierra esta ventana.'
 Write-Host ''
 
 $buscar = $false
+$sesion = ''        # sesión de la web: si cambia en plena partida, es que se ha reiniciado
+$continua = $false  # se sigue con la partida después de un reinicio de la web
 $ultimoEvento = -1
 $tiempoAnterior = 0
 $enPartida = $false
@@ -153,8 +159,18 @@ while ($true) {
       $enPartida = $true
     }
     try {
-      $r = Enviar ('{"version":' + $Version + ',"juego":' + $juego + ',"jugadores":' + $jugadores + ',"eventosData":' + $eventos + ',"desde":' + $desde + '}')
+      $r = Enviar ('{"version":' + $Version + $(if ($continua) { ',"continua":true' } else { '' }) + ',"juego":' + $juego + ',"jugadores":' + $jugadores + ',"eventosData":' + $eventos + ',"desde":' + $desde + '}')
+      $reiniciada = $sesion -and $r.sesion -and ([string]$r.sesion -ne $sesion)
+      if ($r.sesion) { $sesion = [string]$r.sesion }
       $buscar = [bool]$r.buscar
+      if ($buscar) { $continua = $false }
+      elseif ($reiniciada) {
+        # La web se ha reiniciado y ha perdido la búsqueda: se sigue con la partida y la web la retoma
+        # (si el panel la para a propósito, a la siguiente respuesta se deja de mandar)
+        $buscar = $true
+        $continua = $true
+        Write-Host "$(Hora)  La web se ha reiniciado: sigo con la partida."
+      }
       # La web se ha reiniciado a mitad de partida y le faltan los eventos de antes: se mandan todos otra vez
       if ($r.reenviar) {
         $ultimoEvento = -1
