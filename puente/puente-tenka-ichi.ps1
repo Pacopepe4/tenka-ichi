@@ -8,7 +8,7 @@
 param(
   [string]$Servidor = 'https://tenka-ichi.onrender.com'
 )
-$Version = 2
+$Version = 3
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
@@ -92,8 +92,20 @@ function Latido([bool]$espera) {
   $cuerpo = '{"sinPartida":true,"version":' + $Version + $(if ($espera) { ',"espera":true' } else { '' }) + '}'
   try {
     $r = Enviar $cuerpo
+    $reiniciada = $script:sesion -and $r.sesion -and ([string]$r.sesion -ne $script:sesion)
     if ($r.sesion) { $script:sesion = [string]$r.sesion }
-    return [bool]$r.buscar
+    if ([bool]$r.buscar) { return $true }
+    # La web se ha reiniciado mientras se buscaba (o mientras el cliente cargaba): se sigue buscando
+    # 30 s más y, si aparece la partida, la web retoma la búsqueda con ella
+    if (-not $espera -and $reiniciada) {
+      $script:continua = $true
+      $script:continuaHasta = (Get-Date).AddSeconds(30)
+      Write-Host "$(Hora)  La web se ha reiniciado: sigo buscando la partida."
+      return $true
+    }
+    if ($script:continua -and (Get-Date) -lt $script:continuaHasta) { return $true }
+    $script:continua = $false
+    return $false
   } catch { FalloWeb $_; return $script:buscar }
 }
 
@@ -107,6 +119,7 @@ Write-Host ''
 $buscar = $false
 $sesion = ''        # sesión de la web: si cambia en plena partida, es que se ha reiniciado
 $continua = $false  # se sigue con la partida después de un reinicio de la web
+$continuaHasta = [DateTime]::MinValue
 $ultimoEvento = -1
 $tiempoAnterior = 0
 $enPartida = $false

@@ -170,7 +170,7 @@ function estimarRecompensas(jugadores, eventos, t, eq, jugadorPorNombre) {
   const R = RECOMPENSAS;
   const todos = [...jugadores.azul, ...jugadores.rojo];
   const lado = new Map([...jugadores.azul.map(j => [j, 'azul']), ...jugadores.rojo.map(j => [j, 'rojo'])]);
-  const cuenta = new Map(todos.map(j => [j, { b: 0, cs: 0 }]));
+  const cuenta = new Map(todos.map(j => [j, { b: 0, cs: 0, k: 0, a: 0 }]));
   // Solo se sabe el nivel y los súbditos de ahora: a mitad de partida se suponen repartidos por igual
   const parte = tt => Math.min(1, tt / Math.max(1, t));
   const shutdown = c => Math.max(0, c.b - R.colchon);
@@ -195,14 +195,21 @@ function estimarRecompensas(jugadores, eventos, t, eq, jugadorPorNombre) {
       const oro = valor + (primeraSangre ? R.primeraSangre : 0);
       primeraSangre = false;
       cuenta.get(asesino).b += oro / R.porAsesinato;
+      cuenta.get(asesino).k++;
       const ayudantes = (ev.Assisters || []).map(jugadorDe).filter(a => a && a !== asesino && a !== victima);
       const bolsa = ayudantes.length ? Math.min(valor / 2, base / 2) : 0;
-      for (const a of ayudantes) cuenta.get(a).b += bolsa / ayudantes.length / R.porAsesinato;
+      for (const a of ayudantes) { cuenta.get(a).b += bolsa / ayudantes.length / R.porAsesinato; cuenta.get(a).a++; }
       repartido = oro + bolsa;
     }
     // Si tenía shutdown, lo pierde entero; si no, baja según el oro que ha dado (sin bajar del mínimo)
     if (shutdown(cv) > 0) cv.b = 0;
     else cv.b = Math.max(R.minima - base, cv.b - repartido / R.alMorir);
+  }
+  // Asesinatos y asistencias de antes de entrar a mirar: solo se sabe que están en el KDA. A quien aún no
+  // ha muerto le cuentan enteros (unos 300 de oro por asesinato y 100 por asistencia)
+  for (const j of todos) {
+    const c = cuenta.get(j);
+    if (j.d === 0) c.b += (Math.max(0, j.k - c.k) * 300 + Math.max(0, j.a - c.a) * 100) / R.porAsesinato;
   }
   farmear(t);
   for (const j of todos) {
@@ -328,6 +335,9 @@ export function resumen() {
 
   const conAlma = eq.azul.alma || eq.rojo.alma;
   for (const lado of ['azul', 'rojo']) eq[lado].puntoDeAlma = !conAlma && eq[lado].dragones.length === 3;
+  // Si se entró a mirar con la partida empezada, faltan los asesinatos de antes: el KDA del cliente
+  // sí es completo. Quien no ha muerto aún lleva de racha todos sus asesinatos, y nadie más de los que tiene.
+  for (const j of [...jugadores.azul, ...jugadores.rojo]) j.racha = j.d === 0 ? j.k : Math.min(j.racha, j.k);
   estimarRecompensas(jugadores, eventos, t, eq, jugadorPorNombre);
 
   // Temporizadores de los objetivos neutrales, en el orden en que salen en el overlay:

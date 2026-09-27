@@ -447,7 +447,10 @@ function pintarBusqueda() {
     li.classList.toggle('hecho', i < actual);
     li.classList.toggle('actual', i === actual);
   });
-  const viejo = p.puente?.conectado && p.puente.version < 2;
+  // Puentes antiguos: el 1 busca siempre por su cuenta; el 2 no sigue la partida si la web se reinicia
+  const version = p.puente?.conectado ? p.puente.version : 3;
+  const aviso = version < 2 ? 'Ojo: el puente es de una versión antigua y busca siempre por su cuenta; vuelve a descargarlo de la guía.'
+    : version < 3 ? 'Hay una versión nueva del puente (sigue con la partida si la web se reinicia): descárgala de la guía cuando puedas.' : '';
   const est = $('#estadoPartida');
   const textos = {
     prueba: ['ok', `Partida de prueba · ${mmss(p.tiempo)}. El marcador está en el overlay de partida.`],
@@ -462,8 +465,8 @@ function pintarBusqueda() {
       : 'Puente abierto y en espera. Pulsa «Buscar la partida» cuando vaya a empezar.'],
   };
   const [clase, texto] = textos[fase];
-  est.className = `estado estado-partida ${viejo ? 'mal' : clase}`;
-  est.textContent = viejo ? `${texto} Ojo: el puente es de la versión anterior y busca siempre por su cuenta; vuelve a descargarlo de la guía.` : texto;
+  est.className = `estado estado-partida ${version < 2 ? 'mal' : clase}`;
+  est.textContent = aviso ? `${texto} ${aviso}` : texto;
   const boton = $('#buscarPartida');
   boton.textContent = buscando ? 'Dejar de buscar' : 'Buscar la partida';
   boton.className = buscando ? 'secundario' : '';
