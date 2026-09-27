@@ -137,17 +137,26 @@ Los vídeos terminados (inicio y final con su música, transición, cabeceras de
 
 ## Marcador de partida (overlay in-game)
 
-`/ingame/` va encima de la captura del juego en OBS, como Blue Bottle o el antiguo LeagueBroadcast pero con la estética de Tenka Ichi: asesinatos, oro, torres, larvas y dragones de cada clan, reloj, diferencia de oro, cuentas atrás (próximo dragón y Barón, buff de Barón y de ancestral, inhibidores) y un aviso cuando un clan se lleva un objetivo. Los clanes salen del enfrentamiento del panel.
+`/ingame/` va encima de la captura del juego en OBS, como Blue Bottle o el antiguo LeagueBroadcast pero con la estética de Tenka Ichi. Los clanes y los jugadores salen del enfrentamiento del panel.
+
+- **Marcador:** asesinatos, oro, torres, larvas y dragones de cada clan, reloj y diferencia de oro.
+- **Temporizadores** debajo del reloj: próximo dragón (o ancestral), larvas o heraldo y Barón, con un ensō de pincel que se completa cuando el objetivo aparece.
+- **Debajo de cada clan:** buff de Barón y buff ancestral con su cuenta atrás, punto de alma o alma conseguida (sello con el kanji del elemento) e inhibidores caídos hasta que vuelven.
+- **Avisos** con sello cuando un clan se lleva un dragón, el Barón o el heraldo, o rompe un inhibidor.
+- **Cara a cara por líneas** (lo saca el panel durante 20 s, 45 s o hasta quitarlo): oro en objetos, KDA, súbditos, nivel y muertes de cada jugador contra su rival. Cada jugador se empareja con su puesto por el nombre de la plantilla, el campeón del draft, la posición que da el cliente o Aplastar, en ese orden.
 
 Cómo llegan los datos:
 
-1. En el PC que mira la partida como espectador corre el **puente** (`puente/`, se descarga desde la guía en `/puente/puente-tenka-ichi.zip`, que el servidor comprime al vuelo sin `clave.txt`). Es un script de PowerShell 5.1: no instala nada.
-2. Cada segundo lee la **Live Client Data API** del cliente (`https://127.0.0.1:2999/liveclientdata/gamestats`, `playerlist` y `eventdata?eventID=`), con el certificado propio de Riot aceptado solo para 127.0.0.1, y lo manda con `POST /api/partida` y la contraseña del panel en `X-Clave`.
-3. `server/partida.js` lo convierte en el marcador y lo reparte por WebSocket (mensaje `partida`). Si la **Replay API** está activada (`EnableReplayApi=1` en `[General]` de `game.cfg`), el puente oculta la barra de marcador del juego con `POST /replay/render {"interfaceScore":false}`.
+1. En el PC que mira la partida como espectador corre el **puente** (`puente/`, se descarga desde la guía en `/puente/puente-tenka-ichi.zip`, que el servidor comprime al vuelo sin `clave.txt`). Es un script de PowerShell 5.1: no instala nada. Se abre al empezar la jornada y se queda **en espera** mandando un latido cada 3 s.
+2. El puente solo lee el cliente cuando la web se lo pide: `estado.buscarPartida.activa`, que se enciende con **Buscar la partida** en el panel o sola cuando el draft se completa (si está marcado «Buscar sola al acabar el draft»), y se apaga sola cuando la partida termina (evento `GameEnd`) y el cliente se cierra.
+3. Mientras busca, cada segundo lee la **Live Client Data API** del cliente (`https://127.0.0.1:2999/liveclientdata/gamestats`, `playerlist` y `eventdata?eventID=`), con el certificado propio de Riot aceptado solo para 127.0.0.1, y lo manda con `POST /api/partida` y la contraseña del panel en `X-Clave`. La respuesta le dice si seguir buscando (`buscar`), si ocultar el marcador del juego y si reenviar la partida entera porque la web se ha reiniciado.
+4. `server/partida.js` lo convierte en el marcador y lo reparte por WebSocket (mensaje `partida`). Si la **Replay API** está activada (`EnableReplayApi=1` en `[General]` de `game.cfg`), el puente oculta la barra de marcador del juego con `POST /replay/render {"interfaceScore":false}`.
 
-Límites: la API no da a los espectadores el oro sin gastar, así que el oro de cada clan es el valor de sus objetos (precios de `public/ddragon/objetos.json`, que genera `npm run ddragon`). Los tiempos de los objetivos están en `REGLAS` de `server/partida.js` y hay que revisarlos si un parche los cambia. Los eventos que no reconoce salen en el panel, en **Partida**, para añadirlos.
+Al terminar la partida, el panel rellena solo el KDA de las estadísticas del fantasy (si estaban vacías) con los datos de cada línea; también se puede hacer con **Rellenar con la partida**.
 
-En el panel, **Partida** enseña el resumen, oculta o muestra el overlay y arranca una **partida de prueba** (seis veces más rápida) para montar la escena sin jugar; se para sola si llega una partida de verdad.
+Límites: la API no da a los espectadores el oro sin gastar, así que el oro es el valor de los objetos (precios de `public/ddragon/objetos.json`, que genera `npm run ddragon`). Los tiempos de los objetivos están en `REGLAS` de `server/partida.js` (temporada 2026: sin Atakhan y Barón a los 20:00) y hay que revisarlos si un parche los cambia. Los eventos que no reconoce salen en el panel, en **Partida**, para añadirlos.
+
+En el panel, **Partida** enseña en qué punto está (puente abierto, buscando, en juego, terminada), el resumen, los grafismos y una **partida de prueba** (seis veces más rápida) para montar la escena sin jugar; se para sola si llega una partida de verdad.
 
 ## Directo
 

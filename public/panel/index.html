@@ -103,13 +103,32 @@
 
     <section id="en-partida">
       <h2>Partida en directo</h2>
-      <p class="ayuda">El marcador del overlay de partida sale del cliente de LoL del PC donde se mira la partida: allí tiene que estar abierto el puente (se descarga en <a href="/guia/#ingame" target="_blank">la guía</a>). Los clanes son los del enfrentamiento: el lado azul es el que empieza abajo a la izquierda del mapa.</p>
-      <p id="estadoPartida" class="estado-partida">Sin datos del puente</p>
-      <dl class="resumen-partida" id="resumenPartida"></dl>
+      <p class="ayuda">El marcador del overlay de partida sale del cliente de LoL del PC donde se mira la partida, a través del puente (se descarga en <a href="/guia/#ingame" target="_blank">la guía</a>). Ábrelo allí al empezar la jornada y déjalo abierto: busca la partida cuando se lo pides aquí o, solo, al acabar el draft, y el marcador sale en cuanto empieza. Los clanes y los jugadores son los del enfrentamiento.</p>
+      <ol class="pasos-partida" aria-label="En qué punto está la partida">
+        <li data-paso="puente">Puente abierto</li>
+        <li data-paso="buscando">Buscando la partida</li>
+        <li data-paso="partida">En juego</li>
+        <li data-paso="terminada">Terminada</li>
+      </ol>
+      <p id="estadoPartida" class="estado estado-partida">Conectando…</p>
       <div class="fila">
-        <button id="verPartida" class="secundario">Ocultar el marcador</button>
-        <button id="pruebaPartida" class="secundario">Empezar una partida de prueba</button>
+        <button id="buscarPartida">Buscar la partida</button>
+        <label class="casilla"><input type="checkbox" id="buscarAlAcabar"> Buscar sola al acabar el draft</label>
       </div>
+      <dl class="resumen-partida" id="resumenPartida"></dl>
+
+      <h3>Grafismos</h3>
+      <div class="fila">
+        <button id="verLineas" class="secundario">Sacar el cara a cara por líneas</button>
+        <select id="duracionLineas" aria-label="Cuánto tiempo se queda el cara a cara">
+          <option value="20">20 segundos</option><option value="45">45 segundos</option><option value="0">Hasta quitarlo</option>
+        </select>
+        <button id="verPartida" class="secundario">Ocultar el marcador</button>
+      </div>
+      <p class="ayuda">El cara a cara compara cada línea (oro en objetos, KDA, súbditos y nivel) y sale en el centro de la pantalla: úsalo en los momentos tranquilos. Los temporizadores de los objetivos, los buffs y los avisos salen solos.</p>
+
+      <h3>Probar sin jugar</h3>
+      <div class="fila"><button id="pruebaPartida" class="secundario">Empezar una partida de prueba</button></div>
       <p class="ayuda">La partida de prueba se inventa los datos (con los campeones del draft) y va seis veces más rápida: sirve para colocar el overlay en OBS sin jugar. Se para sola cuando llega una partida de verdad.</p>
     </section>
 
@@ -126,9 +145,9 @@
       <ol id="resultados" class="resultados"></ol>
       <div class="fantasy-panel">
         <h3>Estadísticas para el fantasy</h3>
-        <p class="ayuda">Después de marcar el ganador y antes de pulsar «Siguiente partida»: el KDA de cada jugador y el MVP. Puntos: +1 por jugar, +3 si gana, +1 por asesinato, −1 por muerte, +0,5 por asistencia y +3 al MVP. Si te equivocas, corrígelo y vuelve a guardar.</p>
+        <p class="ayuda">Después de marcar el ganador y antes de pulsar «Siguiente partida»: el KDA de cada jugador y el MVP. Si el puente ha seguido la partida, el KDA se rellena solo al terminar: revísalo y elige el MVP. Puntos: +1 por jugar, +3 si gana, +1 por asesinato, −1 por muerte, +0,5 por asistencia y +3 al MVP. Si te equivocas, corrígelo y vuelve a guardar.</p>
         <div class="kda dos"></div>
-        <div class="fila"><button type="button" id="guardarKda">Guardar estadísticas</button></div>
+        <div class="fila"><button type="button" id="guardarKda">Guardar estadísticas</button><button type="button" id="rellenarKda" class="secundario">Rellenar con la partida</button></div>
         <p class="estado" id="estadoKda"></p>
       </div>
     </section>

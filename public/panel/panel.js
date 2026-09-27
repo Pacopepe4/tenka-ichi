@@ -21,9 +21,11 @@ function aviso(texto) {
   aviso.t = setTimeout(() => { a.hidden = true; }, 2600);
 }
 
+// La conexión se abre ya, pero lo que llegue antes de que el panel acabe de cargar se pinta al final
+let listo = false, partidaPendiente = null;
 const directo = conectarDirecto({
-  alEstado: e => { estado = e; pintar(); },
-  alPartida: p => pintarPartidaPanel(p),
+  alEstado: e => { estado = e; if (listo) pintar(); },
+  alPartida: p => { if (listo) pintarPartidaPanel(p); else partidaPendiente = p; },
   alConexion: ok => {
     const p = $('#estadoConexion');
     p.textContent = ok ? 'En directo' : 'Sin conexión, reintentando…';
@@ -421,16 +423,58 @@ pintarGacha = function (g) { pintarGachaAntes(g); pintarAlineaciones(g.cerrado);
 let ultimaPartida = null;
 const mmss = s => { s = Math.max(0, Math.floor(s)); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; };
 const milesOro = n => `${(n / 1000).toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}k`;
+
+// En qué punto está: sin puente, en espera, buscando, en juego, terminada o de prueba
+function faseDe(p) {
+  if (p.prueba && p.activo) return 'prueba';
+  if (p.activo) return p.terminada ? 'terminada' : 'partida';
+  if (!p.puente?.conectado) return 'sin-puente';
+  if (estado?.buscarPartida?.activa) return 'buscando';
+  if (p.terminada) return 'terminada';
+  return 'espera';
+}
+const ORDEN_PASOS = ['puente', 'buscando', 'partida', 'terminada'];
+const PASO_DE_FASE = { 'sin-puente': -1, espera: 0, buscando: 1, partida: 2, prueba: 2, terminada: 3 };
+
+function pintarBusqueda() {
+  const p = ultimaPartida;
+  if (!p || !estado) return;
+  const fase = faseDe(p);
+  const buscando = Boolean(estado.buscarPartida?.activa);
+  const actual = PASO_DE_FASE[fase];
+  document.querySelectorAll('.pasos-partida li').forEach(li => {
+    const i = ORDEN_PASOS.indexOf(li.dataset.paso);
+    li.classList.toggle('hecho', i < actual);
+    li.classList.toggle('actual', i === actual);
+  });
+  const viejo = p.puente?.conectado && p.puente.version < 2;
+  const est = $('#estadoPartida');
+  const textos = {
+    prueba: ['ok', `Partida de prueba · ${mmss(p.tiempo)}. El marcador está en el overlay de partida.`],
+    partida: ['ok', `En juego · ${mmss(p.tiempo)}. El marcador está en el overlay de partida.`],
+    terminada: ['ok', p.activo ? `Partida terminada · ${mmss(p.tiempo)}. Cuando se cierre el cliente, el puente deja de buscar.`
+      : 'La partida ha terminado. El KDA para el fantasy ya está rellenado: revísalo, elige el MVP, marca el ganador y guarda.'],
+    'sin-puente': ['mal', buscando ? 'Buscando la partida, pero el puente no está abierto en el PC del espectador. Ábrelo con «Abrir el puente.bat».'
+      : 'El puente no está abierto en el PC del espectador. Ábrelo con «Abrir el puente.bat» y déjalo abierto toda la jornada.'],
+    buscando: ['', p.puente?.estado === 'espera' ? 'Avisando al puente…'
+      : 'Buscando la partida en el PC del espectador. El marcador saldrá solo en cuanto empiece.'],
+    espera: ['', estado.buscarPartida?.alAcabarDraft ? 'Puente abierto y en espera. Se pondrá a buscar solo al acabar el draft, o pulsa «Buscar la partida».'
+      : 'Puente abierto y en espera. Pulsa «Buscar la partida» cuando vaya a empezar.'],
+  };
+  const [clase, texto] = textos[fase];
+  est.className = `estado estado-partida ${viejo ? 'mal' : clase}`;
+  est.textContent = viejo ? `${texto} Ojo: el puente es de la versión anterior y busca siempre por su cuenta; vuelve a descargarlo de la guía.` : texto;
+  const boton = $('#buscarPartida');
+  boton.textContent = buscando ? 'Dejar de buscar' : 'Buscar la partida';
+  boton.className = buscando ? 'secundario' : '';
+  $('#buscarAlAcabar').checked = estado.buscarPartida?.alAcabarDraft !== false;
+  $('#verLineas').textContent = estado.grafico?.tipo === 'lineas' ? 'Quitar el cara a cara' : 'Sacar el cara a cara por líneas';
+}
+
 function pintarPartidaPanel(p) {
   ultimaPartida = p;
-  const est = $('#estadoPartida');
-  if (p.activo) {
-    est.className = 'estado ok';
-    est.textContent = `${p.prueba ? 'Partida de prueba' : 'Partida en directo'} · ${mmss(p.tiempo)}${p.terminada ? ' · terminada' : ''}`;
-  } else {
-    est.className = 'estado mal';
-    est.textContent = p.puente && p.sinPartida ? 'El puente está abierto, pero no hay ninguna partida en el cliente de LoL.' : 'Sin datos del puente.';
-  }
+  pintarBusqueda();
+  rellenarKdaAlTerminar(p);
   const nombre = lado => clanes.clan(estado?.equipos?.[lado]?.clan || 'NONAME').nombre;
   $('#resumenPartida').innerHTML = p.activo ? ['azul', 'rojo'].map(lado => {
     const e = p[lado];
@@ -445,10 +489,60 @@ function pintarVisibilidadPartida() {
   $('#verPartida').textContent = estado?.partidaVisible === false ? 'Mostrar el marcador' : 'Ocultar el marcador';
 }
 const pintarAntesPartida = pintar;
-pintar = function () { pintarAntesPartida(); pintarVisibilidadPartida(); };
+pintar = function () { pintarAntesPartida(); pintarVisibilidadPartida(); pintarBusqueda(); };
 $('#verPartida').onclick = () => enviar('partidaVisible', { visible: estado?.partidaVisible === false });
+$('#buscarPartida').onclick = async () => {
+  const activa = !estado?.buscarPartida?.activa;
+  const r = await enviar('buscarPartida', { activa });
+  if (r.ok) aviso(activa ? 'Buscando la partida en el PC del espectador' : 'Búsqueda parada');
+};
+$('#buscarAlAcabar').onchange = e => enviar('buscarAlAcabarDraft', { activa: e.target.checked });
+$('#verLineas').onclick = async () => {
+  const fuera = estado?.grafico?.tipo === 'lineas';
+  if (!fuera && !ultimaPartida?.activo) return aviso('El cara a cara sale cuando hay una partida en marcha');
+  await enviar('grafico', fuera ? { tipo: null } : { tipo: 'lineas', segundos: Number($('#duracionLineas').value) });
+};
+
+// KDA del fantasy desde la partida: cada puesto del panel con el jugador de esa línea
+function kdaDeLaPartida(p) {
+  if (!p?.lineas?.length) return false;
+  let alguno = false;
+  document.querySelectorAll('.kda .lado-kda').forEach(caja => {
+    const lado = caja.dataset.lado;
+    caja.querySelectorAll('.fila-kda').forEach((f, i) => {
+      const j = p.lineas[i]?.[lado];
+      if (!j) return;
+      f.querySelector('.k').value = j.k;
+      f.querySelector('.d').value = j.d;
+      f.querySelector('.a').value = j.a;
+      alguno = true;
+    });
+  });
+  return alguno;
+}
+let kdaRellenadoDe = null;
+function rellenarKdaAlTerminar(p) {
+  // Al terminar una partida de verdad, una sola vez y solo si nadie ha escrito ya los números
+  if (!p.terminada || p.prueba || kdaRellenadoDe === p.numero) return;
+  kdaRellenadoDe = p.numero;
+  const vacios = [...document.querySelectorAll('.kda input[type="number"]')].every(i => i.value === '');
+  if (vacios && kdaDeLaPartida(p)) {
+    $('#estadoKda').className = 'estado';
+    $('#estadoKda').textContent = 'KDA rellenado con la partida: revisa que cada jugador esté en su puesto, elige el MVP y guarda.';
+  }
+}
+$('#rellenarKda').onclick = () => {
+  if (!kdaDeLaPartida(ultimaPartida)) return aviso('No hay datos de ninguna partida del puente');
+  $('#estadoKda').className = 'estado';
+  $('#estadoKda').textContent = 'KDA rellenado con la partida: revisa que cada jugador esté en su puesto, elige el MVP y guarda.';
+};
 $('#pruebaPartida').onclick = async () => {
   const activa = $('#pruebaPartida').dataset.activa !== '1';
   const r = await enviar('partidaPrueba', { activa });
   if (r.ok) aviso(activa ? 'Partida de prueba en marcha: mira el overlay de partida' : 'Partida de prueba parada');
 };
+
+// El panel ya está entero: se pinta lo que haya llegado mientras cargaba
+listo = true;
+if (estado) pintar();
+if (partidaPendiente) pintarPartidaPanel(partidaPendiente);

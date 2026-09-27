@@ -1,11 +1,14 @@
 ﻿# Puente de Tenka Ichi
 # Lee la partida del cliente de League of Legends (Live Client Data API, https://127.0.0.1:2999)
 # y la manda cada segundo a la web de Tenka Ichi, que la pinta en el overlay de partida (/ingame/).
-# Se abre en el PC donde se mira la partida en modo espectador. No instala nada: usa PowerShell,
-# que viene con Windows. Solo lee datos que el propio cliente ofrece; no toca el juego.
+# Se abre en el PC donde se mira la partida en modo espectador y se deja abierto toda la jornada:
+# espera hasta que el panel le pide buscar la partida (o hasta que acaba el draft) y deja de buscar
+# cuando la partida termina. No instala nada: usa PowerShell, que viene con Windows. Solo lee datos
+# que el propio cliente ofrece; no toca el juego.
 param(
   [string]$Servidor = 'https://tenka-ichi.onrender.com'
 )
+$Version = 2
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
@@ -72,20 +75,65 @@ function MarcadorDelJuego([bool]$visible) {
   }
 }
 
+# Si la web no responde o la contraseña está mal, se dice una vez cada 20 s para no llenar la ventana
+$ultimoFallo = [DateTime]::MinValue
+function FalloWeb($err) {
+  if (((Get-Date) - $script:ultimoFallo).TotalSeconds -lt 20) { return }
+  $script:ultimoFallo = Get-Date
+  if ($err.Exception.Response.StatusCode.value__ -eq 401) {
+    Write-Host "$(Hora)  Contraseña incorrecta. Borra clave.txt, vuelve a abrir el puente y escríbela bien." -ForegroundColor Red
+  } else {
+    Write-Host "$(Hora)  No llego a la web (si estaba dormida, tarda un minuto en despertar). Reintento…" -ForegroundColor Yellow
+  }
+}
+
+# Latido sin partida: la web sabe que el puente sigue abierto y contesta si el panel quiere que busque
+function Latido([bool]$espera) {
+  $cuerpo = '{"sinPartida":true,"version":' + $Version + $(if ($espera) { ',"espera":true' } else { '' }) + '}'
+  try { return [bool](Enviar $cuerpo).buscar } catch { FalloWeb $_; return $script:buscar }
+}
+
 Write-Host ''
 Write-Host '  Puente de Tenka Ichi' -ForegroundColor Red
-Write-Host "  Manda la partida a $Servidor"
-Write-Host '  Déjalo abierto mientras se juega. Para cerrarlo, cierra esta ventana.'
+Write-Host "  Conectado con $Servidor"
+Write-Host '  Déjalo abierto toda la jornada: busca la partida cuando se lo pide el panel,'
+Write-Host '  o solo al acabar el draft. Para cerrarlo, cierra esta ventana.'
 Write-Host ''
 
+$buscar = $false
 $ultimoEvento = -1
 $tiempoAnterior = 0
 $enPartida = $false
 $ultimoLatido = [DateTime]::MinValue
 $ultimoMensaje = [DateTime]::MinValue
+$avisadoEspera = $false
 
 while ($true) {
   $inicio = Get-Date
+
+  # En espera: no se toca el cliente de LoL, solo se pregunta a la web cada 3 s si hay que buscar
+  if (-not $buscar) {
+    if ($enPartida) {
+      Write-Host "$(Hora)  El panel ha dejado de buscar: dejo de mandar la partida." -ForegroundColor Yellow
+      $enPartida = $false
+    }
+    if ($marcadorOculto) { MarcadorDelJuego $true; $marcadorOculto = $false }
+    if (((Get-Date) - $ultimoLatido).TotalSeconds -ge 3) {
+      $buscar = Latido $true
+      $ultimoLatido = Get-Date
+      if ($buscar) {
+        Write-Host "$(Hora)  El panel pide la partida: la busco en el cliente de LoL…" -ForegroundColor Cyan
+        $ultimoMensaje = Get-Date
+        $avisadoEspera = $false
+      } elseif (-not $avisadoEspera) {
+        Write-Host "$(Hora)  En espera. Me pongo a buscar cuando el panel pulse «Buscar la partida» o cuando acabe el draft."
+        $avisadoEspera = $true
+      }
+    }
+    Start-Sleep -Milliseconds 500
+    continue
+  }
+
   try {
     $juego = LeerCliente '/liveclientdata/gamestats'
     $tiempo = [double](($juego | ConvertFrom-Json).gameTime)
@@ -99,32 +147,27 @@ while ($true) {
     foreach ($ev in $lista) { if ($ev -and [int]$ev.EventID -gt $ultimoEvento) { $ultimoEvento = [int]$ev.EventID } }
 
     if (-not $enPartida) {
-      Write-Host "$(Hora)  Partida encontrada en el cliente de LoL." -ForegroundColor Green
+      Write-Host "$(Hora)  Partida encontrada: empieza el marcador de Tenka Ichi." -ForegroundColor Green
       $enPartida = $true
     }
     try {
-      $r = Enviar ('{"juego":' + $juego + ',"jugadores":' + $jugadores + ',"eventosData":' + $eventos + ',"desde":' + $desde + '}')
+      $r = Enviar ('{"version":' + $Version + ',"juego":' + $juego + ',"jugadores":' + $jugadores + ',"eventosData":' + $eventos + ',"desde":' + $desde + '}')
+      $buscar = [bool]$r.buscar
       # La web se ha reiniciado a mitad de partida y le faltan los eventos de antes: se mandan todos otra vez
       if ($r.reenviar) {
         $ultimoEvento = -1
         Write-Host "$(Hora)  La web se ha reiniciado: le vuelvo a mandar la partida desde el principio."
       }
-      if ($r.ocultarMarcador -and -not $marcadorOculto) { MarcadorDelJuego $false }
-      elseif (-not $r.ocultarMarcador -and $marcadorOculto) { MarcadorDelJuego $true }
+      if ($buscar -and $r.ocultarMarcador -and -not $marcadorOculto) { MarcadorDelJuego $false }
+      elseif ($buscar -and -not $r.ocultarMarcador -and $marcadorOculto) { MarcadorDelJuego $true }
       if (((Get-Date) - $ultimoMensaje).TotalSeconds -ge 15) {
         $m = [int][Math]::Floor($tiempo / 60); $s = [int][Math]::Floor($tiempo % 60)
         Write-Host ("{0}  Enviando la partida · minuto {1:00}:{2:00}" -f (Hora), $m, $s)
         $ultimoMensaje = Get-Date
       }
     } catch {
-      $codigo = $_.Exception.Response.StatusCode.value__
-      if ($codigo -eq 401) {
-        Write-Host "$(Hora)  Contraseña incorrecta. Borra clave.txt, vuelve a abrir el puente y escríbela bien." -ForegroundColor Red
-        Start-Sleep -Seconds 10
-      } else {
-        Write-Host "$(Hora)  No llego a la web (si estaba dormida, tarda un minuto en despertar). Reintento…" -ForegroundColor Yellow
-        Start-Sleep -Seconds 3
-      }
+      FalloWeb $_
+      Start-Sleep -Seconds 2
     }
   } catch {
     # Sin partida: el cliente no responde en 127.0.0.1:2999
@@ -135,15 +178,17 @@ while ($true) {
     }
     $ultimoEvento = -1
     $tiempoAnterior = 0
-    if (((Get-Date) - $ultimoLatido).TotalSeconds -ge 5) {
-      try { Enviar '{"sinPartida":true}' | Out-Null } catch { }
+    if (((Get-Date) - $ultimoLatido).TotalSeconds -ge 3) {
+      $buscar = Latido $false
       $ultimoLatido = Get-Date
-      if (((Get-Date) - $ultimoMensaje).TotalSeconds -ge 30) {
-        Write-Host "$(Hora)  Esperando una partida en el cliente de LoL (entra a mirarla como espectador)…"
+      if (-not $buscar) {
+        Write-Host "$(Hora)  Se ha dejado de buscar la partida."
+      } elseif (((Get-Date) - $ultimoMensaje).TotalSeconds -ge 30) {
+        Write-Host "$(Hora)  Buscando la partida en el cliente de LoL (entra a mirarla como espectador)…"
         $ultimoMensaje = Get-Date
       }
     }
-    Start-Sleep -Seconds 2
+    Start-Sleep -Seconds 1
     continue
   }
   $resto = 1000 - ((Get-Date) - $inicio).TotalMilliseconds

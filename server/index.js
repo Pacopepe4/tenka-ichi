@@ -22,7 +22,8 @@ import { firmar, verificar, leerCookies, ponerCookie } from './sesion.js';
 import { twitchActivo, urlAutorizar, canjearCodigo, usuarioDeToken, usuarioPorNombre, CANAL } from './twitch.js';
 import crypto from 'node:crypto';
 import { cargarFantasy, infoFantasy, cambiarAlineacion, guardarEstadisticas, cerrarAlineaciones } from './fantasy.js';
-import { cargarPartida, recibir as recibirPartida, resumen as resumenPartida, empezarPrueba, pararPrueba, enPrueba, olvidarPartida } from './partida.js';
+import { cargarPartida, recibir as recibirPartida, resumen as resumenPartida, empezarPrueba, pararPrueba, enPrueba, olvidarPartida,
+  ponerContexto } from './partida.js';
 import { crearZip } from './zip.js';
 
 // Clanes con su plantilla actual (lema, descripción, jugadores) para las páginas
@@ -52,6 +53,10 @@ const estado = {
   camaras: { cantidad: 0, lista: Array.from({ length: 4 }, () => ({ tipo: 'caster', nombre: '', detalle: '' })) },
   // Overlay de partida (/ingame/): el panel puede ocultarlo aunque llegue la partida del puente
   partidaVisible: true,
+  // El puente del PC del espectador solo busca la partida cuando se lo pide el panel (o al acabar el draft)
+  buscarPartida: { activa: false, alAcabarDraft: true },
+  // Grafismo que el panel saca encima de la partida: { tipo: 'lineas', id } o nada
+  grafico: null,
   aviso: null,
   hoja: { configurada: false, ok: false, error: null, cuenta: null },
 };
@@ -59,19 +64,42 @@ const estado = {
 // ---------- reparto en directo ----------
 const clientes = new Set();
 function emitir() {
+  // La partida necesita los jugadores y los picks del panel para saber quién juega cada línea
+  ponerContexto({ nombres: { azul: estado.equipos.azul.jugadores, rojo: estado.equipos.rojo.jugadores }, picks: estado.draft.picks });
   const msg = JSON.stringify({ tipo: 'estado', estado });
   for (const ws of clientes) if (ws.readyState === 1) ws.send(msg);
 }
 
 // La partida en directo va en su propio mensaje: llega cada segundo y no hace falta reenviar todo el estado
-let partidaActiva = false;
+let partidaActiva = false, puenteConectado = false;
+let numeroDesarmado = 0;  // última partida terminada que ya apagó la búsqueda
 function emitirPartida(partida = resumenPartida()) {
   partidaActiva = partida.activo;
+  puenteConectado = partida.puente.conectado;
   const msg = JSON.stringify({ tipo: 'partida', partida });
   for (const ws of clientes) if (ws.readyState === 1) ws.send(msg);
 }
-// Si el puente deja de mandar datos, avisa al overlay para que se retire
-setInterval(() => { if (partidaActiva && !resumenPartida().activo) emitirPartida(); }, 3000);
+// Si el puente deja de mandar datos, avisa al overlay para que se retire y al panel de que se ha cerrado
+setInterval(() => {
+  const p = resumenPartida();
+  if ((partidaActiva && !p.activo) || puenteConectado !== p.puente.conectado) emitirPartida(p);
+}, 3000);
+
+// Al completarse el draft, el puente se pone a buscar la partida (si el panel lo tiene así)
+const draftCompleto = d => ['azul', 'rojo'].every(l => d.picks[l].every(Boolean));
+function buscarSiAcabaElDraft(completoAntes) {
+  if (!completoAntes && draftCompleto(estado.draft) && estado.buscarPartida.alAcabarDraft) estado.buscarPartida.activa = true;
+}
+
+// Grafismo del panel encima de la partida; se quita solo pasados los segundos pedidos (0: hasta que se quite)
+let idGrafico = 0, temporizadorGrafico = null;
+function ponerGrafico(tipo, segundos) {
+  clearTimeout(temporizadorGrafico);
+  estado.grafico = tipo ? { tipo, id: ++idGrafico } : null;
+  if (!tipo || !segundos) return;
+  const id = idGrafico;
+  temporizadorGrafico = setTimeout(() => { if (estado.grafico?.id === id) { estado.grafico = null; emitir(); } }, segundos * 1000);
+}
 
 // ---------- avisos de pick/ban con estadísticas ----------
 let idAviso = 0;
@@ -101,8 +129,10 @@ function conectarDraftCore(enlace) {
     alEstado: e => { Object.assign(estado.fuente, e); emitir(); },
     alDraft: t => {
       const antes = { picks: estado.draft.picks, bans: estado.draft.bans };
+      const completoAntes = draftCompleto(estado.draft);
       estado.draft = { ...estado.draft, turno: t.turno, activo: destinoDeSlot(t.slot), hover: t.hover, bans: t.bans, picks: t.picks };
       detectarNuevos(antes, t);
+      buscarSiAcabaElDraft(completoAntes);
       emitir();
     },
     alHover: h => { estado.draft.hover = h; emitir(); },
@@ -135,8 +165,10 @@ async function accion(nombre, d = {}) {
       const lista = estado.draft[d.tipo]?.[d.lado];
       if (!lista) break;
       const antes = lista[d.indice];
+      const completoAntes = draftCompleto(estado.draft);
       lista[d.indice] = d.campeon || null;
       if (d.campeon && d.campeon !== antes) avisar(d.tipo === 'picks' ? 'pick' : 'ban', d.lado, d.indice, d.campeon);
+      buscarSiAcabaElDraft(completoAntes);
       break;
     }
     case 'invertir': {
@@ -258,6 +290,17 @@ async function accion(nombre, d = {}) {
     case 'partidaVisible':
       estado.partidaVisible = Boolean(d.visible);
       break;
+    case 'buscarPartida':
+      estado.buscarPartida.activa = Boolean(d.activa);
+      break;
+    case 'buscarAlAcabarDraft':
+      estado.buscarPartida.alAcabarDraft = Boolean(d.activa);
+      break;
+    case 'grafico': {
+      const tipo = ['lineas'].includes(d.tipo) ? d.tipo : null;
+      ponerGrafico(tipo, Math.min(300, Math.max(0, Math.round(Number(d.segundos) || 0))));
+      break;
+    }
     case 'partidaOlvidar':
       pararPrueba();
       emitirPartida(olvidarPartida());
@@ -448,9 +491,18 @@ const servidor = http.createServer(async (req, res) => {
       const cuerpo = await leerCuerpo(req, 3e6);
       if (enPrueba() && !cuerpo.sinPartida) pararPrueba();  // llega una partida de verdad: fuera la prueba
       const partida = recibirPartida(cuerpo);
+      // La partida que se buscaba ha terminado y el cliente ya la ha cerrado: se deja de buscar
+      // (al acabar el siguiente draft vuelve a buscar sola)
+      if (cuerpo.sinPartida && partida.terminada && !partida.prueba && estado.buscarPartida.activa && partida.numero !== numeroDesarmado) {
+        numeroDesarmado = partida.numero;
+        estado.buscarPartida.activa = false;
+        ponerGrafico(null);  // el cara a cara no pasa a la siguiente partida
+        emitir();
+      }
+      // También los latidos: así el panel sabe si el puente está abierto y si está buscando
       emitirPartida(partida);
-      return json(res, { ok: true, tiempo: partida.tiempo, ocultarMarcador: estado.partidaVisible, reenviar: Boolean(partida.reenviar),
-        sinReconocer: partida.eventosSinReconocer });
+      return json(res, { ok: true, tiempo: partida.tiempo, buscar: estado.buscarPartida.activa, ocultarMarcador: estado.partidaVisible,
+        reenviar: Boolean(partida.reenviar), sinReconocer: partida.eventosSinReconocer });
     } catch (e) {
       return json(res, { ok: false, error: e.message }, 400);
     }

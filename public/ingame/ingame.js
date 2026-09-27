@@ -1,14 +1,23 @@
 // Overlay de partida (/ingame/): marcador en directo con lo que manda el puente del PC donde se mira
-// la partida. Los clanes salen del enfrentamiento del panel (lado azul a la izquierda, como en el juego).
-// Se retira solo cuando no llegan datos y el panel puede ocultarlo.
-import { cargarClanes, conectarDirecto, logo } from '/comun.js';
+// la partida, temporizadores de los objetivos, lo que lleva cada clan (buffs, alma, inhibidores),
+// avisos de objetivos y, cuando lo saca el panel, el cara a cara por líneas.
+// Los clanes salen del enfrentamiento del panel (lado azul a la izquierda, como en el juego).
+import { cargarClanes, conectarDirecto, logo, icono } from '/comun.js';
 
 const $ = s => document.querySelector(s);
 const clanes = await cargarClanes();
 const DRAGON = { infernal: 'infernal', oceano: 'del océano', montana: 'de montaña', nube: 'de nube', hextech: 'hextech', quimtech: 'quimtech', ancestral: 'ancestral', dragon: '' };
+const ALMA = { infernal: 'Infernal', oceano: 'Océano', montana: 'Montaña', nube: 'Nube', hextech: 'Hextech', quimtech: 'Quimtech' };
 const COLOR_DRAGON = { infernal: '#E0592A', oceano: '#3A8FD9', montana: '#A07D4F', nube: '#C8DFE4', hextech: '#2BC6C0', quimtech: '#8DBF3F', ancestral: '#C3A3EA', dragon: '#8E8676' };
-const CARRIL = { top: 'top', mid: 'mid', bot: 'bot' };
-const DURACION = { baron: 180, ancestral: 150 };
+// Kanji de cada elemento: fuego, mar, montaña, nube, trueno, veneno; el ancestral es el dragón
+const KANJI_DRAGON = { infernal: '炎', oceano: '海', montana: '山', nube: '雲', hextech: '雷', quimtech: '毒', ancestral: '龍', dragon: '龍' };
+const OBJETIVO = {
+  dragon: { nombre: 'Dragón', kanji: '龍' },
+  larvas: { nombre: 'Larvas', kanji: '虫' },
+  heraldo: { nombre: 'Heraldo', kanji: '使' },
+  baron: { nombre: 'Barón', kanji: '蛇' },
+};
+const ROL = { TOP: ['上', 'Top'], JUNGLA: ['森', 'Jungla'], MEDIO: ['中', 'Medio'], ADC: ['弓', 'ADC'], SUPPORT: ['護', 'Support'] };
 const DURACION_AVISO = 5000;
 
 let estado = null, partida = null, recibidaEn = 0, primeraPartida = true;
@@ -20,15 +29,41 @@ const miles = n => `${(n / 1000).toLocaleString('es-ES', { minimumFractionDigits
 const tiempoAhora = () => (partida ? partida.tiempo + Math.min(3, (Date.now() - recibidaEn) / 1000) * (partida.velocidad || 1) : 0);
 const clanDe = lado => clanes.clan(estado?.equipos?.[lado]?.clan || 'NONAME');
 const nombreClan = lado => { const c = clanDe(lado); return c.id === 'NONAME' ? (lado === 'azul' ? 'Lado azul' : 'Lado rojo') : c.nombre; };
+const enso = () => `<svg class="enso" viewBox="0 0 40 40" aria-hidden="true"><circle class="pista" cx="20" cy="20" r="16"/><circle class="trazo" cx="20" cy="20" r="16" pathLength="100" filter="url(#pincel)"/></svg>`;
+const trazar = (el, p) => { el.querySelector('.trazo').style.strokeDashoffset = String(100 - Math.max(0, Math.min(1, p)) * 100); };
 
+// Tinta del sello: oscura sobre los colores claros (nube, hextech, ancestral…), clara sobre los oscuros
+function tinta(color) {
+  const m = /^#(..)(..)(..)$/.exec(color);
+  if (!m) return 'var(--washi)';
+  const [r, g, b] = m.slice(1).map(h => { const c = parseInt(h, 16) / 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.2 ? 'var(--sumi)' : 'var(--washi)';
+}
+
+// Pinta una lista de elementos con clave: reutiliza los que siguen, quita los que sobran y respeta el orden
+function lista(caja, items, crear, actualizar) {
+  const claves = new Set(items.map(i => i.clave));
+  for (const el of [...caja.children]) if (!claves.has(el.dataset.clave)) el.remove();
+  items.forEach((item, orden) => {
+    let el = caja.querySelector(`[data-clave="${item.clave}"]`);
+    if (!el) { el = crear(item); el.dataset.clave = item.clave; caja.append(el); }
+    el.style.order = orden;
+    actualizar(el, item);
+  });
+}
+
+// ---------- marcador ----------
 function pintarEquipos() {
   for (const lado of ['azul', 'rojo']) {
     const c = clanDe(lado);
-    const s = $(`.lado.${lado}`);
+    const s = $(`.marcador .lado.${lado}`);
     s.style.setProperty('--color-clan', c.texto);
     s.querySelector('.logo').src = logo(c.id);
     s.querySelector('.nombre').textContent = nombreClan(lado);
     s.querySelector('.kanji').textContent = c.kanji || '';
+    const cab = $(`.lineas-cabeza .equipo.${lado}`);
+    cab.querySelector('.logo').src = logo(c.id);
+    cab.querySelector('.nombre').textContent = nombreClan(lado);
   }
 }
 
@@ -38,7 +73,7 @@ function pintarPartida() {
   if (!p) return;
   for (const lado of ['azul', 'rojo']) {
     const e = p[lado];
-    const s = $(`.lado.${lado}`);
+    const s = $(`.marcador .lado.${lado}`);
     s.querySelector('.kills').textContent = e.kills;
     s.querySelector('.oro b').textContent = miles(e.oro);
     s.querySelector('.torres b').textContent = e.torres;
@@ -68,54 +103,59 @@ function pintarPartida() {
   }
   primeraPartida = false;
   siguienteAviso();
+  pintarLineas();
 }
 
-// ---------- chips con cuenta atrás ----------
-function chipsDeAhora() {
+// ---------- temporizadores de los objetivos neutrales ----------
+function pintarTemporizadores() {
   const t = tiempoAhora();
-  const c = { azul: [], rojo: [], centro: [] };
-  for (const b of partida.buffs || []) {
-    if (b.hasta <= t) continue;
-    c[b.lado].push({ clave: `${b.tipo}-${b.hasta}`, clase: b.tipo, texto: b.tipo === 'baron' ? 'Buff de Barón' : 'Buff ancestral',
-      resta: b.hasta - t, fraccion: (b.hasta - t) / DURACION[b.tipo], icono: b.tipo === 'baron' ? 'i-baron' : null });
-  }
-  for (const lado of ['azul', 'rojo']) {
-    const alma = partida[lado].alma;
-    if (alma) c[lado].push({ clave: `alma-${alma}`, clase: 'alma', texto: `Alma ${DRAGON[alma]}`, color: COLOR_DRAGON[alma] });
-  }
-  const pd = partida.proximoDragon;
-  if (pd) c.centro.push({ clave: `dragon-${pd.t}`, clase: 'dragon', texto: pd.ancestral ? 'Ancestral' : 'Dragón',
-    resta: pd.t - t, vivo: pd.t <= t, color: pd.ancestral ? COLOR_DRAGON.ancestral : null, icono: 'i-dragon' });
-  if (partida.proximoBaron != null) c.centro.push({ clave: `baron-${partida.proximoBaron}`, clase: 'baron', texto: 'Barón',
-    resta: partida.proximoBaron - t, vivo: partida.proximoBaron <= t, icono: 'i-baron' });
-  for (const i of partida.inhibidores || []) {
-    if (i.vuelve > t) c[i.lado].push({ clave: `inhib-${i.lado}-${i.carril}`, clase: 'inhibidor', texto: `Inhibidor ${CARRIL[i.carril] || ''}`, resta: i.vuelve - t });
-  }
-  return c;
+  lista($('.temporizadores'), (partida.objetivos || []).map(o => ({ ...o, clave: o.tipo })), o => {
+    const el = document.createElement('div');
+    el.className = `temporizador ${o.tipo}`;
+    el.innerHTML = `<span class="sello">${enso()}<span class="kanji">${OBJETIVO[o.tipo]?.kanji || '天'}</span></span><span class="texto"><small></small><b></b></span>`;
+    return el;
+  }, (el, o) => {
+    const vivo = t >= o.aparece;
+    el.classList.toggle('vivo', vivo);
+    el.style.setProperty('--color', o.tipo === 'dragon' && o.ancestral ? COLOR_DRAGON.ancestral : '');
+    el.querySelector('small').textContent = o.tipo === 'dragon' && o.ancestral ? 'Ancestral'
+      : o.tipo === 'larvas' && vivo && o.quedan < 3 ? `Larvas · ${o.quedan}` : OBJETIVO[o.tipo]?.nombre || o.tipo;
+    el.querySelector('b').textContent = vivo ? 'vivo' : mmss(o.aparece - t);
+    trazar(el, vivo ? 1 : (t - o.desde) / Math.max(1, o.aparece - o.desde));
+  });
 }
 
-function pintarChips() {
-  if (!partida) return;
-  const grupos = chipsDeAhora();
-  for (const [grupo, lista] of Object.entries(grupos)) {
-    const caja = $(grupo === 'centro' ? '.chips.centro-chips' : `.chips.${grupo}`);
-    const presentes = new Set(lista.map(ch => ch.clave));
-    for (const el of [...caja.children]) if (!presentes.has(el.dataset.clave)) el.remove();
-    for (const ch of lista) {
-      let el = caja.querySelector(`[data-clave="${ch.clave}"]`);
-      if (!el) {
-        el = document.createElement('div');
-        el.className = `chip ${ch.clase}`;
-        el.dataset.clave = ch.clave;
-        if (ch.color) el.style.setProperty('--chip', ch.color);
-        el.innerHTML = `${ch.icono ? `<svg><use href="#${ch.icono}"/></svg>` : ''}<span class="n"></span><span class="t"></span>${ch.fraccion != null ? '<i class="barra"></i>' : ''}`;
-        caja.append(el);
-      }
-      el.querySelector('.n').textContent = ch.texto;
-      el.querySelector('.t').textContent = ch.vivo ? 'vivo' : ch.resta != null ? mmss(ch.resta) : '';
-      const barra = el.querySelector('.barra');
-      if (barra) barra.style.width = `calc(${Math.max(0, Math.min(1, ch.fraccion)) * 100}% - 4px)`;
+// ---------- lo de cada clan: buffs, alma o punto de alma e inhibidores caídos ----------
+function pintarModulos() {
+  const t = tiempoAhora();
+  for (const lado of ['azul', 'rojo']) {
+    const items = [];
+    for (const b of partida.buffs || []) {
+      if (b.lado !== lado || b.hasta <= t) continue;
+      const baron = b.tipo === 'baron';
+      items.push({ clave: `${b.tipo}-${b.desde}`, clase: `buff ${b.tipo}`, kanji: baron ? '蛇' : '龍', color: baron ? '#9B59D0' : COLOR_DRAGON.ancestral,
+        etiqueta: baron ? 'Buff de Barón' : 'Buff ancestral', valor: mmss(b.hasta - t), p: (b.hasta - t) / Math.max(1, b.hasta - b.desde) });
     }
+    const e = partida[lado];
+    if (e.alma) items.push({ clave: `alma-${e.alma}`, clase: 'alma', lleno: true, kanji: KANJI_DRAGON[e.alma], color: COLOR_DRAGON[e.alma], etiqueta: 'Alma', valor: ALMA[e.alma] || '' });
+    else if (e.puntoDeAlma) items.push({ clave: 'punto', clase: 'punto', kanji: '龍', color: 'var(--shu-claro)', etiqueta: `${e.dragones.length} dragones`, valor: 'Punto de alma', p: 1 });
+    for (const i of partida.inhibidores || []) {
+      if (i.lado !== lado || i.vuelve <= t) continue;
+      items.push({ clave: `inhib-${i.carril}-${i.desde}`, clase: 'inhibidor', kanji: '破', color: 'var(--hai)', etiqueta: `Inhibidor ${i.carril}`,
+        valor: mmss(i.vuelve - t), p: (i.vuelve - t) / Math.max(1, i.vuelve - (i.desde ?? i.vuelve - 300)) });
+    }
+    lista($(`.modulos.${lado}`), items, m => {
+      const el = document.createElement('div');
+      el.className = `modulo ${m.clase}`;
+      el.style.setProperty('--color', m.color);
+      if (m.lleno) el.style.setProperty('--tinta', tinta(m.color));
+      el.innerHTML = `<span class="sello${m.lleno ? ' lleno' : ''}">${m.lleno ? '' : enso()}<span class="kanji">${m.kanji}</span></span><span class="texto"><small></small><b></b></span>`;
+      return el;
+    }, (el, m) => {
+      el.querySelector('small').textContent = m.etiqueta;
+      el.querySelector('b').textContent = m.valor;
+      if (m.p != null) trazar(el, m.p);
+    });
   }
 }
 
@@ -124,19 +164,12 @@ const colaAvisos = [];
 let avisoEnCurso = false;
 const dragonDe = t => `dragón ${DRAGON[t] || ''}`.trim();
 const TEXTO_AVISO = {
-  dragon: a => [`${a.robado ? 'roba' : 'se lleva'} el ${dragonDe(a.dragon)}`, '龍', COLOR_DRAGON[a.dragon] || COLOR_DRAGON.dragon],
+  dragon: a => [`${a.robado ? 'roba' : 'se lleva'} el ${dragonDe(a.dragon)}`, KANJI_DRAGON[a.dragon] || '龍', COLOR_DRAGON[a.dragon] || COLOR_DRAGON.dragon],
   baron: a => [a.robado ? 'roba el Barón Nashor' : 'mata al Barón Nashor', '蛇', '#9B59D0'],
-  heraldo: a => [a.robado ? 'roba el Heraldo' : 'se lleva el Heraldo', '使', '#8E8676'],
+  heraldo: a => [a.robado ? 'roba el Heraldo' : 'se lleva el Heraldo', '使', '#8F7AE8'],
   atakhan: () => ['derrota a Atakhan', '魔', '#BE2A2F'],
-  inhibidor: a => [`rompe el inhibidor ${CARRIL[a.carril] || ''}`, '破', 'var(--shu)'],
+  inhibidor: a => [`rompe el inhibidor ${a.carril || ''}`.trim(), '破', 'var(--shu)'],
 };
-// Tinta del sello: oscura sobre los colores claros (nube, hextech, ancestral…), clara sobre los oscuros
-function tinta(color) {
-  const m = /^#(..)(..)(..)$/.exec(color);
-  if (!m) return 'var(--washi)';
-  const [r, g, b] = m.slice(1).map(h => { const c = parseInt(h, 16) / 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; });
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.2 ? 'var(--sumi)' : 'var(--washi)';
-}
 function siguienteAviso() {
   if (avisoEnCurso || !colaAvisos.length) return;
   const a = colaAvisos.shift();
@@ -151,26 +184,78 @@ function siguienteAviso() {
   caja.querySelector('.aviso-que').textContent = frase;
   caja.classList.remove('sale');
   caja.hidden = false;
-  $('#lienzo').classList.add('con-aviso');
   avisoEnCurso = true;
   setTimeout(() => {
     caja.classList.add('sale');
-    setTimeout(() => {
-      caja.hidden = true;
-      avisoEnCurso = false;
-      if (!colaAvisos.length) $('#lienzo').classList.remove('con-aviso');
-      siguienteAviso();
-    }, 400);
+    setTimeout(() => { caja.hidden = true; avisoEnCurso = false; siguienteAviso(); }, 400);
   }, DURACION_AVISO);
+}
+
+// ---------- cara a cara por líneas (lo saca el panel) ----------
+const filas = $('.lineas .filas');
+filas.innerHTML = Object.keys(ROL).map((rol, i) => `<div class="fila" data-i="${i}">
+  ${['azul', 'rojo'].map(lado => {
+    const retrato = '<span class="retrato"><img alt=""><i class="nivel"></i><i class="muerte"></i></span>';
+    const quien = '<span class="quien"><b class="nombre"></b><small class="kda"></small></span>';
+    const partes = lado === 'azul' ? [retrato, quien, '<span class="oro"></span>'] : ['<span class="oro"></span>', quien, retrato];
+    return `<div class="jugador ${lado}">${partes.join('')}</div>`;
+  }).join(`<div class="medio"><span class="rol"><i class="kanji">${ROL[rol][0]}</i><small>${ROL[rol][1]}</small></span><div class="barra"><i class="relleno"></i></div><span class="dif"></span></div>`)}
+</div>`).join('');
+
+let lineasVisibles = false, temporizadorLineas = null;
+function pintarLineas() {
+  const caja = $('.lineas');
+  const mostrar = estado?.grafico?.tipo === 'lineas' && Boolean(partida?.activo) && (partida.lineas || []).length === 5;
+  if (mostrar !== lineasVisibles) {
+    lineasVisibles = mostrar;
+    clearTimeout(temporizadorLineas);
+    if (mostrar) { caja.classList.remove('sale'); caja.hidden = false; }
+    else { caja.classList.add('sale'); temporizadorLineas = setTimeout(() => { caja.hidden = true; }, 450); }
+  }
+  if (!mostrar) return;
+  const difs = partida.lineas.map(l => (l.azul?.oro || 0) - (l.rojo?.oro || 0));
+  const escala = Math.max(1500, ...difs.map(Math.abs));
+  partida.lineas.forEach((l, i) => {
+    const fila = filas.children[i];
+    for (const lado of ['azul', 'rojo']) {
+      const j = l[lado];
+      const caja = fila.querySelector(`.jugador.${lado}`);
+      caja.style.visibility = j ? '' : 'hidden';
+      if (!j) continue;
+      const img = caja.querySelector('img');
+      const src = icono(j.campeon);
+      if (img.getAttribute('src') !== src) img.src = src;
+      caja.querySelector('.nivel').textContent = j.nivel;
+      caja.querySelector('.retrato').classList.toggle('muerto', j.muerto);
+      caja.querySelector('.muerte').textContent = j.muerto && j.reaparece ? j.reaparece : '';
+      // El nombre del panel para ese puesto, si lo hay; si no, el del cliente
+      caja.querySelector('.nombre').textContent = estado?.equipos?.[lado]?.jugadores?.[i] || j.nombre;
+      caja.querySelector('.kda').textContent = `${j.k} / ${j.d} / ${j.a} · ${j.cs} CS`;
+      caja.querySelector('.oro').textContent = miles(j.oro);
+    }
+    const dif = difs[i];
+    const cs = (l.azul?.cs || 0) - (l.rojo?.cs || 0);
+    const lado = Math.abs(dif) < 100 ? '' : dif > 0 ? 'azul' : 'rojo';
+    const relleno = fila.querySelector('.relleno');
+    const ancho = lado ? Math.abs(dif) / escala * 50 : 0;
+    relleno.style.width = `${ancho}%`;
+    relleno.style.left = lado === 'azul' ? `${50 - ancho}%` : '50%';
+    relleno.style.background = lado === 'azul' ? 'var(--azul-lado)' : 'var(--rojo-lado)';
+    // Oro y súbditos, cada uno del color de quien va por delante
+    const ladoCs = cs > 0 ? 'azul' : cs < 0 ? 'rojo' : '';
+    fila.querySelector('.dif').innerHTML = `<b class="${lado}">${lado ? `+${miles(Math.abs(dif))}` : 'Oro igualado'}</b>`
+      + (ladoCs ? ` · <b class="${ladoCs}">+${Math.abs(cs)} CS</b>` : '');
+  });
 }
 
 conectarDirecto({
   alEstado: e => { estado = e; pintarEquipos(); pintarPartida(); },
-  alPartida: p => { partida = p; recibidaEn = Date.now(); pintarPartida(); pintarChips(); },
+  alPartida: p => { partida = p; recibidaEn = Date.now(); pintarPartida(); pintarTemporizadores(); pintarModulos(); },
 });
 
 setInterval(() => {
   if (!partida) return;
   $('.reloj').textContent = mmss(tiempoAhora());
-  pintarChips();
+  pintarTemporizadores();
+  pintarModulos();
 }, 250);

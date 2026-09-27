@@ -143,7 +143,13 @@
 
   <section id="ingame">
     <h2>Marcador durante la partida</h2>
-    <p>Mientras se juega, el overlay de partida pone encima del juego un marcador con la estética de Tenka Ichi: asesinatos, oro, torres, larvas y dragones de cada clan, el reloj y la diferencia de oro. Debajo salen las cuentas atrás del próximo dragón y del Barón, las mejoras activas y los inhibidores caídos, y un aviso cada vez que un clan se lleva un objetivo. Los datos salen del propio cliente de LoL del ordenador donde se mira la partida, a través de un pequeño programa: el puente.</p>
+    <p>Mientras se juega, el overlay de partida pone encima del juego un marcador con la estética de Tenka Ichi: asesinatos, oro, torres, larvas y dragones de cada clan, el reloj y la diferencia de oro. Los datos salen del propio cliente de LoL del ordenador donde se mira la partida, a través de un pequeño programa: el puente.</p>
+    <ul class="pasos lista">
+      <li><b>Temporizadores</b> debajo del reloj: próximo dragón, larvas o heraldo y Barón, con un círculo de pincel que se completa cuando el objetivo aparece.</li>
+      <li>Debajo de cada clan: <b>buff de Barón</b> y <b>buff ancestral</b> con su cuenta atrás, <b>punto de alma</b> o el <b>alma</b> conseguida e <b>inhibidores caídos</b> hasta que vuelven.</li>
+      <li>Un <b>aviso</b> con sello cada vez que un clan se lleva un dragón, el Barón o el heraldo, o rompe un inhibidor.</li>
+      <li>El <b>cara a cara por líneas</b>, que se saca desde el panel: oro en objetos, KDA, súbditos y nivel de cada jugador contra su rival de línea.</li>
+    </ul>
     <div class="enlaces">
       <div class="enlace">
         <div><b>Overlay de partida para OBS</b><span class="url" data-enlace="ingame"></span></div>
@@ -160,8 +166,16 @@
       <li>En el ordenador que mira la partida como espectador, descarga el puente y descomprímelo en una carpeta.</li>
       <li>Haz doble clic en <b>Abrir el puente.bat</b>. Si Windows avisa de que el archivo viene de internet, pulsa <b>Ejecutar</b> (o <b>Más información</b> y <b>Ejecutar de todas formas</b>).</li>
       <li>La primera vez pide la contraseña del panel: escríbela y pulsa Intro. Se guarda en <b>clave.txt</b>, en esa carpeta, y no vuelve a pedirla. No compartas ese archivo.</li>
-      <li>Déjalo abierto toda la jornada. Cuando entras a mirar una partida, dice «Partida encontrada» y manda los datos solo; entre partidas, espera.</li>
+      <li>Déjalo abierto toda la jornada. Se queda <b>en espera</b> y no hace nada hasta que el panel le pide la partida.</li>
     </ol>
+
+    <h3>Cómo empieza y termina cada partida</h3>
+    <ol class="pasos">
+      <li>Al acabar el draft, el puente se pone a buscar la partida solo. También se puede pedir a mano en el panel, en <b>Partida</b>, con <b>Buscar la partida</b>.</li>
+      <li>En cuanto el cliente de LoL de ese ordenador entra en la partida, el marcador sale en el overlay. El panel enseña en qué punto está: puente abierto, buscando, en juego o terminada.</li>
+      <li>Al terminar la partida, el puente deja de buscar y el KDA del fantasy se rellena solo en el panel: revísalo, elige el MVP, marca el ganador y guarda.</li>
+    </ol>
+    <p class="nota">Si no quieres que busque solo al acabar el draft, desmarca «Buscar sola al acabar el draft» en el panel. Cierra el puente al terminar la jornada: mientras está abierto, la web no se duerme.</p>
 
     <h3>En OBS</h3>
     <ol class="pasos">
@@ -177,9 +191,12 @@
       <li>En la siguiente partida, la ventana del puente dirá «Barra de marcador del juego oculta».</li>
     </ol>
 
+    <h3>El cara a cara por líneas</h3>
+    <p>En el panel, en <b>Partida</b>, <b>Sacar el cara a cara por líneas</b> lo pone en el centro de la pantalla durante 20 o 45 segundos, o hasta quitarlo. Tapa parte del juego: úsalo en los momentos tranquilos, por ejemplo cuando los equipos vuelven a base. Cada jugador se empareja con su puesto por el nombre de la plantilla o por el campeón del draft, así que conviene que los jugadores del enfrentamiento estén bien puestos.</p>
+
     <h3>Probar sin jugar</h3>
-    <p>En el panel, en <b>Partida</b>, el botón <b>Empezar una partida de prueba</b> se inventa una partida seis veces más rápida con los clanes del enfrentamiento cargado. Sirve para colocar el overlay en OBS y ver cómo salen los avisos. Cuando el puente manda una partida de verdad, la prueba se para sola.</p>
-    <p class="nota">El juego no da a los espectadores el oro sin gastar, así que el oro de cada clan es lo que valen sus objetos: la diferencia se parece mucho a la del juego, pero no es idéntica. Las cuentas atrás siguen las reglas actuales: dragón a los 5 minutos y 5 minutos después de cada uno, ancestral 6 minutos después del alma, Barón 6 minutos después de caer e inhibidores 5 minutos. El primer Barón no lleva cuenta atrás.</p>
+    <p>En el panel, en <b>Partida</b>, el botón <b>Empezar una partida de prueba</b> se inventa una partida seis veces más rápida con los clanes del enfrentamiento cargado. Sirve para colocar el overlay en OBS y ver cómo salen los temporizadores, los avisos y el cara a cara. Cuando el puente manda una partida de verdad, la prueba se para sola.</p>
+    <p class="nota">El juego no da a los espectadores el oro sin gastar, así que el oro es lo que valen los objetos: la diferencia se parece mucho a la del juego, pero no es idéntica. Los temporizadores siguen las reglas de la temporada 2026: primer dragón a los 5:00 y 5 minutos después de cada uno, ancestral 6 minutos después del alma, larvas a los 6:00 (y un segundo grupo si el primero cae antes de las 9:45), heraldo de las 15:00 a las 19:45, Barón a los 20:00 y 6 minutos después de cada uno, e inhibidores 5 minutos.</p>
   </section>
 
   <section>
@@ -192,7 +209,9 @@
       <dt>Las cámaras no encajan con los huecos</dt>
       <dd>Mira cuántas cámaras hay elegidas en el panel y pasa a la escena de OBS de ese número.</dd>
       <dt>El marcador de partida no aparece</dt>
-      <dd>Mira la ventana del puente. Tiene que decir «Enviando la partida». Si dice «Contraseña incorrecta», borra clave.txt y vuelve a abrirlo. Si dice «Esperando una partida», el juego no está abierto en ese ordenador o todavía está cargando. En el panel, en <b>Partida</b>, comprueba que el overlay no esté oculto.</dd>
+      <dd>Mira la ventana del puente. Tiene que decir «Enviando la partida». Si dice «En espera», pulsa <b>Buscar la partida</b> en el panel. Si dice «Buscando la partida», el juego no está abierto en ese ordenador o todavía está cargando. Si dice «Contraseña incorrecta», borra clave.txt y vuelve a abrirlo. En el panel, en <b>Partida</b>, comprueba también que el marcador no esté oculto.</dd>
+      <dt>En el cara a cara, un jugador sale en la línea equivocada</dt>
+      <dd>Corrige los jugadores del enfrentamiento en el panel (cada uno en su puesto) o el campeón de su hueco del draft. El cara a cara se corrige solo.</dd>
       <dt>Se ven los dos marcadores, el del juego y el de Tenka Ichi</dt>
       <dd>Falta activar la opción del game.cfg (mira «Ocultar el marcador del propio juego»). Si la activaste con el juego abierto, cierra el juego y vuelve a entrar a la partida.</dd>
     </dl>

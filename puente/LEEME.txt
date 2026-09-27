@@ -17,7 +17,9 @@ PONERLO EN MARCHA
    (o «Más información» y «Ejecutar de todas formas»).
 3. La primera vez pide la contraseña del panel. Se guarda en clave.txt, en esta misma
    carpeta. No compartas ese archivo.
-4. Déjalo abierto toda la jornada. Encuentra solo cada partida y espera entre una y otra.
+4. Déjalo abierto toda la jornada. Se queda en espera y busca la partida cuando se lo
+   pide el panel (botón «Buscar la partida») o, solo, al acabar el draft. Cuando la
+   partida termina, deja de buscar hasta la siguiente. Ciérralo al acabar la jornada.
 
 
 OCULTAR EL MARCADOR DEL PROPIO JUEGO

@@ -1,8 +1,9 @@
 // Partida en directo para el overlay de partida (/ingame/).
 // El puente que corre en el PC donde se mira la partida lee la Live Client Data API del cliente
 // de LoL (https://127.0.0.1:2999/liveclientdata/…) y la manda aquí cada segundo. Con eso se monta
-// el marcador: asesinatos, oro, torres, dragones, larvas, heraldo, barón, inhibidores y temporizadores.
-// La API no da el oro sin gastar de cada jugador, así que el oro de cada equipo es el valor de sus objetos.
+// el marcador (asesinatos, oro, torres, dragones, larvas, heraldo, barón e inhibidores), los
+// temporizadores de los objetivos y el cara a cara por líneas.
+// La API no da el oro sin gastar de cada jugador, así que el oro es el valor de los objetos.
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -22,24 +23,48 @@ export async function cargarPartida() {
   } catch (e) { console.error('Campeones:', e.message); }
 }
 
-// Tiempos de los objetivos, en segundos de partida. Cambian con los parches: se ajustan aquí.
+// Tiempos de los objetivos en segundos de partida (temporada 2026, parche 26.1: sin Atakhan y con el
+// Barón otra vez a los 20:00). Cambian con los parches: se ajustan aquí.
 export const REGLAS = {
-  primerDragon: 300, reaparicionDragon: 300, reaparicionAncestral: 360,
-  duracionBaron: 180, duracionAncestral: 150, reaparicionBaron: 360, reaparicionInhibidor: 300,
+  primerDragon: 300, reaparicionDragon: 300, reaparicionAncestral: 360, duracionAncestral: 150,
+  primerBaron: 1200, reaparicionBaron: 360, duracionBaron: 180,
+  // Larvas del vacío: un grupo de 3 a las 6:00. Si cae entero antes de las 9:45, sale otro grupo
+  // 4 minutos después; a las 14:45 se van
+  larvas: 360, larvasPorGrupo: 3, segundoGrupoAntesDe: 585, reaparicionLarvas: 240, finLarvas: 885,
+  // Heraldo de la Grieta: de las 15:00 a las 19:45
+  heraldo: 900, finHeraldo: 1185,
+  reaparicionInhibidor: 300,
 };
 
 const LADO = { ORDER: 'azul', CHAOS: 'rojo' };
 const OTRO = { azul: 'rojo', rojo: 'azul' };
 const DRAGON = { Fire: 'infernal', Water: 'oceano', Earth: 'montana', Air: 'nube', Hextech: 'hextech', Chemtech: 'quimtech', Elder: 'ancestral' };
+const ROLES = ['TOP', 'JUNGLA', 'MEDIO', 'ADC', 'SUPPORT'];
+const POSICION = { TOP: 0, JUNGLE: 1, MIDDLE: 2, MID: 2, BOTTOM: 3, BOT: 3, UTILITY: 4, SUPPORT: 4 };
 const SIN_DATOS_MS = 10000;  // sin datos del puente durante 10 s, la partida se da por parada
 
-const vacia = () => ({ tiempo: 0, recibido: 0, velocidad: 1, prueba: false, sinPartida: true, jugadores: [], eventos: new Map() });
+// Cada partida lleva un número: así el servidor sabe si la que ha terminado es la misma de antes
+let numeroPartida = 0;
+const vacia = () => ({ numero: ++numeroPartida, tiempo: 0, recibido: 0, velocidad: 1, prueba: false, sinPartida: true, jugadores: [], eventos: new Map() });
 let bruto = vacia();
 
-// Llega un paquete del puente: { juego: gamestats, jugadores: playerlist, eventos: [...] } o { sinPartida: true }
+// Último latido del puente, haya partida o no: su versión y si está en espera, buscando o en partida
+let puente = { visto: 0, version: 0, estado: 'espera' };
+
+// Del panel: nombres de los jugadores por rol y picks del draft, para saber quién juega cada línea
+let contexto = { nombres: { azul: [], rojo: [] }, picks: { azul: [], rojo: [] } };
+export function ponerContexto(c) { contexto = c; }
+
+// Llega un paquete del puente: { juego: gamestats, jugadores: playerlist, eventosData: { Events }, desde, version }
+// o un latido sin partida: { sinPartida: true, espera: true si nadie le ha pedido buscar, version }
 export function recibir(cuerpo, { prueba = false } = {}) {
+  if (!prueba) {
+    puente = { visto: Date.now(), version: Number(cuerpo?.version) || 1,
+      estado: cuerpo?.espera ? 'espera' : cuerpo?.sinPartida ? 'buscando' : 'partida' };
+  }
   if (!cuerpo || cuerpo.sinPartida) {
-    Object.assign(bruto, { sinPartida: true, recibido: Date.now() });
+    // Un latido del puente no para la partida de prueba
+    if (!bruto.prueba) bruto.sinPartida = true;
     return resumen();
   }
   const tiempo = Number(cuerpo.juego?.gameTime) || 0;
@@ -67,10 +92,33 @@ const idCampeon = j => {
 };
 const oroObjetos = items => (items || []).reduce((s, o) => s + (precios[o.itemID] ?? o.price ?? 0) * (o.count || 1), 0);
 const nombreJugador = j => j.riotIdGameName || String(j.riotId || j.summonerName || '').split('#')[0];
+const tieneAplastar = j => ['summonerSpellOne', 'summonerSpellTwo'].some(k =>
+  /smite|aplastar/i.test(`${j.summonerSpells?.[k]?.rawDisplayName || ''} ${j.summonerSpells?.[k]?.displayName || ''}`));
 
 // Estructuras: Turret_T1_…/Barracks_T1_… son del lado azul (ORDER) y T2 del rojo (CHAOS)
 const duenoEstructura = nombre => (/_T1_|_T1L|_T100/.test(nombre) ? 'azul' : /_T2_|_T2L|_T200/.test(nombre) ? 'rojo' : null);
 const carril = nombre => (/_L\d?|_L_/.test(nombre) ? 'top' : /_R\d?|_R_/.test(nombre) ? 'bot' : 'mid');
+
+// Quién juega cada línea. Por orden de confianza: el nombre del panel, el campeón del draft, la posición
+// que da el cliente (en las personalizadas suele venir vacía), Aplastar para la jungla y, si no, el orden.
+const normalizar = s => String(s || '').toLowerCase().split('#')[0].replace(/[\s_.-]/g, '');
+function porLineas(lista, lado) {
+  const asignado = Array(5).fill(null);
+  const libres = new Set(lista.map((_, i) => i));
+  const poner = (rol, i) => {
+    if (rol == null || rol < 0 || rol > 4 || asignado[rol] != null || !libres.has(i)) return;
+    asignado[rol] = i;
+    libres.delete(i);
+  };
+  const nombres = (contexto.nombres?.[lado] || []).map(normalizar);
+  lista.forEach((j, i) => { const n = normalizar(j.nombre); if (n) poner(nombres.indexOf(n), i); });
+  const picks = contexto.picks?.[lado] || [];
+  lista.forEach((j, i) => { if (j.campeon) poner(picks.indexOf(j.campeon), i); });
+  lista.forEach((j, i) => poner(POSICION[String(j.posicion || '').toUpperCase()], i));
+  lista.forEach((j, i) => { if (j.aplastar) poner(1, i); });
+  for (const i of [...libres]) poner(asignado.indexOf(null), i);
+  return asignado.map(i => (i == null ? null : lista[i]));
+}
 
 export function resumen() {
   const porNombre = new Map();
@@ -91,10 +139,14 @@ export function resumen() {
     const s = j.scores || {};
     jugadores[lado].push({ campeon: idCampeon(j), nombre: nombreJugador(j), nivel: j.level || 1,
       k: s.kills || 0, d: s.deaths || 0, a: s.assists || 0, cs: s.creepScore || 0, oro: oroObjetos(j.items),
-      muerto: Boolean(j.isDead), reaparece: Math.round(j.respawnTimer || 0), objetos: (j.items || []).map(o => o.itemID) });
+      muerto: Boolean(j.isDead), reaparece: Math.round(j.respawnTimer || 0), objetos: (j.items || []).map(o => o.itemID),
+      posicion: j.position || '', aplastar: tieneAplastar(j) });
   }
+  const porRol = { azul: porLineas(jugadores.azul, 'azul'), rojo: porLineas(jugadores.rojo, 'rojo') };
+  const lineas = ROLES.map((rol, i) => ({ rol, azul: porRol.azul[i], rojo: porRol.rojo[i] }));
 
-  const base = () => ({ kills: 0, oro: 0, torres: 0, inhibidores: 0, dragones: [], alma: null, ancestrales: 0, larvas: 0, heraldos: 0, barones: 0, atakhan: 0 });
+  const base = () => ({ kills: 0, oro: 0, torres: 0, inhibidores: 0, dragones: [], alma: null, puntoDeAlma: false, ancestrales: 0,
+    larvas: 0, heraldos: 0, barones: 0, atakhan: 0 });
   const eq = { azul: base(), rojo: base() };
   for (const lado of ['azul', 'rojo']) {
     eq[lado].kills = jugadores[lado].reduce((s, j) => s + j.k, 0);
@@ -102,8 +154,8 @@ export function resumen() {
   }
 
   const t = bruto.tiempo;
-  const buffs = [], avisos = [], caidos = new Map(), desconocidos = new Set();
-  let ultimoDragon = null, ultimoBaron = null, terminada = false;
+  const buffs = [], avisos = [], caidos = new Map(), desconocidos = new Set(), muertesLarvas = [];
+  let ultimoDragon = null, ultimoBaron = null, heraldoMuerto = false, terminada = false;
   const eventos = [...bruto.eventos.values()].sort((a, b) => a.EventTime - b.EventTime || a.EventID - b.EventID);
   for (const ev of eventos) {
     const aviso = (tipo, lado, extra = {}) => avisos.push({ id: ev.EventID, tipo, lado, t: ev.EventTime, robado: ev.Stolen === 'True' || ev.Stolen === true, ...extra });
@@ -118,7 +170,7 @@ export function resumen() {
         const dueno = duenoEstructura(ev.InhibKilled || '') || OTRO[ladoDelEvento(ev)];
         if (!dueno) break;
         eq[OTRO[dueno]].inhibidores++;
-        caidos.set(ev.InhibKilled, { lado: dueno, carril: carril(ev.InhibKilled || ''), vuelve: ev.EventTime + REGLAS.reaparicionInhibidor });
+        caidos.set(ev.InhibKilled, { lado: dueno, carril: carril(ev.InhibKilled || ''), desde: ev.EventTime, vuelve: ev.EventTime + REGLAS.reaparicionInhibidor });
         aviso('inhibidor', OTRO[dueno], { carril: carril(ev.InhibKilled || '') });
         break;
       }
@@ -130,7 +182,7 @@ export function resumen() {
         if (!quien) break;
         if (tipo === 'ancestral') {
           eq[quien].ancestrales++;
-          buffs.push({ tipo: 'ancestral', lado: quien, hasta: ev.EventTime + REGLAS.duracionAncestral });
+          buffs.push({ tipo: 'ancestral', lado: quien, desde: ev.EventTime, hasta: ev.EventTime + REGLAS.duracionAncestral });
         } else {
           eq[quien].dragones.push(tipo);
           if (eq[quien].dragones.length === 4) eq[quien].alma = tipo;
@@ -143,11 +195,12 @@ export function resumen() {
         ultimoBaron = ev.EventTime;
         if (!quien) break;
         eq[quien].barones++;
-        buffs.push({ tipo: 'baron', lado: quien, hasta: ev.EventTime + REGLAS.duracionBaron });
+        buffs.push({ tipo: 'baron', lado: quien, desde: ev.EventTime, hasta: ev.EventTime + REGLAS.duracionBaron });
         aviso('baron', quien);
         break;
       }
       case 'HeraldKill': {
+        heraldoMuerto = true;
         const quien = ladoDelEvento(ev);
         if (quien) { eq[quien].heraldos++; aviso('heraldo', quien); }
         break;
@@ -157,9 +210,9 @@ export function resumen() {
       case 'MinionsSpawning': case 'InhibRespawningSoon':
         break;
       default: {
-        // Objetivos que la API ha ido añadiendo con nombres propios: larvas del vacío y Atakhan
+        // Objetivos que la API ha ido añadiendo con nombres propios: larvas del vacío y Atakhan (hasta 2025)
         const quien = ladoDelEvento(ev);
-        if (/horde|grub|voidgrub/i.test(ev.EventName)) { if (quien) eq[quien].larvas++; }
+        if (/horde|grub|voidgrub/i.test(ev.EventName)) { muertesLarvas.push(ev.EventTime); if (quien) eq[quien].larvas++; }
         else if (/atakhan/i.test(ev.EventName)) { if (quien) { eq[quien].atakhan++; aviso('atakhan', quien); } }
         else desconocidos.add(ev.EventName);
       }
@@ -167,23 +220,46 @@ export function resumen() {
   }
 
   const conAlma = eq.azul.alma || eq.rojo.alma;
-  let proximoDragon;
-  if (!ultimoDragon) proximoDragon = { t: REGLAS.primerDragon, ancestral: false };
-  else if (ultimoDragon.tipo === 'ancestral' || conAlma) proximoDragon = { t: ultimoDragon.t + REGLAS.reaparicionAncestral, ancestral: true };
-  else proximoDragon = { t: ultimoDragon.t + REGLAS.reaparicionDragon, ancestral: false };
+  for (const lado of ['azul', 'rojo']) eq[lado].puntoDeAlma = !conAlma && eq[lado].dragones.length === 3;
 
+  // Temporizadores de los objetivos neutrales, en el orden en que salen en el overlay:
+  // dragón, larvas o heraldo (lo que toque) y Barón. «desde» es cuando empezó la cuenta atrás.
+  const objetivos = [];
+  const dragon = !ultimoDragon ? { aparece: REGLAS.primerDragon, desde: 0, ancestral: false }
+    : ultimoDragon.tipo === 'ancestral' || conAlma ? { aparece: ultimoDragon.t + REGLAS.reaparicionAncestral, desde: ultimoDragon.t, ancestral: true }
+      : { aparece: ultimoDragon.t + REGLAS.reaparicionDragon, desde: ultimoDragon.t, ancestral: false };
+  objetivos.push({ tipo: 'dragon', ...dragon });
+  const g = REGLAS.larvasPorGrupo;
+  let finLarvas = REGLAS.finLarvas;
+  if (t < REGLAS.finLarvas) {
+    const n = muertesLarvas.length;
+    if (n < g) objetivos.push({ tipo: 'larvas', aparece: REGLAS.larvas, desde: 0, quedan: g - n });
+    else if (n < 2 * g && muertesLarvas[g - 1] < REGLAS.segundoGrupoAntesDe) {
+      const fin = muertesLarvas[g - 1];
+      objetivos.push({ tipo: 'larvas', aparece: fin + REGLAS.reaparicionLarvas, desde: fin, quedan: 2 * g - n });
+    } else finLarvas = muertesLarvas.at(-1);
+  }
+  if (!objetivos.some(o => o.tipo === 'larvas') && !heraldoMuerto && t < REGLAS.finHeraldo) {
+    objetivos.push({ tipo: 'heraldo', aparece: REGLAS.heraldo, desde: Math.min(finLarvas, REGLAS.heraldo), hasta: REGLAS.finHeraldo });
+  }
+  const proximoBaron = ultimoBaron != null ? ultimoBaron + REGLAS.reaparicionBaron : REGLAS.primerBaron;
+  objetivos.push({ tipo: 'baron', aparece: proximoBaron, desde: ultimoBaron ?? 0 });
+
+  const conectado = Date.now() - puente.visto < SIN_DATOS_MS;
   return {
+    numero: bruto.numero,
     activo: !bruto.sinPartida && Date.now() - bruto.recibido < SIN_DATOS_MS,
-    puente: Date.now() - bruto.recibido < SIN_DATOS_MS,
+    puente: { conectado, version: puente.version, estado: conectado ? puente.estado : null },
     sinPartida: bruto.sinPartida, prueba: bruto.prueba, terminada,
     tiempo: t, velocidad: bruto.velocidad, recibido: bruto.recibido,
-    azul: eq.azul, rojo: eq.rojo, jugadores,
+    azul: eq.azul, rojo: eq.rojo, jugadores, lineas,
+    objetivos,
     buffs: buffs.filter(b => b.hasta > t),
-    proximoDragon,
-    proximoBaron: ultimoBaron != null ? ultimoBaron + REGLAS.reaparicionBaron : null,
     inhibidores: [...caidos.values()].filter(i => i.vuelve > t),
     avisos: avisos.filter(a => t - a.t < 10).slice(-3),
     eventosSinReconocer: [...desconocidos],
+    // Para los overlays abiertos con la versión anterior
+    proximoDragon: { t: dragon.aparece, ancestral: dragon.ancestral }, proximoBaron,
   };
 }
 
@@ -195,6 +271,8 @@ const OBJETOS_PRUEBA = [
   ['3031', '6672', '3153', '3071', '3089', '3157', '3072', '3036', '3026'],
 ];
 const CAMPEONES_PRUEBA = { azul: ['Aatrox', 'LeeSin', 'Ahri', 'Jinx', 'Thresh'], rojo: ['Jax', 'Viego', 'Syndra', 'Kaisa', 'Nautilus'] };
+const POSICIONES_PRUEBA = ['TOP', 'JUNGLE', 'MIDDLE', 'BOTTOM', 'UTILITY'];
+const FARMEO_PRUEBA = [0.125, 0.09, 0.13, 0.135, 0.02];  // súbditos por segundo según el rol
 let temporizadorPrueba = null;
 
 export function empezarPrueba({ picks, jugadores }, alPaquete) {
@@ -204,26 +282,30 @@ export function empezarPrueba({ picks, jugadores }, alPaquete) {
   const fases = OBJETOS_PRUEBA.map(fase => fase.filter(id => precios[id] != null));
   const objetoPara = s => { const f = fases[s < 480 ? 0 : s < 1080 ? 1 : 2]; return f.length ? f[Math.floor(Math.random() * f.length)] : null; };
   const jug = ['azul', 'rojo'].flatMap(lado => [0, 1, 2, 3, 4].map(i => ({
-    lado, team: lado === 'azul' ? 'ORDER' : 'CHAOS',
+    lado, rol: i, team: lado === 'azul' ? 'ORDER' : 'CHAOS',
     campeon: picks?.[lado]?.[i] || CAMPEONES_PRUEBA[lado][i],
     nombre: jugadores?.[lado]?.[i] || `${lado === 'azul' ? 'Azul' : 'Rojo'} ${i + 1}`,
-    k: 0, d: 0, a: 0, cs: 0, nivel: 1, items: [],
+    k: 0, d: 0, a: 0, cs: 0, nivel: 1, items: [], muertoHasta: 0,
   })));
   const eventos = [{ EventID: 0, EventName: 'GameStart', EventTime: 0 }];
   let id = 1, ultimo = 60;
   const suceso = (t, EventName, datos = {}) => eventos.push({ EventID: id++, EventName, EventTime: t, ...datos });
   const de = lado => jug.filter(j => j.lado === lado);
   const azar = lista => lista[Math.floor(Math.random() * lista.length)];
-  // Guion de objetivos; los asesinatos, el farmeo y las compras van al azar
+  // Guion de objetivos con las reglas de 2026; los asesinatos, el farmeo y las compras van al azar
   const guion = [
-    [300, 'DragonKill', 'azul', { DragonType: 'Fire' }], [390, 'HordeKill', 'rojo'], [400, 'HordeKill', 'rojo'], [410, 'HordeKill', 'azul'],
-    [600, 'DragonKill', 'rojo', { DragonType: 'Water' }], [700, 'TurretKilled', 'azul', { TurretKilled: 'Turret_T2_R_03_A' }],
-    [780, 'TurretKilled', 'rojo', { TurretKilled: 'Turret_T1_L_03_A' }], [900, 'DragonKill', 'azul', { DragonType: 'Hextech' }],
-    [960, 'HeraldKill', 'azul'], [1010, 'TurretKilled', 'azul', { TurretKilled: 'Turret_T2_C_05_A' }],
+    [300, 'DragonKill', 'azul', { DragonType: 'Fire' }],
+    [400, 'HordeKill', 'rojo'], [405, 'HordeKill', 'rojo'], [410, 'HordeKill', 'azul'],
+    [600, 'DragonKill', 'rojo', { DragonType: 'Water' }],
+    [680, 'HordeKill', 'azul'], [690, 'HordeKill', 'azul'], [700, 'HordeKill', 'azul'],
+    [700, 'TurretKilled', 'azul', { TurretKilled: 'Turret_T2_R_03_A' }], [780, 'TurretKilled', 'rojo', { TurretKilled: 'Turret_T1_L_03_A' }],
+    [900, 'DragonKill', 'azul', { DragonType: 'Hextech' }], [960, 'HeraldKill', 'azul'],
+    [1010, 'TurretKilled', 'azul', { TurretKilled: 'Turret_T2_C_05_A' }],
     [1200, 'DragonKill', 'azul', { DragonType: 'Hextech' }], [1260, 'TurretKilled', 'rojo', { TurretKilled: 'Turret_T1_R_03_A' }],
-    [1380, 'BaronKill', 'rojo'], [1450, 'TurretKilled', 'rojo', { TurretKilled: 'Turret_T1_R_02_A' }],
+    [1290, 'BaronKill', 'rojo'], [1450, 'TurretKilled', 'rojo', { TurretKilled: 'Turret_T1_R_02_A' }],
     [1500, 'DragonKill', 'azul', { DragonType: 'Hextech' }], [1560, 'InhibKilled', 'rojo', { InhibKilled: 'Barracks_T1_R1' }],
-    [1860, 'DragonKill', 'azul', { DragonType: 'Elder' }],
+    [1860, 'DragonKill', 'azul', { DragonType: 'Elder' }], [1900, 'BaronKill', 'azul'],
+    [2060, 'GameEnd', 'azul', { Result: 'Win' }],
   ];
   temporizadorPrueba = setInterval(() => {
     const t = 60 + (Date.now() - inicio) / 1000 * velocidad;
@@ -232,7 +314,7 @@ export function empezarPrueba({ picks, jugadores }, alPaquete) {
     let s = ultimo;
     for (; s < t; s++) {
       for (const j of jug) {
-        if (Math.random() < 0.12) j.cs++;
+        if (Math.random() < FARMEO_PRUEBA[j.rol]) j.cs++;
         j.nivel = Math.min(18, 1 + Math.floor(s / 105));
         // Una compra cada 100 s; con el inventario lleno, un componente pasa a objeto completo
         if (s % 100 === 0) {
@@ -245,6 +327,7 @@ export function empezarPrueba({ picks, jugadores }, alPaquete) {
         const lado = Math.random() < 0.52 ? 'azul' : 'rojo';
         const asesino = azar(de(lado)), victima = azar(de(OTRO[lado]));
         asesino.k++; victima.d++;
+        victima.muertoHasta = s + 8 + victima.nivel * 2;
         const ayudante = azar(de(lado)); if (ayudante !== asesino) ayudante.a++;
         suceso(s, 'ChampionKill', { KillerName: asesino.nombre, VictimName: victima.nombre, Assisters: [] });
       }
@@ -257,7 +340,9 @@ export function empezarPrueba({ picks, jugadores }, alPaquete) {
       velocidad,
       juego: { gameTime: t, gameMode: 'CLASSIC' },
       jugadores: jug.map(j => ({ championName: j.campeon, rawChampionName: `game_character_displayname_${j.campeon}`,
-        riotIdGameName: j.nombre, summonerName: j.nombre, team: j.team, level: j.nivel, isDead: false, respawnTimer: 0,
+        riotIdGameName: j.nombre, summonerName: j.nombre, team: j.team, position: POSICIONES_PRUEBA[j.rol], level: j.nivel,
+        isDead: j.muertoHasta > t, respawnTimer: Math.max(0, j.muertoHasta - t),
+        summonerSpells: { summonerSpellOne: { rawDisplayName: `GeneratedTip_SummonerSpell_${j.rol === 1 ? 'SummonerSmite' : 'SummonerFlash'}_DisplayName` } },
         items: j.items, scores: { kills: j.k, deaths: j.d, assists: j.a, creepScore: j.cs, wardScore: 0 } })),
       eventos,
     }, { prueba: true }));

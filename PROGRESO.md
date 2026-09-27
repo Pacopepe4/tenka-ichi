@@ -56,3 +56,12 @@
 - Probado de punta a punta en local con un cliente de LoL falso (puente → servidor → overlay). Falta probarlo con una partida real en modo espectador para confirmar los nombres de los eventos nuevos (larvas, Atakhan) y la Replay API.
 - Vídeos y música del directo fuera del repositorio: `koryu-budo/paquete-stream/` sincronizado con Drive y enlazado desde la guía. Borrado `public/stream/`.
 - Pendiente del usuario: compartir la carpeta paquete-stream de Drive como «Cualquier persona con el enlace · Lector» cuando termine de subir.
+
+## 27/09 (tarde): partida automática, temporizadores y cara a cara por líneas
+
+- El puente (versión 2) se queda en espera toda la jornada y solo busca la partida cuando el panel lo pide: botón «Buscar la partida» o solo al completarse el draft. Deja de buscar cuando la partida termina y el cliente se cierra. El panel enseña en qué punto está (puente abierto, buscando, en juego, terminada) y avisa si el puente es de la versión anterior.
+- Al terminar la partida, el KDA de las estadísticas del fantasy se rellena solo con los datos de cada línea.
+- Temporizadores con ensō de pincel y kanji debajo del reloj (dragón, larvas o heraldo, Barón), con las reglas de 2026 (sin Atakhan, Barón a los 20:00, larvas a los 6:00, heraldo a los 15:00).
+- Debajo de cada clan: buff de Barón y ancestral, punto de alma o alma (sello con el kanji del elemento) e inhibidores caídos. Avisos con el kanji del elemento del dragón.
+- Cara a cara por líneas (oro en objetos, KDA, súbditos, nivel y muertes), que se saca desde el panel.
+- Pendiente: probarlo con una partida real en modo espectador (nombres de los eventos de larvas y heraldo, `GameEnd` de los espectadores y Replay API).

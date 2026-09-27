@@ -150,7 +150,21 @@ code { background: var(--sumi-alzado); padding: 2px 6px; border-radius: 3px; wor
 .cabeza-kda span:first-child { text-align: left; }
 
 /* Partida en directo */
-.estado-partida { margin: 4px 0 10px; }
+.estado-partida { margin: 12px 0 0; }
+/* En qué punto está la partida: puente, buscando, en juego, terminada */
+.pasos-partida { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 0; padding: 0; list-style: none; counter-reset: paso; }
+.pasos-partida li { counter-increment: paso; display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 7px; border-radius: 999px;
+  background: var(--sumi); color: var(--hai); font-size: 13px; }
+.pasos-partida li::before { content: counter(paso); display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%;
+  border: 1px solid var(--sumi-linea); font-size: 12px; font-weight: 700; }
+.pasos-partida li.hecho { color: var(--washi); }
+.pasos-partida li.hecho::before { content: '✓'; background: #2f4a36; border-color: #2f4a36; color: #9CD9A6; }
+.pasos-partida li.actual { color: var(--washi); background: #3a2224; box-shadow: inset 0 0 0 1px var(--shu); }
+.pasos-partida li.actual::before { background: var(--shu); border-color: var(--shu); color: var(--washi); }
+.casilla { flex-direction: row; align-items: center; gap: 8px; font-size: 14px; color: var(--washi); cursor: pointer; }
+.casilla input { width: 16px; height: 16px; accent-color: var(--shu); }
+#en-partida h3 { margin-top: 22px; }
+#en-partida .resumen-partida { margin-top: 14px; }
 .resumen-partida { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0 0 12px; font-size: 15px; }
 .resumen-partida:empty { display: none; }
 .resumen-partida dt { font-weight: 700; }
