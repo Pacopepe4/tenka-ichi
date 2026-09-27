@@ -98,7 +98,7 @@ function pintarPartida() {
   for (const a of p.avisos || []) {
     if (vistos.has(a.id)) continue;
     vistos.add(a.id);
-    if (!primeraPartida) colaAvisos.push(a);
+    if (!primeraPartida) encolarAviso(a);
   }
   primeraPartida = false;
   siguienteAviso();
@@ -158,36 +158,68 @@ function pintarModulos() {
   }
 }
 
-// ---------- avisos de objetivos ----------
+// ---------- avisos: objetivos, torres, primera sangre, multikills y aces ----------
+// Salen con el logo del clan; el color de la raya de arriba dice qué ha sido
 const colaAvisos = [];
-let avisoEnCurso = false;
+let avisoActual = null, temporizadorAviso = null;
 const dragonDe = t => `dragón ${DRAGON[t] || ''}`.trim();
-const TEXTO_AVISO = {
-  dragon: a => [`${a.robado ? 'roba' : 'se lleva'} el ${dragonDe(a.dragon)}`, KANJI_DRAGON[a.dragon] || '龍', COLOR_DRAGON[a.dragon] || COLOR_DRAGON.dragon],
-  baron: a => [a.robado ? 'roba el Barón Nashor' : 'mata al Barón Nashor', '蛇', '#9B59D0'],
-  heraldo: a => [a.robado ? 'roba el Heraldo' : 'se lleva el Heraldo', '使', '#8F7AE8'],
-  atakhan: () => ['derrota a Atakhan', '魔', '#BE2A2F'],
-  inhibidor: a => [`rompe el inhibidor ${a.carril || ''}`.trim(), '破', 'var(--shu)'],
+// El nombre del panel para ese jugador, si está en su puesto; si no, el del cliente
+const jugadorDe = (lado, nombre) => {
+  const i = (partida?.lineas || []).findIndex(l => l[lado]?.nombre === nombre);
+  return (i >= 0 && estado?.equipos?.[lado]?.jugadores?.[i]) || nombre || '';
 };
-function siguienteAviso() {
-  if (avisoEnCurso || !colaAvisos.length) return;
-  const a = colaAvisos.shift();
-  const [frase, kanji, color] = (TEXTO_AVISO[a.tipo] || (() => ['', '天', 'var(--shu)']))(a);
+const MULTI = { 3: 'triple kill', 4: 'quadra kill', 5: 'pentakill' };
+const TEXTO_AVISO = {
+  dragon: a => [`${a.robado ? 'roba' : 'se lleva'} el ${dragonDe(a.dragon)}`, COLOR_DRAGON[a.dragon] || COLOR_DRAGON.dragon],
+  baron: a => [a.robado ? 'roba el Barón Nashor' : 'mata al Barón Nashor', '#9B59D0'],
+  heraldo: a => [a.robado ? 'roba el Heraldo' : 'se lleva el Heraldo', '#8F7AE8'],
+  larvas: a => [`se lleva ${a.n > 1 ? `${a.n} larvas` : 'una larva'}`, '#8F7AE8'],
+  atakhan: () => ['derrota a Atakhan', '#BE2A2F'],
+  torre: a => [a.nivel === 'del nexo' ? 'derriba una torre del nexo' : `derriba la torre ${a.nivel || ''} ${a.carril ? `de ${a.carril}` : ''}`.replace(/\s+/g, ' ').trim(), '#B5AC9C'],
+  inhibidor: a => [`rompe el inhibidor ${a.carril || ''}`.trim(), 'var(--shu)'],
+  primera: a => [`primera sangre para ${jugadorDe(a.lado, a.jugador)}`, 'var(--shu)'],
+  multi: a => [a.racha >= 5 ? `¡pentakill de ${jugadorDe(a.lado, a.jugador)}!` : `${MULTI[a.racha] || 'multikill'} de ${jugadorDe(a.lado, a.jugador)}`, '#E8B04A'],
+  ace: () => ['hace un ace', 'var(--shu)'],
+};
+function pintarAviso(a) {
+  const [frase, color] = (TEXTO_AVISO[a.tipo] || (() => ['', 'var(--shu)']))(a);
   const caja = $('.aviso');
-  const hanko = caja.querySelector('.hanko');
   caja.style.setProperty('--aviso', color);
-  hanko.textContent = kanji;
-  hanko.style.background = color;
-  hanko.style.color = tinta(color);
+  const c = clanDe(a.lado);
+  const img = caja.querySelector('.aviso-logo');
+  if (img.getAttribute('src') !== logo(c.id)) img.src = logo(c.id);
   caja.querySelector('.aviso-quien').textContent = nombreClan(a.lado);
   caja.querySelector('.aviso-que').textContent = frase;
+}
+function programarSalida() {
+  clearTimeout(temporizadorAviso);
+  temporizadorAviso = setTimeout(() => {
+    const caja = $('.aviso');
+    caja.classList.add('sale');
+    temporizadorAviso = setTimeout(() => { caja.hidden = true; avisoActual = null; siguienteAviso(); }, 400);
+  }, DURACION_AVISO);
+}
+function siguienteAviso() {
+  if (avisoActual || !colaAvisos.length) return;
+  avisoActual = colaAvisos.shift();
+  pintarAviso(avisoActual);
+  const caja = $('.aviso');
   caja.classList.remove('sale');
   caja.hidden = false;
-  avisoEnCurso = true;
-  setTimeout(() => {
-    caja.classList.add('sale');
-    setTimeout(() => { caja.hidden = true; avisoEnCurso = false; siguienteAviso(); }, 400);
-  }, DURACION_AVISO);
+  programarSalida();
+}
+// Las larvas caen de dos en dos o de tres en tres: se juntan en un solo aviso que va contando
+function encolarAviso(a) {
+  if (a.tipo === 'larvas') {
+    const junto = [avisoActual, colaAvisos.at(-1)].find(x => x?.tipo === 'larvas' && x.lado === a.lado);
+    if (junto) {
+      junto.n++;
+      if (junto === avisoActual && !$('.aviso').classList.contains('sale')) { pintarAviso(junto); programarSalida(); }
+      return;
+    }
+    a = { ...a, n: 1 };
+  }
+  colaAvisos.push(a);
 }
 
 // ---------- línea por línea (lo saca el panel) ----------

@@ -47,13 +47,13 @@ const GRACIA_PARTIDA_MS = 20000; // sin datos de la partida durante 20 s, se da 
 // Cada partida lleva un número: así el servidor sabe si la que ha terminado es la misma de antes
 let numeroPartida = 0;
 const vacia = () => ({ numero: ++numeroPartida, tiempo: 0, recibido: 0, velocidad: 1, prueba: false, sinPartida: true, jugadores: [],
-  eventos: new Map(), ids: new Set(), firmas: new Set() });
+  eventos: new Map(), ids: new Set(), firmas: new Set(), llegada: new Map() });
 
 // Algunos sucesos llegan repetidos con otro número (al volver atrás en una repetición): se reconocen por
 // qué pasó, cuándo y a quién. Las larvas no, porque pueden caer dos a la vez del mismo golpe.
 const UNICOS = new Set(['ChampionKill', 'DragonKill', 'BaronKill', 'HeraldKill', 'TurretKilled', 'InhibKilled', 'GameEnd', 'FirstBlood']);
 const firma = ev => (UNICOS.has(ev.EventName)
-  ? `${ev.EventName}|${Math.round(Number(ev.EventTime) * 10)}|${ev.KillerName || ''}|${ev.VictimName || ev.DragonType || ev.TurretKilled || ev.InhibKilled || ev.Recipient || ''}`
+  ? `${ev.EventName}|${Math.round(Number(ev.EventTime))}|${ev.KillerName || ''}|${ev.VictimName || ev.DragonType || ev.TurretKilled || ev.InhibKilled || ev.Recipient || ''}`
   : null);
 let bruto = vacia();
 
@@ -97,6 +97,7 @@ export function recibir(cuerpo, { prueba = false } = {}) {
     if (f && bruto.firmas.has(f)) continue;  // el mismo suceso repetido con otro número
     if (f) bruto.firmas.add(f);
     bruto.eventos.set(ev.EventID, ev);
+    bruto.llegada.set(ev.EventID, Date.now());  // los avisos van por cuándo llega, no por el reloj de la partida
   }
   return { ...resumen(), reenviar };
 }
@@ -127,6 +128,15 @@ const tieneAplastar = j => ['summonerSpellOne', 'summonerSpellTwo'].some(k =>
 // Estructuras: Turret_T1_…/Barracks_T1_… son del lado azul (ORDER) y T2 del rojo (CHAOS)
 const duenoEstructura = nombre => (/_T1_|_T1L|_T100/.test(nombre) ? 'azul' : /_T2_|_T2L|_T200/.test(nombre) ? 'rojo' : null);
 const carril = nombre => (/_L\d?|_L_/.test(nombre) ? 'top' : /_R\d?|_R_/.test(nombre) ? 'bot' : 'mid');
+// Qué torre es: en top y bot, 03 exterior, 02 interior y 01 la del inhibidor; en medio, 05, 04 y 03, y 01-02 las del nexo
+const torreDe = nombre => {
+  const m = /_([LCR])_0?(\d)/.exec(nombre || '');
+  if (!m) return {};
+  const n = Number(m[2]);
+  const nivel = m[1] === 'C' ? (n >= 5 ? 'exterior' : n === 4 ? 'interior' : n === 3 ? 'del inhibidor' : 'del nexo')
+    : n >= 3 ? 'exterior' : n === 2 ? 'interior' : 'del inhibidor';
+  return { carril: m[1] === 'L' ? 'top' : m[1] === 'R' ? 'bot' : 'mid', nivel };
+};
 
 // Quién juega cada línea. Por orden de confianza: el nombre del panel, el campeón del draft, la posición
 // que da el cliente (en las personalizadas suele venir vacía), Aplastar para la jungla y, si no, el orden.
@@ -264,13 +274,16 @@ export function resumen() {
   // los sucesos que ya se habían visto más adelante
   const eventos = [...bruto.eventos.values()].filter(ev => !(Number(ev.EventTime) > t + 1))
     .sort((a, b) => a.EventTime - b.EventTime || a.EventID - b.EventID);
+  const nombreDe = n => jugadorPorNombre.get(normalizar(n))?.nombre || String(n || '').split('#')[0];
+  const recibidos = {};  // cuántos sucesos de cada tipo han llegado, para ver qué da el cliente
   for (const ev of eventos) {
+    recibidos[ev.EventName] = (recibidos[ev.EventName] || 0) + 1;
     const aviso = (tipo, lado, extra = {}) => avisos.push({ id: ev.EventID, tipo, lado, t: ev.EventTime, robado: ev.Stolen === 'True' || ev.Stolen === true, ...extra });
     switch (ev.EventName) {
       case 'TurretKilled': {
         const dueno = duenoEstructura(ev.TurretKilled || '');
         const quien = dueno ? OTRO[dueno] : ladoDelEvento(ev);
-        if (quien) eq[quien].torres++;
+        if (quien) { eq[quien].torres++; aviso('torre', quien, torreDe(ev.TurretKilled)); }
         break;
       }
       case 'InhibKilled': {
@@ -320,13 +333,28 @@ export function resumen() {
         if (victima) victima.racha = 0;
         break;
       }
-      case 'Multikill': case 'Ace': case 'FirstBlood': case 'FirstBrick': case 'GameStart':
-      case 'MinionsSpawning': case 'InhibRespawningSoon':
+      case 'FirstBlood': {
+        const quien = ladoDe(ev.Recipient);
+        if (quien) aviso('primera', quien, { jugador: nombreDe(ev.Recipient) });
+        break;
+      }
+      case 'Multikill': {
+        // Los dobles son muy frecuentes: se avisa de triple para arriba
+        const quien = ladoDe(ev.KillerName), n = Number(ev.KillStreak);
+        if (quien && n >= 3) aviso('multi', quien, { racha: n, jugador: nombreDe(ev.KillerName) });
+        break;
+      }
+      case 'Ace': {
+        const quien = LADO[ev.AcingTeam] || ladoDe(ev.Acer);
+        if (quien) aviso('ace', quien);
+        break;
+      }
+      case 'FirstBrick': case 'GameStart': case 'MinionsSpawning': case 'InhibRespawningSoon':
         break;
       default: {
         // Objetivos que la API ha ido añadiendo con nombres propios: larvas del vacío y Atakhan (hasta 2025)
         const quien = ladoDelEvento(ev);
-        if (/horde|grub|voidgrub/i.test(ev.EventName)) { muertesLarvas.push(ev.EventTime); if (quien) eq[quien].larvas++; }
+        if (/horde|grub|voidgrub/i.test(ev.EventName)) { muertesLarvas.push(ev.EventTime); if (quien) { eq[quien].larvas++; aviso('larvas', quien); } }
         else if (/atakhan/i.test(ev.EventName)) { if (quien) { eq[quien].atakhan++; aviso('atakhan', quien); } }
         else desconocidos.add(ev.EventName);
       }
@@ -382,8 +410,10 @@ export function resumen() {
     objetivos, historiaIncompleta,
     buffs: buffs.filter(b => b.hasta > t),
     inhibidores: [...caidos.values()].filter(i => i.vuelve > t),
-    avisos: avisos.filter(a => t - a.t < 10).slice(-3),
-    eventosSinReconocer: [...desconocidos],
+    // Avisos de lo que ha llegado en los últimos 8 s (reales: en una repetición acelerada el reloj corre más),
+    // sin anunciar cosas de hace más de un minuto de partida (al saltar hacia delante llegan de golpe)
+    avisos: avisos.filter(a => Date.now() - (bruto.llegada.get(a.id) || 0) < 8000 && t - a.t < 60).slice(-4),
+    eventosSinReconocer: [...desconocidos], eventosRecibidos: recibidos,
     // Para los overlays abiertos con la versión anterior
     proximoDragon: { t: dragon.aparece, ancestral: dragon.ancestral }, proximoBaron,
   };

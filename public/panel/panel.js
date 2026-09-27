@@ -485,7 +485,8 @@ function pintarPartidaPanel(p) {
     const extra = [e.dragones.length ? `${e.dragones.length} dragones` : '', e.alma ? 'alma' : '', e.larvas ? `${e.larvas} larvas` : '',
       e.heraldos ? 'heraldo' : '', e.barones ? `${e.barones} barón` : '', e.ancestrales ? 'ancestral' : ''].filter(Boolean).join(', ');
     return `<dt class="${lado}">${nombre(lado)}</dt><dd>${e.kills} asesinatos · ${milesOro(e.oro)} de oro en objetos · ${e.torres} torres${extra ? ` · ${extra}` : ''}</dd>`;
-  }).join('') + (p.eventosSinReconocer?.length ? `<dt>Eventos que el overlay aún no sabe pintar</dt><dd>${p.eventosSinReconocer.join(', ')}</dd>` : '') : '';
+  }).join('') + (p.eventosSinReconocer?.length ? `<dt>Eventos que el overlay aún no sabe pintar</dt><dd>${p.eventosSinReconocer.join(', ')}</dd>` : '')
+    + (p.eventosRecibidos ? `<dt>Sucesos que da el cliente</dt><dd>${Object.entries(p.eventosRecibidos).map(([n, c]) => `${n} ${c}`).join(' · ') || 'ninguno'}</dd>` : '') : '';
   $('#pruebaPartida').textContent = p.prueba && p.activo ? 'Parar la partida de prueba' : 'Empezar una partida de prueba';
   $('#pruebaPartida').dataset.activa = p.prueba && p.activo ? '1' : '0';
 }

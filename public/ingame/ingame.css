@@ -6,6 +6,9 @@ body { font-family: var(--gothic); color: var(--washi); }
 #lienzo { position: relative; width: 1920px; height: 1080px; transition: opacity .5s ease, transform .5s ease; }
 body.oculto #lienzo { opacity: 0; transform: translateY(-24px); }
 
+/* Todo lo de arriba, un poco más pequeño y pegado al borde de arriba en el centro */
+.arriba { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; transform: scale(.86); transform-origin: 50% 0; }
+
 /* ---------- Marcador ---------- */
 .marcador { position: absolute; top: 0; left: 50%; transform: translateX(-50%); display: grid; grid-template-columns: 440px 164px 440px; }
 .lado { display: grid; grid-template-rows: 72px 34px; }
@@ -17,7 +20,7 @@ body.oculto #lienzo { opacity: 0; transform: translateY(-24px); }
 .rojo .placa .equipo { text-align: right; }
 .placa .nombre { font-family: var(--mincho); font-weight: 800; font-size: 27px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .placa .kanji { font-family: var(--mincho); font-weight: 700; font-size: 15px; line-height: 1.2; color: var(--color-clan, var(--hai)); letter-spacing: .12em; }
-.placa .kills { font-family: var(--mincho); font-weight: 800; font-size: 46px; line-height: 1; font-variant-numeric: tabular-nums; min-width: 1.4em; }
+.placa .kills { font-family: var(--mincho); font-weight: 800; font-size: 40px; line-height: 1; font-variant-numeric: tabular-nums; min-width: 1.4em; }
 .azul .placa .kills { text-align: right; }
 .rojo .placa .kills { text-align: left; }
 
@@ -41,7 +44,7 @@ body.oculto #lienzo { opacity: 0; transform: translateY(-24px); }
 
 /* Centro: reloj y diferencia de oro */
 .centro { display: grid; grid-template-rows: 72px 34px; text-align: center; }
-.reloj { display: grid; place-items: center; background: var(--sumi); font-weight: 700; font-size: 30px; letter-spacing: .02em;
+.reloj { display: grid; place-items: center; background: var(--sumi); font-weight: 700; font-size: 26px; letter-spacing: .02em;
   font-variant-numeric: tabular-nums; box-shadow: inset 0 -3px 0 var(--shu); }
 .diferencia { display: flex; align-items: center; justify-content: center; gap: 6px; background: rgba(22, 20, 18, .9);
   font-weight: 700; font-size: 18px; font-variant-numeric: tabular-nums; color: var(--hai); }
@@ -98,7 +101,8 @@ body.oculto #lienzo { opacity: 0; transform: translateY(-24px); }
   transform: translateX(-50%); animation: avisoEntra .45s cubic-bezier(.2, .8, .2, 1) both; }
 .aviso[hidden] { display: none; }
 .aviso.sale { animation: avisoSale .4s ease-in both; }
-.aviso .hanko { width: 50px; height: 50px; font-size: 30px; transform: rotate(-4deg); flex: none; }
+/* El logo del clan que se lleva el objetivo; el color de la raya de arriba dice qué ha sido */
+.aviso-logo { width: 52px; height: 50px; object-fit: contain; flex: none; }
 .aviso .aviso-texto { display: flex; flex-direction: column; min-width: 0; }
 .aviso-quien { font-family: var(--mincho); font-weight: 800; font-size: 25px; line-height: 1.22; }
 .aviso-que { font-size: 16px; color: #CFC6B6; }
@@ -106,8 +110,8 @@ body.oculto #lienzo { opacity: 0; transform: translateY(-24px); }
 @keyframes avisoSale { to { opacity: 0; transform: translate(-50%, -10px); } }
 
 /* ---------- Línea por línea ---------- */
-/* Abajo en el centro, tocando el borde, y un poco más pequeño (al 84 %); sube desde abajo al salir */
-.lineas { position: absolute; bottom: 0; left: 50%; width: 1180px; transform: translateX(-50%) scale(.84); transform-origin: 50% 100%;
+/* Abajo en el centro, tocando el borde, y más pequeño (al 72 %); sube desde abajo al salir */
+.lineas { position: absolute; bottom: 0; left: 50%; width: 1180px; transform: translateX(-50%) scale(.72); transform-origin: 50% 100%;
   background: var(--grano), rgba(34, 30, 26, .97); box-shadow: inset 0 4px 0 var(--shu), 0 -12px 32px rgba(0, 0, 0, .45);
   animation: subir .55s cubic-bezier(.2, .8, .2, 1) both; }
 .lineas[hidden] { display: none; }
