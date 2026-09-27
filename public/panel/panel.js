@@ -547,6 +547,29 @@ $('#pruebaPartida').onclick = async () => {
   if (r.ok) aviso(activa ? 'Partida de prueba en marcha: mira el overlay de partida' : 'Partida de prueba parada');
 };
 
+// ---------- Objetivos a mano (el cliente no da dragones, heraldo ni Barón a los espectadores) ----------
+const DRAGONES_PANEL = [['infernal', '炎', 'Infernal', '#E0592A'], ['oceano', '海', 'Océano', '#3A8FD9'], ['montana', '山', 'Montaña', '#A07D4F'],
+  ['nube', '雲', 'Nube', '#C8DFE4'], ['hextech', '雷', 'Hextech', '#2BC6C0'], ['quimtech', '毒', 'Quimtech', '#8DBF3F'], ['ancestral', '龍', 'Ancestral', '#C3A3EA']];
+$('.marcas').innerHTML = ['azul', 'rojo'].map(lado => `<div class="marca-lado ${lado}" data-lado="${lado}"><b class="quien">Lado ${lado}</b><div class="botones">
+  ${DRAGONES_PANEL.map(([id, kanji, nombre, color]) => `<button type="button" class="marca" data-tipo="dragon" data-dragon="${id}" style="--color:${color}"><span>${kanji}</span>${nombre}</button>`).join('')}
+  <button type="button" class="marca" data-tipo="heraldo" style="--color:#8F7AE8"><span>使</span>Heraldo</button>
+  <button type="button" class="marca" data-tipo="baron" style="--color:#9B59D0"><span>蛇</span>Barón</button></div></div>`).join('');
+const nombreDelLado = lado => (estado?.equipos?.[lado]?.clan && estado.equipos[lado].clan !== 'NONAME' ? clanes.clan(estado.equipos[lado].clan).nombre : `Lado ${lado}`);
+document.querySelectorAll('.marcas .marca').forEach(b => b.addEventListener('click', async () => {
+  if (!ultimaPartida?.activo) return aviso('No hay ninguna partida en marcha');
+  const lado = b.closest('.marca-lado').dataset.lado;
+  const r = await enviar('marcarObjetivo', { tipo: b.dataset.tipo, lado, dragon: b.dataset.dragon });
+  if (r.ok) aviso(`${b.textContent.slice(1).trim()} para ${nombreDelLado(lado)}`);
+}));
+$('#deshacerMarca').onclick = async () => { const r = await enviar('deshacerObjetivo'); if (r.ok) aviso('Última marca deshecha'); };
+$('#avisosPropios').onchange = e => enviar('avisosPropios', { activos: e.target.checked });
+function pintarMarcas() {
+  document.querySelectorAll('.marca-lado').forEach(caja => { caja.querySelector('.quien').textContent = nombreDelLado(caja.dataset.lado); });
+  $('#avisosPropios').checked = Boolean(estado?.avisosPropios);
+}
+const pintarAntesMarcas = pintar;
+pintar = function () { pintarAntesMarcas(); pintarMarcas(); };
+
 // El panel ya está entero: se pinta lo que haya llegado mientras cargaba
 listo = true;
 if (estado) pintar();

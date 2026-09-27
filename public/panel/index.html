@@ -125,7 +125,13 @@
         </select>
         <button id="verPartida" class="secundario">Ocultar el marcador</button>
       </div>
-      <p class="ayuda">El línea por línea compara a cada jugador con su rival (objetos, oro, KDA, súbditos y nivel) y sale en el centro de la pantalla: úsalo en los momentos tranquilos. Los temporizadores de los objetivos, los buffs y los avisos salen solos.</p>
+      <div class="fila"><label class="casilla"><input type="checkbox" id="avisosPropios"> Avisos propios de objetivos, con el logo del clan (si no, se ven los del propio LoL)</label></div>
+      <p class="ayuda">El línea por línea compara a cada jugador con su rival (objetos, oro, KDA, súbditos y nivel) y sale abajo en el centro: úsalo en los momentos tranquilos. Los temporizadores y los buffs salen solos.</p>
+
+      <h3>Objetivos a mano</h3>
+      <p class="ayuda">Como espectador, el cliente de LoL no da los dragones, el heraldo ni el Barón. Márcalos aquí cuando caigan: los dragones de cada clan salen debajo del reloj y sus temporizadores se ponen en marcha. Si el cliente sí los da, las marcas no cuentan.</p>
+      <div class="marcas"></div>
+      <div class="fila"><button id="deshacerMarca" class="secundario">Deshacer la última marca</button></div>
 
       <h3>Probar sin jugar</h3>
       <div class="fila"><button id="pruebaPartida" class="secundario">Empezar una partida de prueba</button></div>

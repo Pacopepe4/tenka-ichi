@@ -24,7 +24,7 @@ body.oculto #lienzo { opacity: 0; transform: translateY(-24px); }
 .azul .placa .kills { text-align: right; }
 .rojo .placa .kills { text-align: left; }
 
-/* Segunda fila: oro, torres, larvas y dragones */
+/* Segunda fila: oro, torres y larvas (los dragones van debajo del reloj) */
 .datos { display: flex; align-items: center; gap: 16px; padding: 0 18px; background: rgba(22, 20, 18, .9);
   font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .azul .datos { justify-content: flex-end; padding-right: 46px; clip-path: polygon(0 0, calc(100% - 26px) 0, calc(100% - 38px) 100%, 0 100%); }
@@ -67,8 +67,17 @@ body.oculto #lienzo { opacity: 0; transform: translateY(-24px); }
 @keyframes latido { 50% { filter: drop-shadow(0 0 7px var(--color)); } }
 
 /* ---------- Temporizadores de objetivos (debajo del reloj) ---------- */
-.temporizadores { position: absolute; top: 106px; left: 50%; transform: translateX(-50%); display: flex; gap: 16px; padding: 7px 26px 9px;
+.temporizadores { position: absolute; top: 106px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center;
+  gap: 7px; min-width: 200px; padding: 8px 26px 9px;
   background: var(--grano), rgba(22, 20, 18, .94); clip-path: polygon(0 0, 100% 0, calc(100% - 16px) 100%, 16px 100%); }
+.relojes { display: flex; gap: 16px; }
+.relojes:empty { display: none; }
+/* Dragones de cada clan: azul a la izquierda y rojo a la derecha, 4 huecos hasta el alma */
+.dragones-equipos { display: flex; align-items: center; gap: 12px; }
+.dragones-equipos .dragones { gap: 7px; }
+.dragones-equipos .dragones i { width: 12px; height: 12px; }
+.dragones i.vacio { background: transparent; box-shadow: inset 0 0 0 1.5px rgba(231, 223, 210, .32); }
+.dragones-equipos .separador { width: 1px; height: 14px; background: var(--hai); opacity: .5; }
 .temporizador { display: flex; align-items: center; gap: 8px; }
 .temporizador .texto { display: flex; flex-direction: column; line-height: 1.1; min-width: 50px; }
 .temporizador small, .modulo small { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--hai); }

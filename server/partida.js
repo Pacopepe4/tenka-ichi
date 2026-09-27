@@ -47,7 +47,24 @@ const GRACIA_PARTIDA_MS = 20000; // sin datos de la partida durante 20 s, se da 
 // Cada partida lleva un número: así el servidor sabe si la que ha terminado es la misma de antes
 let numeroPartida = 0;
 const vacia = () => ({ numero: ++numeroPartida, tiempo: 0, recibido: 0, velocidad: 1, prueba: false, sinPartida: true, jugadores: [],
-  eventos: new Map(), ids: new Set(), firmas: new Set(), llegada: new Map() });
+  eventos: new Map(), ids: new Set(), firmas: new Set(), llegada: new Map(), manuales: [] });
+
+// ---------- objetivos marcados a mano desde el panel ----------
+// Como espectador, el cliente no da los dragones, el heraldo ni el Barón (solo al jugar): el panel los
+// marca al caer y cuentan como si hubieran llegado del cliente, con el momento de la partida en que se marcan
+let idManual = 0;
+const SUCESO_MANUAL = { dragon: 'DragonKill', baron: 'BaronKill', heraldo: 'HeraldKill' };
+export function marcarObjetivo({ tipo, lado, dragon }) {
+  if (!SUCESO_MANUAL[tipo] || !['azul', 'rojo'].includes(lado)) return false;
+  const ahora = bruto.recibido ? bruto.tiempo + Math.min(30, (Date.now() - bruto.recibido) / 1000) * (bruto.velocidad || 1) : bruto.tiempo;
+  const id = `panel-${++idManual}`;
+  const tipoDragon = Object.entries(DRAGON).find(([, v]) => v === dragon)?.[0] || 'Fire';
+  bruto.manuales.push({ EventID: id, EventName: SUCESO_MANUAL[tipo], EventTime: Math.round(ahora), lado, manual: true,
+    ...(tipo === 'dragon' ? { DragonType: tipoDragon } : {}) });
+  bruto.llegada.set(id, Date.now());
+  return true;
+}
+export function deshacerMarca() { return Boolean(bruto.manuales.pop()); }
 
 // Algunos sucesos llegan repetidos con otro número (al volver atrás en una repetición): se reconocen por
 // qué pasó, cuándo y a quién. Las larvas no, porque pueden caer dos a la vez del mismo golpe.
@@ -241,7 +258,7 @@ export function resumen() {
     const n = String(nombre).toLowerCase();
     return porNombre.get(n) || porNombre.get(n.split('#')[0]) || duenoEstructura(String(nombre));
   };
-  const ladoDelEvento = ev => ladoDe(ev.KillerName) || (ev.Assisters || []).map(ladoDe).find(Boolean) || null;
+  const ladoDelEvento = ev => ev.lado || ladoDe(ev.KillerName) || (ev.Assisters || []).map(ladoDe).find(Boolean) || null;
 
   const jugadores = { azul: [], rojo: [] };
   const jugadorPorNombre = new Map();  // nombre normalizado → jugador, para las rachas de asesinatos
@@ -272,12 +289,16 @@ export function resumen() {
   let ultimoDragon = null, ultimoBaron = null, heraldoMuerto = false, terminada = false;
   // Solo lo que ya ha pasado según el reloj: en una repetición, al volver atrás el cliente conserva
   // los sucesos que ya se habían visto más adelante
-  const eventos = [...bruto.eventos.values()].filter(ev => !(Number(ev.EventTime) > t + 1))
-    .sort((a, b) => a.EventTime - b.EventTime || a.EventID - b.EventID);
+  // Las marcas del panel solo cuentan para lo que el cliente no da: si da ese suceso, sobran
+  const reales = [...bruto.eventos.values()];
+  const delCliente = new Set(reales.map(ev => ev.EventName));
+  const eventos = [...reales, ...bruto.manuales.filter(m => !delCliente.has(m.EventName))]
+    .filter(ev => !(Number(ev.EventTime) > t + 1))
+    .sort((a, b) => a.EventTime - b.EventTime || (a.manual ? 1 : 0) - (b.manual ? 1 : 0) || a.EventID - b.EventID);
   const nombreDe = n => jugadorPorNombre.get(normalizar(n))?.nombre || String(n || '').split('#')[0];
   const recibidos = {};  // cuántos sucesos de cada tipo han llegado, para ver qué da el cliente
   for (const ev of eventos) {
-    recibidos[ev.EventName] = (recibidos[ev.EventName] || 0) + 1;
+    if (!ev.manual) recibidos[ev.EventName] = (recibidos[ev.EventName] || 0) + 1;
     const aviso = (tipo, lado, extra = {}) => avisos.push({ id: ev.EventID, tipo, lado, t: ev.EventTime, robado: ev.Stolen === 'True' || ev.Stolen === true, ...extra });
     switch (ev.EventName) {
       case 'TurretKilled': {
@@ -376,15 +397,21 @@ export function resumen() {
 
   // Temporizadores de los objetivos neutrales, en el orden en que salen en el overlay:
   // dragón, larvas o heraldo (lo que toque) y Barón. «desde» es cuando empezó la cuenta atrás.
-  // Sin la historia completa, los que ya han podido caer sin que se sepa no salen hasta que caiga el siguiente.
+  // Como espectador, el cliente no da dragones, heraldo ni Barón: pasado su primer momento, cada temporizador
+  // solo sale si se sabe algo de él (el cliente da ese suceso o el panel está marcando los objetivos a mano).
+  // Si no, marcaría «vivo» sin saberlo.
+  const da = nombre => reales.some(ev => ev.EventName === nombre);
+  const daObjetivos = da('DragonKill') || da('BaronKill') || da('HeraldKill');  // al jugar, el cliente los da todos
+  const marcando = bruto.manuales.length > 0;
   const objetivos = [];
   const dragon = !ultimoDragon ? { aparece: REGLAS.primerDragon, desde: 0, ancestral: false }
     : ultimoDragon.tipo === 'ancestral' || conAlma ? { aparece: ultimoDragon.t + REGLAS.reaparicionAncestral, desde: ultimoDragon.t, ancestral: true }
       : { aparece: ultimoDragon.t + REGLAS.reaparicionDragon, desde: ultimoDragon.t, ancestral: false };
-  if (!(historiaIncompleta && !ultimoDragon && t >= REGLAS.primerDragon)) objetivos.push({ tipo: 'dragon', ...dragon });
+  if (t < REGLAS.primerDragon || ultimoDragon || marcando || (da('DragonKill') && !historiaIncompleta)) objetivos.push({ tipo: 'dragon', ...dragon });
   const g = REGLAS.larvasPorGrupo;
   let finLarvas = REGLAS.finLarvas;
-  if (historiaIncompleta && t >= REGLAS.larvas) finLarvas = Math.min(t, REGLAS.finLarvas);
+  const larvasConocidas = muertesLarvas.length > 0 && !historiaIncompleta;
+  if (t >= REGLAS.larvas && !larvasConocidas) finLarvas = Math.min(t, REGLAS.finLarvas);
   else if (t < REGLAS.finLarvas) {
     const n = muertesLarvas.length;
     if (n < g) objetivos.push({ tipo: 'larvas', aparece: REGLAS.larvas, desde: 0, quedan: g - n });
@@ -393,11 +420,14 @@ export function resumen() {
       objetivos.push({ tipo: 'larvas', aparece: fin + REGLAS.reaparicionLarvas, desde: fin, quedan: 2 * g - n });
     } else finLarvas = muertesLarvas.at(-1);
   }
-  if (!objetivos.some(o => o.tipo === 'larvas') && !heraldoMuerto && t < REGLAS.finHeraldo && !(historiaIncompleta && t >= REGLAS.heraldo)) {
+  if (!objetivos.some(o => o.tipo === 'larvas') && !heraldoMuerto && t < REGLAS.finHeraldo
+    && (t < REGLAS.heraldo || marcando || (daObjetivos && !historiaIncompleta))) {
     objetivos.push({ tipo: 'heraldo', aparece: REGLAS.heraldo, desde: Math.min(finLarvas, REGLAS.heraldo), hasta: REGLAS.finHeraldo });
   }
   const proximoBaron = ultimoBaron != null ? ultimoBaron + REGLAS.reaparicionBaron : REGLAS.primerBaron;
-  if (!(historiaIncompleta && ultimoBaron == null && t >= REGLAS.primerBaron)) objetivos.push({ tipo: 'baron', aparece: proximoBaron, desde: ultimoBaron ?? 0 });
+  if (t < REGLAS.primerBaron || ultimoBaron != null || marcando || (daObjetivos && !historiaIncompleta)) {
+    objetivos.push({ tipo: 'baron', aparece: proximoBaron, desde: ultimoBaron ?? 0 });
+  }
 
   const conectado = Date.now() - puente.visto < SIN_DATOS_MS;
   return {

@@ -23,7 +23,7 @@ import { twitchActivo, urlAutorizar, canjearCodigo, usuarioDeToken, usuarioPorNo
 import crypto from 'node:crypto';
 import { cargarFantasy, infoFantasy, cambiarAlineacion, guardarEstadisticas, cerrarAlineaciones } from './fantasy.js';
 import { cargarPartida, recibir as recibirPartida, resumen as resumenPartida, empezarPrueba, pararPrueba, enPrueba, olvidarPartida,
-  ponerContexto } from './partida.js';
+  ponerContexto, marcarObjetivo, deshacerMarca } from './partida.js';
 import { crearZip } from './zip.js';
 
 // Clanes con su plantilla actual (lema, descripción, jugadores) para las páginas
@@ -57,6 +57,8 @@ const estado = {
   buscarPartida: { activa: false, alAcabarDraft: true },
   // Grafismo que el panel saca encima de la partida: { tipo: 'lineas', id } o nada
   grafico: null,
+  // Avisos propios de objetivos en el overlay; apagados, se ven los del propio LoL
+  avisosPropios: false,
   aviso: null,
   hoja: { configurada: false, ok: false, error: null, cuenta: null },
 };
@@ -307,6 +309,18 @@ async function accion(nombre, d = {}) {
       ponerGrafico(tipo, Math.min(300, Math.max(0, Math.round(Number(d.segundos) || 0))));
       break;
     }
+    case 'avisosPropios':
+      estado.avisosPropios = Boolean(d.activos);
+      break;
+    // Dragones, heraldo y Barón marcados a mano (el cliente no se los da a los espectadores)
+    case 'marcarObjetivo':
+      if (!marcarObjetivo(d)) return { ok: false, error: 'Objetivo no válido' };
+      emitirPartida();
+      break;
+    case 'deshacerObjetivo':
+      if (!deshacerMarca()) return { ok: false, error: 'No hay ninguna marca que deshacer' };
+      emitirPartida();
+      break;
     case 'partidaOlvidar':
       pararPrueba();
       emitirPartida(olvidarPartida());

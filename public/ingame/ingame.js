@@ -78,13 +78,17 @@ function pintarPartida() {
     s.querySelector('.torres b').textContent = e.torres;
     s.querySelector('.larvas b').textContent = e.larvas;
     s.querySelector('.larvas').classList.toggle('cero', !e.larvas);
-    const dr = s.querySelector('.dragones');
+    // Dragones de cada clan debajo del reloj: 4 huecos hasta el alma (vacíos, un rombo sin rellenar) y,
+    // detrás, los ancestrales. Empiezan junto al centro y crecen hacia fuera, en espejo
+    const dr = $(`.dragones-equipos .dragones.${lado}`);
     const firma = `${e.dragones.join(',')}|${e.ancestrales}|${e.alma || ''}`;
     if (dr.dataset.firma !== firma) {
       dr.dataset.firma = firma;
       dr.classList.toggle('alma', Boolean(e.alma));
-      const tipos = [...e.dragones, ...Array(e.ancestrales).fill('ancestral')];
-      dr.innerHTML = (lado === 'rojo' ? tipos.reverse() : tipos).map(t => `<i class="d-${t}" title="Dragón ${DRAGON[t]}"></i>`).join('');
+      const huecos = [0, 1, 2, 3].map(i => e.dragones[i]
+        ? `<i class="d-${e.dragones[i]}" title="Dragón ${DRAGON[e.dragones[i]]}"></i>` : '<i class="vacio"></i>');
+      const todos = [...huecos, ...Array(e.ancestrales).fill('<i class="d-ancestral" title="Dragón ancestral"></i>')];
+      dr.innerHTML = (lado === 'azul' ? todos.reverse() : todos).join('');
     }
   }
   const dif = p.azul.oro - p.rojo.oro;
@@ -94,11 +98,12 @@ function pintarPartida() {
   d.querySelector('.flecha').textContent = igual ? '' : dif > 0 ? '◀' : '▶';
   d.querySelector('b').textContent = igual ? 'Oro igualado' : `+${miles(Math.abs(dif))}`;
 
-  // Avisos de objetivos: los que ya estaban al abrir el overlay no se repiten
+  // Avisos de objetivos: los que ya estaban al abrir el overlay no se repiten. Solo si el panel los tiene
+  // encendidos; si no, se ven los del propio LoL
   for (const a of p.avisos || []) {
     if (vistos.has(a.id)) continue;
     vistos.add(a.id);
-    if (!primeraPartida) encolarAviso(a);
+    if (!primeraPartida && estado?.avisosPropios) encolarAviso(a);
   }
   primeraPartida = false;
   siguienteAviso();
@@ -108,7 +113,7 @@ function pintarPartida() {
 // ---------- temporizadores de los objetivos neutrales ----------
 function pintarTemporizadores() {
   const t = tiempoAhora();
-  lista($('.temporizadores'), (partida.objetivos || []).map(o => ({ ...o, clave: o.tipo })), o => {
+  lista($('.temporizadores .relojes'), (partida.objetivos || []).map(o => ({ ...o, clave: o.tipo })), o => {
     const el = document.createElement('div');
     el.className = `temporizador ${o.tipo}`;
     el.innerHTML = `<span class="sello">${enso()}<span class="kanji">${OBJETIVO[o.tipo]?.kanji || '天'}</span></span><span class="texto"><small></small><b></b></span>`;

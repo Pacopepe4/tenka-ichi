@@ -171,3 +171,13 @@ code { background: var(--sumi-alzado); padding: 2px 6px; border-radius: 3px; wor
 .resumen-partida dt.azul { color: var(--azul-lado); }
 .resumen-partida dt.rojo { color: #E4474C; }
 .resumen-partida dd { margin: 0; color: var(--hai); }
+/* Objetivos marcados a mano: una fila por clan con los dragones, el heraldo y el Barón */
+.marcas { display: grid; gap: 12px; margin-top: 10px; }
+.marca-lado { display: grid; gap: 6px; padding-left: 12px; border-left: 4px solid var(--azul-lado); }
+.marca-lado.rojo { border-left-color: var(--rojo-lado); }
+.marca-lado .quien { font-size: 14px; }
+.marca-lado .botones { display: flex; flex-wrap: wrap; gap: 6px; }
+button.marca { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; background: transparent; color: var(--washi);
+  border: 1px solid var(--sumi-linea); box-shadow: inset 3px 0 0 var(--color); font-size: 13px; font-weight: 600; }
+button.marca span { font-family: var(--mincho); font-weight: 800; font-size: 15px; color: var(--color); }
+button.marca:hover { background: transparent; border-color: var(--color); }
