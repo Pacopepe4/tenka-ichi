@@ -41,11 +41,20 @@ const OTRO = { azul: 'rojo', rojo: 'azul' };
 const DRAGON = { Fire: 'infernal', Water: 'oceano', Earth: 'montana', Air: 'nube', Hextech: 'hextech', Chemtech: 'quimtech', Elder: 'ancestral' };
 const ROLES = ['TOP', 'JUNGLA', 'MEDIO', 'ADC', 'SUPPORT'];
 const POSICION = { TOP: 0, JUNGLE: 1, MIDDLE: 2, MID: 2, BOTTOM: 3, BOT: 3, UTILITY: 4, SUPPORT: 4 };
-const SIN_DATOS_MS = 10000;  // sin datos del puente durante 10 s, la partida se da por parada
+const SIN_DATOS_MS = 10000;      // sin latidos del puente durante 10 s, el puente se da por cerrado
+const GRACIA_PARTIDA_MS = 20000; // sin datos de la partida durante 20 s, se da por parada: un corte corto no quita el marcador
 
 // Cada partida lleva un número: así el servidor sabe si la que ha terminado es la misma de antes
 let numeroPartida = 0;
-const vacia = () => ({ numero: ++numeroPartida, tiempo: 0, recibido: 0, velocidad: 1, prueba: false, sinPartida: true, jugadores: [], eventos: new Map() });
+const vacia = () => ({ numero: ++numeroPartida, tiempo: 0, recibido: 0, velocidad: 1, prueba: false, sinPartida: true, jugadores: [],
+  eventos: new Map(), ids: new Set(), firmas: new Set() });
+
+// Algunos sucesos llegan repetidos con otro número (al volver atrás en una repetición): se reconocen por
+// qué pasó, cuándo y a quién. Las larvas no, porque pueden caer dos a la vez del mismo golpe.
+const UNICOS = new Set(['ChampionKill', 'DragonKill', 'BaronKill', 'HeraldKill', 'TurretKilled', 'InhibKilled', 'GameEnd', 'FirstBlood']);
+const firma = ev => (UNICOS.has(ev.EventName)
+  ? `${ev.EventName}|${Math.round(Number(ev.EventTime) * 10)}|${ev.KillerName || ''}|${ev.VictimName || ev.DragonType || ev.TurretKilled || ev.InhibKilled || ev.Recipient || ''}`
+  : null);
 let bruto = vacia();
 
 // Último latido del puente, haya partida o no: su versión y si está en espera, buscando o en partida
@@ -63,8 +72,10 @@ export function recibir(cuerpo, { prueba = false } = {}) {
       estado: cuerpo?.espera ? 'espera' : cuerpo?.sinPartida ? 'buscando' : 'partida' };
   }
   if (!cuerpo || cuerpo.sinPartida) {
-    // Un latido del puente no para la partida de prueba
-    if (!bruto.prueba) bruto.sinPartida = true;
+    // Si el panel ha parado la búsqueda, el marcador se retira ya. Si solo es que el cliente no contesta
+    // (cargando, un salto en una repetición), sigue con lo último que llegó hasta que pasen 20 s.
+    // Un latido del puente tampoco para la partida de prueba.
+    if (!bruto.prueba && cuerpo?.espera) bruto.sinPartida = true;
     return resumen();
   }
   const tiempo = Number(cuerpo.juego?.gameTime) || 0;
@@ -75,9 +86,18 @@ export function recibir(cuerpo, { prueba = false } = {}) {
   // El puente solo manda los eventos nuevos («desde» es el primero que ha pedido). Si aquí falta el
   // anterior (la web se ha reiniciado a mitad de partida), se le pide que los mande todos otra vez.
   const desde = Number(cuerpo.desde);
-  const reenviar = Number.isInteger(desde) && desde > 0 && !bruto.eventos.has(desde - 1);
+  const reenviar = Number.isInteger(desde) && desde > 0 && !bruto.ids.has(desde - 1);
   // El puente manda la respuesta de eventdata tal cual ({ Events: [...] }); la prueba, la lista
-  for (const ev of cuerpo.eventos || cuerpo.eventosData?.Events || []) if (ev && Number.isInteger(ev.EventID)) bruto.eventos.set(ev.EventID, ev);
+  for (const ev of cuerpo.eventos || cuerpo.eventosData?.Events || []) {
+    if (!ev || !Number.isInteger(ev.EventID)) continue;
+    if (bruto.eventos.has(ev.EventID)) { bruto.eventos.set(ev.EventID, ev); continue; }  // ya lo teníamos
+    if (bruto.ids.has(ev.EventID)) continue;  // ya llegó y se descartó por repetido
+    bruto.ids.add(ev.EventID);
+    const f = firma(ev);
+    if (f && bruto.firmas.has(f)) continue;  // el mismo suceso repetido con otro número
+    if (f) bruto.firmas.add(f);
+    bruto.eventos.set(ev.EventID, ev);
+  }
   return { ...resumen(), reenviar };
 }
 
@@ -333,7 +353,7 @@ export function resumen() {
   const conectado = Date.now() - puente.visto < SIN_DATOS_MS;
   return {
     numero: bruto.numero,
-    activo: !bruto.sinPartida && Date.now() - bruto.recibido < SIN_DATOS_MS,
+    activo: !bruto.sinPartida && Date.now() - bruto.recibido < GRACIA_PARTIDA_MS,
     puente: { conectado, version: puente.version, estado: conectado ? puente.estado : null },
     sinPartida: bruto.sinPartida, prueba: bruto.prueba, terminada,
     tiempo: t, velocidad: bruto.velocidad, recibido: bruto.recibido,

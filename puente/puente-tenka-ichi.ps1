@@ -104,6 +104,7 @@ $buscar = $false
 $ultimoEvento = -1
 $tiempoAnterior = 0
 $enPartida = $false
+$fallosSeguidos = 0
 $ultimoLatido = [DateTime]::MinValue
 $ultimoMensaje = [DateTime]::MinValue
 $avisadoEspera = $false
@@ -145,6 +146,7 @@ while ($true) {
     $eventos = LeerCliente "/liveclientdata/eventdata?eventID=$desde"
     $lista = @(($eventos | ConvertFrom-Json).Events)
     foreach ($ev in $lista) { if ($ev -and [int]$ev.EventID -gt $ultimoEvento) { $ultimoEvento = [int]$ev.EventID } }
+    $fallosSeguidos = 0
 
     if (-not $enPartida) {
       Write-Host "$(Hora)  Partida encontrada: empieza el marcador de Tenka Ichi." -ForegroundColor Green
@@ -170,7 +172,14 @@ while ($true) {
       Start-Sleep -Seconds 2
     }
   } catch {
-    # Sin partida: el cliente no responde en 127.0.0.1:2999
+    # El cliente no responde en 127.0.0.1:2999. En plena partida, un corte de unos segundos (cargando,
+    # saltando en una repetición) no la da por terminada: tiene que fallar 4 veces seguidas
+    if ($enPartida -and $fallosSeguidos -lt 4) {
+      $fallosSeguidos++
+      Start-Sleep -Seconds 1
+      continue
+    }
+    $fallosSeguidos = 0
     if ($enPartida) {
       Write-Host "$(Hora)  La partida ha terminado o se ha cerrado el cliente." -ForegroundColor Yellow
       $enPartida = $false
