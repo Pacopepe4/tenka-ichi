@@ -23,6 +23,7 @@ function aviso(texto) {
 
 const directo = conectarDirecto({
   alEstado: e => { estado = e; pintar(); },
+  alPartida: p => pintarPartidaPanel(p),
   alConexion: ok => {
     const p = $('#estadoConexion');
     p.textContent = ok ? 'En directo' : 'Sin conexión, reintentando…';
@@ -415,3 +416,39 @@ $('#alternarAlineaciones').onclick = async () => {
 };
 const pintarGachaAntes = pintarGacha;
 pintarGacha = function (g) { pintarGachaAntes(g); pintarAlineaciones(g.cerrado); };
+
+// ---------- Partida en directo (overlay /ingame/) ----------
+let ultimaPartida = null;
+const mmss = s => { s = Math.max(0, Math.floor(s)); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; };
+const milesOro = n => `${(n / 1000).toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}k`;
+function pintarPartidaPanel(p) {
+  ultimaPartida = p;
+  const est = $('#estadoPartida');
+  if (p.activo) {
+    est.className = 'estado ok';
+    est.textContent = `${p.prueba ? 'Partida de prueba' : 'Partida en directo'} · ${mmss(p.tiempo)}${p.terminada ? ' · terminada' : ''}`;
+  } else {
+    est.className = 'estado mal';
+    est.textContent = p.puente && p.sinPartida ? 'El puente está abierto, pero no hay ninguna partida en el cliente de LoL.' : 'Sin datos del puente.';
+  }
+  const nombre = lado => clanes.clan(estado?.equipos?.[lado]?.clan || 'NONAME').nombre;
+  $('#resumenPartida').innerHTML = p.activo ? ['azul', 'rojo'].map(lado => {
+    const e = p[lado];
+    const extra = [e.dragones.length ? `${e.dragones.length} dragones` : '', e.alma ? 'alma' : '', e.larvas ? `${e.larvas} larvas` : '',
+      e.heraldos ? 'heraldo' : '', e.barones ? `${e.barones} barón` : '', e.ancestrales ? 'ancestral' : ''].filter(Boolean).join(', ');
+    return `<dt class="${lado}">${nombre(lado)}</dt><dd>${e.kills} asesinatos · ${milesOro(e.oro)} de oro en objetos · ${e.torres} torres${extra ? ` · ${extra}` : ''}</dd>`;
+  }).join('') + (p.eventosSinReconocer?.length ? `<dt>Eventos que el overlay aún no sabe pintar</dt><dd>${p.eventosSinReconocer.join(', ')}</dd>` : '') : '';
+  $('#pruebaPartida').textContent = p.prueba && p.activo ? 'Parar la partida de prueba' : 'Empezar una partida de prueba';
+  $('#pruebaPartida').dataset.activa = p.prueba && p.activo ? '1' : '0';
+}
+function pintarVisibilidadPartida() {
+  $('#verPartida').textContent = estado?.partidaVisible === false ? 'Mostrar el marcador' : 'Ocultar el marcador';
+}
+const pintarAntesPartida = pintar;
+pintar = function () { pintarAntesPartida(); pintarVisibilidadPartida(); };
+$('#verPartida').onclick = () => enviar('partidaVisible', { visible: estado?.partidaVisible === false });
+$('#pruebaPartida').onclick = async () => {
+  const activa = $('#pruebaPartida').dataset.activa !== '1';
+  const r = await enviar('partidaPrueba', { activa });
+  if (r.ok) aviso(activa ? 'Partida de prueba en marcha: mira el overlay de partida' : 'Partida de prueba parada');
+};

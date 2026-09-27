@@ -39,6 +39,13 @@ const campeones = Object.values(es.data)
   .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
 await writeFile(path.join(destino, 'campeones.json'), JSON.stringify({ version, campeones }, null, 1));
 
+// Precio total de cada objeto: con él se calcula el oro de cada equipo en el overlay de partida
+const objetosEs = await json(`${CDN}/cdn/${version}/data/es_ES/item.json`);
+const objetos = Object.fromEntries(Object.entries(objetosEs.data)
+  .map(([id, o]) => [id, { nombre: o.name, oro: o.gold?.total ?? 0 }]));
+await writeFile(path.join(destino, 'objetos.json'), JSON.stringify({ version, objetos }));
+console.log(`${Object.keys(objetos).length} objetos con su precio.`);
+
 const tareas = campeones.flatMap(c => [
   [`${CDN}/cdn/${version}/img/champion/${c.id}.png`, path.join(destino, 'icono', `${c.id}.png`)],
   [`${CDN}/cdn/img/champion/splash/${c.id}_0.jpg`, path.join(destino, 'splash', `${c.id}.jpg`)],

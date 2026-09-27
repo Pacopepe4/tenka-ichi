@@ -47,3 +47,12 @@
 - Gachapon en /gachapon/: entrar con Twitch, 2 sobres al empezar, 3 cartas por sobre con rareza según la tier, más sobres con puntos del canal (recompensa creada por la web), regalos desde el panel. Pestañas Gachapon y Ajustes en Sheets.
 - Pendiente del usuario: registrar la app en dev.twitch.tv y poner TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET y SESION_SECRETO en Render; conectar el canal desde el panel.
 - Fantasy: alineación de una carta por rol, puntos por partida (jugar +1, ganar +3, K +1, D −1, A +0,5, MVP +3) con el KDA apuntado en el panel, clasificación de coleccionistas y cierre de alineaciones durante la jornada. Pestañas Estadisticas y Alineaciones en Sheets.
+
+## 27/09: marcador de partida (overlay in-game) y paquete del directo en Drive
+
+- Marcador en `/ingame/` al estilo de Blue Bottle con la estética de Tenka Ichi: asesinatos, oro (valor de los objetos), torres, larvas, dragones y alma, reloj, diferencia de oro, cuentas atrás (dragón, ancestral, Barón, buffs, inhibidores) y aviso con sello cuando un clan se lleva un objetivo.
+- Puente para el PC del espectador (`puente/`, PowerShell sin instalar nada): lee la Live Client Data API y lo manda a `/api/partida`; oculta la barra de marcador del juego si la Replay API está activada. Se descarga desde la guía (zip hecho al vuelo, sin `clave.txt`).
+- Panel: apartado Partida (resumen, ocultar o mostrar, partida de prueba). Guía: sección «Marcador durante la partida».
+- Probado de punta a punta en local con un cliente de LoL falso (puente → servidor → overlay). Falta probarlo con una partida real en modo espectador para confirmar los nombres de los eventos nuevos (larvas, Atakhan) y la Replay API.
+- Vídeos y música del directo fuera del repositorio: `koryu-budo/paquete-stream/` sincronizado con Drive y enlazado desde la guía. Borrado `public/stream/`.
+- Pendiente del usuario: compartir la carpeta paquete-stream de Drive como «Cualquier persona con el enlace · Lector» cuando termine de subir.

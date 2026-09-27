@@ -4,8 +4,9 @@ Web de la liga TENKA ICHI de Koryu Budo. Refleja en directo un draft de **DraftC
 
 - **Portada pública:** `/` (los trece clanes en baraja, su plantilla, clasificación y campeones más presentes)
 - **Panel de producción:** `/panel/` (con contraseña)
-- **Guía de retransmisión:** `/guia/` (enlaces, montaje en OBS, dónde va cada cámara y los vídeos de inicio, transición y final para descargar; es lo que se le pasa a quien lleva OBS)
+- **Guía de retransmisión:** `/guia/` (enlaces, montaje en OBS, dónde va cada cámara, la carpeta de Drive con los vídeos y la música, y el marcador de partida; es lo que se le pasa a quien lleva OBS)
 - **Overlay para OBS:** `/overlay/` (1920×1080, con fondo de tinta y de 0 a 4 cámaras; `?transparente=1` quita el fondo y `?guia=1` marca los huecos de las cámaras)
+- **Overlay de partida:** `/ingame/` (1920×1080 transparente, encima del juego: marcador en directo con los datos que manda el puente)
 
 ## Arrancar en tu PC
 
@@ -72,10 +73,14 @@ server/sheets.js       acceso a Google Sheets con cuenta de servicio
 server/plantillas.js   lema, descripción y jugadores de cada clan
 server/stats.js        porcentajes por campeón y resumen de la liga
 server/clanes.js       clanes, colores y roles
+server/partida.js      marcador de partida con lo que manda el puente, y la partida de prueba
+server/zip.js          zip mínimo para descargar el puente
+puente/                puente del PC del espectador (PowerShell) y su LEEME
 data-proyecto/         plantillas.json (va en el repositorio)
 public/index.html      portada pública (inicio.css, inicio.js)
 public/panel/          panel de producción
 public/overlay/        overlay para OBS
+public/ingame/         overlay de partida (marcador encima del juego)
 public/marca.css       colores y tipografías de marca compartidos
 public/clanes/         arte vertical de cada samurái
 public/ddragon/        datos e imágenes de Data Dragon (npm run ddragon)
@@ -128,7 +133,21 @@ El overlay tiene de 0 a 4 huecos transparentes en el centro, entre los picks. Se
 
 ## Vídeos del stream
 
-`public/stream/` tiene los vídeos terminados (inicio, transición y final) que se descargan desde la guía. Se hacen en `koryu-budo/flow/` (prompts y montaje en `flow/bucles-stream.md`); si se rehacen, se copian aquí desde `flow/final/`.
+Los vídeos terminados (inicio y final con su música, transición, cabeceras de La Izakaya) y la música suelta para OBS pesan demasiado para el repositorio y para Render: están en `koryu-budo/paquete-stream/`, que se sincroniza con la carpeta **paquete-stream** de Drive, y la guía enlaza esa carpeta (compartida como «Cualquier persona con el enlace · Lector»). Se hacen en `koryu-budo/flow/` y `koryu-budo/musica/`; si se rehacen, se vuelven a copiar a `paquete-stream/`.
+
+## Marcador de partida (overlay in-game)
+
+`/ingame/` va encima de la captura del juego en OBS, como Blue Bottle o el antiguo LeagueBroadcast pero con la estética de Tenka Ichi: asesinatos, oro, torres, larvas y dragones de cada clan, reloj, diferencia de oro, cuentas atrás (próximo dragón y Barón, buff de Barón y de ancestral, inhibidores) y un aviso cuando un clan se lleva un objetivo. Los clanes salen del enfrentamiento del panel.
+
+Cómo llegan los datos:
+
+1. En el PC que mira la partida como espectador corre el **puente** (`puente/`, se descarga desde la guía en `/puente/puente-tenka-ichi.zip`, que el servidor comprime al vuelo sin `clave.txt`). Es un script de PowerShell 5.1: no instala nada.
+2. Cada segundo lee la **Live Client Data API** del cliente (`https://127.0.0.1:2999/liveclientdata/gamestats`, `playerlist` y `eventdata?eventID=`), con el certificado propio de Riot aceptado solo para 127.0.0.1, y lo manda con `POST /api/partida` y la contraseña del panel en `X-Clave`.
+3. `server/partida.js` lo convierte en el marcador y lo reparte por WebSocket (mensaje `partida`). Si la **Replay API** está activada (`EnableReplayApi=1` en `[General]` de `game.cfg`), el puente oculta la barra de marcador del juego con `POST /replay/render {"interfaceScore":false}`.
+
+Límites: la API no da a los espectadores el oro sin gastar, así que el oro de cada clan es el valor de sus objetos (precios de `public/ddragon/objetos.json`, que genera `npm run ddragon`). Los tiempos de los objetivos están en `REGLAS` de `server/partida.js` y hay que revisarlos si un parche los cambia. Los eventos que no reconoce salen en el panel, en **Partida**, para añadirlos.
+
+En el panel, **Partida** enseña el resumen, oculta o muestra el overlay y arranca una **partida de prueba** (seis veces más rápida) para montar la escena sin jugar; se para sola si llega una partida de verdad.
 
 ## Directo
 

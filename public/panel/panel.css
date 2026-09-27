@@ -148,3 +148,12 @@ code { background: var(--sumi-alzado); padding: 2px 6px; border-radius: 3px; wor
 .fila-kda label { flex-direction: row; align-items: center; justify-content: center; gap: 4px; font-size: 12px; }
 .cabeza-kda { display: grid; grid-template-columns: minmax(0, 1fr) repeat(3, 52px) 44px; gap: 6px; font-size: 12px; color: var(--hai); text-align: center; }
 .cabeza-kda span:first-child { text-align: left; }
+
+/* Partida en directo */
+.estado-partida { margin: 4px 0 10px; }
+.resumen-partida { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0 0 12px; font-size: 15px; }
+.resumen-partida:empty { display: none; }
+.resumen-partida dt { font-weight: 700; }
+.resumen-partida dt.azul { color: var(--azul-lado); }
+.resumen-partida dt.rojo { color: #E4474C; }
+.resumen-partida dd { margin: 0; color: var(--hai); }

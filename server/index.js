@@ -22,6 +22,8 @@ import { firmar, verificar, leerCookies, ponerCookie } from './sesion.js';
 import { twitchActivo, urlAutorizar, canjearCodigo, usuarioDeToken, usuarioPorNombre, CANAL } from './twitch.js';
 import crypto from 'node:crypto';
 import { cargarFantasy, infoFantasy, cambiarAlineacion, guardarEstadisticas, cerrarAlineaciones } from './fantasy.js';
+import { cargarPartida, recibir as recibirPartida, resumen as resumenPartida, empezarPrueba, pararPrueba, enPrueba, olvidarPartida } from './partida.js';
+import { crearZip } from './zip.js';
 
 // Clanes con su plantilla actual (lema, descripción, jugadores) para las páginas
 const clanesConPlantilla = () => CLANES.map(c => ({ ...c, ...plantilla(c.id) }));
@@ -29,6 +31,9 @@ const clanesConPlantilla = () => CLANES.map(c => ({ ...c, ...plantilla(c.id) }))
 const PUERTO = Number(process.env.PORT) || 3000;
 const CLAVE = process.env.PANEL_CLAVE || 'tenkaichi';
 const PUBLICO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
+const PUENTE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'puente');
+const ARCHIVOS_PUENTE = ['Abrir el puente.bat', 'puente-tenka-ichi.ps1', 'LEEME.txt'];  // clave.txt nunca va dentro
+let zipPuente = null;
 
 const vacio = () => ({ azul: Array(5).fill(null), rojo: Array(5).fill(null) });
 
@@ -45,6 +50,8 @@ const estado = {
   // Cámaras del overlay: cuántas se ven (0-4) y qué es cada una
   // tipo: 'caster', 'azul' o 'rojo' (sigue al clan de ese lado) o el id de un clan
   camaras: { cantidad: 0, lista: Array.from({ length: 4 }, () => ({ tipo: 'caster', nombre: '', detalle: '' })) },
+  // Overlay de partida (/ingame/): el panel puede ocultarlo aunque llegue la partida del puente
+  partidaVisible: true,
   aviso: null,
   hoja: { configurada: false, ok: false, error: null, cuenta: null },
 };
@@ -55,6 +62,16 @@ function emitir() {
   const msg = JSON.stringify({ tipo: 'estado', estado });
   for (const ws of clientes) if (ws.readyState === 1) ws.send(msg);
 }
+
+// La partida en directo va en su propio mensaje: llega cada segundo y no hace falta reenviar todo el estado
+let partidaActiva = false;
+function emitirPartida(partida = resumenPartida()) {
+  partidaActiva = partida.activo;
+  const msg = JSON.stringify({ tipo: 'partida', partida });
+  for (const ws of clientes) if (ws.readyState === 1) ws.send(msg);
+}
+// Si el puente deja de mandar datos, avisa al overlay para que se retire
+setInterval(() => { if (partidaActiva && !resumenPartida().activo) emitirPartida(); }, 3000);
 
 // ---------- avisos de pick/ban con estadísticas ----------
 let idAviso = 0;
@@ -230,6 +247,21 @@ async function accion(nombre, d = {}) {
     case 'limpiarAviso':
       estado.aviso = null;
       break;
+    case 'partidaPrueba':
+      if (d.activa) {
+        empezarPrueba({ picks: estado.draft.picks, jugadores: { azul: estado.equipos.azul.jugadores, rojo: estado.equipos.rojo.jugadores } }, emitirPartida);
+      } else {
+        pararPrueba();
+        emitirPartida();
+      }
+      return { ok: true, prueba: enPrueba() };
+    case 'partidaVisible':
+      estado.partidaVisible = Boolean(d.visible);
+      break;
+    case 'partidaOlvidar':
+      pararPrueba();
+      emitirPartida(olvidarPartida());
+      break;
     default:
       return { ok: false, error: `Acción desconocida: ${nombre}` };
   }
@@ -258,10 +290,10 @@ function infoGacha(u) {
   };
 }
 
-function leerCuerpo(req) {
+function leerCuerpo(req, limite = 1e5) {
   return new Promise((ok, mal) => {
     let s = '';
-    req.on('data', d => { s += d; if (s.length > 1e5) { mal(new Error('Petición demasiado grande')); req.destroy(); } });
+    req.on('data', d => { s += d; if (s.length > limite) { mal(new Error('Petición demasiado grande')); req.destroy(); } });
     req.on('end', () => { try { ok(JSON.parse(s || '{}')); } catch { mal(new Error('Petición no válida')); } });
     req.on('error', mal);
   });
@@ -407,6 +439,39 @@ const servidor = http.createServer(async (req, res) => {
     return res.end(JSON.stringify({ hoja: estadoHoja() }));
   }
   if (url.pathname === '/salud') { res.writeHead(200); return res.end('ok'); }
+  // El puente del PC del espectador manda aquí la partida cada segundo (con la contraseña del panel)
+  if (url.pathname === '/api/partida') {
+    if (req.method === 'GET') return json(res, resumenPartida());
+    if (req.method !== 'POST') return json(res, { ok: false, error: 'Método no permitido' }, 405);
+    if (req.headers['x-clave'] !== CLAVE) return json(res, { ok: false, error: 'Contraseña incorrecta' }, 401);
+    try {
+      const cuerpo = await leerCuerpo(req, 3e6);
+      if (enPrueba() && !cuerpo.sinPartida) pararPrueba();  // llega una partida de verdad: fuera la prueba
+      const partida = recibirPartida(cuerpo);
+      emitirPartida(partida);
+      return json(res, { ok: true, tiempo: partida.tiempo, ocultarMarcador: estado.partidaVisible, reenviar: Boolean(partida.reenviar),
+        sinReconocer: partida.eventosSinReconocer });
+    } catch (e) {
+      return json(res, { ok: false, error: e.message }, 400);
+    }
+  }
+  // El puente, comprimido al vuelo con lo que hay en puente/ para que la descarga no se quede atrás
+  if (url.pathname === '/puente/puente-tenka-ichi.zip') {
+    try {
+      zipPuente ??= crearZip(await Promise.all(ARCHIVOS_PUENTE.map(async nombre => {
+        const ruta = path.join(PUENTE, nombre);
+        // Son archivos para Windows: saltos de línea CRLF, venga el repositorio como venga
+        const texto = (await readFile(ruta, 'utf8')).replace(/\r?\n/g, '\r\n');
+        return { nombre, datos: Buffer.from(texto, 'utf8'), fecha: (await stat(ruta)).mtime };
+      })));
+      res.writeHead(200, { 'Content-Type': 'application/zip', 'Content-Disposition': 'attachment; filename="puente-tenka-ichi.zip"', 'Cache-Control': 'no-cache' });
+      return res.end(zipPuente);
+    } catch (e) {
+      console.error('Zip del puente:', e.message);
+      res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+      return res.end('No se ha podido preparar el puente');
+    }
+  }
   let ruta = decodeURIComponent(url.pathname);
   if (ruta.endsWith('/')) ruta += 'index.html';
   const archivo = path.join(PUBLICO, path.normalize(ruta));
@@ -428,6 +493,7 @@ const wss = new WebSocketServer({ server: servidor, path: '/ws' });
 wss.on('connection', ws => {
   clientes.add(ws);
   ws.send(JSON.stringify({ tipo: 'estado', estado }));
+  ws.send(JSON.stringify({ tipo: 'partida', partida: resumenPartida() }));
   ws.on('close', () => clientes.delete(ws));
   ws.on('message', async raw => {
     let m;
@@ -451,6 +517,7 @@ setInterval(() => { for (const ws of clientes) if (ws.readyState === 1) ws.ping(
 await Promise.all([cargar(), cargarPlantillas(), cargarCalendario(), cargarAjustes()]);
 await Promise.all([cargarTierlist(), cargarGacha()]);
 await cargarFantasy();
+await cargarPartida();
 await cargarCanal().catch(e => console.error('Canal de Twitch:', e.message));
 estado.hoja = estadoHoja();
 servidor.listen(PUERTO, () => {

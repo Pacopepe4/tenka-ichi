@@ -1,0 +1,86 @@
+/* Overlay de partida (1920×1080, fondo transparente). Va encima de la partida en OBS y tapa
+   la barra de marcador del cliente, que el puente oculta con la Replay API si está activada. */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
+body { font-family: var(--gothic); color: var(--washi); }
+#lienzo { position: relative; width: 1920px; height: 1080px; transition: opacity .5s ease, transform .5s ease; }
+body.oculto #lienzo { opacity: 0; transform: translateY(-24px); }
+
+/* ---------- Marcador ---------- */
+.marcador { position: absolute; top: 0; left: 50%; transform: translateX(-50%); display: grid; grid-template-columns: 440px 164px 440px; }
+.lado { display: grid; grid-template-rows: 72px 34px; }
+.placa { position: relative; display: flex; align-items: center; gap: 14px; background: var(--grano), var(--sumi-alzado); overflow: hidden; }
+.azul .placa { padding: 0 34px 0 26px; clip-path: polygon(0 0, 100% 0, calc(100% - 26px) 100%, 0 100%); box-shadow: inset 8px 0 0 var(--azul-lado); }
+.rojo .placa { padding: 0 26px 0 34px; clip-path: polygon(0 0, 100% 0, 100% 100%, 26px 100%); box-shadow: inset -8px 0 0 var(--rojo-lado); }
+.placa .logo { width: 52px; height: 50px; object-fit: contain; flex: none; }
+.placa .equipo { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.rojo .placa .equipo { text-align: right; }
+.placa .nombre { font-family: var(--mincho); font-weight: 800; font-size: 27px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.placa .kanji { font-family: var(--mincho); font-weight: 700; font-size: 15px; line-height: 1.2; color: var(--color-clan, var(--hai)); letter-spacing: .12em; }
+.placa .kills { font-family: var(--mincho); font-weight: 800; font-size: 46px; line-height: 1; font-variant-numeric: tabular-nums; min-width: 1.4em; }
+.azul .placa .kills { text-align: right; }
+.rojo .placa .kills { text-align: left; }
+
+/* Segunda fila: oro, torres, larvas y dragones */
+.datos { display: flex; align-items: center; gap: 16px; padding: 0 18px; background: rgba(22, 20, 18, .9);
+  font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.azul .datos { justify-content: flex-end; padding-right: 46px; clip-path: polygon(0 0, calc(100% - 26px) 0, calc(100% - 38px) 100%, 0 100%); }
+.rojo .datos { justify-content: flex-start; padding-left: 46px; clip-path: polygon(26px 0, 100% 0, 100% 100%, 38px 100%); }
+.dato { display: inline-flex; align-items: center; gap: 6px; }
+.dato svg { width: 17px; height: 17px; color: var(--hai); }
+.dato.oro svg { color: #D9A441; }
+.dato.larvas svg { color: #9B6BD4; }
+.dato.larvas.cero { display: none; }
+.dragones { display: inline-flex; gap: 5px; align-items: center; }
+.dragones i { width: 13px; height: 13px; transform: rotate(45deg); border-radius: 2px; box-shadow: 0 0 0 1.5px rgba(22, 20, 18, .9); }
+.dragones.alma i { box-shadow: 0 0 0 1.5px rgba(22, 20, 18, .9), 0 0 10px currentColor; }
+.d-infernal { background: #E0592A; color: #E0592A; } .d-oceano { background: #3A8FD9; color: #3A8FD9; }
+.d-montana { background: #A07D4F; color: #A07D4F; } .d-nube { background: #C8DFE4; color: #C8DFE4; }
+.d-hextech { background: #2BC6C0; color: #2BC6C0; } .d-quimtech { background: #8DBF3F; color: #8DBF3F; }
+.d-ancestral { background: #C3A3EA; color: #C3A3EA; } .d-dragon { background: var(--hai); color: var(--hai); }
+
+/* Centro: reloj y diferencia de oro */
+.centro { display: grid; grid-template-rows: 72px 34px; text-align: center; }
+.reloj { display: grid; place-items: center; background: var(--sumi); font-weight: 700; font-size: 30px; letter-spacing: .02em;
+  font-variant-numeric: tabular-nums; box-shadow: inset 0 -3px 0 var(--shu); }
+.diferencia { display: flex; align-items: center; justify-content: center; gap: 6px; background: rgba(22, 20, 18, .9);
+  font-weight: 700; font-size: 18px; font-variant-numeric: tabular-nums; color: var(--hai); }
+.diferencia.azul { color: var(--azul-lado); }
+.diferencia.rojo { color: #E4474C; }
+.diferencia .flecha { font-size: 13px; }
+
+/* ---------- Chips: mejoras, próximos objetivos e inhibidores ---------- */
+.chips { position: absolute; top: 116px; display: flex; flex-direction: column; gap: 6px; transition: opacity .3s ease; }
+/* Mientras sale un aviso, los chips se apartan: el aviso ocupa su sitio */
+#lienzo.con-aviso .chips { opacity: 0; }
+/* Las columnas de los lados dejan 212 px en medio para los chips del centro */
+.chips.azul { right: calc(50% + 106px); align-items: flex-end; }
+.chips.rojo { left: calc(50% + 106px); align-items: flex-start; }
+.chips.centro-chips { left: 50%; transform: translateX(-50%); align-items: center; }
+.chip { position: relative; display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px 2px; overflow: hidden;
+  background: rgba(22, 20, 18, .92); box-shadow: inset 4px 0 0 var(--chip, var(--hai)); font-size: 16px; font-weight: 700; white-space: nowrap;
+  animation: chipEntra .35s ease-out both; }
+.chip .t { font-variant-numeric: tabular-nums; color: var(--washi); }
+.chip .n { color: #CFC6B6; font-weight: 500; }
+.chip svg { width: 16px; height: 16px; color: var(--chip, var(--hai)); }
+.chip .barra { position: absolute; left: 4px; bottom: 0; height: 2px; background: var(--chip, var(--hai)); transform-origin: left; }
+.chip.baron { --chip: #9B59D0; } .chip.ancestral { --chip: #C3A3EA; } .chip.dragon { --chip: #B5AC9C; }
+.chip.inhibidor { --chip: var(--hai); } .chip.alma { --chip: #D9A441; }
+@keyframes chipEntra { from { opacity: 0; transform: translateY(-6px); } }
+
+/* ---------- Aviso de objetivo ---------- */
+.aviso { position: absolute; top: 116px; left: 50%; display: flex; align-items: center; gap: 16px; min-width: 520px; padding: 12px 26px 12px 14px;
+  background: var(--grano), var(--sumi-alzado); box-shadow: inset 0 4px 0 var(--aviso, var(--shu)), 0 10px 26px rgba(0, 0, 0, .45);
+  transform: translateX(-50%); animation: avisoEntra .45s cubic-bezier(.2, .8, .2, 1) both; }
+.aviso[hidden] { display: none; }
+.aviso.sale { animation: avisoSale .4s ease-in both; }
+.aviso .hanko { width: 54px; height: 54px; font-size: 32px; transform: rotate(-4deg); flex: none; }
+.aviso .aviso-texto { display: flex; flex-direction: column; }
+.aviso-quien { font-family: var(--mincho); font-weight: 800; font-size: 28px; line-height: 1.25; }
+.aviso-que { font-size: 17px; color: #CFC6B6; }
+@keyframes avisoEntra { from { opacity: 0; transform: translate(-50%, -14px); } }
+@keyframes avisoSale { to { opacity: 0; transform: translate(-50%, -10px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0s !important; transition-duration: 0s !important; }
+}

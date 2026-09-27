@@ -17,7 +17,7 @@ export const splash = id => `/ddragon/splash/${id}.jpg`;
 export const logo = clan => `/logos/${clan}.png`;
 
 // Conexión en directo con reconexión automática
-export function conectarDirecto({ alEstado, alRespuesta, alConexion }) {
+export function conectarDirecto({ alEstado, alRespuesta, alConexion, alPartida }) {
   let ws, pendientes = new Map(), id = 0;
   function abrir() {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
@@ -27,6 +27,7 @@ export function conectarDirecto({ alEstado, alRespuesta, alConexion }) {
     ws.onmessage = e => {
       const m = JSON.parse(e.data);
       if (m.tipo === 'estado') alEstado(m.estado);
+      if (m.tipo === 'partida') alPartida?.(m.partida);
       if (m.tipo === 'respuesta') {
         pendientes.get(m.id)?.(m);
         pendientes.delete(m.id);

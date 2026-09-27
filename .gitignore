@@ -2,3 +2,6 @@ node_modules/
 data/
 .env
 credenciales*.json
+
+# Contraseña que guarda el puente en el PC del espectador
+puente/clave.txt

@@ -7,6 +7,7 @@ const enlaces = {
   guia: `${origen}/overlay/?guia=1`,
   transparente: `${origen}/overlay/?transparente=1`,
   panel: `${origen}/panel/`,
+  ingame: `${origen}/ingame/`,
 };
 
 document.querySelectorAll('.url[data-enlace]').forEach(el => { el.textContent = enlaces[el.dataset.enlace]; });

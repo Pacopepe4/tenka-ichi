@@ -1,0 +1,35 @@
+PUENTE DE TENKA ICHI
+====================
+
+Manda la partida que se está mirando en el cliente de League of Legends a la web de
+Tenka Ichi, que la pinta en el overlay de partida: marcador, oro, torres, dragones,
+Barón, inhibidores y un aviso cada vez que un equipo se lleva un objetivo.
+
+No instala nada: es un script de PowerShell, que ya viene con Windows. Solo lee los
+datos que el propio cliente de LoL ofrece en este ordenador; no toca el juego.
+
+
+PONERLO EN MARCHA
+-----------------
+1. Descomprime esta carpeta en el ordenador donde se mira la partida como espectador.
+2. Doble clic en «Abrir el puente.bat».
+   Si Windows avisa de que el archivo viene de internet, pulsa «Ejecutar»
+   (o «Más información» y «Ejecutar de todas formas»).
+3. La primera vez pide la contraseña del panel. Se guarda en clave.txt, en esta misma
+   carpeta. No compartas ese archivo.
+4. Déjalo abierto toda la jornada. Encuentra solo cada partida y espera entre una y otra.
+
+
+OCULTAR EL MARCADOR DEL PROPIO JUEGO
+------------------------------------
+El marcador de Tenka Ichi va arriba en el centro, donde el juego pone el suyo. El puente
+oculta el del juego si activas una vez la Replay API, con el juego cerrado:
+
+   Abre con el Bloc de notas  C:\Riot Games\League of Legends\Config\game.cfg
+   Busca la línea [General] y añade justo debajo:
+   EnableReplayApi=1
+
+Si instalaste el juego en otra carpeta, game.cfg está dentro de su carpeta Config.
+
+
+Todo lo demás está en la guía: https://tenka-ichi.onrender.com/guia/#ingame

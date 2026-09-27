@@ -13,7 +13,7 @@
   <a class="marca" href="/"><span class="hanko sello">天</span><span>Panel de draft</span></a>
   <p id="estadoConexion" class="pastilla">Conectando…</p>
   <nav class="indice" aria-label="Apartados del panel">
-    <a href="#competicion">Competición</a><a href="#draftcore">DraftCore</a><a href="#enfrentamiento">Enfrentamiento</a><a href="#equipos">Equipos</a><a href="#camaras">Cámaras</a><a href="#draft">Draft</a><a href="#resultado">Resultado</a><a href="#tierlist">Tier list</a><a href="#gachapon">Gachapon</a>
+    <a href="#competicion">Competición</a><a href="#draftcore">DraftCore</a><a href="#enfrentamiento">Enfrentamiento</a><a href="#equipos">Equipos</a><a href="#camaras">Cámaras</a><a href="#draft">Draft</a><a href="#en-partida">Partida</a><a href="#resultado">Resultado</a><a href="#tierlist">Tier list</a><a href="#gachapon">Gachapon</a>
   </nav>
   <label class="clave">Contraseña <input id="clave" type="password" autocomplete="current-password"></label>
 </header>
@@ -101,6 +101,18 @@
       <datalist id="listaCampeones"></datalist>
     </section>
 
+    <section id="en-partida">
+      <h2>Partida en directo</h2>
+      <p class="ayuda">El marcador del overlay de partida sale del cliente de LoL del PC donde se mira la partida: allí tiene que estar abierto el puente (se descarga en <a href="/guia/#ingame" target="_blank">la guía</a>). Los clanes son los del enfrentamiento: el lado azul es el que empieza abajo a la izquierda del mapa.</p>
+      <p id="estadoPartida" class="estado-partida">Sin datos del puente</p>
+      <dl class="resumen-partida" id="resumenPartida"></dl>
+      <div class="fila">
+        <button id="verPartida" class="secundario">Ocultar el marcador</button>
+        <button id="pruebaPartida" class="secundario">Empezar una partida de prueba</button>
+      </div>
+      <p class="ayuda">La partida de prueba se inventa los datos (con los campeones del draft) y va seis veces más rápida: sirve para colocar el overlay en OBS sin jugar. Se para sola cuando llega una partida de verdad.</p>
+    </section>
+
     <section id="resultado">
       <h2>Resultado</h2>
       <p class="ayuda" id="ayudaHoja"></p>
@@ -168,7 +180,7 @@
   <aside>
     <div class="vista"><iframe id="vista" title="Vista previa del overlay" tabindex="-1"></iframe></div>
     <p class="ayuda">En OBS añade una fuente de navegador de 1920×1080 con <code id="urlOverlay"></code> y ponla por encima de las cámaras. Para colocarlas, abre <a id="urlGuia" target="_blank">la guía de cámaras</a>. Si no quieres el fondo de tinta, añade <code>?transparente=1</code> a la dirección.</p>
-    <p class="ayuda">Guía para quien lleva OBS: <a id="urlGuiaRetransmision" href="/guia/" target="_blank"></a>. Los vídeos de inicio, transición y final están en <a href="/guia/#paquete" target="_blank">la misma guía</a>.</p>
+    <p class="ayuda">Guía para quien lleva OBS: <a id="urlGuiaRetransmision" href="/guia/" target="_blank"></a>. Los vídeos y la música del directo están en la carpeta de Drive que enlaza <a href="/guia/#paquete" target="_blank">la misma guía</a>.</p>
     <p class="ayuda">Portada pública: <a id="urlPortada" href="/" target="_blank"></a></p>
   </aside>
 </div>

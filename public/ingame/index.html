@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Overlay de partida · Tenka Ichi</title>
+<link rel="stylesheet" href="/marca.css">
+<link rel="stylesheet" href="ingame.css">
+</head>
+<body class="oculto">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-oro" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.2"/><circle cx="12" cy="12" r="4.2" fill="currentColor"/></symbol>
+    <symbol id="i-torre" viewBox="0 0 24 24"><path d="M6 21h12l-1.6-11H7.6zM6.5 9h11V4h-2.4v2.4h-2V4h-2.2v2.4h-2V4H6.5z" fill="currentColor"/></symbol>
+    <symbol id="i-larva" viewBox="0 0 24 24"><circle cx="7" cy="14" r="3.4" fill="currentColor"/><circle cx="13" cy="10" r="3.8" fill="currentColor"/><circle cx="18" cy="15" r="3" fill="currentColor"/></symbol>
+    <symbol id="i-heraldo" viewBox="0 0 24 24"><path d="M12 3l3 6 6 .8-4.5 4.2 1.1 6.3L12 17.4 6.4 20.3l1.1-6.3L3 9.8 9 9z" fill="currentColor"/></symbol>
+    <symbol id="i-dragon" viewBox="0 0 24 24"><path d="M12 3.5l8.5 8.5-8.5 8.5L3.5 12z" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"/><path d="M12 9l3 3-3 3-3-3z" fill="currentColor"/></symbol>
+    <symbol id="i-baron" viewBox="0 0 24 24"><path d="M4 18c2-7 5-11 8-11s6 4 8 11c-2.6-1.6-5.2-2.2-8-2.2S6.6 16.4 4 18zM9 5l3-3 3 3" fill="currentColor"/></symbol>
+  </defs>
+</svg>
+
+<div id="lienzo">
+  <div class="marcador">
+    <section class="lado azul">
+      <div class="placa">
+        <img class="logo" alt="">
+        <div class="equipo"><span class="nombre"></span><span class="kanji"></span></div>
+        <span class="kills">0</span>
+      </div>
+      <div class="datos">
+        <span class="dato oro"><svg><use href="#i-oro"/></svg><b></b></span>
+        <span class="dato torres"><svg><use href="#i-torre"/></svg><b></b></span>
+        <span class="dato larvas"><svg><use href="#i-larva"/></svg><b></b></span>
+        <span class="dragones"></span>
+      </div>
+    </section>
+
+    <section class="centro">
+      <div class="reloj">00:00</div>
+      <div class="diferencia"><span class="flecha"></span><b></b></div>
+    </section>
+
+    <section class="lado rojo">
+      <div class="placa">
+        <span class="kills">0</span>
+        <div class="equipo"><span class="nombre"></span><span class="kanji"></span></div>
+        <img class="logo" alt="">
+      </div>
+      <div class="datos">
+        <span class="dragones"></span>
+        <span class="dato larvas"><svg><use href="#i-larva"/></svg><b></b></span>
+        <span class="dato torres"><svg><use href="#i-torre"/></svg><b></b></span>
+        <span class="dato oro"><svg><use href="#i-oro"/></svg><b></b></span>
+      </div>
+    </section>
+  </div>
+
+  <!-- Mejoras activas, próximos objetivos e inhibidores caídos -->
+  <div class="chips azul"></div>
+  <div class="chips centro-chips"></div>
+  <div class="chips rojo"></div>
+
+  <!-- Aviso de objetivo -->
+  <div class="aviso" hidden><span class="hanko"></span><div class="aviso-texto"><b class="aviso-quien"></b><span class="aviso-que"></span></div></div>
+</div>
+<script type="module" src="ingame.js"></script>
+</body>
+</html>

@@ -51,35 +51,41 @@
   </section>
 
   <section id="paquete">
-    <h2>Inicio, transición y final</h2>
-    <p>Los vídeos del directo, con los logos de Tenka Ichi y Koryu Budo. Descárgalos una vez y guárdalos en una carpeta del ordenador donde está OBS.</p>
+    <h2>Vídeos y música del directo</h2>
+    <p>Los vídeos llevan ya su música y pesan demasiado para esta web, así que están en una carpeta de Drive. Descárgala entera una vez y guárdala en el ordenador donde está OBS.</p>
     <div class="enlaces">
       <div class="enlace">
-        <div><b>Bucle de inicio, con «Empezamos en breve»</b><span class="url">inicio.mp4 (5,9 MB)</span></div>
-        <a class="copiar" href="/stream/inicio.mp4" download>Descargar</a>
-      </div>
-      <div class="enlace">
-        <div><b>Bucle de inicio, sin texto</b><span class="url">inicio-limpio.mp4 (5,8 MB)</span></div>
-        <a class="copiar" href="/stream/inicio-limpio.mp4" download>Descargar</a>
-      </div>
-      <div class="enlace">
-        <div><b>Transición entre escenas</b><span class="url">transicion.webm (1 MB)</span></div>
-        <a class="copiar" href="/stream/transicion.webm" download>Descargar</a>
-      </div>
-      <div class="enlace">
-        <div><b>Final: atardecer</b><span class="url">final.mp4 (7 MB)</span></div>
-        <a class="copiar" href="/stream/final.mp4" download>Descargar</a>
-      </div>
-      <div class="enlace">
-        <div><b>Final: bucle de noche con el agradecimiento</b><span class="url">final-bucle.mp4 (6,4 MB)</span></div>
-        <a class="copiar" href="/stream/final-bucle.mp4" download>Descargar</a>
+        <div><b>Carpeta de Drive con el paquete</b><span class="url">Tenka Ichi y La Izakaya: vídeos con su música y música suelta para OBS</span></div>
+        <a class="copiar" href="https://drive.google.com/drive/folders/14j3t9yPadYXPUK3pGRzzmM1DzP25hclH" target="_blank" rel="noopener">Abrir</a>
       </div>
     </div>
+
+    <h3>Qué hay en la carpeta</h3>
+    <dl class="problemas">
+      <dt>tenka-ichi/inicio.mp4 · 2:56</dt>
+      <dd>Bucle de inicio con «Empezamos en breve» y la música de espera.</dd>
+      <dt>tenka-ichi/inicio-limpio.mp4 · 2:56</dt>
+      <dd>El mismo sin rótulo, para escribir encima tu propio texto, por ejemplo la hora de inicio.</dd>
+      <dt>tenka-ichi/transicion.webm · 2,1 s</dt>
+      <dd>Transición entre escenas. No tiene sonido.</dd>
+      <dt>tenka-ichi/final.mp4 · 8 s y final-bucle.mp4 · 7 s</dt>
+      <dd>El atardecer y el bucle de noche con el agradecimiento.</dd>
+      <dt>tenka-ichi/musica-draft.flac · 2:54</dt>
+      <dd>Música de fondo para el draft. Va más baja que el resto para no tapar a los casters.</dd>
+      <dt>tenka-ichi/tema.flac · 2:38</dt>
+      <dd>El tema principal de Tenka Ichi.</dd>
+      <dt>la-izakaya/cabecera.mp4 · 58 s</dt>
+      <dd>La cabecera de La Izakaya, con su música.</dd>
+      <dt>la-izakaya/cabecera-corta.mp4 · 9 s</dt>
+      <dd>Versión corta, para volver de las pausas.</dd>
+      <dt>la-izakaya/musica-fondo.flac · 2:37</dt>
+      <dd>Música de fondo para la tertulia, también baja.</dd>
+    </dl>
 
     <h3>Escena de inicio</h3>
     <ol class="pasos">
       <li>Crea una escena llamada «Inicio» y añade una <b>Fuente multimedia</b> con <b>inicio.mp4</b>.</li>
-      <li>Marca <b>Repetir</b>. El vídeo no tiene sonido: la música va en otra fuente.</li>
+      <li>Marca <b>Repetir</b>. Ya lleva la música de espera: dura lo mismo que el tema, casi 3 minutos, y al acabar vuelve a empezar.</li>
     </ol>
     <p class="nota">Si quieres escribir tu propio texto encima, por ejemplo la hora de inicio, usa inicio-limpio.mp4, que no lleva rótulo.</p>
 
@@ -99,11 +105,25 @@
       <li>Al entrar en la escena se ve el atardecer y, cuando acaba, queda la noche con el agradecimiento sin ningún salto. El atardecer lleva viento y una campana; si molesta, baja su volumen en el mezclador de audio.</li>
     </ol>
 
+    <h3>Música del draft</h3>
+    <ol class="pasos">
+      <li>En la escena del overlay, añade una <b>Fuente multimedia</b> con <b>musica-draft.flac</b> y marca <b>Repetir</b>.</li>
+      <li>En el mezclador de audio, déjala por debajo de las voces: tiene que acompañar, no tapar a los casters.</li>
+    </ol>
+
+    <h3>La Izakaya</h3>
+    <ol class="pasos">
+      <li>Al empezar el programa, pon <b>cabecera.mp4</b> en una escena propia, sin repetir. Cuando acabe, pasa a la escena de la tertulia.</li>
+      <li>Para volver de una pausa, usa <b>cabecera-corta.mp4</b> igual.</li>
+      <li>Durante la charla, <b>musica-fondo.flac</b> con <b>Repetir</b> y bajita.</li>
+      <li>Los rótulos de la tertulia (2, 3 o 4 cámaras, pausa y vídeo pregrabado) salen del Canva de La Izakaya: se exportan en PNG con <b>Fondo transparente</b>. Dónde va cada cámara lo pone en las notas de cada página.</li>
+    </ol>
+
     <h3>Orden de las escenas en el directo</h3>
     <ol class="pasos">
       <li>Antes de empezar: <b>Inicio</b>.</li>
-      <li>Durante el draft: la escena del overlay con las cámaras.</li>
-      <li>Durante la partida: la escena del juego.</li>
+      <li>Durante el draft: la escena del overlay con las cámaras y la música del draft.</li>
+      <li>Durante la partida: la escena del juego, con el <a href="#ingame">marcador de partida</a> encima.</li>
       <li>Al terminar la jornada: <b>Final</b>.</li>
     </ol>
     <p class="nota">Los nombres de las opciones son los de OBS en español. Si lo tienes en inglés: Fuente multimedia es Media Source, Repetir es Loop, Reiniciar la reproducción cuando la fuente se active es Restart playback when source becomes active, no mostrar nada cuando termine es Show nothing when playback ends, Transiciones de escena es Scene Transitions, Archivo de vídeo es Video File, Tipo de punto de transición es Transition Point Type y Tiempo (milisegundos) es Time (milliseconds).</p>
@@ -121,6 +141,47 @@
     </ol>
   </section>
 
+  <section id="ingame">
+    <h2>Marcador durante la partida</h2>
+    <p>Mientras se juega, el overlay de partida pone encima del juego un marcador con la estética de Tenka Ichi: asesinatos, oro, torres, larvas y dragones de cada clan, el reloj y la diferencia de oro. Debajo salen las cuentas atrás del próximo dragón y del Barón, las mejoras activas y los inhibidores caídos, y un aviso cada vez que un clan se lleva un objetivo. Los datos salen del propio cliente de LoL del ordenador donde se mira la partida, a través de un pequeño programa: el puente.</p>
+    <div class="enlaces">
+      <div class="enlace">
+        <div><b>Overlay de partida para OBS</b><span class="url" data-enlace="ingame"></span></div>
+        <button class="copiar" data-enlace="ingame">Copiar</button>
+      </div>
+      <div class="enlace">
+        <div><b>Puente para el ordenador del espectador</b><span class="url">Para Windows. No instala nada: usa PowerShell, que ya viene con Windows.</span></div>
+        <a class="copiar" href="/puente/puente-tenka-ichi.zip" download>Descargar</a>
+      </div>
+    </div>
+
+    <h3>Poner el puente en marcha</h3>
+    <ol class="pasos">
+      <li>En el ordenador que mira la partida como espectador, descarga el puente y descomprímelo en una carpeta.</li>
+      <li>Haz doble clic en <b>Abrir el puente.bat</b>. Si Windows avisa de que el archivo viene de internet, pulsa <b>Ejecutar</b> (o <b>Más información</b> y <b>Ejecutar de todas formas</b>).</li>
+      <li>La primera vez pide la contraseña del panel: escríbela y pulsa Intro. Se guarda en <b>clave.txt</b>, en esa carpeta, y no vuelve a pedirla. No compartas ese archivo.</li>
+      <li>Déjalo abierto toda la jornada. Cuando entras a mirar una partida, dice «Partida encontrada» y manda los datos solo; entre partidas, espera.</li>
+    </ol>
+
+    <h3>En OBS</h3>
+    <ol class="pasos">
+      <li>En la escena del juego, añade una <b>fuente de navegador</b> con la dirección del overlay de partida, <b>1920</b> de ancho y <b>1080</b> de alto, <b>por encima</b> de la captura del juego.</li>
+      <li>Aparece solo cuando hay una partida en marcha y se retira cuando termina. En el panel, en <b>Partida</b>, los botones <b>Ocultar el marcador</b> y <b>Mostrar el marcador</b> lo quitan y lo vuelven a poner.</li>
+    </ol>
+
+    <h3>Ocultar el marcador del propio juego</h3>
+    <p>El marcador de Tenka Ichi va arriba en el centro, justo donde el juego pone el suyo. El puente oculta el del juego, pero hace falta activar una vez una opción del cliente:</p>
+    <ol class="pasos">
+      <li>Con el juego cerrado, abre con el Bloc de notas el archivo <b>game.cfg</b>, que está en <b>C:\Riot Games\League of Legends\Config</b>. Si instalaste el juego en otra carpeta, está dentro de su carpeta Config.</li>
+      <li>Busca la línea <b>[General]</b>, añade justo debajo <b>EnableReplayApi=1</b> y guarda.</li>
+      <li>En la siguiente partida, la ventana del puente dirá «Barra de marcador del juego oculta».</li>
+    </ol>
+
+    <h3>Probar sin jugar</h3>
+    <p>En el panel, en <b>Partida</b>, el botón <b>Empezar una partida de prueba</b> se inventa una partida seis veces más rápida con los clanes del enfrentamiento cargado. Sirve para colocar el overlay en OBS y ver cómo salen los avisos. Cuando el puente manda una partida de verdad, la prueba se para sola.</p>
+    <p class="nota">El juego no da a los espectadores el oro sin gastar, así que el oro de cada clan es lo que valen sus objetos: la diferencia se parece mucho a la del juego, pero no es idéntica. Las cuentas atrás siguen las reglas actuales: dragón a los 5 minutos y 5 minutos después de cada uno, ancestral 6 minutos después del alma, Barón 6 minutos después de caer e inhibidores 5 minutos. El primer Barón no lleva cuenta atrás.</p>
+  </section>
+
   <section>
     <h2>Si algo falla</h2>
     <dl class="problemas">
@@ -130,6 +191,10 @@
       <dd>En el panel, el apartado DraftCore debe decir «Conectado al draft». Si no, vuelve a pegar el enlace de espectador y pulsa Conectar.</dd>
       <dt>Las cámaras no encajan con los huecos</dt>
       <dd>Mira cuántas cámaras hay elegidas en el panel y pasa a la escena de OBS de ese número.</dd>
+      <dt>El marcador de partida no aparece</dt>
+      <dd>Mira la ventana del puente. Tiene que decir «Enviando la partida». Si dice «Contraseña incorrecta», borra clave.txt y vuelve a abrirlo. Si dice «Esperando una partida», el juego no está abierto en ese ordenador o todavía está cargando. En el panel, en <b>Partida</b>, comprueba que el overlay no esté oculto.</dd>
+      <dt>Se ven los dos marcadores, el del juego y el de Tenka Ichi</dt>
+      <dd>Falta activar la opción del game.cfg (mira «Ocultar el marcador del propio juego»). Si la activaste con el juego abierto, cierra el juego y vuelve a entrar a la partida.</dd>
     </dl>
   </section>
 </main>
