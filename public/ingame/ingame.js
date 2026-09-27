@@ -197,7 +197,8 @@ const filas = $('.lineas .filas');
 filas.innerHTML = [0, 1, 2, 3, 4].map(i => `<div class="fila" data-i="${i}">
   ${['azul', 'rojo'].map(lado => {
     const retrato = '<span class="retrato"><img alt=""><i class="nivel"></i><i class="muerte"></i></span>';
-    const quien = '<span class="quien"><b class="nombre"></b><small class="kda"></small></span>';
+    const quien = '<span class="quien"><span class="linea-nombre"><b class="nombre"></b>'
+      + '<span class="recompensa" hidden><svg><use href="#i-oro"/></svg><b></b></span></span><small class="kda"></small></span>';
     const objetos = `<span class="objetos">${[0, 1, 2, 3, 4, 5, 6].map(h => `<i class="hueco${h === 6 ? ' abalorio' : ''}"><img alt="" hidden></i>`).join('')}</span>`;
     const oro = '<span class="oro"></span>';
     const partes = lado === 'azul' ? [retrato, quien, objetos, oro] : [oro, objetos, quien, retrato];
@@ -248,6 +249,11 @@ function pintarLineas() {
       // El nombre del panel para ese puesto, si lo hay; si no, el del cliente
       caja.querySelector('.nombre').textContent = estado?.equipos?.[lado]?.jugadores?.[i] || j.nombre;
       caja.querySelector('.kda').textContent = `${j.k} / ${j.d} / ${j.a} · ${j.cs} CS`;
+      // Shutdown: lo que se lleva quien lo mate por encima de lo normal (aproximado, el juego no lo da)
+      const recompensa = caja.querySelector('.recompensa');
+      // Por debajo de 100 no sale: el margen de error de la estimación es de ese orden
+      recompensa.hidden = !(j.recompensa >= 100);
+      recompensa.querySelector('b').textContent = `≈${j.recompensa}`;
       caja.querySelector('.oro').textContent = miles(j.oro);
     }
     const dif = difs[i];

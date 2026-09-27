@@ -129,6 +129,71 @@ function porLineas(lista, lado) {
   return asignado.map(i => (i == null ? null : lista[i]));
 }
 
+// ---------- recompensa aproximada por matar a cada jugador (shutdown) ----------
+// El juego no se la da a los espectadores y, desde el parche 14.21, sale de todo el oro que gana cada
+// uno (asesinatos, asistencias, súbditos y monstruos), que tampoco se ve. Se estima con las reglas de
+// 26.03 a partir de lo que sí llega: los asesinatos en orden, los súbditos y el nivel. Es aproximada.
+export const RECOMPENSAS = {
+  oroPorSubdito: 22,       // media de oro de un súbdito o monstruo (no se sabe cuáles ha matado)
+  porAsesinato: 3,         // 1 de recompensa por cada 3 de oro de asesinatos y asistencias
+  porFarmeo: 20, porFarmeoNegativo: 7,  // 1 por cada 20 de súbditos y monstruos (7 si va en negativo)
+  colchon: 100,            // los primeros 100 de recompensa no cuentan como shutdown
+  alMorir: 3.5,            // al morir baja 1 por cada 3,5 de oro repartido
+  minima: 50, maximaExtra: 700, primeraSangre: 100,
+  // Pasadas las 6:00, si su equipo no va claramente por delante, el shutdown se reduce. La ventaja
+  // se mide con el oro en objetos; los cortes son una estimación: [ventaja mínima, lo que queda]
+  desdeReduccion: 360, reduccion: [[0.08, 1], [0.05, 0.7], [0.03, 0.4], [0.01, 0.1]],
+};
+const baseRecompensa = nivel => 300 + 10 * Math.max(0, Math.min(18, Math.round(nivel)) - 6);
+
+function estimarRecompensas(jugadores, eventos, t, eq, jugadorPorNombre) {
+  const R = RECOMPENSAS;
+  const todos = [...jugadores.azul, ...jugadores.rojo];
+  const lado = new Map([...jugadores.azul.map(j => [j, 'azul']), ...jugadores.rojo.map(j => [j, 'rojo'])]);
+  const cuenta = new Map(todos.map(j => [j, { b: 0, cs: 0 }]));
+  // Solo se sabe el nivel y los súbditos de ahora: a mitad de partida se suponen repartidos por igual
+  const parte = tt => Math.min(1, tt / Math.max(1, t));
+  const shutdown = c => Math.max(0, c.b - R.colchon);
+  const farmear = tt => {
+    for (const [j, c] of cuenta) {
+      const cs = j.cs * parte(tt);
+      if (cs > c.cs) { c.b += (cs - c.cs) * R.oroPorSubdito / (c.b < 0 ? R.porFarmeoNegativo : R.porFarmeo); c.cs = cs; }
+    }
+  };
+  const jugadorDe = nombre => jugadorPorNombre.get(normalizar(nombre));
+  let primeraSangre = true;
+  for (const ev of eventos) {
+    if (ev.EventName !== 'ChampionKill') continue;
+    farmear(ev.EventTime);
+    const victima = jugadorDe(ev.VictimName), asesino = jugadorDe(ev.KillerName);
+    if (!victima) continue;
+    const cv = cuenta.get(victima);
+    const base = baseRecompensa(1 + (victima.nivel - 1) * parte(ev.EventTime));
+    const valor = Math.max(R.minima, Math.min(base + R.maximaExtra, base + (cv.b >= 0 ? shutdown(cv) : cv.b)));
+    let repartido = 0;
+    if (asesino && asesino !== victima) {
+      const oro = valor + (primeraSangre ? R.primeraSangre : 0);
+      primeraSangre = false;
+      cuenta.get(asesino).b += oro / R.porAsesinato;
+      const ayudantes = (ev.Assisters || []).map(jugadorDe).filter(a => a && a !== asesino && a !== victima);
+      const bolsa = ayudantes.length ? Math.min(valor / 2, base / 2) : 0;
+      for (const a of ayudantes) cuenta.get(a).b += bolsa / ayudantes.length / R.porAsesinato;
+      repartido = oro + bolsa;
+    }
+    // Si tenía shutdown, lo pierde entero; si no, baja según el oro que ha dado (sin bajar del mínimo)
+    if (shutdown(cv) > 0) cv.b = 0;
+    else cv.b = Math.max(R.minima - base, cv.b - repartido / R.alMorir);
+  }
+  farmear(t);
+  for (const j of todos) {
+    const l = lado.get(j);
+    const ventaja = (eq[l].oro - eq[OTRO[l]].oro) / Math.max(1, eq[l].oro + eq[OTRO[l]].oro);
+    const queda = t < R.desdeReduccion ? 1 : (R.reduccion.find(([minimo]) => ventaja >= minimo)?.[1] ?? 0);
+    const valor = Math.min(R.maximaExtra, shutdown(cuenta.get(j)) * queda);
+    j.recompensa = Math.round(valor / 50) * 50;  // el juego también la enseña redondeada a 50
+  }
+}
+
 export function resumen() {
   const porNombre = new Map();
   for (const j of bruto.jugadores) {
@@ -240,6 +305,7 @@ export function resumen() {
 
   const conAlma = eq.azul.alma || eq.rojo.alma;
   for (const lado of ['azul', 'rojo']) eq[lado].puntoDeAlma = !conAlma && eq[lado].dragones.length === 3;
+  estimarRecompensas(jugadores, eventos, t, eq, jugadorPorNombre);
 
   // Temporizadores de los objetivos neutrales, en el orden en que salen en el overlay:
   // dragón, larvas o heraldo (lo que toque) y Barón. «desde» es cuando empezó la cuenta atrás.

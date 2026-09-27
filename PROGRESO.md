@@ -66,3 +66,4 @@
 - Línea por línea (objetos, oro, KDA, súbditos, nivel, muertes y brillo en racha), que se saca desde el panel.
 - Pendiente: probarlo con una partida real en modo espectador (nombres de los eventos de larvas y heraldo, `GameEnd` de los espectadores y Replay API).
 - Correcciones del línea por línea: sin título ni roles, con el logo de Tenka Ichi pequeño en medio, los objetos de cada jugador (iconos de Data Dragon en `public/ddragon/objeto/`, los descarga `npm run ddragon`), barra de oro más corta, nombres más pequeños, KDA y súbditos más grandes, y brillo en el retrato de quien va en racha.
+- Shutdown aproximado en el línea por línea (moneda con «≈» junto al nombre, desde 100): el juego no lo da, se estima con las reglas de 26.03 (`RECOMPENSAS` en `server/partida.js`). Falta compararlo con el del juego en una partida real.

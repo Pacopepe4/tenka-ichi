@@ -151,7 +151,15 @@ body.oculto #lienzo { opacity: 0; transform: translateY(-24px); }
 
 .quien { display: flex; flex-direction: column; flex: 1; min-width: 0; line-height: 1.22; }
 .rojo .quien { text-align: right; }
-.quien .nombre { font-family: var(--mincho); font-weight: 800; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.linea-nombre { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.rojo .linea-nombre { flex-direction: row-reverse; }
+.quien .nombre { min-width: 0; font-family: var(--mincho); font-weight: 800; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Shutdown aproximado: moneda y cantidad, del color del oro */
+.recompensa { display: inline-flex; align-items: center; gap: 3px; flex: none; padding: 1px 6px 1px 4px; border-radius: 999px;
+  background: rgba(217, 164, 65, .16); box-shadow: inset 0 0 0 1px rgba(217, 164, 65, .45); color: #E8B85A; }
+.recompensa[hidden] { display: none; }
+.recompensa svg { width: 12px; height: 12px; color: #D9A441; }
+.recompensa b { font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.3; }
 .quien .kda { font-size: 16px; font-weight: 600; color: #DDD4C6; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 /* Objetos en sus huecos (0-5) y el abalorio aparte; el lado rojo va en espejo */
