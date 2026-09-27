@@ -496,7 +496,7 @@ const servidor = http.createServer(async (req, res) => {
       if (cuerpo.sinPartida && partida.terminada && !partida.prueba && estado.buscarPartida.activa && partida.numero !== numeroDesarmado) {
         numeroDesarmado = partida.numero;
         estado.buscarPartida.activa = false;
-        ponerGrafico(null);  // el cara a cara no pasa a la siguiente partida
+        ponerGrafico(null);  // el línea por línea no pasa a la siguiente partida
         emitir();
       }
       // También los latidos: así el panel sabe si el puente está abierto y si está buscando

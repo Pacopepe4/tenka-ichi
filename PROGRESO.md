@@ -63,5 +63,6 @@
 - Al terminar la partida, el KDA de las estadísticas del fantasy se rellena solo con los datos de cada línea.
 - Temporizadores con ensō de pincel y kanji debajo del reloj (dragón, larvas o heraldo, Barón), con las reglas de 2026 (sin Atakhan, Barón a los 20:00, larvas a los 6:00, heraldo a los 15:00).
 - Debajo de cada clan: buff de Barón y ancestral, punto de alma o alma (sello con el kanji del elemento) e inhibidores caídos. Avisos con el kanji del elemento del dragón.
-- Cara a cara por líneas (oro en objetos, KDA, súbditos, nivel y muertes), que se saca desde el panel.
+- Línea por línea (objetos, oro, KDA, súbditos, nivel, muertes y brillo en racha), que se saca desde el panel.
 - Pendiente: probarlo con una partida real en modo espectador (nombres de los eventos de larvas y heraldo, `GameEnd` de los espectadores y Replay API).
+- Correcciones del línea por línea: sin título ni roles, con el logo de Tenka Ichi pequeño en medio, los objetos de cada jugador (iconos de Data Dragon en `public/ddragon/objeto/`, los descarga `npm run ddragon`), barra de oro más corta, nombres más pequeños, KDA y súbditos más grandes, y brillo en el retrato de quien va en racha.

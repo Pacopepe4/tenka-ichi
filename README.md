@@ -143,7 +143,7 @@ Los vídeos terminados (inicio y final con su música, transición, cabeceras de
 - **Temporizadores** debajo del reloj: próximo dragón (o ancestral), larvas o heraldo y Barón, con un ensō de pincel que se completa cuando el objetivo aparece.
 - **Debajo de cada clan:** buff de Barón y buff ancestral con su cuenta atrás, punto de alma o alma conseguida (sello con el kanji del elemento) e inhibidores caídos hasta que vuelven.
 - **Avisos** con sello cuando un clan se lleva un dragón, el Barón o el heraldo, o rompe un inhibidor.
-- **Cara a cara por líneas** (lo saca el panel durante 20 s, 45 s o hasta quitarlo): oro en objetos, KDA, súbditos, nivel y muertes de cada jugador contra su rival. Cada jugador se empareja con su puesto por el nombre de la plantilla, el campeón del draft, la posición que da el cliente o Aplastar, en ese orden.
+- **Línea por línea** (lo saca el panel durante 20 s, 45 s o hasta quitarlo): objetos, oro, KDA, súbditos, nivel y muertes de cada jugador contra su rival, con el logo de Tenka Ichi en medio y un brillo en el retrato de quien va en racha (3 asesinatos o más sin morir; más fuerte a partir de 5). Cada jugador se empareja con su puesto por el nombre de la plantilla, el campeón del draft, la posición que da el cliente o Aplastar, en ese orden.
 
 Cómo llegan los datos:
 

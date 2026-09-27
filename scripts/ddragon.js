@@ -1,4 +1,4 @@
-// Descarga de Data Dragon (Riot) la lista de campeones, sus iconos y sus splash.
+// Descarga de Data Dragon (Riot) la lista de campeones, sus iconos y sus splash, y los objetos con su precio e icono.
 // Uso: npm run ddragon  (volver a lanzarlo en cada parche)
 import { mkdir, writeFile, access } from 'node:fs/promises';
 import path from 'node:path';
@@ -46,10 +46,17 @@ const objetos = Object.fromEntries(Object.entries(objetosEs.data)
 await writeFile(path.join(destino, 'objetos.json'), JSON.stringify({ version, objetos }));
 console.log(`${Object.keys(objetos).length} objetos con su precio.`);
 
-const tareas = campeones.flatMap(c => [
-  [`${CDN}/cdn/${version}/img/champion/${c.id}.png`, path.join(destino, 'icono', `${c.id}.png`)],
-  [`${CDN}/cdn/img/champion/splash/${c.id}_0.jpg`, path.join(destino, 'splash', `${c.id}.jpg`)],
-]);
+// Iconos de los objetos de la Grieta del Invocador (mapa 11), para el marcador línea por línea
+await mkdir(path.join(destino, 'objeto'), { recursive: true });
+const idsGrieta = Object.entries(objetosEs.data).filter(([, o]) => o.maps?.['11']).map(([id]) => id);
+
+const tareas = [
+  ...campeones.flatMap(c => [
+    [`${CDN}/cdn/${version}/img/champion/${c.id}.png`, path.join(destino, 'icono', `${c.id}.png`)],
+    [`${CDN}/cdn/img/champion/splash/${c.id}_0.jpg`, path.join(destino, 'splash', `${c.id}.jpg`)],
+  ]),
+  ...idsGrieta.map(id => [`${CDN}/cdn/${version}/img/item/${id}.png`, path.join(destino, 'objeto', `${id}.png`)]),
+];
 
 let hechas = 0, nuevas = 0, fallos = 0;
 async function trabajador() {
@@ -60,4 +67,4 @@ async function trabajador() {
   }
 }
 await Promise.all(Array.from({ length: 8 }, trabajador));
-console.log(`Listo: ${campeones.length} campeones, ${nuevas} archivos nuevos, ${fallos} fallos.`);
+console.log(`Listo: ${campeones.length} campeones y ${idsGrieta.length} objetos, ${nuevas} archivos nuevos, ${fallos} fallos.`);

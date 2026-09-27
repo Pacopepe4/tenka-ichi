@@ -1,6 +1,6 @@
 // Overlay de partida (/ingame/): marcador en directo con lo que manda el puente del PC donde se mira
 // la partida, temporizadores de los objetivos, lo que lleva cada clan (buffs, alma, inhibidores),
-// avisos de objetivos y, cuando lo saca el panel, el cara a cara por líneas.
+// avisos de objetivos y, cuando lo saca el panel, el marcador línea por línea.
 // Los clanes salen del enfrentamiento del panel (lado azul a la izquierda, como en el juego).
 import { cargarClanes, conectarDirecto, logo, icono } from '/comun.js';
 
@@ -17,7 +17,6 @@ const OBJETIVO = {
   heraldo: { nombre: 'Heraldo', kanji: '使' },
   baron: { nombre: 'Barón', kanji: '蛇' },
 };
-const ROL = { TOP: ['上', 'Top'], JUNGLA: ['森', 'Jungla'], MEDIO: ['中', 'Medio'], ADC: ['弓', 'ADC'], SUPPORT: ['護', 'Support'] };
 const DURACION_AVISO = 5000;
 
 let estado = null, partida = null, recibidaEn = 0, primeraPartida = true;
@@ -191,16 +190,22 @@ function siguienteAviso() {
   }, DURACION_AVISO);
 }
 
-// ---------- cara a cara por líneas (lo saca el panel) ----------
+// ---------- línea por línea (lo saca el panel) ----------
+// Cada fila es un puesto (top, jungla, medio, ADC y apoyo, en ese orden): retrato, nombre, KDA y súbditos,
+// objetos y oro de cada jugador, con la diferencia de oro en medio
 const filas = $('.lineas .filas');
-filas.innerHTML = Object.keys(ROL).map((rol, i) => `<div class="fila" data-i="${i}">
+filas.innerHTML = [0, 1, 2, 3, 4].map(i => `<div class="fila" data-i="${i}">
   ${['azul', 'rojo'].map(lado => {
     const retrato = '<span class="retrato"><img alt=""><i class="nivel"></i><i class="muerte"></i></span>';
     const quien = '<span class="quien"><b class="nombre"></b><small class="kda"></small></span>';
-    const partes = lado === 'azul' ? [retrato, quien, '<span class="oro"></span>'] : ['<span class="oro"></span>', quien, retrato];
+    const objetos = `<span class="objetos">${[0, 1, 2, 3, 4, 5, 6].map(h => `<i class="hueco${h === 6 ? ' abalorio' : ''}"><img alt="" hidden></i>`).join('')}</span>`;
+    const oro = '<span class="oro"></span>';
+    const partes = lado === 'azul' ? [retrato, quien, objetos, oro] : [oro, objetos, quien, retrato];
     return `<div class="jugador ${lado}">${partes.join('')}</div>`;
-  }).join(`<div class="medio"><span class="rol"><i class="kanji">${ROL[rol][0]}</i><small>${ROL[rol][1]}</small></span><div class="barra"><i class="relleno"></i></div><span class="dif"></span></div>`)}
+  }).join('<div class="medio"><div class="barra"><i class="relleno"></i></div><span class="dif"></span></div>')}
 </div>`).join('');
+// Un objeto sin icono (nuevo en un parche) deja el hueco vacío en lugar de una imagen rota
+filas.addEventListener('error', e => { if (e.target.tagName === 'IMG' && e.target.closest('.hueco')) e.target.hidden = true; }, true);
 
 let lineasVisibles = false, temporizadorLineas = null;
 function pintarLineas() {
@@ -222,12 +227,24 @@ function pintarLineas() {
       const caja = fila.querySelector(`.jugador.${lado}`);
       caja.style.visibility = j ? '' : 'hidden';
       if (!j) continue;
-      const img = caja.querySelector('img');
+      const img = caja.querySelector('.retrato img');
       const src = icono(j.campeon);
       if (img.getAttribute('src') !== src) img.src = src;
       caja.querySelector('.nivel').textContent = j.nivel;
-      caja.querySelector('.retrato').classList.toggle('muerto', j.muerto);
+      const retrato = caja.querySelector('.retrato');
+      retrato.classList.toggle('muerto', j.muerto);
+      // En racha (3 asesinatos o más sin morir) el recuadro se ilumina; a partir de 5, más
+      retrato.classList.toggle('racha', !j.muerto && j.racha >= 3);
+      retrato.classList.toggle('racha-alta', !j.muerto && j.racha >= 5);
       caja.querySelector('.muerte').textContent = j.muerto && j.reaparece ? j.reaparece : '';
+      caja.querySelectorAll('.hueco').forEach((hueco, h) => {
+        const id = j.objetos?.[h];
+        const imagen = hueco.querySelector('img');
+        const ruta = id ? `/ddragon/objeto/${id}.png` : null;
+        if (imagen.getAttribute('src') !== ruta) {
+          if (ruta) { imagen.hidden = false; imagen.src = ruta; } else { imagen.hidden = true; imagen.removeAttribute('src'); }
+        }
+      });
       // El nombre del panel para ese puesto, si lo hay; si no, el del cliente
       caja.querySelector('.nombre').textContent = estado?.equipos?.[lado]?.jugadores?.[i] || j.nombre;
       caja.querySelector('.kda').textContent = `${j.k} / ${j.d} / ${j.a} · ${j.cs} CS`;
@@ -243,7 +260,7 @@ function pintarLineas() {
     relleno.style.background = lado === 'azul' ? 'var(--azul-lado)' : 'var(--rojo-lado)';
     // Oro y súbditos, cada uno del color de quien va por delante
     const ladoCs = cs > 0 ? 'azul' : cs < 0 ? 'rojo' : '';
-    fila.querySelector('.dif').innerHTML = `<b class="${lado}">${lado ? `+${miles(Math.abs(dif))}` : 'Oro igualado'}</b>`
+    fila.querySelector('.dif').innerHTML = `<b class="${lado}">${lado ? `+${miles(Math.abs(dif))}` : 'Igual'}</b>`
       + (ladoCs ? ` · <b class="${ladoCs}">+${Math.abs(cs)} CS</b>` : '');
   });
 }

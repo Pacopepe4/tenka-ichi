@@ -2,7 +2,7 @@
 // El puente que corre en el PC donde se mira la partida lee la Live Client Data API del cliente
 // de LoL (https://127.0.0.1:2999/liveclientdata/…) y la manda aquí cada segundo. Con eso se monta
 // el marcador (asesinatos, oro, torres, dragones, larvas, heraldo, barón e inhibidores), los
-// temporizadores de los objetivos y el cara a cara por líneas.
+// temporizadores de los objetivos y el marcador línea por línea.
 // La API no da el oro sin gastar de cada jugador, así que el oro es el valor de los objetos.
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -91,6 +91,15 @@ const idCampeon = j => {
   return [...idsCampeon].find(id => id.toLowerCase() === limpio.toLowerCase()) || crudo || limpio;
 };
 const oroObjetos = items => (items || []).reduce((s, o) => s + (precios[o.itemID] ?? o.price ?? 0) * (o.count || 1), 0);
+// Inventario por huecos: 0-5 los objetos y 6 el abalorio, como en el juego
+const porHuecos = items => {
+  const huecos = Array(7).fill(null);
+  for (const o of items || []) {
+    const s = Number.isInteger(o.slot) && o.slot >= 0 && o.slot < 7 && huecos[o.slot] == null ? o.slot : huecos.indexOf(null);
+    if (s >= 0) huecos[s] = o.itemID;
+  }
+  return huecos;
+};
 const nombreJugador = j => j.riotIdGameName || String(j.riotId || j.summonerName || '').split('#')[0];
 const tieneAplastar = j => ['summonerSpellOne', 'summonerSpellTwo'].some(k =>
   /smite|aplastar/i.test(`${j.summonerSpells?.[k]?.rawDisplayName || ''} ${j.summonerSpells?.[k]?.displayName || ''}`));
@@ -133,14 +142,17 @@ export function resumen() {
   const ladoDelEvento = ev => ladoDe(ev.KillerName) || (ev.Assisters || []).map(ladoDe).find(Boolean) || null;
 
   const jugadores = { azul: [], rojo: [] };
+  const jugadorPorNombre = new Map();  // nombre normalizado → jugador, para las rachas de asesinatos
   for (const j of bruto.jugadores) {
     const lado = LADO[j.team];
     if (!lado) continue;
     const s = j.scores || {};
-    jugadores[lado].push({ campeon: idCampeon(j), nombre: nombreJugador(j), nivel: j.level || 1,
+    const jugador = { campeon: idCampeon(j), nombre: nombreJugador(j), nivel: j.level || 1,
       k: s.kills || 0, d: s.deaths || 0, a: s.assists || 0, cs: s.creepScore || 0, oro: oroObjetos(j.items),
-      muerto: Boolean(j.isDead), reaparece: Math.round(j.respawnTimer || 0), objetos: (j.items || []).map(o => o.itemID),
-      posicion: j.position || '', aplastar: tieneAplastar(j) });
+      muerto: Boolean(j.isDead), reaparece: Math.round(j.respawnTimer || 0), objetos: porHuecos(j.items), racha: 0,
+      posicion: j.position || '', aplastar: tieneAplastar(j) };
+    jugadores[lado].push(jugador);
+    for (const n of [j.summonerName, j.riotId, j.riotIdGameName, jugador.nombre]) if (n) jugadorPorNombre.set(normalizar(n), jugador);
   }
   const porRol = { azul: porLineas(jugadores.azul, 'azul'), rojo: porLineas(jugadores.rojo, 'rojo') };
   const lineas = ROLES.map((rol, i) => ({ rol, azul: porRol.azul[i], rojo: porRol.rojo[i] }));
@@ -206,7 +218,14 @@ export function resumen() {
         break;
       }
       case 'GameEnd': terminada = true; break;
-      case 'ChampionKill': case 'Multikill': case 'Ace': case 'FirstBlood': case 'FirstBrick': case 'GameStart':
+      case 'ChampionKill': {
+        // Racha: asesinatos desde la última muerte (si lo mata una torre o un súbdito, también se corta)
+        const asesino = jugadorPorNombre.get(normalizar(ev.KillerName)), victima = jugadorPorNombre.get(normalizar(ev.VictimName));
+        if (asesino && asesino !== victima) asesino.racha++;
+        if (victima) victima.racha = 0;
+        break;
+      }
+      case 'Multikill': case 'Ace': case 'FirstBlood': case 'FirstBrick': case 'GameStart':
       case 'MinionsSpawning': case 'InhibRespawningSoon':
         break;
       default: {
@@ -323,9 +342,10 @@ export function empezarPrueba({ picks, jugadores }, alPaquete) {
           else if (id && s >= 1080) j.items[Math.floor(Math.random() * 6)] = { itemID: Number(id), count: 1 };
         }
       }
-      if (Math.random() < 0.012) {
+      if (Math.random() < 0.016) {
         const lado = Math.random() < 0.52 ? 'azul' : 'rojo';
-        const asesino = azar(de(lado)), victima = azar(de(OTRO[lado]));
+        // Cada lado tiene un jugador que mata más (el ADC azul y el medio rojo), para que se vean rachas
+        const asesino = Math.random() < 0.45 ? de(lado)[lado === 'azul' ? 3 : 2] : azar(de(lado)), victima = azar(de(OTRO[lado]));
         asesino.k++; victima.d++;
         victima.muertoHasta = s + 8 + victima.nivel * 2;
         const ayudante = azar(de(lado)); if (ayudante !== asesino) ayudante.a++;
@@ -343,7 +363,9 @@ export function empezarPrueba({ picks, jugadores }, alPaquete) {
         riotIdGameName: j.nombre, summonerName: j.nombre, team: j.team, position: POSICIONES_PRUEBA[j.rol], level: j.nivel,
         isDead: j.muertoHasta > t, respawnTimer: Math.max(0, j.muertoHasta - t),
         summonerSpells: { summonerSpellOne: { rawDisplayName: `GeneratedTip_SummonerSpell_${j.rol === 1 ? 'SummonerSmite' : 'SummonerFlash'}_DisplayName` } },
-        items: j.items, scores: { kills: j.k, deaths: j.d, assists: j.a, creepScore: j.cs, wardScore: 0 } })),
+        // Objetos en sus huecos y el abalorio en el 6 (el apoyo, con la lente)
+        items: [...j.items.map((o, slot) => ({ ...o, slot })), { itemID: j.rol === 4 ? 3364 : 3340, count: 1, slot: 6 }],
+        scores: { kills: j.k, deaths: j.d, assists: j.a, creepScore: j.cs, wardScore: 0 } })),
       eventos,
     }, { prueba: true }));
   }, 1000);

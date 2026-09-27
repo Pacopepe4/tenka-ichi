@@ -468,7 +468,7 @@ function pintarBusqueda() {
   boton.textContent = buscando ? 'Dejar de buscar' : 'Buscar la partida';
   boton.className = buscando ? 'secundario' : '';
   $('#buscarAlAcabar').checked = estado.buscarPartida?.alAcabarDraft !== false;
-  $('#verLineas').textContent = estado.grafico?.tipo === 'lineas' ? 'Quitar el cara a cara' : 'Sacar el cara a cara por líneas';
+  $('#verLineas').textContent = estado.grafico?.tipo === 'lineas' ? 'Quitar el línea por línea' : 'Sacar el línea por línea';
 }
 
 function pintarPartidaPanel(p) {
@@ -499,7 +499,7 @@ $('#buscarPartida').onclick = async () => {
 $('#buscarAlAcabar').onchange = e => enviar('buscarAlAcabarDraft', { activa: e.target.checked });
 $('#verLineas').onclick = async () => {
   const fuera = estado?.grafico?.tipo === 'lineas';
-  if (!fuera && !ultimaPartida?.activo) return aviso('El cara a cara sale cuando hay una partida en marcha');
+  if (!fuera && !ultimaPartida?.activo) return aviso('El línea por línea sale cuando hay una partida en marcha');
   await enviar('grafico', fuera ? { tipo: null } : { tipo: 'lineas', segundos: Number($('#duracionLineas').value) });
 };
 
