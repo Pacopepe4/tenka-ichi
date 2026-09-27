@@ -69,3 +69,4 @@
 - Shutdown aproximado en el línea por línea (moneda con «≈» junto al nombre, desde 100): el juego no lo da, se estima con las reglas de 26.03 (`RECOMPENSAS` en `server/partida.js`). Falta compararlo con el del juego en una partida real.
 - El marcador ya no parpadea: si el cliente deja de contestar unos segundos, sigue con los últimos datos (se retira a los 20 s sin datos o cuando el panel deja de buscar). Los sucesos repetidos (al volver atrás en una repetición) cuentan una vez. El puente aguanta 4 fallos seguidos antes de dar la partida por terminada.
 - Si la web se reinicia en plena partida, el puente sigue con ella y la búsqueda se retoma sola (sesión de arranque y `continua`), salvo que el panel la haya parado a propósito. Hace falta el puente nuevo.
+- En las repeticiones, los sucesos «del futuro» (los que el cliente conserva al volver atrás) no cuentan hasta que el reloj llega a ellos.

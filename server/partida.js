@@ -253,7 +253,10 @@ export function resumen() {
   const t = bruto.tiempo;
   const buffs = [], avisos = [], caidos = new Map(), desconocidos = new Set(), muertesLarvas = [];
   let ultimoDragon = null, ultimoBaron = null, heraldoMuerto = false, terminada = false;
-  const eventos = [...bruto.eventos.values()].sort((a, b) => a.EventTime - b.EventTime || a.EventID - b.EventID);
+  // Solo lo que ya ha pasado según el reloj: en una repetición, al volver atrás el cliente conserva
+  // los sucesos que ya se habían visto más adelante
+  const eventos = [...bruto.eventos.values()].filter(ev => !(Number(ev.EventTime) > t + 1))
+    .sort((a, b) => a.EventTime - b.EventTime || a.EventID - b.EventID);
   for (const ev of eventos) {
     const aviso = (tipo, lado, extra = {}) => avisos.push({ id: ev.EventID, tipo, lado, t: ev.EventTime, robado: ev.Stolen === 'True' || ev.Stolen === true, ...extra });
     switch (ev.EventName) {
