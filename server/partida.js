@@ -340,16 +340,24 @@ export function resumen() {
   for (const j of [...jugadores.azul, ...jugadores.rojo]) j.racha = j.d === 0 ? j.k : Math.min(j.racha, j.k);
   estimarRecompensas(jugadores, eventos, t, eq, jugadorPorNombre);
 
+  // ¿Se tiene la partida desde el principio? Si se entró a mirar con ella empezada (o se saltó en una
+  // repetición), el cliente solo da lo que pasa desde entonces: faltan asesinatos y objetivos de antes
+  const killsVistas = eventos.filter(ev => ev.EventName === 'ChampionKill' && jugadorPorNombre.has(normalizar(ev.KillerName))).length;
+  const killsTotales = [...jugadores.azul, ...jugadores.rojo].reduce((s, j) => s + j.k, 0);
+  const historiaIncompleta = !eventos.some(ev => ev.EventName === 'GameStart') || killsVistas < killsTotales;
+
   // Temporizadores de los objetivos neutrales, en el orden en que salen en el overlay:
   // dragón, larvas o heraldo (lo que toque) y Barón. «desde» es cuando empezó la cuenta atrás.
+  // Sin la historia completa, los que ya han podido caer sin que se sepa no salen hasta que caiga el siguiente.
   const objetivos = [];
   const dragon = !ultimoDragon ? { aparece: REGLAS.primerDragon, desde: 0, ancestral: false }
     : ultimoDragon.tipo === 'ancestral' || conAlma ? { aparece: ultimoDragon.t + REGLAS.reaparicionAncestral, desde: ultimoDragon.t, ancestral: true }
       : { aparece: ultimoDragon.t + REGLAS.reaparicionDragon, desde: ultimoDragon.t, ancestral: false };
-  objetivos.push({ tipo: 'dragon', ...dragon });
+  if (!(historiaIncompleta && !ultimoDragon && t >= REGLAS.primerDragon)) objetivos.push({ tipo: 'dragon', ...dragon });
   const g = REGLAS.larvasPorGrupo;
   let finLarvas = REGLAS.finLarvas;
-  if (t < REGLAS.finLarvas) {
+  if (historiaIncompleta && t >= REGLAS.larvas) finLarvas = Math.min(t, REGLAS.finLarvas);
+  else if (t < REGLAS.finLarvas) {
     const n = muertesLarvas.length;
     if (n < g) objetivos.push({ tipo: 'larvas', aparece: REGLAS.larvas, desde: 0, quedan: g - n });
     else if (n < 2 * g && muertesLarvas[g - 1] < REGLAS.segundoGrupoAntesDe) {
@@ -357,11 +365,11 @@ export function resumen() {
       objetivos.push({ tipo: 'larvas', aparece: fin + REGLAS.reaparicionLarvas, desde: fin, quedan: 2 * g - n });
     } else finLarvas = muertesLarvas.at(-1);
   }
-  if (!objetivos.some(o => o.tipo === 'larvas') && !heraldoMuerto && t < REGLAS.finHeraldo) {
+  if (!objetivos.some(o => o.tipo === 'larvas') && !heraldoMuerto && t < REGLAS.finHeraldo && !(historiaIncompleta && t >= REGLAS.heraldo)) {
     objetivos.push({ tipo: 'heraldo', aparece: REGLAS.heraldo, desde: Math.min(finLarvas, REGLAS.heraldo), hasta: REGLAS.finHeraldo });
   }
   const proximoBaron = ultimoBaron != null ? ultimoBaron + REGLAS.reaparicionBaron : REGLAS.primerBaron;
-  objetivos.push({ tipo: 'baron', aparece: proximoBaron, desde: ultimoBaron ?? 0 });
+  if (!(historiaIncompleta && ultimoBaron == null && t >= REGLAS.primerBaron)) objetivos.push({ tipo: 'baron', aparece: proximoBaron, desde: ultimoBaron ?? 0 });
 
   const conectado = Date.now() - puente.visto < SIN_DATOS_MS;
   return {
@@ -371,7 +379,7 @@ export function resumen() {
     sinPartida: bruto.sinPartida, prueba: bruto.prueba, terminada,
     tiempo: t, velocidad: bruto.velocidad, recibido: bruto.recibido,
     azul: eq.azul, rojo: eq.rojo, jugadores, lineas,
-    objetivos,
+    objetivos, historiaIncompleta,
     buffs: buffs.filter(b => b.hasta > t),
     inhibidores: [...caidos.values()].filter(i => i.vuelve > t),
     avisos: avisos.filter(a => t - a.t < 10).slice(-3),

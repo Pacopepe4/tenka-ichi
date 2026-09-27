@@ -454,7 +454,8 @@ function pintarBusqueda() {
   const est = $('#estadoPartida');
   const textos = {
     prueba: ['ok', `Partida de prueba · ${mmss(p.tiempo)}. El marcador está en el overlay de partida.`],
-    partida: ['ok', `En juego · ${mmss(p.tiempo)}. El marcador está en el overlay de partida.`],
+    partida: ['ok', `En juego · ${mmss(p.tiempo)}. El marcador está en el overlay de partida.`
+      + (p.historiaIncompleta ? ' Se ha entrado a mirarla ya empezada: faltan los objetivos de antes, así que los temporizadores que no se saben salen cuando caiga el siguiente.' : '')],
     terminada: ['ok', p.activo ? `Partida terminada · ${mmss(p.tiempo)}. Cuando se cierre el cliente, el puente deja de buscar.`
       : 'La partida ha terminado. El KDA para el fantasy ya está rellenado: revísalo, elige el MVP, marca el ganador y guarda.'],
     'sin-puente': ['mal', buscando ? 'Buscando la partida, pero el puente no está abierto en el PC del espectador. Ábrelo con «Abrir el puente.bat».'

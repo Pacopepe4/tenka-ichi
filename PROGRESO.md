@@ -71,3 +71,4 @@
 - Si la web se reinicia en plena partida, el puente sigue con ella y la búsqueda se retoma sola (sesión de arranque y `continua`), salvo que el panel la haya parado a propósito. Hace falta el puente nuevo.
 - En las repeticiones, los sucesos «del futuro» (los que el cliente conserva al volver atrás) no cuentan hasta que el reloj llega a ellos.
 - Rachas y shutdowns correctos aunque se entre a mirar con la partida empezada (quien no ha muerto lleva de racha todos sus asesinatos; nadie más de los que tiene). El línea por línea va abajo en el centro, tocando el borde, al 84 %. Puente versión 3: también sigue buscando si la web se reinicia mientras el cliente carga; el panel avisa si el puente es anterior.
+- Si se entra a mirar con la partida empezada (o se salta en una repetición), el cliente no da los objetivos de antes: los temporizadores que no se pueden saber (dragón, larvas, heraldo, Barón ya aparecidos) no salen hasta que cae el siguiente, y el panel lo explica.
