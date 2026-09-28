@@ -7,7 +7,10 @@
   "scripts": {
     "start": "node server/index.js",
     "ddragon": "node scripts/ddragon.js",
-    "simular": "node scripts/simular.js"
+    "simular": "node scripts/simular.js",
+    "test": "node --test test/*.test.js",
+    "twitch-falso": "node scripts/twitch-falso.js",
+    "vista-previa": "node scripts/vista-previa.js"
   },
   "engines": {
     "node": ">=20"

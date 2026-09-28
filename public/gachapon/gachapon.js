@@ -3,7 +3,9 @@ import { cargarClanes, logo } from '/comun.js';
 import { iniciarDirecto } from '/directo.js';
 
 const $ = s => document.querySelector(s);
-const TIERS = ['S', 'A', 'B', 'C', 'D'];
+// La S+ son cartas especiales de personajes de fuera de los clanes; en CSS y en los archivos es SP
+const TIERS = ['S+', 'S', 'A', 'B', 'C', 'D'];
+const claveTier = t => (t === 'S+' ? 'SP' : t);
 const ROL = { TOP: 'Top', JUNGLA: 'Jungla', MEDIO: 'Medio', ADC: 'ADC', SUPPORT: 'Support' };
 const escapar = s => String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
 const pct = p => `${(p * 100).toLocaleString('es-ES', { maximumFractionDigits: 1 })} %`;
@@ -24,12 +26,15 @@ async function cargar() {
   pintar();
 }
 
+// El arte es el dibujo de la carta si ya existe (si no, el del clan) y el marco, el de su tier si ya está hecho
 function cartaHTML(c, cantidad = null) {
-  const falta = cantidad === 0;
-  return `<div class="carta-g${falta ? ' falta' : ''}" data-tier="${c.tier}" style="--color-tier: var(--tier-${c.tier})">
-    <img class="arte" src="/clanes/${c.clan}.jpg" alt="" loading="lazy"><span class="velo"></span>
-    <span class="hanko rareza" title="Tier ${c.tier}">${c.tier}</span><img class="logo" src="${logo(c.clan)}" alt="">
-    <div class="pie"><b class="nick">${escapar(c.nombre)}</b><span class="rol">${ROL[c.rol] || c.rol} de ${escapar(nombreClan(c.clan))}</span></div>
+  const falta = cantidad === 0, k = claveTier(c.tier);
+  const quien = c.especial ? escapar(c.subtitulo) : `${ROL[c.rol] || c.rol} de ${escapar(nombreClan(c.clan))}`;
+  return `<div class="carta-g${falta ? ' falta' : ''}${c.marco ? ' con-marco' : ''}${c.especial ? ' especial' : ''}" data-tier="${k}" style="--color-tier: var(--tier-${k})">
+    <img class="arte" src="${escapar(c.arte || `/clanes/${c.clan}.jpg`)}" alt="" loading="lazy"><span class="velo"></span>
+    ${c.marco ? `<img class="marco" src="${escapar(c.marco)}" alt="" loading="lazy">` : ''}
+    <span class="hanko rareza" title="Tier ${c.tier}">${c.tier}</span>${c.clan ? `<img class="logo" src="${logo(c.clan)}" alt="">` : ''}
+    <div class="pie"><b class="nick">${escapar(c.nombre)}</b><span class="rol">${quien}</span></div>
     ${cantidad > 1 ? `<span class="cantidad" title="La tienes repetida">×${cantidad}</span>` : ''}
   </div>`;
 }
@@ -76,7 +81,8 @@ function pintarCuenta() {
 function pintarAlbum() {
   const mias = new Map((info.usuario?.cartas || []).map(c => [c.id, c.cantidad]));
   const conSesion = Boolean(info.usuario);
-  const orden = [...info.catalogo].sort((a, b) => TIERS.indexOf(a.tier) - TIERS.indexOf(b.tier) || a.clan.localeCompare(b.clan));
+  const orden = [...info.catalogo].sort((a, b) => TIERS.indexOf(a.tier) - TIERS.indexOf(b.tier)
+    || (a.clan || '').localeCompare(b.clan || '') || a.nombre.localeCompare(b.nombre));
   const lista = orden.filter(c => filtro === 'todas' || (filtro === 'tengo' ? mias.get(c.id) : !mias.get(c.id)));
   const tengo = info.catalogo.filter(c => mias.get(c.id)).length;
   $('.progreso').textContent = conSesion ? `Tienes ${tengo} de ${info.catalogo.length} cartas.` : `${info.catalogo.length} cartas en total. Entra con Twitch para empezar tu colección.`;
@@ -87,13 +93,17 @@ function pintarAlbum() {
 
 function pintarProbabilidades() {
   const cuantos = t => info.catalogo.filter(c => c.tier === t).length;
-  $('.tabla-prob').innerHTML = TIERS.map(t => {
-    const p = info.probabilidades[t] || 0, n = cuantos(t);
-    return `<div class="fila-prob" data-tier="${t}" style="--color-tier: var(--tier-${t})"><span class="letra">${t}</span>
+  const hayEspeciales = cuantos('S+') > 0;
+  const pS = (info.probabilidades.S || 0) + (info.probabilidades['S+'] || 0);
+  // La fila de la S+ sale cuando hay cartas especiales
+  $('.tabla-prob').innerHTML = TIERS.filter(t => t !== 'S+' || hayEspeciales).map(t => {
+    const p = info.probabilidades[t] || 0, n = cuantos(t), k = claveTier(t);
+    const quienes = t === 'S+' ? (n === 1 ? 'especial' : 'especiales') : (n === 1 ? 'jugador' : 'jugadores');
+    return `<div class="fila-prob" data-tier="${k}" style="--color-tier: var(--tier-${k})"><span class="letra">${t}</span>
       <span class="barra-prob"><span style="width:${(p * 100).toFixed(1)}%"></span></span>
-      <span class="cifra">${pct(p)}<small>${n} ${n === 1 ? 'jugador' : 'jugadores'}</small></span></div>`;
+      <span class="cifra">${pct(p)}<small>${n} ${quienes}</small></span></div>`;
   }).join('') + (info.catalogo.length
-    ? `<p class="resumen-prob">En cada sobre, la probabilidad de que salga al menos una S es del ${pct(1 - (1 - (info.probabilidades.S || 0)) ** info.cartasPorSobre)}.</p>` : '');
+    ? `<p class="resumen-prob">En cada sobre, la probabilidad de que salga al menos una S${hayEspeciales ? ' o una S+' : ''} es del ${pct(1 - (1 - pS) ** info.cartasPorSobre)}.</p>` : '');
 }
 
 // ---------- fantasy ----------
@@ -170,11 +180,9 @@ function pintarPuntos() {
     : '<tr class="vacio"><td colspan="4">Todavía no hay jugadores en las plantillas.</td></tr>';
 }
 
+// Las reglas vienen del servidor ya escritas (server/puntuacion.js)
 function pintarReglas() {
-  const r = fantasia.reglas;
-  const signo = n => `${n > 0 ? '+' : '−'}${Math.abs(n).toLocaleString('es-ES')}`;
-  $('.reglas').innerHTML = [[r.jugar, 'por jugar la partida'], [r.victoria, 'si gana'], [r.asesinato, 'por asesinato'], [r.muerte, 'por muerte'],
-    [r.asistencia, 'por asistencia'], [r.mvp, 'si es el MVP']].map(([n, texto]) => `<li><b>${signo(n)}</b>${texto}</li>`).join('');
+  $('.reglas').innerHTML = fantasia.reglas.map(r => `<li><b>${escapar(r.puntos)}</b>${escapar(r.texto)}</li>`).join('');
 }
 
 document.querySelectorAll('.filtros-rol button').forEach(b => b.addEventListener('click', () => {
@@ -208,7 +216,7 @@ async function abrir() {
 function mostrarApertura(cartas) {
   const reducido = matchMedia('(prefers-reduced-motion: reduce)').matches;
   dialogo.classList.remove('cortando', 'abierto');
-  $('.reparto').innerHTML = cartas.map((c, i) => `<div class="volteable" data-tier="${c.tier}" tabindex="0" role="button" aria-label="Carta ${i + 1}: dale la vuelta">
+  $('.reparto').innerHTML = cartas.map((c, i) => `<div class="volteable" data-tier="${claveTier(c.tier)}" tabindex="0" role="button" aria-label="Carta ${i + 1}: dale la vuelta">
     <div class="giro"><div class="cara dorso"><img src="/marca/sol-partido-sin-fondo.png" alt=""></div><div class="cara frente">${cartaHTML(c)}</div></div></div>`).join('');
   $('.descubrir').hidden = false;
   $('.otro').hidden = true;
@@ -225,7 +233,8 @@ function mostrarApertura(cartas) {
   };
   const girar = v => {
     v.classList.add('girada');
-    v.setAttribute('aria-label', `${cartas[volteables.indexOf(v)].nombre}, tier ${v.dataset.tier}`);
+    const c = cartas[volteables.indexOf(v)];
+    v.setAttribute('aria-label', `${c.nombre}, tier ${c.tier}`);
     comprobar();
   };
   volteables.forEach(v => {

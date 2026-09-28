@@ -2,10 +2,10 @@
 // recompensa de puntos del canal...). Van en la pestaña «Ajustes» de Google Sheets; en local, en data/ajustes.json.
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { hojaActiva, asegurarPestana, leer, escribir } from './sheets.js';
+import { archivoDatos } from './datos.js';
 
-const ARCHIVO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'data', 'ajustes.json');
+const ARCHIVO = archivoDatos('ajustes.json');
 const PESTANA = 'Ajustes';
 const CABECERA = ['Clave', 'Valor'];
 

@@ -8,7 +8,10 @@ import { fileURLToPath } from 'node:url';
 import { CLANES } from './clanes.js';
 import { hojaActiva, asegurarPestana, leer, escribir } from './sheets.js';
 
-const ARCHIVO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'data-proyecto', 'plantillas.json');
+// Las pruebas usan otra copia con ARCHIVO_PLANTILLAS para no tocar la del repositorio
+const ARCHIVO = process.env.ARCHIVO_PLANTILLAS
+  ? path.resolve(process.env.ARCHIVO_PLANTILLAS)
+  : path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'data-proyecto', 'plantillas.json');
 const PESTANA = 'Plantillas';
 const CABECERA = ['Clan', 'Top', 'Jungla', 'Medio', 'ADC', 'Support', 'Suplentes', 'Lema', 'Descripción'];
 const REFRESCO = 60 * 1000; // cada cuánto se vuelve a leer la hoja, por si alguien la edita a mano

@@ -344,7 +344,7 @@ function pintarGacha(g) {
   const r = g.resumen, p = g.probabilidades;
   const n = (x, uno, varios) => `${x} ${x === 1 ? uno : varios}`;
   $('#resumenGacha').textContent = `${n(r.coleccionistas, 'coleccionista', 'coleccionistas')}, ${n(r.sobresAbiertos, 'sobre abierto', 'sobres abiertos')} y ${n(r.sobresSinAbrir, 'sin abrir', 'sin abrir')}. ${n(r.cartas, 'carta', 'cartas')} en los sobres. Probabilidad por carta: `
-    + TIERS.map(t => `${t} ${porcentaje(p[t] || 0)}`).join(', ') + '.';
+    + [...(p['S+'] ? ['S+'] : []), ...TIERS].map(t => `${t} ${porcentaje(p[t] || 0)}`).join(', ') + '.';
 }
 async function actualizarGacha() {
   let r;
@@ -377,10 +377,12 @@ function pintarKda(e) {
   if (partidaKda !== `${e.config.jornada}|${e.config.partida}|${e.equipos.azul.clan}|${e.equipos.rojo.clan}`) {
     partidaKda = `${e.config.jornada}|${e.config.partida}|${e.equipos.azul.clan}|${e.equipos.rojo.clan}`;
     caja.innerHTML = ['azul', 'rojo'].map(lado => `<div class="lado-kda ${lado}" data-lado="${lado}"><h4>${clanes.clan(e.equipos[lado].clan).nombre}</h4>
-      <div class="cabeza-kda"><span>Jugador</span><span>Asesinatos</span><span>Muertes</span><span>Asist.</span><span>MVP</span></div>
+      <div class="cabeza-kda"><span>Jugador</span><span title="Asesinatos">K</span><span title="Muertes">D</span><span title="Asistencias">A</span>
+        <span title="Súbditos y monstruos">Farmeo</span><span title="Puntuación de visión">Visión</span><span title="Daño a campeones">Daño</span><span>MVP</span></div>
       ${ROLES.map((r, i) => `<div class="fila-kda" data-indice="${i}"><span class="quien"></span>
         <input type="number" min="0" max="99" class="k" aria-label="Asesinatos"><input type="number" min="0" max="99" class="d" aria-label="Muertes"><input type="number" min="0" max="99" class="a" aria-label="Asistencias">
-        <label><input type="radio" name="mvp" value="${lado}-${i}" aria-label="MVP"></label></div>`).join('')}</div>`).join('');
+        <input type="number" min="0" max="2000" class="cs" aria-label="Farmeo"><input type="number" min="0" max="500" class="vision" aria-label="Visión"><input type="number" min="0" max="500000" step="100" class="dano" aria-label="Daño a campeones">
+        <label><input type="radio" name="mvp" value="${lado}-${i}" aria-label="MVP"></label><span class="extras-kda"></span></div>`).join('')}</div>`).join('');
     $('#estadoKda').textContent = '';
   }
   for (const lado of ['azul', 'rojo']) {
@@ -397,12 +399,21 @@ $('#guardarKda').onclick = async () => {
   const filas = [...document.querySelectorAll('.kda .fila-kda')].map(f => ({
     lado: f.closest('.lado-kda').dataset.lado, indice: Number(f.dataset.indice),
     k: f.querySelector('.k').value, d: f.querySelector('.d').value, a: f.querySelector('.a').value,
+    cs: f.querySelector('.cs').value, vision: f.querySelector('.vision').value, dano: f.querySelector('.dano').value,
+    // Lo que ha dado el puente de los sucesos de la partida (vacío si no lo sabe)
+    ...(f.dataset.extras ? JSON.parse(f.dataset.extras) : {}),
   }));
   const mvp = document.querySelector('.kda input[name="mvp"]:checked')?.value || null;
   const r = await enviar('fantasyEstadisticas', { filas, mvp });
   if (!r.ok) return;
   $('#estadoKda').className = 'estado ok';
   $('#estadoKda').textContent = `Guardado (${r.partida}): ` + r.puntos.filter(p => p.jugador).map(p => `${p.jugador} ${p.puntos.toLocaleString('es-ES')}`).join(', ') + ' puntos.';
+  // El desglose de cada jugador, al pasar el ratón por su nombre
+  document.querySelectorAll('.kda .fila-kda').forEach(f => {
+    const lado = f.closest('.lado-kda').dataset.lado, rol = ROLES[Number(f.dataset.indice)];
+    const p = r.puntos.find(x => x.id === `${estado.equipos[lado].clan}-${rol}`);
+    if (p) f.querySelector('.quien').title = `${p.puntos.toLocaleString('es-ES')} puntos: ` + p.desglose.map(d => `${d.texto} ${d.puntos > 0 ? '+' : '−'}${Math.abs(d.puntos).toLocaleString('es-ES')}`).join(' · ');
+  });
 };
 
 // Cerrar y abrir las alineaciones del fantasy
@@ -457,7 +468,7 @@ function pintarBusqueda() {
     partida: ['ok', `En juego · ${mmss(p.tiempo)}. El marcador está en el overlay de partida.`
       + (p.historiaIncompleta ? ' Se ha entrado a mirarla ya empezada: faltan los objetivos de antes, así que los temporizadores que no se saben salen cuando caiga el siguiente.' : '')],
     terminada: ['ok', p.activo ? `Partida terminada · ${mmss(p.tiempo)}. Cuando se cierre el cliente, el puente deja de buscar.`
-      : 'La partida ha terminado. El KDA para el fantasy ya está rellenado: revísalo, elige el MVP, marca el ganador y guarda.'],
+      : 'La partida ha terminado. Las estadísticas del fantasy ya están rellenadas: revísalas, apunta el daño, elige el MVP, marca el ganador y guarda.'],
     'sin-puente': ['mal', buscando ? 'Buscando la partida, pero el puente no está abierto en el PC del espectador. Ábrelo con «Abrir el puente.bat».'
       : 'El puente no está abierto en el PC del espectador. Ábrelo con «Abrir el puente.bat» y déjalo abierto toda la jornada.'],
     buscando: ['', p.puente?.estado === 'espera' ? 'Avisando al puente…'
@@ -508,7 +519,9 @@ $('#verLineas').onclick = async () => {
   await enviar('grafico', fuera ? { tipo: null } : { tipo: 'lineas', segundos: Number($('#duracionLineas').value) });
 };
 
-// KDA del fantasy desde la partida: cada puesto del panel con el jugador de esa línea
+// Estadísticas del fantasy desde la partida: cada puesto del panel con el jugador de esa línea.
+// El puente da el KDA, el farmeo y la visión; de los sucesos, la primera sangre, los multikills y las torres
+// (si se ha seguido la partida desde el principio). El daño no lo da: se apunta de la pantalla final.
 function kdaDeLaPartida(p) {
   if (!p?.lineas?.length) return false;
   let alguno = false;
@@ -520,11 +533,23 @@ function kdaDeLaPartida(p) {
       f.querySelector('.k').value = j.k;
       f.querySelector('.d').value = j.d;
       f.querySelector('.a').value = j.a;
+      f.querySelector('.cs').value = j.cs ?? '';
+      f.querySelector('.vision').value = j.vision ?? '';
+      const extras = { primeraSangre: j.primeraSangre ?? null, triples: j.triples ?? null, quadras: j.quadras ?? null,
+        pentas: j.pentas ?? null, torres: j.torres ?? null, fuente: 'puente' };
+      f.dataset.extras = JSON.stringify(extras);
+      const textos = [extras.primeraSangre && 'primera sangre', extras.pentas && `${extras.pentas} pentakill`,
+        extras.quadras - (extras.pentas || 0) > 0 && `${extras.quadras - (extras.pentas || 0)} cuádruple`,
+        extras.triples - (extras.quadras || 0) > 0 && `${extras.triples - (extras.quadras || 0)} triple`,
+        extras.torres && `${extras.torres} ${extras.torres === 1 ? 'torre' : 'torres'}`].filter(Boolean);
+      f.querySelector('.extras-kda').textContent = textos.length ? `Del puente: ${textos.join(', ')}` : '';
       alguno = true;
     });
   });
   return alguno;
 }
+const textoRellenado = p => 'Estadísticas rellenadas con la partida: revisa que cada jugador esté en su puesto, apunta el daño de la pantalla final, elige el MVP y guarda.'
+  + (p.historiaIncompleta ? ' El puente no ha visto la partida desde el principio: la primera sangre, los multikills y las torres no cuentan.' : '');
 let kdaRellenadoDe = null;
 function rellenarKdaAlTerminar(p) {
   // Al terminar una partida de verdad, una sola vez y solo si nadie ha escrito ya los números
@@ -533,13 +558,13 @@ function rellenarKdaAlTerminar(p) {
   const vacios = [...document.querySelectorAll('.kda input[type="number"]')].every(i => i.value === '');
   if (vacios && kdaDeLaPartida(p)) {
     $('#estadoKda').className = 'estado';
-    $('#estadoKda').textContent = 'KDA rellenado con la partida: revisa que cada jugador esté en su puesto, elige el MVP y guarda.';
+    $('#estadoKda').textContent = textoRellenado(p);
   }
 }
 $('#rellenarKda').onclick = () => {
   if (!kdaDeLaPartida(ultimaPartida)) return aviso('No hay datos de ninguna partida del puente');
   $('#estadoKda').className = 'estado';
-  $('#estadoKda').textContent = 'KDA rellenado con la partida: revisa que cada jugador esté en su puesto, elige el MVP y guarda.';
+  $('#estadoKda').textContent = textoRellenado(ultimaPartida);
 };
 $('#pruebaPartida').onclick = async () => {
   const activa = $('#pruebaPartida').dataset.activa !== '1';

@@ -64,8 +64,10 @@ button.boton-secundario { background: transparent; font: inherit; font-weight: 7
 .carta-g.falta { box-shadow: inset 0 0 0 2px var(--sumi-linea); }
 .carta-g.falta .arte, .carta-g.falta .logo, .carta-g.falta .rareza { filter: grayscale(1) brightness(.45); }
 .carta-g.falta .nick, .carta-g.falta .rol { color: var(--hai); }
-/* Las S brillan un poco más */
+/* Las S brillan un poco más, y las S+ (especiales) más todavía */
 .carta-g[data-tier="S"]:not(.falta) { box-shadow: inset 0 0 0 3px var(--tier-S), 0 0 26px rgba(190, 42, 47, .45), 0 10px 22px rgba(0, 0, 0, .45); }
+.carta-g[data-tier="SP"]:not(.falta) { box-shadow: inset 0 0 0 3px var(--tier-SP), 0 0 34px rgba(154, 106, 208, .55), 0 10px 22px rgba(0, 0, 0, .45); }
+.carta-g[data-tier="SP"] .rareza { color: var(--washi); font-size: 19px; letter-spacing: -.02em; }
 
 /* ---------- Probabilidades ---------- */
 .probabilidades { padding: clamp(40px, 6vw, 72px) 0 clamp(56px, 8vw, 96px); border-top: 1px solid var(--sumi-linea); }
@@ -109,7 +111,11 @@ button.boton-secundario { background: transparent; font: inherit; font-weight: 7
 .volteable .dorso img { width: 58%; opacity: .9; }
 .volteable .frente { transform: rotateY(180deg); }
 .volteable .frente .carta-g { width: 100%; height: 100%; }
+.volteable.girada[data-tier="SP"] .frente .carta-g { animation: destello-sp 1.8s ease-out; }
 .volteable.girada[data-tier="S"] .frente .carta-g { animation: destello-s 1.2s ease-out; }
+@keyframes destello-sp { 0% { box-shadow: inset 0 0 0 3px var(--tier-SP), 0 0 0 0 rgba(184, 140, 240, .95); }
+  35% { box-shadow: inset 0 0 0 3px var(--tier-SP), 0 0 40px 18px rgba(226, 192, 110, .6); }
+  100% { box-shadow: inset 0 0 0 3px var(--tier-SP), 0 0 80px 40px rgba(184, 140, 240, 0); } }
 .volteable.girada[data-tier="A"] .frente .carta-g { animation: destello-a 1s ease-out; }
 @keyframes destello-s { 0% { box-shadow: inset 0 0 0 3px var(--tier-S), 0 0 0 0 rgba(224, 72, 77, .9); } 100% { box-shadow: inset 0 0 0 3px var(--tier-S), 0 0 60px 30px rgba(224, 72, 77, 0); } }
 @keyframes destello-a { 0% { box-shadow: inset 0 0 0 3px var(--tier-A), 0 0 0 0 rgba(217, 164, 65, .8); } 100% { box-shadow: inset 0 0 0 3px var(--tier-A), 0 0 44px 22px rgba(217, 164, 65, 0); } }
@@ -194,3 +200,24 @@ button.boton-secundario { background: transparent; font: inherit; font-weight: 7
 }
 .probabilidades .titulo-reglas { margin-top: 56px; }
 .hueco-ali .carta-g .rol { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
+
+/* ---------- Carta con marco ----------
+   Cuando existe public/cartas/marcos/TIER.png (1000×1400, el de la S+ es SP.png), la carta usa ese marco:
+   el arte va en su ventana de 750×750 (x 125, y 282), el nombre en la barra de arriba, el emblema en el círculo
+   de la derecha, y rol y clan en la primera línea de la caja de abajo. Las estrellas y el sello ya los dibuja
+   el marco, así que se esconde el sello de la carta sin marco. Las posiciones se ajustan aquí con los marcos reales. */
+.carta-g.con-marco { container-type: inline-size; background: var(--sumi); box-shadow: 0 10px 22px rgba(0, 0, 0, .45);
+  --ventana-x: 12.5%; --ventana-y: 20.14%; --ventana-ancho: 75%; --ventana-alto: 53.57%;
+  --barra-y: 4.6%; --barra-alto: 8.4%; --caja-y: 76.4%; --tinta-marco: #1D1A17; }
+.carta-g.con-marco .arte { inset: auto; left: var(--ventana-x); top: var(--ventana-y); width: var(--ventana-ancho); height: var(--ventana-alto); }
+.carta-g.con-marco .marco { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.carta-g.con-marco .velo, .carta-g.con-marco .rareza { display: none; }
+.carta-g.con-marco .logo { top: var(--barra-y); right: 7%; width: 11%; height: var(--barra-alto); filter: none; }
+.carta-g.con-marco .pie { position: static; }
+.carta-g.con-marco .pie .nick { position: absolute; left: 8%; right: 20%; top: var(--barra-y); height: var(--barra-alto); display: flex; align-items: center;
+  font-size: 7.2cqw; color: var(--tinta-marco); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.carta-g.con-marco .pie .rol { position: absolute; left: 10%; right: 10%; top: var(--caja-y); font-size: 5cqw; font-weight: 700; color: var(--tinta-marco);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.carta-g.con-marco .cantidad { right: 9%; bottom: 7%; font-size: 6cqw; color: var(--tinta-marco); }
+.carta-g.con-marco.falta .marco { filter: grayscale(1) brightness(.55); }
+.carta-g.con-marco.falta .pie .nick, .carta-g.con-marco.falta .pie .rol { color: #4A443C; }

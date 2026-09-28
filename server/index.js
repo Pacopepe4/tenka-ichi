@@ -16,7 +16,7 @@ import { estadoHoja } from './sheets.js';
 import { cargarTierlist, vistaTierlist, ponerTier } from './tierlist.js';
 import { cargarAjustes } from './ajustes.js';
 import { cargarGacha, catalogo, probabilidades, abrirSobre, darAlta, darSobres, estadoUsuario, buscarUsuario, resumenGacha,
-  PESOS, CARTAS_POR_SOBRE, SOBRES_INICIALES } from './gacha.js';
+  PESOS, CARTAS_POR_SOBRE, SOBRES_INICIALES, CARPETA_ARTE } from './gacha.js';
 import { cargarCanal, conectarCanal, cambiarCoste, sondear, sondearSiHaceFalta, estadoCanal, SCOPE_CANAL } from './canal.js';
 import { firmar, verificar, leerCookies, ponerCookie } from './sesion.js';
 import { twitchActivo, urlAutorizar, canjearCodigo, usuarioDeToken, usuarioPorNombre, CANAL } from './twitch.js';
@@ -232,7 +232,8 @@ async function accion(nombre, d = {}) {
       ponerTier(d.tipo, d.id, d.tier || null);
       return { ok: true, tierlist: vistaTierlist() };
     case 'fantasyEstadisticas': {
-      // KDA y MVP de la partida que está en el panel; hace falta haber marcado antes quién ganó
+      // Estadísticas y MVP de la partida que está en el panel; hace falta haber marcado antes quién ganó.
+      // Del puente pueden llegar además la primera sangre, los multikills y las torres de cada jugador
       const res = [...estado.resultados].reverse().find(r => r.partida === estado.config.partida);
       if (!res) return { ok: false, error: 'Marca antes quién ha ganado la partida' };
       const { azul, rojo } = estado.equipos;
@@ -243,7 +244,9 @@ async function accion(nombre, d = {}) {
         ROLES.forEach((rol, i) => {
           const s = d.filas?.find(x => x.lado === lado && Number(x.indice) === i) || {};
           filas.push({ jornada: estado.config.jornada, fase: estado.config.fase, clan: eq.clan, rol, jugador: eq.jugadores[i] || '',
-            id: `${eq.clan}-${rol}`, victoria: res.ganador === lado, k: s.k, d: s.d, a: s.a, mvp: d.mvp === `${lado}-${i}` });
+            id: `${eq.clan}-${rol}`, victoria: res.ganador === lado, k: s.k, d: s.d, a: s.a, mvp: d.mvp === `${lado}-${i}`,
+            cs: s.cs, vision: s.vision, dano: s.dano, primeraSangre: s.primeraSangre, triples: s.triples, quadras: s.quadras,
+            pentas: s.pentas, torres: s.torres, fuente: s.fuente });
         });
       }
       return { ok: true, partida, puntos: await guardarEstadisticas(partida, filas) };
@@ -551,12 +554,15 @@ const servidor = http.createServer(async (req, res) => {
   }
   let ruta = decodeURIComponent(url.pathname);
   if (ruta.endsWith('/')) ruta += 'index.html';
-  const archivo = path.join(PUBLICO, path.normalize(ruta));
-  if (!archivo.startsWith(PUBLICO)) { res.writeHead(403); return res.end(); }
+  // Los dibujos de las cartas salen de su carpeta, que en las pruebas y la vista previa es otra (CARPETA_CARTAS)
+  const [raiz, relativa] = ruta.startsWith('/cartas/') ? [CARPETA_ARTE, ruta.slice('/cartas'.length)] : [PUBLICO, ruta];
+  const archivo = path.join(raiz, path.normalize(relativa));
+  if (!archivo.startsWith(raiz)) { res.writeHead(403); return res.end(); }
   try {
     const s = await stat(archivo);
     if (s.isDirectory()) { res.writeHead(302, { Location: `${url.pathname}/` }); return res.end(); }
-    const cacheable = /\/(ddragon|logos|marca)\//.test(ruta);
+    // El arte de las cartas se pide con ?v=fecha del archivo: si cambia el dibujo, cambia la dirección
+    const cacheable = /\/(ddragon|logos|marca)\//.test(ruta) || (ruta.startsWith('/cartas/') && url.searchParams.has('v'));
     res.writeHead(200, { 'Content-Type': TIPOS[path.extname(archivo)] || 'application/octet-stream',
       'Cache-Control': cacheable ? 'public, max-age=86400' : 'no-cache' });
     res.end(await readFile(archivo));

@@ -1,23 +1,26 @@
 // Fantasy de Tenka Ichi: cada coleccionista alinea una carta por rol y suma los puntos que hacen
 // esos jugadores en las partidas reales.
-// - Estadísticas: el staff apunta en el panel el KDA y el MVP de cada partida (pestaña «Estadisticas»).
+// - Estadísticas: el staff guarda en el panel las de cada partida (pestaña «Estadisticas»): el KDA, el farmeo,
+//   la visión y el MVP, que el puente rellena solos al terminar, y el daño de la pantalla final. Los puntos
+//   salen de server/puntuacion.js.
 // - Alineaciones: cada cambio queda registrado con su fecha (pestaña «Alineaciones»).
 // - Una partida puntúa a la alineación que cada coleccionista tenía cuando se guardaron sus estadísticas.
 //   Para que nadie cambie a un jugador sabiendo el resultado, el staff cierra las alineaciones durante la jornada.
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { ROLES } from './clanes.js';
 import { vistaTierlist } from './tierlist.js';
 import { estadoUsuario } from './gacha.js';
 import { ajuste, guardarAjustes } from './ajustes.js';
 import { hojaActiva, asegurarPestana, leer, anadir, escribir } from './sheets.js';
+import { CARPETA_DATOS } from './datos.js';
+import { puntuar, participacion, reglasLegibles } from './puntuacion.js';
 
-export const PUNTOS = { jugar: 1, victoria: 3, asesinato: 1, muerte: -1, asistencia: 0.5, mvp: 3 };
-
-const CARPETA = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'data');
+const CARPETA = CARPETA_DATOS;
+// Las columnas nuevas van al final, para que las filas guardadas antes se sigan leyendo igual
 const EST = { pestana: 'Estadisticas', archivo: path.join(CARPETA, 'estadisticas.json'),
-  cabecera: ['Fecha', 'Partida', 'Jornada', 'Fase', 'Clan', 'Rol', 'Jugador', 'Id', 'Victoria', 'Asesinatos', 'Muertes', 'Asistencias', 'MVP', 'Puntos'] };
+  cabecera: ['Fecha', 'Partida', 'Jornada', 'Fase', 'Clan', 'Rol', 'Jugador', 'Id', 'Victoria', 'Asesinatos', 'Muertes', 'Asistencias', 'MVP', 'Puntos',
+    'Farmeo', 'Visión', 'Daño', 'Primera sangre', 'Triples', 'Cuádruples', 'Pentakills', 'Torres', 'Participación', 'Fuente', 'Desglose'] };
 const ALI = { pestana: 'Alineaciones', archivo: path.join(CARPETA, 'alineaciones.json'),
   cabecera: ['Fecha', 'Twitch ID', 'Usuario', ...ROLES] };
 
@@ -25,10 +28,13 @@ let estadisticas = [];   // una fila por jugador y partida
 let alineaciones = [];   // cambios de alineación
 let calculo = null;      // resultados cacheados
 
-export const puntosDeFila = f => PUNTOS.jugar + (f.victoria ? PUNTOS.victoria : 0) + f.k * PUNTOS.asesinato
-  + f.d * PUNTOS.muerte + f.a * PUNTOS.asistencia + (f.mvp ? PUNTOS.mvp : 0);
+export const puntosDeFila = f => puntuar(f).total;
 
-const numero = v => Math.max(0, Math.min(99, Math.round(Number(v) || 0)));
+// Números de una fila: vacío es «no se sabe» (null), salvo el KDA, que siempre se apunta
+const numero = (v, maximo = 99) => Math.max(0, Math.min(maximo, Math.round(Number(v) || 0)));
+const opcional = (v, maximo) => (v == null || v === '' || !Number.isFinite(Number(v)) ? null : numero(v, maximo));
+const siNo = v => (v == null || v === '' ? null : v === true || v === '1' || v === 1);
+const LIMITES = { cs: 2000, vision: 500, dano: 500000, triples: 20, quadras: 20, pentas: 20, torres: 11, kp: 100 };
 
 // ---------- carga y guardado ----------
 async function leerTabla(t, deFila) {
@@ -42,7 +48,10 @@ async function leerTabla(t, deFila) {
 export async function cargarFantasy() {
   try {
     estadisticas = await leerTabla(EST, f => ({ fecha: f[0], partida: f[1], jornada: f[2], fase: f[3], clan: f[4], rol: f[5], jugador: f[6], id: f[7],
-      victoria: f[8] === '1', k: Number(f[9]) || 0, d: Number(f[10]) || 0, a: Number(f[11]) || 0, mvp: f[12] === '1' }));
+      victoria: f[8] === '1', k: Number(f[9]) || 0, d: Number(f[10]) || 0, a: Number(f[11]) || 0, mvp: f[12] === '1',
+      cs: opcional(f[14], LIMITES.cs), vision: opcional(f[15], LIMITES.vision), dano: opcional(f[16], LIMITES.dano), primeraSangre: siNo(f[17]),
+      triples: opcional(f[18], LIMITES.triples), quadras: opcional(f[19], LIMITES.quadras), pentas: opcional(f[20], LIMITES.pentas),
+      torres: opcional(f[21], LIMITES.torres), kp: opcional(f[22], LIMITES.kp), fuente: f[23] || '' }));
     alineaciones = await leerTabla(ALI, f => ({ fecha: f[0], id: f[1], usuario: f[2], slots: Object.fromEntries(ROLES.map((r, i) => [r, f[3 + i] || null])) }));
   } catch (e) {
     console.error('No se pudo leer el fantasy:', e.message);
@@ -50,7 +59,14 @@ export async function cargarFantasy() {
   calculo = null;
 }
 
-const filaEst = f => [f.fecha, f.partida, f.jornada, f.fase, f.clan, f.rol, f.jugador, f.id, f.victoria ? '1' : '0', f.k, f.d, f.a, f.mvp ? '1' : '0', puntosDeFila(f)];
+const vacio = v => (v == null ? '' : v);
+const filaEst = f => {
+  const p = puntuar(f);
+  return [f.fecha, f.partida, f.jornada, f.fase, f.clan, f.rol, f.jugador, f.id, f.victoria ? '1' : '0', f.k, f.d, f.a, f.mvp ? '1' : '0', p.total,
+    vacio(f.cs), vacio(f.vision), vacio(f.dano), f.primeraSangre == null ? '' : f.primeraSangre ? '1' : '0',
+    vacio(f.triples), vacio(f.quadras), vacio(f.pentas), vacio(f.torres), vacio(f.kp), f.fuente || '',
+    p.desglose.map(d => `${d.texto} ${d.puntos > 0 ? '+' : '−'}${Math.abs(d.puntos).toLocaleString('es-ES')}`).join(' · ')];
+};
 
 async function guardarEstadisticasTodas() {
   if (hojaActiva()) { await asegurarPestana(EST.pestana, EST.cabecera); await escribir(EST.pestana, [EST.cabecera, ...estadisticas.map(filaEst)]); }
@@ -59,14 +75,30 @@ async function guardarEstadisticasTodas() {
 
 // ---------- estadísticas de una partida (desde el panel) ----------
 // Si ya había estadísticas de esa partida se corrigen, pero se conserva su fecha: así puntúa la misma alineación.
+// La participación en asesinatos se calcula aquí con el KDA de los cinco del mismo equipo.
+export function limpiarFilas(filas) {
+  const limpias = filas.map(f => ({
+    jornada: f.jornada, fase: f.fase, clan: f.clan, rol: f.rol, jugador: f.jugador || '', id: f.id,
+    victoria: Boolean(f.victoria), mvp: Boolean(f.mvp), k: numero(f.k), d: numero(f.d), a: numero(f.a),
+    cs: opcional(f.cs, LIMITES.cs), vision: opcional(f.vision, LIMITES.vision), dano: opcional(f.dano, LIMITES.dano),
+    primeraSangre: siNo(f.primeraSangre), triples: opcional(f.triples, LIMITES.triples), quadras: opcional(f.quadras, LIMITES.quadras),
+    pentas: opcional(f.pentas, LIMITES.pentas), torres: opcional(f.torres, LIMITES.torres), fuente: f.fuente === 'puente' ? 'puente' : 'a mano',
+  }));
+  for (const f of limpias) {
+    const equipo = limpias.filter(x => x.clan === f.clan).reduce((s, x) => s + x.k, 0);
+    f.kp = participacion(f.k, f.a, equipo);
+  }
+  return limpias;
+}
+
 export async function guardarEstadisticas(partida, filas) {
   const previa = estadisticas.find(f => f.partida === partida);
   const fecha = previa?.fecha || new Date().toISOString();
-  estadisticas = estadisticas.filter(f => f.partida !== partida)
-    .concat(filas.map(f => ({ ...f, fecha, partida, k: numero(f.k), d: numero(f.d), a: numero(f.a) })));
+  const limpias = limpiarFilas(filas).map(f => ({ ...f, fecha, partida }));
+  estadisticas = estadisticas.filter(f => f.partida !== partida).concat(limpias);
   calculo = null;
   await guardarEstadisticasTodas();
-  return filas.map(f => ({ id: f.id, jugador: f.jugador, puntos: puntosDeFila({ ...f, k: numero(f.k), d: numero(f.d), a: numero(f.a) }) }));
+  return limpias.map(f => ({ id: f.id, jugador: f.jugador, ...puntuar(f) })).map(({ total, ...r }) => ({ ...r, puntos: total }));
 }
 
 // ---------- alineaciones ----------
@@ -82,10 +114,12 @@ function alineacionEn(id, fecha = null) {
 export async function cambiarAlineacion(u, slots) {
   if (alineacionesCerradas()) throw new Error('Las alineaciones están cerradas mientras se juega la jornada');
   const mias = new Map(estadoUsuario(u.id).cartas.map(c => [c.id, c.cantidad]));
+  // Solo se alinean cartas de jugadores de la liga (las especiales S+ no tienen rol)
+  const rolDe = new Map(vistaTierlist().jugadores.map(j => [j.id, j.rol]));
   const limpia = {};
   for (const rol of ROLES) {
     const carta = slots?.[rol] || null;
-    if (carta && !String(carta).endsWith(`-${rol}`)) throw new Error(`Esa carta no es de ${rol}`);
+    if (carta && rolDe.get(carta) !== rol) throw new Error(`Esa carta no es de ${rol}`);
     if (carta && !mias.get(carta)) throw new Error('Solo puedes alinear cartas que tengas');
     limpia[rol] = carta;
   }
@@ -138,7 +172,7 @@ export function infoFantasy(u) {
   const ultima = jornadas.at(-1) || null;
   const puesto = u ? clasificacion.findIndex(c => c.id === u.id) : -1;
   return {
-    reglas: PUNTOS, cerrado: alineacionesCerradas(), ultimaJornada: ultima,
+    reglas: reglasLegibles(), cerrado: alineacionesCerradas(), ultimaJornada: ultima,
     jugadores: vistaTierlist().jugadores.filter(j => j.nombre)
       .map(j => ({ id: j.id, clan: j.clan, rol: j.rol, nombre: j.nombre, tier: j.tier, puntos: jugadores.get(j.id)?.puntos || 0, partidas: jugadores.get(j.id)?.partidas || 0 }))
       .sort((a, b) => b.puntos - a.puntos || a.nombre.localeCompare(b.nombre)),

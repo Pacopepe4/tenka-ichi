@@ -3,13 +3,13 @@
 // Se guarda en la pestaña «Tierlist» de Google Sheets; en local, en data/tierlist.json.
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { CLANES, ROLES } from './clanes.js';
 import { plantilla } from './plantillas.js';
 import { hojaActiva, asegurarPestana, leer, escribir } from './sheets.js';
+import { archivoDatos } from './datos.js';
 
 export const TIERS = ['S', 'A', 'B', 'C', 'D'];
-const ARCHIVO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'data', 'tierlist.json');
+const ARCHIVO = archivoDatos('tierlist.json');
 const PESTANA = 'Tierlist';
 const CABECERA = ['Tipo', 'Id', 'Nombre', 'Clan', 'Rol', 'Tier'];
 

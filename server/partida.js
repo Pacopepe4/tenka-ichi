@@ -266,8 +266,12 @@ export function resumen() {
     const lado = LADO[j.team];
     if (!lado) continue;
     const s = j.scores || {};
+    // La visión (wardScore) llega con decimales; la pantalla final la enseña redondeada.
+    // Primera sangre, multikills y torres salen de los sucesos, para la puntuación del fantasy
     const jugador = { campeon: idCampeon(j), nombre: nombreJugador(j), nivel: j.level || 1,
       k: s.kills || 0, d: s.deaths || 0, a: s.assists || 0, cs: s.creepScore || 0, oro: oroObjetos(j.items),
+      vision: Number.isFinite(Number(s.wardScore)) ? Math.round(Number(s.wardScore)) : null,
+      primeraSangre: false, triples: 0, quadras: 0, pentas: 0, torres: 0,
       muerto: Boolean(j.isDead), reaparece: Math.round(j.respawnTimer || 0), objetos: porHuecos(j.items), racha: 0,
       posicion: j.position || '', aplastar: tieneAplastar(j) };
     jugadores[lado].push(jugador);
@@ -296,6 +300,8 @@ export function resumen() {
     .filter(ev => !(Number(ev.EventTime) > t + 1))
     .sort((a, b) => a.EventTime - b.EventTime || (a.manual ? 1 : 0) - (b.manual ? 1 : 0) || a.EventID - b.EventID);
   const nombreDe = n => jugadorPorNombre.get(normalizar(n))?.nombre || String(n || '').split('#')[0];
+  const jugadorDe = n => jugadorPorNombre.get(normalizar(n)) || null;
+  let primeraSangreVista = false;
   const recibidos = {};  // cuántos sucesos de cada tipo han llegado, para ver qué da el cliente
   for (const ev of eventos) {
     if (!ev.manual) recibidos[ev.EventName] = (recibidos[ev.EventName] || 0) + 1;
@@ -305,6 +311,8 @@ export function resumen() {
         const dueno = duenoEstructura(ev.TurretKilled || '');
         const quien = dueno ? OTRO[dueno] : ladoDelEvento(ev);
         if (quien) { eq[quien].torres++; aviso('torre', quien, torreDe(ev.TurretKilled)); }
+        // Cuenta para quien la derriba y para quien ayuda (si la remata un súbdito, solo los que ayudan)
+        new Set([ev.KillerName, ...(ev.Assisters || [])].map(jugadorDe)).forEach(j => { if (j) j.torres++; });
         break;
       }
       case 'InhibKilled': {
@@ -357,12 +365,19 @@ export function resumen() {
       case 'FirstBlood': {
         const quien = ladoDe(ev.Recipient);
         if (quien) aviso('primera', quien, { jugador: nombreDe(ev.Recipient) });
+        const j = jugadorDe(ev.Recipient);
+        if (j) { j.primeraSangre = true; primeraSangreVista = true; }
         break;
       }
       case 'Multikill': {
         // Los dobles son muy frecuentes: se avisa de triple para arriba
         const quien = ladoDe(ev.KillerName), n = Number(ev.KillStreak);
         if (quien && n >= 3) aviso('multi', quien, { racha: n, jugador: nombreDe(ev.KillerName) });
+        // Llega uno por escalón (2, 3, 4, 5): un pentakill cuenta también como triple y cuádruple, como en el juego
+        const j = jugadorDe(ev.KillerName);
+        if (j && n === 3) j.triples++;
+        else if (j && n === 4) j.quadras++;
+        else if (j && n >= 5) j.pentas++;
         break;
       }
       case 'Ace': {
@@ -394,6 +409,15 @@ export function resumen() {
   const killsVistas = eventos.filter(ev => ev.EventName === 'ChampionKill' && jugadorPorNombre.has(normalizar(ev.KillerName))).length;
   const killsTotales = [...jugadores.azul, ...jugadores.rojo].reduce((s, j) => s + j.k, 0);
   const historiaIncompleta = !eventos.some(ev => ev.EventName === 'GameStart') || killsVistas < killsTotales;
+  // Datos del fantasy que salen de los sucesos. Si el cliente no ha dado la primera sangre, es el primer asesinato
+  // de un jugador. Si falta el principio de la partida, no se sabe: quedan vacíos y no puntúan
+  if (!primeraSangreVista) {
+    const primero = eventos.find(ev => ev.EventName === 'ChampionKill' && jugadorDe(ev.KillerName) && normalizar(ev.KillerName) !== normalizar(ev.VictimName));
+    if (primero) jugadorDe(primero.KillerName).primeraSangre = true;
+  }
+  if (historiaIncompleta) {
+    for (const j of [...jugadores.azul, ...jugadores.rojo]) Object.assign(j, { primeraSangre: null, triples: null, quadras: null, pentas: null, torres: null });
+  }
 
   // Temporizadores de los objetivos neutrales, en el orden en que salen en el overlay:
   // dragón, larvas o heraldo (lo que toque) y Barón. «desde» es cuando empezó la cuenta atrás.
@@ -459,6 +483,7 @@ const OBJETOS_PRUEBA = [
 const CAMPEONES_PRUEBA = { azul: ['Aatrox', 'LeeSin', 'Ahri', 'Jinx', 'Thresh'], rojo: ['Jax', 'Viego', 'Syndra', 'Kaisa', 'Nautilus'] };
 const POSICIONES_PRUEBA = ['TOP', 'JUNGLE', 'MIDDLE', 'BOTTOM', 'UTILITY'];
 const FARMEO_PRUEBA = [0.125, 0.09, 0.13, 0.135, 0.02];  // súbditos por segundo según el rol
+const VISION_PRUEBA = [0.01, 0.018, 0.011, 0.009, 0.032];  // puntos de visión por segundo según el rol
 let temporizadorPrueba = null;
 
 export function empezarPrueba({ picks, jugadores }, alPaquete) {
@@ -471,7 +496,7 @@ export function empezarPrueba({ picks, jugadores }, alPaquete) {
     lado, rol: i, team: lado === 'azul' ? 'ORDER' : 'CHAOS',
     campeon: picks?.[lado]?.[i] || CAMPEONES_PRUEBA[lado][i],
     nombre: jugadores?.[lado]?.[i] || `${lado === 'azul' ? 'Azul' : 'Rojo'} ${i + 1}`,
-    k: 0, d: 0, a: 0, cs: 0, nivel: 1, items: [], muertoHasta: 0,
+    k: 0, d: 0, a: 0, cs: 0, vision: 0, nivel: 1, items: [], muertoHasta: 0,
   })));
   const eventos = [{ EventID: 0, EventName: 'GameStart', EventTime: 0 }];
   let id = 1, ultimo = 60;
@@ -501,6 +526,7 @@ export function empezarPrueba({ picks, jugadores }, alPaquete) {
     for (; s < t; s++) {
       for (const j of jug) {
         if (Math.random() < FARMEO_PRUEBA[j.rol]) j.cs++;
+        if (Math.random() < VISION_PRUEBA[j.rol]) j.vision++;
         j.nivel = Math.min(18, 1 + Math.floor(s / 105));
         // Una compra cada 100 s; con el inventario lleno, un componente pasa a objeto completo
         if (s % 100 === 0) {
@@ -532,7 +558,7 @@ export function empezarPrueba({ picks, jugadores }, alPaquete) {
         summonerSpells: { summonerSpellOne: { rawDisplayName: `GeneratedTip_SummonerSpell_${j.rol === 1 ? 'SummonerSmite' : 'SummonerFlash'}_DisplayName` } },
         // Objetos en sus huecos y el abalorio en el 6 (el apoyo, con la lente)
         items: [...j.items.map((o, slot) => ({ ...o, slot })), { itemID: j.rol === 4 ? 3364 : 3340, count: 1, slot: 6 }],
-        scores: { kills: j.k, deaths: j.d, assists: j.a, creepScore: j.cs, wardScore: 0 } })),
+        scores: { kills: j.k, deaths: j.d, assists: j.a, creepScore: j.cs, wardScore: j.vision } })),
       eventos,
     }, { prueba: true }));
   }, 1000);

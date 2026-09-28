@@ -75,8 +75,19 @@ server/stats.js        porcentajes por campeón y resumen de la liga
 server/clanes.js       clanes, colores y roles
 server/partida.js      marcador de partida con lo que manda el puente, y la partida de prueba
 server/zip.js          zip mínimo para descargar el puente
+server/tierlist.js     tier list de jugadores y equipos
+server/gacha.js        sobres, cartas (con las especiales S+), arte y marcos, y el sorteo
+server/twitch.js       inicio de sesión con Twitch y API Helix (con validación de tokens cada hora)
+server/canal.js        recompensa de puntos del canal y recogida de canjes
+server/sesion.js       sesiones firmadas y cifrado de los tokens del canal
+server/fantasy.js      alineaciones, estadísticas de cada partida y clasificación
+server/puntuacion.js   reglas de puntuación del fantasy
+server/datos.js        carpeta de datos locales (data/, o CARPETA_DATOS en las pruebas)
+scripts/twitch-falso.js   Twitch de mentira para las pruebas (npm run twitch-falso)
+scripts/vista-previa.js   la web con jugadores y cartas inventados (npm run vista-previa)
+test/                  pruebas (npm test)
 puente/                puente del PC del espectador (PowerShell) y su LEEME
-data-proyecto/         plantillas.json (va en el repositorio)
+data-proyecto/         plantillas.json y cartas-especiales.json (van en el repositorio)
 public/index.html      portada pública (inicio.css, inicio.js)
 public/panel/          panel de producción
 public/overlay/        overlay para OBS
@@ -86,6 +97,8 @@ public/clanes/         arte vertical de cada samurái
 public/ddragon/        datos e imágenes de Data Dragon (npm run ddragon)
 public/logos/          logos de clan (copiados de logos-equipos)
 public/marca/          logo de Koryu Budo y sol partido
+public/gachapon/       gachapon y fantasy
+public/cartas/         dibujos de las cartas (ID.png) y marcos por tier (marcos/TIER.png), cuando estén
 ```
 
 ## Formato de DraftCore (comprobado con drafts reales en septiembre de 2026)
@@ -168,7 +181,26 @@ Se edita en el panel, apartado **Tier list**: cada jugador (por su puesto en la 
 
 ## Gachapon
 
-`/gachapon/`: cada espectador entra con su cuenta de Twitch y recibe **2 sobres**. Cada sobre trae **3 cartas** de jugadores de la liga, y la rareza de cada carta es la tier del jugador: en el sorteo un S pesa 1, un A 3, un B 6, un C 10 y un D 15 (un S sale 15 veces menos que un D). La página enseña las probabilidades reales, que dependen de cuántos jugadores hay en cada tier.
+`/gachapon/`: cada espectador entra con su cuenta de Twitch y recibe **2 sobres**. Cada sobre trae **3 cartas** de jugadores de la liga, y la rareza de cada carta es la tier del jugador: en el sorteo un S pesa 1, un A 3, un B 6, un C 10 y un D 15 (un S sale 15 veces menos que un D). La página enseña las probabilidades reales, que dependen de cuántas cartas hay en cada tier.
+
+### Cartas especiales (S+)
+
+Personajes de fuera de los clanes, en `data-proyecto/cartas-especiales.json`. Cada una pesa 0,5 en el sorteo (sale el doble de poco que una S) y no tiene clan ni rol, así que no se puede alinear en el fantasy:
+
+```json
+[
+  { "id": "ESP-KAMI", "nombre": "Kami", "subtitulo": "Guardián del Tenka Ichi" }
+]
+```
+
+El `id` es el nombre del dibujo (mayúsculas, números y guiones). Con `"activa": false` deja de salir en los sobres y en el álbum (lo que ya se abrió sigue en el registro de la hoja). Los pesos se cambian en `PESOS` de `server/gacha.js`.
+
+### Dibujos y marcos
+
+- **Dibujo de cada carta:** `public/cartas/ID.png` (también `.webp` o `.jpg`), donde el ID es el puesto del jugador (`KAIJU-TOP`, `TORA-ADC`…) o el de la especial (`ESP-KAMI`). Mientras no exista, la carta lleva el arte de su clan (y las especiales, el sol partido).
+- **Marco de cada tier:** `public/cartas/marcos/SP.png` (la S+), `S.png`, `A.png`, `B.png` y `C.png`, de 1000×1400 con la ventana del arte transparente (750×750 en x 125, y 282). La D usa el de la C mientras no tenga uno propio. Sin marco, la carta se dibuja como hasta ahora. Las posiciones del nombre, el emblema y el rol sobre el marco se ajustan en el bloque «Carta con marco» de `public/gachapon/gachapon.css`.
+- La web mira la carpeta cada minuto: los dibujos nuevos aparecen sin reiniciar. Las direcciones llevan la fecha del archivo, así que al cambiar un dibujo nadie ve el antiguo en caché.
+- Para verlo sin tocar datos reales: `npm run vista-previa` (jugadores inventados, una especial y los dibujos de `public/cartas`) y entra en `http://localhost:3055/auth/prueba?nombre=Ana`.
 
 Más sobres: con la recompensa de puntos del canal **Sobre de Tenka Ichi**. La web recoge los canjes de la cola de Twitch cada minuto (y cuando alguien entra en el gachapon), da el sobre y marca el canje como hecho. Si la web está dormida, los canjes esperan en Twitch y no se pierden.
 
@@ -191,20 +223,39 @@ Los puntos del canal solo existen en canales afiliados o partner de Twitch. El s
 
 Sin las variables de Twitch, la página del gachapon dice que abre muy pronto. En local se puede probar sin Twitch entrando en `/auth/prueba?nombre=Alguien`.
 
+Como pide Twitch, los tokens guardados se validan al arrancar y cada hora (`/oauth2/validate`). Si el canal cambia la contraseña o retira el permiso, el panel avisa «vuelve a conectarlo» y deja de recoger canjes hasta que se conecte otra vez.
+
+### Probarlo sin Twitch de verdad
+
+`npm test` arranca la web con datos temporales contra un **Twitch falso** (`scripts/twitch-falso.js`, que imita el inicio de sesión, los tokens, la validación, la recompensa y los canjes) y prueba de punta a punta: entrar, abrir sobres, conectar el canal, canjes que dan sobres una sola vez, renovación de tokens, regalos, reinicio de la web, permiso retirado y una partida del fantasy. No toca `data/`, las plantillas ni Google Sheets.
+
+El Twitch falso también se puede arrancar suelto (`npm run twitch-falso`, en el puerto 4040) y apuntar la web a él con `TWITCH_URL_ID=http://localhost:4040` y `TWITCH_URL_API=http://localhost:4040/helix`, con `TWITCH_CLIENT_ID=cliente-prueba` y `TWITCH_CLIENT_SECRET=secreto-prueba`. Sus usuarios son koryubudo (el canal, afiliado), ana, beto y carla.
+
 ## Fantasy
 
-En `/gachapon/`, cada coleccionista alinea **una carta por rol** (Top, Jungla, Medio, ADC y Support) entre las que tiene. Esos cinco jugadores suman los puntos que hacen en las partidas reales:
+En `/gachapon/`, cada coleccionista alinea **una carta por rol** (Top, Jungla, Medio, ADC y Support) entre las que tiene. Esos cinco jugadores suman los puntos que hacen en las partidas reales, con los datos de la pantalla final del LoL (`server/puntuacion.js`):
 
 | | Puntos |
 |---|---|
 | Jugar la partida | +1 |
 | Ganar | +3 |
-| Cada asesinato | +1 |
+| Cada asesinato | +2 |
+| Cada asistencia | +1,5 |
 | Cada muerte | −1 |
-| Cada asistencia | +0,5 |
+| No morir en toda la partida | +2 |
+| Cada 30 de farmeo (súbditos y monstruos) | +1 |
+| Cada 10 de puntuación de visión | +1 |
+| Cada 5000 de daño a campeones | +1 |
+| Primera sangre | +2 |
+| Triple / cuádruple / pentakill | +2 / +5 / +10 |
+| Participar en el 70 % o más de los asesinatos de su equipo | +2 |
+| Cada torre que derriba o ayuda a derribar | +1 |
 | MVP de la partida | +3 |
 
-- **Estadísticas:** al acabar cada partida, en el panel (apartado Resultado, después de marcar el ganador) se apunta el KDA de los diez jugadores y el MVP, y se pulsa **Guardar estadísticas**. Si hay un error, se corrige y se vuelve a guardar. Van a la pestaña **Estadisticas** de Google Sheets.
+El reparto está pensado para que los cinco roles puntúen parecido: el apoyo compensa con asistencias y visión lo que el tirador hace con asesinatos, farmeo y daño (en una partida normal ganada, de 30 a 44 puntos según el rol). Cada regla solo cuenta si se tiene el dato: si en una partida no se apunta el daño, nadie suma por daño. Los multikills se cuentan como en el juego y en la API de Riot: un pentakill también es cuádruple y triple (2 + 3 + 5). Cambiar una regla recalcula todas las partidas guardadas.
+
+- **Estadísticas:** al acabar cada partida, en el panel (apartado Resultado, después de marcar el ganador) se apuntan las de los diez jugadores y el MVP, y se pulsa **Guardar estadísticas**. Si el puente ha seguido la partida, se rellenan solos el KDA, el farmeo y la visión, y cuentan la primera sangre, los multikills y las torres que salen de los sucesos (si el puente entró con la partida empezada, esas tres no se saben y no cuentan). El **daño a campeones** no lo da el cliente en directo: se apunta de la pantalla final (mejor apuntarlo siempre o nunca). La participación en asesinatos se calcula sola. Al guardar, pasando el ratón por un jugador se ve su desglose. Si hay un error, se corrige y se vuelve a guardar. Van a la pestaña **Estadisticas** de Google Sheets, con una columna de desglose.
+- **API de Riot:** `desdeMatchV5` de `server/puntuacion.js` ya traduce un participante de match-v5 a estas reglas. Riot no da las partidas personalizadas por la API salvo las creadas con códigos de torneo (clave de producción) o con el permiso de cada jugador (RSO), así que de momento no se usa.
 - **Alineaciones:** cada cambio se guarda en la pestaña **Alineaciones**. Una partida puntúa a la alineación que tenía cada uno cuando se guardaron sus estadísticas.
 - **Cerrar alineaciones:** en el panel, apartado Gachapon. Ciérralas al empezar la jornada y ábrelas al acabar, para que nadie cambie a un jugador sabiendo cómo le ha ido.
 - La página enseña la clasificación de coleccionistas (total y última jornada) y los puntos de cada jugador de la liga. Los premios (por ejemplo, sobres para los tres primeros de la jornada) se dan a mano con **Regalar sobres**.

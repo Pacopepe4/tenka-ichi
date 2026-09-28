@@ -5,11 +5,11 @@
 //   es la fuente de verdad).
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { ROLES } from './clanes.js';
 import { hojaActiva, asegurarPestana, leer, anadir, marcarError } from './sheets.js';
+import { archivoDatos } from './datos.js';
 
-const ARCHIVO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'data', 'registro.json');
+const ARCHIVO = archivoDatos('registro.json');
 const PESTANA = 'Registro';
 const CABECERA = ['Fecha', 'Jornada', 'Fase', 'Serie', 'Partida', 'Clan azul', 'Clan rojo', 'Ganador',
   'Lado', 'Tipo', 'Orden', 'Rol', 'Jugador', 'Clan', 'Campeón', 'Resultado'];

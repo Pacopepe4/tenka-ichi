@@ -4,7 +4,7 @@
 // Como los canjes esperan en la cola de Twitch, no se pierde ninguno aunque la web esté dormida.
 import { ajuste, guardarAjustes } from './ajustes.js';
 import { cifrar, descifrar } from './sesion.js';
-import { CANAL, ErrorTwitch, helix, refrescarToken, twitchActivo } from './twitch.js';
+import { CANAL, ErrorTwitch, helix, refrescarToken, twitchActivo, validarToken } from './twitch.js';
 import { canjeProcesado, darSobres } from './gacha.js';
 
 export const TITULO_RECOMPENSA = 'Sobre de Tenka Ichi';
@@ -20,8 +20,27 @@ export async function cargarCanal() {
   try { tokens = JSON.parse(descifrar(guardados)); }
   catch { estado.error = 'No se pudo leer la conexión del canal: vuelve a conectarlo desde el panel'; return; }
   Object.assign(estado, { conectado: true, login: ajuste('canal_login'), recompensa: ajuste('canal_recompensa'), coste: Number(ajuste('canal_coste')) || null });
+  await validarCanal();
+  if (!estado.conectado) return;
   if (!estado.recompensa) await asegurarRecompensa();
   iniciarSondeo();
+  iniciarValidacion();
+}
+
+// El token del canal caduca a las pocas horas y se renueva con el de refresco. Si Twitch ya no acepta ni
+// ese (contraseña cambiada, permiso retirado), el canal queda desconectado hasta que se vuelva a conectar
+async function renovar() {
+  try {
+    const nuevos = await refrescarToken(tokens.refresh_token);
+    tokens = { access_token: nuevos.access_token, refresh_token: nuevos.refresh_token || tokens.refresh_token };
+    await guardarAjustes({ canal_tokens: cifrar(JSON.stringify(tokens)) });
+  } catch (e) {
+    Object.assign(estado, { conectado: false,
+      error: 'Twitch ha cerrado la conexión del canal (contraseña cambiada o permiso retirado): vuelve a conectarlo desde el panel' });
+    clearInterval(temporizador);
+    clearInterval(validacion);
+    throw e;
+  }
 }
 
 // Llama a Twitch con el token del canal y lo renueva si ha caducado
@@ -29,20 +48,41 @@ async function conToken(fn) {
   try { return await fn(tokens.access_token); }
   catch (e) {
     if (!(e instanceof ErrorTwitch) || e.estado !== 401) throw e;
-    const nuevos = await refrescarToken(tokens.refresh_token);
-    tokens = { access_token: nuevos.access_token, refresh_token: nuevos.refresh_token || tokens.refresh_token };
-    await guardarAjustes({ canal_tokens: cifrar(JSON.stringify(tokens)) });
+    await renovar();
     return fn(tokens.access_token);
   }
+}
+
+// Twitch exige validar el token al arrancar y cada hora; de paso se comprueba que sigue siendo del canal
+// y que tiene el permiso de las recompensas
+export async function validarCanal() {
+  if (!tokens) return;
+  try {
+    let v;
+    try { v = await validarToken(tokens.access_token); }
+    catch (e) { if (e.estado !== 401) throw e; await renovar(); v = await validarToken(tokens.access_token); }
+    if (!v.scopes?.includes(SCOPE_CANAL)) estado.error = 'La conexión del canal no tiene permiso para las recompensas: vuelve a conectarlo desde el panel';
+    else if (ajuste('canal_id') && v.user_id !== ajuste('canal_id')) estado.error = 'La conexión guardada es de otra cuenta: vuelve a conectar el canal';
+    estado.validado = new Date().toISOString();
+  } catch (e) {
+    if (estado.conectado) estado.error = explicar(e);
+  }
+}
+let validacion = null;
+function iniciarValidacion() {
+  clearInterval(validacion);
+  validacion = setInterval(() => validarCanal(), 3600000);
+  validacion.unref();
 }
 
 export async function conectarCanal(t, usuario) {
   if (usuario.login.toLowerCase() !== CANAL) throw new Error(`Hay que conectar con la cuenta del canal (${CANAL}), no con ${usuario.login}`);
   tokens = { access_token: t.access_token, refresh_token: t.refresh_token };
   await guardarAjustes({ canal_tokens: cifrar(JSON.stringify(tokens)), canal_id: usuario.id, canal_login: usuario.login });
-  Object.assign(estado, { conectado: true, login: usuario.login, error: null });
+  Object.assign(estado, { conectado: true, login: usuario.login, error: null, validado: new Date().toISOString() });
   await asegurarRecompensa();
   iniciarSondeo();
+  iniciarValidacion();
 }
 
 function explicar(e) {
@@ -67,7 +107,7 @@ async function asegurarRecompensa() {
     Object.assign(estado, { recompensa: r.id, coste: r.cost, error: null });
     await guardarAjustes({ canal_recompensa: r.id, canal_coste: r.cost });
   } catch (e) {
-    estado.error = explicar(e);
+    if (estado.conectado) estado.error = explicar(e);  // si se ha desconectado, queda su aviso
   }
 }
 
@@ -106,7 +146,7 @@ export async function sondear() {
     Object.assign(estado, { error: null, ultimoSondeo: new Date().toISOString() });
     if (data.length === 50) setTimeout(() => sondear(), 2000);
   } catch (e) {
-    estado.error = explicar(e);
+    if (estado.conectado) estado.error = explicar(e);  // si se ha desconectado, queda su aviso
   } finally {
     sondeando = false;
   }
