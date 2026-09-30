@@ -109,6 +109,8 @@ button.boton-secundario { background: transparent; font: inherit; font-weight: 7
 .volteable .cara { position: absolute; inset: 0; backface-visibility: hidden; border-radius: 8px; }
 .volteable .dorso { display: grid; place-items: center; background: var(--grano), var(--sumi-alzado); box-shadow: inset 0 0 0 3px var(--sumi-linea), 0 12px 26px rgba(0,0,0,.6); }
 .volteable .dorso img { width: 58%; opacity: .9; }
+.volteable .dorso.con-reverso { background: none; box-shadow: 0 12px 26px rgba(0,0,0,.6); overflow: hidden; }
+.volteable .dorso.con-reverso img { width: 100%; height: 100%; opacity: 1; display: block; }
 .volteable .frente { transform: rotateY(180deg); }
 .volteable .frente .carta-g { width: 100%; height: 100%; }
 .volteable.girada[data-tier="SP"] .frente .carta-g { animation: destello-sp 1.8s ease-out; }
@@ -202,17 +204,20 @@ button.boton-secundario { background: transparent; font: inherit; font-weight: 7
 .hueco-ali .carta-g .rol { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
 
 /* ---------- Carta con marco ----------
-   Cuando existe public/cartas/marcos/TIER.png (1000×1400, el de la S+ es SP.png), la carta usa ese marco:
-   el arte va en su ventana de 750×750 (x 125, y 282), el nombre en la barra de arriba, el emblema en el círculo
-   de la derecha, y rol y clan en la primera línea de la caja de abajo. Las estrellas y el sello ya los dibuja
-   el marco, así que se esconde el sello de la carta sin marco. Las posiciones se ajustan aquí con los marcos reales. */
+   Los marcos (public/cartas/marcos/jugador/ y boost/, 1000×1400 a escala; salen de diseno/marcos/) ponen el
+   arte en su ventana de 750×750 (x 125, y 282), el nombre en la barra de arriba, el emblema en el círculo de la
+   derecha, y rol y clan (o lo que hace la BOOST) en la primera línea de la caja de abajo. Las estrellas y el sello
+   con la letra ya los dibuja el marco, así que se esconde el sello de la carta sin marco. */
 .carta-g.con-marco { container-type: inline-size; background: var(--sumi); box-shadow: 0 10px 22px rgba(0, 0, 0, .45);
   --ventana-x: 12.5%; --ventana-y: 20.14%; --ventana-ancho: 75%; --ventana-alto: 53.57%;
   --barra-y: 4.6%; --barra-alto: 8.4%; --caja-y: 76.4%; --tinta-marco: #1D1A17; }
+/* Con marco, las S y S+ siguen brillando, sin la línea de color por dentro */
+.carta-g.con-marco[data-tier="S"]:not(.falta) { box-shadow: 0 0 26px rgba(190, 42, 47, .45), 0 10px 22px rgba(0, 0, 0, .45); }
+.carta-g.con-marco[data-tier="SP"]:not(.falta) { box-shadow: 0 0 34px rgba(214, 170, 72, .55), 0 10px 22px rgba(0, 0, 0, .45); }
 .carta-g.con-marco .arte { inset: auto; left: var(--ventana-x); top: var(--ventana-y); width: var(--ventana-ancho); height: var(--ventana-alto); }
 .carta-g.con-marco .marco { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .carta-g.con-marco .velo, .carta-g.con-marco .rareza { display: none; }
-.carta-g.con-marco .logo { top: var(--barra-y); right: 7%; width: 11%; height: var(--barra-alto); filter: none; }
+.carta-g.con-marco .logo { top: var(--barra-y); right: 8%; width: 9%; height: var(--barra-alto); filter: none; }
 .carta-g.con-marco .pie { position: static; }
 .carta-g.con-marco .pie .nick { position: absolute; left: 8%; right: 20%; top: var(--barra-y); height: var(--barra-alto); display: flex; align-items: center;
   font-size: 7.2cqw; color: var(--tinta-marco); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

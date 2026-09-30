@@ -114,7 +114,7 @@ function alineacionEn(id, fecha = null) {
 export async function cambiarAlineacion(u, slots) {
   if (alineacionesCerradas()) throw new Error('Las alineaciones están cerradas mientras se juega la jornada');
   const mias = new Map(estadoUsuario(u.id).cartas.map(c => [c.id, c.cantidad]));
-  // Solo se alinean cartas de jugadores de la liga (las especiales S+ no tienen rol)
+  // Solo se alinean cartas de Jugador (las BOOST no tienen rol)
   const rolDe = new Map(vistaTierlist().jugadores.map(j => [j.id, j.rol]));
   const limpia = {};
   for (const rol of ROLES) {

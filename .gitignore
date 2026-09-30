@@ -5,3 +5,7 @@ credenciales*.json
 
 # Contraseña que guarda el puente en el PC del espectador
 puente/clave.txt
+
+# Originales de los marcos (se sacan con node diseno/marcos/exportar.mjs)
+diseno/marcos/png/
+diseno/marcos/.tmp/

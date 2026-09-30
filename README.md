@@ -76,7 +76,7 @@ server/clanes.js       clanes, colores y roles
 server/partida.js      marcador de partida con lo que manda el puente, y la partida de prueba
 server/zip.js          zip mínimo para descargar el puente
 server/tierlist.js     tier list de jugadores y equipos
-server/gacha.js        sobres, cartas (con las especiales S+), arte y marcos, y el sorteo
+server/gacha.js        sobres, cartas de Jugador y BOOST, arte, marcos y reverso, y el sorteo
 server/twitch.js       inicio de sesión con Twitch y API Helix (con validación de tokens cada hora)
 server/canal.js        recompensa de puntos del canal y recogida de canjes
 server/sesion.js       sesiones firmadas y cifrado de los tokens del canal
@@ -86,8 +86,9 @@ server/datos.js        carpeta de datos locales (data/, o CARPETA_DATOS en las p
 scripts/twitch-falso.js   Twitch de mentira para las pruebas (npm run twitch-falso)
 scripts/vista-previa.js   la web con jugadores y cartas inventados (npm run vista-previa)
 test/                  pruebas (npm test)
+diseno/marcos/         marcos de las cartas: generador SVG, exportador a PNG y WebP, y los diseños guardados
 puente/                puente del PC del espectador (PowerShell) y su LEEME
-data-proyecto/         plantillas.json y cartas-especiales.json (van en el repositorio)
+data-proyecto/         plantillas.json y cartas-boost.json (van en el repositorio)
 public/index.html      portada pública (inicio.css, inicio.js)
 public/panel/          panel de producción
 public/overlay/        overlay para OBS
@@ -181,26 +182,34 @@ Se edita en el panel, apartado **Tier list**: cada jugador (por su puesto en la 
 
 ## Gachapon
 
-`/gachapon/`: cada espectador entra con su cuenta de Twitch y recibe **2 sobres**. Cada sobre trae **3 cartas** de jugadores de la liga, y la rareza de cada carta es la tier del jugador: en el sorteo un S pesa 1, un A 3, un B 6, un C 10 y un D 15 (un S sale 15 veces menos que un D). La página enseña las probabilidades reales, que dependen de cuántas cartas hay en cada tier.
+`/gachapon/`: cada espectador entra con su cuenta de Twitch y recibe **2 sobres**. Cada sobre trae **3 cartas**, de dos clases:
 
-### Cartas especiales (S+)
+- **Jugador:** los jugadores de la liga, con la rareza de su tier en la tier list (S, A, B, C; la D sigue funcionando mientras exista en la tier list).
+- **BOOST:** personajes de fuera de los clanes, de tier **S+**, S, A o B (abajo). No tienen clan ni rol, así que no se alinean en el fantasy.
 
-Personajes de fuera de los clanes, en `data-proyecto/cartas-especiales.json`. Cada una pesa 0,5 en el sorteo (sale el doble de poco que una S) y no tiene clan ni rol, así que no se puede alinear en el fantasy:
+En el sorteo cada carta pesa según su tier, sea de la clase que sea: S+ 0,5, S 1, A 3, B 6, C 10 y D 15 (una S sale 15 veces menos que una D; una S+, el doble de poco que una S). La página enseña las probabilidades reales, que dependen de cuántas cartas hay en cada tier. Los pesos se cambian en `PESOS` de `server/gacha.js`.
+
+### Cartas BOOST
+
+Van en `data-proyecto/cartas-boost.json` (de momento vacío):
 
 ```json
 [
-  { "id": "ESP-KAMI", "nombre": "Kami", "subtitulo": "Guardián del Tenka Ichi" }
+  { "id": "BOOST-KAMI", "nombre": "Kami", "tier": "S+", "subtitulo": "Guardián del Tenka Ichi" }
 ]
 ```
 
-El `id` es el nombre del dibujo (mayúsculas, números y guiones). Con `"activa": false` deja de salir en los sobres y en el álbum (lo que ya se abrió sigue en el registro de la hoja). Los pesos se cambian en `PESOS` de `server/gacha.js`.
+El `id` es el nombre del dibujo (mayúsculas, números y guiones) y `tier` es `S+`, `S`, `A` o `B`. El `subtitulo` sale en la caja de texto de la carta, donde las de Jugador llevan el rol y el clan. Con `"activa": false` deja de salir en los sobres y en el álbum (lo que ya se abrió sigue en el registro de la hoja). Qué hace cada BOOST en el fantasy está por decidir.
 
-### Dibujos y marcos
+### Dibujos, marcos y reverso
 
-- **Dibujo de cada carta:** `public/cartas/ID.png` (también `.webp` o `.jpg`), donde el ID es el puesto del jugador (`KAIJU-TOP`, `TORA-ADC`…) o el de la especial (`ESP-KAMI`). Mientras no exista, la carta lleva el arte de su clan (y las especiales, el sol partido).
-- **Marco de cada tier:** `public/cartas/marcos/SP.png` (la S+), `S.png`, `A.png`, `B.png` y `C.png`, de 1000×1400 con la ventana del arte transparente (750×750 en x 125, y 282). La D usa el de la C mientras no tenga uno propio. Sin marco, la carta se dibuja como hasta ahora. Las posiciones del nombre, el emblema y el rol sobre el marco se ajustan en el bloque «Carta con marco» de `public/gachapon/gachapon.css`.
+- **Dibujo de cada carta:** `public/cartas/ID.png` (también `.webp` o `.jpg`), donde el ID es el puesto del jugador (`KAIJU-TOP`, `TORA-ADC`…) o el de la BOOST (`BOOST-KAMI`). Mientras no exista, la carta lleva el arte de su clan (y las BOOST, el sol partido).
+- **Marcos:** en `public/cartas/marcos/jugador/` (S, A, B, C y D, en papel washi) y `boost/` (SP, que es la S+, S, A y B, en laca de armadura con cordones: oro, rojo, blanco y añil). Tienen la ventana del arte transparente (750×750 en x 125, y 282 de 1000×1400), y el sello con la letra y las estrellas ya dibujados. Sin marco, la carta se dibuja como antes.
+- **Reverso:** `public/cartas/marcos/reverso.webp`, el mismo para las dos clases y todas las tiers: al abrir el sobre las tres cartas salen boca abajo y no se sabe qué ha tocado hasta darles la vuelta.
+- Los marcos se hacen en `diseno/marcos/`: `node diseno/marcos/generar.mjs` los dibuja en SVG y `node diseno/marcos/exportar.mjs` los pasa a PNG de 1000×1400 (originales, en `diseno/marcos/png/`, fuera del repositorio) y a WebP ligeros para la web (usa Chrome o Edge sin ventana). Ahí están también **guardados** para ediciones especiales la alternativa de laca completa y la S+ washi con torii (`exportar.mjs --guardadas` los pasa a PNG).
+- Las posiciones del nombre, el emblema y el rol sobre el marco se ajustan en el bloque «Carta con marco» de `public/gachapon/gachapon.css`.
 - La web mira la carpeta cada minuto: los dibujos nuevos aparecen sin reiniciar. Las direcciones llevan la fecha del archivo, así que al cambiar un dibujo nadie ve el antiguo en caché.
-- Para verlo sin tocar datos reales: `npm run vista-previa` (jugadores inventados, una especial y los dibujos de `public/cartas`) y entra en `http://localhost:3055/auth/prueba?nombre=Ana`.
+- Para verlo sin tocar datos reales: `npm run vista-previa` (jugadores inventados, una BOOST de cada tier y los dibujos de `public/cartas`) y entra en `http://localhost:3055/auth/prueba?nombre=Ana`.
 
 Más sobres: con la recompensa de puntos del canal **Sobre de Tenka Ichi**. La web recoge los canjes de la cola de Twitch cada minuto (y cuando alguien entra en el gachapon), da el sobre y marca el canje como hecho. Si la web está dormida, los canjes esperan en Twitch y no se pierden.
 

@@ -1,5 +1,5 @@
 // Vista previa del gachapon y el fantasy con datos inventados, sin tocar data/, las plantillas ni Google Sheets:
-// jugadores inventados en todos los clanes, con su tier, y una carta especial S+.
+// jugadores inventados en todos los clanes, con su tier, y una carta BOOST de cada tier (S+, S, A y B).
 //   node scripts/vista-previa.js [puerto] [--cartas=carpeta]
 // Abre http://localhost:3055/auth/prueba?nombre=Ana para entrar sin Twitch (con 2 sobres) y ve al gachapon.
 // Con --cartas se usan los dibujos y marcos de otra carpeta (misma forma que public/cartas: ID.png y marcos/TIER.png).
@@ -28,14 +28,17 @@ CLANES.filter(c => !c.invitado).forEach((c, i) => {
 });
 await writeFile(path.join(carpeta, 'plantillas.json'), JSON.stringify(plantillas));
 await writeFile(path.join(carpeta, 'tierlist.json'), JSON.stringify({ jugadores: tiers, equipos: {} }));
-await writeFile(path.join(carpeta, 'especiales.json'), JSON.stringify([
-  { id: 'ESP-KAMI', nombre: 'Kami', subtitulo: 'Guardián del Tenka Ichi' },
+await writeFile(path.join(carpeta, 'boosts.json'), JSON.stringify([
+  { id: 'BOOST-KAMI', nombre: 'Kami', tier: 'S+', subtitulo: 'Guardián del Tenka Ichi' },
+  { id: 'BOOST-TENGU', nombre: 'Tengu', tier: 'S', subtitulo: 'Boost de ejemplo' },
+  { id: 'BOOST-KITSUNE', nombre: 'Kitsune', tier: 'A', subtitulo: 'Boost de ejemplo' },
+  { id: 'BOOST-KAPPA', nombre: 'Kappa', tier: 'B', subtitulo: 'Boost de ejemplo' },
 ]));
 
 // Nada de la hoja de Google ni del canal de Twitch reales
 for (const k of Object.keys(process.env)) if (/^(GOOGLE_|TWITCH_|RENDER)/.test(k)) delete process.env[k];
 Object.assign(process.env, { PORT: puerto, CARPETA_DATOS: carpeta, ARCHIVO_PLANTILLAS: path.join(carpeta, 'plantillas.json'),
-  ARCHIVO_ESPECIALES: path.join(carpeta, 'especiales.json'), ...(cartas ? { CARPETA_CARTAS: path.resolve(cartas) } : {}) });
+  ARCHIVO_BOOSTS: path.join(carpeta, 'boosts.json'), ...(cartas ? { CARPETA_CARTAS: path.resolve(cartas) } : {}) });
 
 console.log(`Vista previa con datos inventados en ${carpeta}`);
 console.log(`Entra sin Twitch: http://localhost:${puerto}/auth/prueba?nombre=Ana`);

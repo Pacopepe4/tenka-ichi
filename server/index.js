@@ -16,7 +16,7 @@ import { estadoHoja } from './sheets.js';
 import { cargarTierlist, vistaTierlist, ponerTier } from './tierlist.js';
 import { cargarAjustes } from './ajustes.js';
 import { cargarGacha, catalogo, probabilidades, abrirSobre, darAlta, darSobres, estadoUsuario, buscarUsuario, resumenGacha,
-  PESOS, CARTAS_POR_SOBRE, SOBRES_INICIALES, CARPETA_ARTE } from './gacha.js';
+  PESOS, CARTAS_POR_SOBRE, SOBRES_INICIALES, CARPETA_ARTE, reversoCarta } from './gacha.js';
 import { cargarCanal, conectarCanal, cambiarCoste, sondear, sondearSiHaceFalta, estadoCanal, SCOPE_CANAL } from './canal.js';
 import { firmar, verificar, leerCookies, ponerCookie } from './sesion.js';
 import { twitchActivo, urlAutorizar, canjearCodigo, usuarioDeToken, usuarioPorNombre, CANAL } from './twitch.js';
@@ -351,6 +351,7 @@ function infoGacha(u) {
     cartasPorSobre: CARTAS_POR_SOBRE, sobresIniciales: SOBRES_INICIALES, pesos: PESOS,
     probabilidades: probabilidades(),
     catalogo: catalogo().map(({ peso, ...carta }) => carta),
+    reverso: reversoCarta(),
     recompensa: c.conectado && c.recompensa ? { titulo: c.titulo, coste: c.coste } : null,
     usuario: u ? { nombre: u.nombre, avatar: u.avatar || null, ...estadoUsuario(u.id) } : null,
   };

@@ -83,3 +83,11 @@
 - Puntuación del fantasy (`server/puntuacion.js`): KDA, sin morir, farmeo, visión, daño, primera sangre, multikills, participación en asesinatos, torres y MVP, con desglose. El puente saca la visión, la primera sangre, los multikills y las torres; el daño se apunta en el panel. Hoja Estadisticas con columnas nuevas al final.
 - Pendiente del usuario: el Excel con los campeones de cada carta; los marcos del chat web en `public/cartas/marcos/` (para ajustar dónde van el nombre, el emblema y el rol); registrar la app en dev.twitch.tv y conectar el canal para probar con Twitch de verdad.
 - Pendiente: probar la puntuación con una partida real (¿da el cliente como espectador la primera sangre y los multikills?); leer la pantalla final del cliente (LCU `lol-end-of-game`) desde el puente para rellenar también el daño; animación nueva al abrir sobres con brillo especial de la S+.
+
+## 30/09: marcos de las cartas, clases Jugador y BOOST, y reverso
+
+- Dos alternativas de marco hechas en un lienzo de diseño: «washi» (papel y tinta) y «laca» (laca de armadura con cordones de colores), cada una con su reverso.
+- Elegido: cartas de **Jugador** (S, A, B, C) en washi y cartas **BOOST** (S+, S, A, B) en laca: la S+ toda de oro (la laca A elegida por el usuario, con 6 remaches, 天下一 y el sello S+), la S roja, la A de plata con cordones blancos y la B de hierro con cordones añil. Reverso washi común para todas. Hecho también un marco D de Jugador por si la D se queda en la tier list.
+- Guardadas para ediciones especiales: la laca completa y la S+ washi con torii (en el lienzo y en `diseno/marcos/svg/guardadas/`).
+- Web: las cartas especiales pasan a ser BOOST (`data-proyecto/cartas-boost.json`, con tier S+, S, A o B); marcos por clase en `public/cartas/marcos/jugador|boost/` (WebP de 700 px: de 9 a 80 KB los marcos y 173 KB el reverso) y reverso común en la apertura de sobres. `diseno/marcos/generar.mjs` y `exportar.mjs` los rehacen.
+- Pendiente del usuario: decidir si la D se queda en la tier list (las de Jugador son S, A, B, C) y qué hace cada BOOST en el fantasy; los dibujos de cada carta (Excel de campeones).

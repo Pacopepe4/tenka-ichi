@@ -1,5 +1,6 @@
-// Gachapon de Tenka Ichi: cartas de los jugadores de la liga con la rareza de su tier (S, A, B, C, D)
-// y cartas especiales S+ de personajes de fuera de los clanes (data-proyecto/cartas-especiales.json).
+// Gachapon de Tenka Ichi. Dos clases de carta:
+// - Jugador: los jugadores de la liga, con la rareza de su tier en la tier list (S, A, B, C y D).
+// - BOOST: personajes de fuera de los clanes, de tier S+, S, A o B (data-proyecto/cartas-boost.json).
 // Cuanto mejor es la tier, menos peso tiene en el sorteo y más difícil es que salga.
 // Todo se guarda como un registro de movimientos (altas, canjes, regalos, aperturas y cartas) en la
 // pestaña «Gachapon» de Google Sheets; el estado de cada coleccionista se reconstruye leyéndolo.
@@ -11,15 +12,16 @@ import { vistaTierlist } from './tierlist.js';
 import { hojaActiva, asegurarPestana, leer, anadir } from './sheets.js';
 import { archivoDatos } from './datos.js';
 
-// La S+ pesa la mitad que la S: sale el doble de poco
+// La S+ (solo BOOST) pesa la mitad que la S: sale el doble de poco. Las demás pesan igual sean de la clase que sean
 export const TIERS_CARTA = ['S+', 'S', 'A', 'B', 'C', 'D'];
+export const TIERS_BOOST = ['S+', 'S', 'A', 'B'];
 export const PESOS = { 'S+': 0.5, S: 1, A: 3, B: 6, C: 10, D: 15 };
 export const CARTAS_POR_SOBRE = 3;
 export const SOBRES_INICIALES = 2;
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const ARCHIVO_ESPECIALES = process.env.ARCHIVO_ESPECIALES
-  ? path.resolve(process.env.ARCHIVO_ESPECIALES) : path.join(RAIZ, 'data-proyecto', 'cartas-especiales.json');
+const ARCHIVO_BOOSTS = process.env.ARCHIVO_BOOSTS
+  ? path.resolve(process.env.ARCHIVO_BOOSTS) : path.join(RAIZ, 'data-proyecto', 'cartas-boost.json');
 // Dibujos de las cartas y marcos; las pruebas y la vista previa usan otra carpeta con CARPETA_CARTAS
 export const CARPETA_ARTE = process.env.CARPETA_CARTAS ? path.resolve(process.env.CARPETA_CARTAS) : path.join(RAIZ, 'public', 'cartas');
 
@@ -87,28 +89,29 @@ let cola = Promise.resolve();
 const enCola = fn => { const p = cola.then(fn); cola = p.catch(() => {}); return p; };
 const ahora = () => new Date().toISOString();
 
-// ---------- cartas especiales, arte y marcos ----------
-// Cartas S+: personajes de fuera de los clanes. No tienen clan ni rol, así que no se alinean en el fantasy.
-// data-proyecto/cartas-especiales.json: [{ "id": "ESP-NOMBRE", "nombre": "…", "subtitulo": "…", "activa": true }]
-let especiales = [];
-async function cargarEspeciales() {
+// ---------- cartas BOOST, arte y marcos ----------
+// Personajes de fuera de los clanes. No tienen clan ni rol, así que no se alinean en el fantasy.
+// data-proyecto/cartas-boost.json: [{ "id": "BOOST-NOMBRE", "nombre": "…", "tier": "S+", "subtitulo": "…", "activa": true }]
+let boosts = [];
+async function cargarBoosts() {
   let lista = [];
-  try { lista = JSON.parse(await readFile(ARCHIVO_ESPECIALES, 'utf8')); }
-  catch (e) { if (e.code !== 'ENOENT') console.error('No se pudieron leer las cartas especiales:', e.message); }
+  try { lista = JSON.parse(await readFile(ARCHIVO_BOOSTS, 'utf8')); }
+  catch (e) { if (e.code !== 'ENOENT') console.error('No se pudieron leer las cartas BOOST:', e.message); }
   const deJugador = new Set(vistaTierlist().jugadores.map(j => j.id));
-  especiales = (Array.isArray(lista) ? lista : [])
-    .filter(e => e?.id && e?.nombre && e.activa !== false)
-    .map(e => ({ id: String(e.id).trim().toUpperCase().replace(/[^A-Z0-9-]+/g, '-'), nombre: String(e.nombre),
-      subtitulo: e.subtitulo ? String(e.subtitulo) : 'Carta especial', clan: null, rol: null, tier: 'S+', especial: true }))
+  boosts = (Array.isArray(lista) ? lista : [])
+    .filter(e => e?.id && e?.nombre && TIERS_BOOST.includes(e.tier) && e.activa !== false)
+    .map(e => ({ id: String(e.id).trim().toUpperCase().replace(/[^A-Z0-9-]+/g, '-'), nombre: String(e.nombre), tier: e.tier,
+      subtitulo: e.subtitulo ? String(e.subtitulo) : 'Boost', clan: null, rol: null, tipo: 'boost' }))
     .filter((e, i, todas) => !deJugador.has(e.id) && todas.findIndex(x => x.id === e.id) === i);
 }
 
-// Arte propio de cada carta en public/cartas/ID.webp|png|jpg (p. ej. KAIJU-TOP.png o ESP-NOMBRE.png)
-// y marco de cada tier en public/cartas/marcos/TIER.png (la S+ es SP.png). Mientras no estén,
-// la carta lleva la imagen de su clan (o el sol partido si es especial) y el marco dibujado con CSS.
+// Arte propio de cada carta en public/cartas/ID.webp|png|jpg (p. ej. KAIJU-TOP.png o BOOST-NOMBRE.png).
+// Marcos de cada clase y tier en public/cartas/marcos/jugador/ y boost/ (TIER.webp; la S+ es SP) y el reverso,
+// igual para todas, en public/cartas/marcos/reverso.webp. Salen de diseno/marcos/. Mientras no estén, la carta
+// lleva la imagen de su clan (o el sol partido si es BOOST) y el marco dibujado con CSS.
 // La dirección lleva la fecha del archivo: se puede guardar en caché y, si cambia el dibujo, cambia la dirección.
 const EXTENSIONES = ['.webp', '.png', '.jpg', '.jpeg'];
-let artes = new Map(), marcos = new Map();
+let artes = new Map(), marcos = { jugador: new Map(), boost: new Map() }, reverso = null;
 
 async function indiceImagenes(carpeta, prefijo) {
   let archivos = [];
@@ -125,22 +128,29 @@ async function indiceImagenes(carpeta, prefijo) {
 }
 
 async function cargarCartas() {
-  await cargarEspeciales();
-  [artes, marcos] = await Promise.all([indiceImagenes(CARPETA_ARTE, '/cartas/'), indiceImagenes(path.join(CARPETA_ARTE, 'marcos'), '/cartas/marcos/')]);
+  await cargarBoosts();
+  const carpeta = path.join(CARPETA_ARTE, 'marcos');
+  const [a, jugador, boost, sueltos] = await Promise.all([indiceImagenes(CARPETA_ARTE, '/cartas/'),
+    indiceImagenes(path.join(carpeta, 'jugador'), '/cartas/marcos/jugador/'), indiceImagenes(path.join(carpeta, 'boost'), '/cartas/marcos/boost/'),
+    indiceImagenes(carpeta, '/cartas/marcos/')]);
+  artes = a;
+  marcos = { jugador, boost };
+  reverso = sueltos.get('REVERSO') || null;
 }
-// Si se añaden dibujos o especiales con la web encendida, aparecen en un minuto
+// Si se añaden dibujos o cartas BOOST con la web encendida, aparecen en un minuto
 setInterval(() => cargarCartas().catch(() => {}), 60000).unref();
 
 // Clave de la tier para archivos y CSS: la S+ es SP
 export const claveTier = t => (t === 'S+' ? 'SP' : t);
 const arteDe = c => artes.get(c.id) || (c.clan ? `/clanes/${c.clan}.jpg` : '/marca/sol-partido.jpg');
-// La D no tiene marco propio de momento: usa el de la C
-const marcoDe = t => marcos.get(claveTier(t)) || (t === 'D' ? marcos.get('C') : null) || null;
+const marcoDe = c => marcos[c.tipo]?.get(claveTier(c.tier)) || null;
+// El reverso es el mismo para todas las cartas: al abrir el sobre no se sabe qué ha tocado hasta darle la vuelta
+export const reversoCarta = () => reverso;
 
 // ---------- cartas y probabilidades ----------
 export function catalogo() {
-  const jugadores = vistaTierlist().jugadores.filter(j => j.nombre && j.tier);
-  return [...especiales, ...jugadores].map(c => ({ ...c, arte: arteDe(c), marco: marcoDe(c.tier), peso: PESOS[c.tier] }));
+  const jugadores = vistaTierlist().jugadores.filter(j => j.nombre && j.tier).map(j => ({ ...j, tipo: 'jugador' }));
+  return [...boosts, ...jugadores].map(c => ({ ...c, arte: arteDe(c), marco: marcoDe(c), peso: PESOS[c.tier] }));
 }
 
 // Probabilidad de que una carta cualquiera del sobre sea de cada tier

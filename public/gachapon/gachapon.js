@@ -3,7 +3,8 @@ import { cargarClanes, logo } from '/comun.js';
 import { iniciarDirecto } from '/directo.js';
 
 const $ = s => document.querySelector(s);
-// La S+ son cartas especiales de personajes de fuera de los clanes; en CSS y en los archivos es SP
+// Dos clases de carta: Jugador (jugadores de la liga) y BOOST (personajes de fuera de los clanes, de S+ a B).
+// La S+ es SP en CSS y en los archivos
 const TIERS = ['S+', 'S', 'A', 'B', 'C', 'D'];
 const claveTier = t => (t === 'S+' ? 'SP' : t);
 const ROL = { TOP: 'Top', JUNGLA: 'Jungla', MEDIO: 'Medio', ADC: 'ADC', SUPPORT: 'Support' };
@@ -26,11 +27,11 @@ async function cargar() {
   pintar();
 }
 
-// El arte es el dibujo de la carta si ya existe (si no, el del clan) y el marco, el de su tier si ya está hecho
+// El arte es el dibujo de la carta si ya existe (si no, el del clan) y el marco, el de su clase y tier si ya está hecho
 function cartaHTML(c, cantidad = null) {
-  const falta = cantidad === 0, k = claveTier(c.tier);
-  const quien = c.especial ? escapar(c.subtitulo) : `${ROL[c.rol] || c.rol} de ${escapar(nombreClan(c.clan))}`;
-  return `<div class="carta-g${falta ? ' falta' : ''}${c.marco ? ' con-marco' : ''}${c.especial ? ' especial' : ''}" data-tier="${k}" style="--color-tier: var(--tier-${k})">
+  const falta = cantidad === 0, k = claveTier(c.tier), boost = c.tipo === 'boost';
+  const quien = boost ? escapar(c.subtitulo) : `${ROL[c.rol] || c.rol} de ${escapar(nombreClan(c.clan))}`;
+  return `<div class="carta-g${falta ? ' falta' : ''}${c.marco ? ' con-marco' : ''}${boost ? ' boost' : ''}" data-tier="${k}" style="--color-tier: var(--tier-${k})">
     <img class="arte" src="${escapar(c.arte || `/clanes/${c.clan}.jpg`)}" alt="" loading="lazy"><span class="velo"></span>
     ${c.marco ? `<img class="marco" src="${escapar(c.marco)}" alt="" loading="lazy">` : ''}
     <span class="hanko rareza" title="Tier ${c.tier}">${c.tier}</span>${c.clan ? `<img class="logo" src="${logo(c.clan)}" alt="">` : ''}
@@ -81,8 +82,9 @@ function pintarCuenta() {
 function pintarAlbum() {
   const mias = new Map((info.usuario?.cartas || []).map(c => [c.id, c.cantidad]));
   const conSesion = Boolean(info.usuario);
+  // Por tier; en cada tier, primero los jugadores (por clan) y después las BOOST
   const orden = [...info.catalogo].sort((a, b) => TIERS.indexOf(a.tier) - TIERS.indexOf(b.tier)
-    || (a.clan || '').localeCompare(b.clan || '') || a.nombre.localeCompare(b.nombre));
+    || (a.tipo === 'boost') - (b.tipo === 'boost') || (a.clan || '').localeCompare(b.clan || '') || a.nombre.localeCompare(b.nombre));
   const lista = orden.filter(c => filtro === 'todas' || (filtro === 'tengo' ? mias.get(c.id) : !mias.get(c.id)));
   const tengo = info.catalogo.filter(c => mias.get(c.id)).length;
   $('.progreso').textContent = conSesion ? `Tienes ${tengo} de ${info.catalogo.length} cartas.` : `${info.catalogo.length} cartas en total. Entra con Twitch para empezar tu colección.`;
@@ -92,18 +94,19 @@ function pintarAlbum() {
 }
 
 function pintarProbabilidades() {
-  const cuantos = t => info.catalogo.filter(c => c.tier === t).length;
-  const hayEspeciales = cuantos('S+') > 0;
+  const cuantos = (t, tipo) => info.catalogo.filter(c => c.tier === t && c.tipo === tipo).length;
+  const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
+  const hayS = cuantos('S+', 'boost') > 0;
   const pS = (info.probabilidades.S || 0) + (info.probabilidades['S+'] || 0);
-  // La fila de la S+ sale cuando hay cartas especiales
-  $('.tabla-prob').innerHTML = TIERS.filter(t => t !== 'S+' || hayEspeciales).map(t => {
-    const p = info.probabilidades[t] || 0, n = cuantos(t), k = claveTier(t);
-    const quienes = t === 'S+' ? (n === 1 ? 'especial' : 'especiales') : (n === 1 ? 'jugador' : 'jugadores');
+  // La fila de la S+ sale cuando hay cartas BOOST S+; cada fila cuenta jugadores y BOOST
+  $('.tabla-prob').innerHTML = TIERS.filter(t => t !== 'S+' || hayS).map(t => {
+    const p = info.probabilidades[t] || 0, k = claveTier(t), j = cuantos(t, 'jugador'), b = cuantos(t, 'boost');
+    const quienes = [j && plural(j, 'jugador', 'jugadores'), b && plural(b, 'BOOST', 'BOOST')].filter(Boolean).join(' y ') || '0 cartas';
     return `<div class="fila-prob" data-tier="${k}" style="--color-tier: var(--tier-${k})"><span class="letra">${t}</span>
       <span class="barra-prob"><span style="width:${(p * 100).toFixed(1)}%"></span></span>
-      <span class="cifra">${pct(p)}<small>${n} ${quienes}</small></span></div>`;
+      <span class="cifra">${pct(p)}<small>${quienes}</small></span></div>`;
   }).join('') + (info.catalogo.length
-    ? `<p class="resumen-prob">En cada sobre, la probabilidad de que salga al menos una S${hayEspeciales ? ' o una S+' : ''} es del ${pct(1 - (1 - pS) ** info.cartasPorSobre)}.</p>` : '');
+    ? `<p class="resumen-prob">En cada sobre, la probabilidad de que salga al menos una S${hayS ? ' o una S+' : ''} es del ${pct(1 - (1 - pS) ** info.cartasPorSobre)}.</p>` : '');
 }
 
 // ---------- fantasy ----------
@@ -213,11 +216,17 @@ async function abrir() {
   mostrarApertura(r.sobre);
 }
 
+// Todas las cartas salen boca abajo con el mismo reverso: no se sabe si es Jugador o BOOST, ni su tier,
+// hasta darle la vuelta. Sin el reverso dibujado, el sol partido sobre tinta
+const dorso = () => (info.reverso
+  ? `<div class="cara dorso con-reverso"><img src="${escapar(info.reverso)}" alt=""></div>`
+  : '<div class="cara dorso"><img src="/marca/sol-partido-sin-fondo.png" alt=""></div>');
+
 function mostrarApertura(cartas) {
   const reducido = matchMedia('(prefers-reduced-motion: reduce)').matches;
   dialogo.classList.remove('cortando', 'abierto');
   $('.reparto').innerHTML = cartas.map((c, i) => `<div class="volteable" data-tier="${claveTier(c.tier)}" tabindex="0" role="button" aria-label="Carta ${i + 1}: dale la vuelta">
-    <div class="giro"><div class="cara dorso"><img src="/marca/sol-partido-sin-fondo.png" alt=""></div><div class="cara frente">${cartaHTML(c)}</div></div></div>`).join('');
+    <div class="giro">${dorso()}<div class="cara frente">${cartaHTML(c)}</div></div></div>`).join('');
   $('.descubrir').hidden = false;
   $('.otro').hidden = true;
   $('.cerrar-apertura').hidden = true;
