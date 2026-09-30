@@ -393,9 +393,8 @@ function reversoLaca() {
 }
 
 const guardar = (nombre, contenido) => writeFileSync(path.join(SALIDA, nombre), contenido);
-mkdirSync(path.join(SALIDA, 'propuestas'), { recursive: true });
 guardar('jugador-S.svg', jugadorS('bermellon'));
-guardar('propuestas/jugador-S-oro.svg', jugadorS('oro'));
+guardar('guardadas/jugador-S-oro.svg', jugadorS('oro'));
 guardar('guardadas/washi-S.svg', washi('S'));
 for (const t of ['A', 'B', 'C', 'D']) guardar(`jugador-${t}.svg`, washi(t));
 for (const t of ['SP', 'S', 'A', 'B']) guardar(`boost-${t}.svg`, laca(t, BOOST[t]));

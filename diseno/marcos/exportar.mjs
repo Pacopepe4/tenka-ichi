@@ -2,7 +2,7 @@
 // letras y 天下一 en la fuente de la marca (originales en diseno/marcos/png/), y a WebP de 700 px, mucho más
 // ligeros, donde los busca la web (public/cartas/marcos/).
 //   node diseno/marcos/exportar.mjs              → marcos de Jugador, BOOST y el reverso
-//   node diseno/marcos/exportar.mjs --guardadas  → además, las guardadas y las propuestas, en diseno/marcos/png/
+//   node diseno/marcos/exportar.mjs --guardadas  → además, las guardadas, en diseno/marcos/png/guardadas/
 //   node diseno/marcos/exportar.mjs jugador/S    → solo las piezas cuyo archivo contenga eso (se pueden poner varias)
 // Usa Google Chrome o Microsoft Edge sin ventana (o el que diga CHROME) y hace falta conexión para la fuente.
 import { mkdirSync, writeFileSync, existsSync, rmSync, readFileSync } from 'node:fs';
@@ -39,7 +39,7 @@ const PIEZAS = [
   { svg: 'reverso.svg', salida: 'reverso.png', ...reverso(TINTA, [320, 948, 360, 108]) },
 ];
 const GUARDADAS = [
-  { svg: 'propuestas/jugador-S-oro.svg', salida: 'propuestas/jugador-S-oro.png', textos: [letra('S')] },
+  { svg: 'guardadas/jugador-S-oro.svg', salida: 'guardadas/jugador-S-oro.png', textos: [letra('S')] },
   { svg: 'guardadas/washi-S.svg', salida: 'guardadas/washi-S.png', textos: [letra('S')] },
   ...['S', 'A', 'B', 'C'].map(t => ({ svg: `guardadas/laca-${t}.svg`, salida: `guardadas/laca-${t}.png`, textos: [letra(t)] })),
   { svg: 'guardadas/laca-SP.svg', salida: 'guardadas/laca-SP.png', textos: [selloSP, tenka(ORO, 202)] },
