@@ -1,7 +1,7 @@
 // Puntuación del fantasy: reglas, datos que faltan, multikills acumulativos, match-v5 y los datos del puente.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { puntuar, participacion, desdeMatchV5, reglasLegibles, REGLAS_PUNTOS as R } from '../server/puntuacion.js';
+import { puntuar, participacion, desdeMatchV5, reglasLegibles, cumpleCondicion, CAMPO_CONDICION, REGLAS_PUNTOS as R } from '../server/puntuacion.js';
 
 const puntosDe = (resultado, regla) => resultado.desglose.find(d => d.regla === regla)?.puntos ?? 0;
 
@@ -74,13 +74,32 @@ test('los cinco roles puntúan parecido en una partida normal ganada', () => {
 test('match-v5: un participante de la API de Riot se traduce a las mismas reglas', () => {
   const p = { win: true, kills: 10, deaths: 1, assists: 6, totalMinionsKilled: 180, neutralMinionsKilled: 24, visionScore: 22,
     totalDamageDealtToChampions: 31234, firstBloodKill: false, tripleKills: 1, quadraKills: 1, pentaKills: 1,
-    turretTakedowns: 4, challenges: { killParticipation: 0.7272 } };
+    turretTakedowns: 4, damageDealtToTurrets: 5400, challenges: { killParticipation: 0.7272 } };
   const s = desdeMatchV5(p);
-  assert.deepEqual(s, { victoria: true, k: 10, d: 1, a: 6, cs: 204, vision: 22, dano: 31234, primeraSangre: false,
+  assert.deepEqual(s, { victoria: true, k: 10, d: 1, a: 6, cs: 204, vision: 22, dano: 31234, danoTorres: 5400, primeraSangre: false,
     triples: 1, quadras: 1, pentas: 1, torres: 4, kp: 73 });
   const r = puntuar(s);
   assert.equal(puntosDe(r, 'pentakill') + puntosDe(r, 'cuadruple') + puntosDe(r, 'triple'), 10);
   assert.equal(puntosDe(r, 'participacion'), 2);
+});
+
+test('condición de una BOOST: «el que más X» entre los diez, con empates y sin datos que falten', () => {
+  const diez = (campo, valores) => valores.map((v, i) => ({ id: `J${i}`, [campo]: v }));
+  const filas = diez('dano', [9000, 31000, 12000, 8000, 15000, 22000, 18000, 7000, 31000, 10000]);
+  assert.equal(cumpleCondicion('dano', filas[1], filas), true, 'el que más daño hace');
+  assert.equal(cumpleCondicion('dano', filas[8], filas), true, 'un empate en lo más alto cuenta para los dos');
+  assert.equal(cumpleCondicion('dano', filas[5], filas), false, 'el segundo no');
+  const incompletas = diez('dano', [9000, 31000, null, 8000, 15000, 22000, 18000, 7000, 12000, 10000]);
+  assert.equal(cumpleCondicion('dano', incompletas[1], incompletas), false, 'si falta el dato de alguno no se sabe');
+  const ceros = diez('danoTorres', Array(10).fill(0));
+  assert.equal(cumpleCondicion('dano-torres', ceros[0], ceros), false, 'con todos a cero nadie es el que más');
+  assert.equal(cumpleCondicion('inventada', filas[1], filas), false, 'condición desconocida');
+  // Cada condición mira su dato: asistencias la A, participación la kp, CS el farmeo, daño a torres el suyo
+  for (const [condicion, campo] of Object.entries(CAMPO_CONDICION)) {
+    const f = diez(campo, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    assert.equal(cumpleCondicion(condicion, f[9], f), true, condicion);
+    assert.equal(cumpleCondicion(condicion, f[0], f), false, condicion);
+  }
 });
 
 test('las reglas legibles cubren todas las reglas', () => {

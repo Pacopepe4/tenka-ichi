@@ -13,8 +13,10 @@ main { max-width: 1180px; margin: 0 auto; padding: 0 clamp(16px, 5vw, 64px); }
 .cuenta .yo span { color: var(--hai); font-size: 15px; }
 .cuenta .salir { background: none; border: 0; color: var(--hai); text-decoration: underline; font: inherit; font-size: 14px; cursor: pointer; padding: 0; }
 .cuenta .aviso { color: var(--hai); margin: 0; }
-.boton-twitch { display: inline-flex; align-items: center; gap: 10px; padding: 12px 22px; background: var(--washi); color: var(--sumi); border-radius: 3px; text-decoration: none; font-weight: 700; }
-.boton-twitch:hover { background: #fff6e8; }
+.boton-entrar { display: inline-flex; align-items: center; gap: 10px; padding: 12px 22px; background: var(--washi); color: var(--sumi); border-radius: 3px; text-decoration: none; font-weight: 700; }
+.boton-entrar:hover { background: #fff6e8; }
+.boton-entrar.secundario { background: transparent; color: var(--washi); box-shadow: inset 0 0 0 1px var(--washi); }
+.boton-entrar.secundario:hover { background: rgba(255, 255, 255, .08); }
 .boton-claro { padding: 12px 22px; background: var(--washi); color: var(--sumi); border: 0; border-radius: 3px; font: inherit; font-weight: 700; cursor: pointer; }
 .boton-claro:hover { background: #fff6e8; }
 .boton-claro:disabled { opacity: .45; cursor: default; }
@@ -60,10 +62,11 @@ button.boton-secundario { background: transparent; font: inherit; font-weight: 7
 .carta-g .pie { position: absolute; left: 12px; right: 12px; bottom: 10px; display: flex; flex-direction: column; }
 .carta-g .nick { font-family: var(--mincho); font-weight: 800; font-size: 24px; line-height: 1.1; overflow-wrap: anywhere; }
 .carta-g .rol { font-size: 13px; color: #CFC6B6; }
+.carta-g .bonus { font-size: 13px; font-weight: 800; color: var(--washi); }
 .carta-g .cantidad { position: absolute; right: 10px; bottom: 12px; font-family: var(--mincho); font-weight: 800; font-size: 18px; color: var(--washi); }
 .carta-g.falta { box-shadow: inset 0 0 0 2px var(--sumi-linea); }
 .carta-g.falta .arte, .carta-g.falta .logo, .carta-g.falta .rareza { filter: grayscale(1) brightness(.45); }
-.carta-g.falta .nick, .carta-g.falta .rol { color: var(--hai); }
+.carta-g.falta .nick, .carta-g.falta .rol, .carta-g.falta .bonus { color: var(--hai); }
 /* Las S brillan un poco más, y las S+ (especiales) más todavía */
 .carta-g[data-tier="S"]:not(.falta) { box-shadow: inset 0 0 0 3px var(--tier-S), 0 0 26px rgba(190, 42, 47, .45), 0 10px 22px rgba(0, 0, 0, .45); }
 .carta-g[data-tier="SP"]:not(.falta) { box-shadow: inset 0 0 0 3px var(--tier-SP), 0 0 34px rgba(154, 106, 208, .55), 0 10px 22px rgba(0, 0, 0, .45); }
@@ -152,6 +155,8 @@ button.boton-secundario { background: transparent; font: inherit; font-weight: 7
 .hueco-ali .carta-g .rareza { width: 32px; height: 32px; font-size: 19px; }
 .hueco-ali .carta-g .logo { width: 30px; height: 28px; }
 .hueco-ali .puntos-ali { font-size: 13px; color: var(--hai); }
+.hueco-ali .boost-ali { font-size: 12px; font-weight: 700; color: var(--washi); overflow-wrap: anywhere; }
+.titulo-boost { margin: 26px 0 10px; font-family: var(--mincho); font-weight: 800; font-size: 20px; }
 .clasificacion-fantasy { list-style: none; margin: 0; padding: 0; }
 .clasificacion-fantasy li { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--sumi-linea); }
 .clasificacion-fantasy .puesto { font-family: var(--mincho); font-weight: 800; font-size: 20px; color: var(--hai); }
@@ -191,6 +196,11 @@ button.boton-secundario { background: transparent; font: inherit; font-weight: 7
 .elegir .opcion[aria-pressed="true"] .carta-g { outline: 3px solid var(--washi); outline-offset: 3px; }
 .elegir .opcion .carta-g .nick { font-size: 19px; }
 .elegir .sin-cartas { color: var(--hai); }
+.elegir .condicion-boost { grid-column: 1 / -1; margin: 0 0 4px; color: var(--hai); }
+.elegir .opcion-rol { display: flex; flex-direction: column; gap: 2px; padding: 14px 16px; border: 1px solid var(--sumi-linea); border-radius: 8px; background: var(--sumi); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.elegir .opcion-rol b { font-family: var(--mincho); font-weight: 800; font-size: 20px; }
+.elegir .opcion-rol span { font-size: 13px; color: var(--hai); }
+.elegir .opcion-rol:hover, .elegir .opcion-rol[aria-pressed="true"] { border-color: var(--washi); }
 .acciones-elegir { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
 
 @media (max-width: 900px) {
@@ -223,6 +233,8 @@ button.boton-secundario { background: transparent; font: inherit; font-weight: 7
   font-size: 7.2cqw; color: var(--tinta-marco); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .carta-g.con-marco .pie .rol { position: absolute; left: 10%; right: 10%; top: var(--caja-y); font-size: 5cqw; font-weight: 700; color: var(--tinta-marco);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.carta-g.con-marco .pie .bonus { position: absolute; left: 10%; right: 10%; top: calc(var(--caja-y) + 8cqw); font-size: 5cqw; color: var(--tinta-marco);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .carta-g.con-marco .cantidad { right: 9%; bottom: 7%; font-size: 6cqw; color: var(--tinta-marco); }
 .carta-g.con-marco.falta .marco { filter: grayscale(1) brightness(.55); }
-.carta-g.con-marco.falta .pie .nick, .carta-g.con-marco.falta .pie .rol { color: #4A443C; }
+.carta-g.con-marco.falta .pie .nick, .carta-g.con-marco.falta .pie .rol, .carta-g.con-marco.falta .bonus { color: #4A443C; }

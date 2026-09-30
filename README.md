@@ -77,13 +77,15 @@ server/partida.js      marcador de partida con lo que manda el puente, y la part
 server/zip.js          zip mínimo para descargar el puente
 server/tierlist.js     tier list de jugadores y equipos
 server/gacha.js        sobres, cartas de Jugador y BOOST, arte, marcos y reverso, y el sorteo
-server/twitch.js       inicio de sesión con Twitch y API Helix (con validación de tokens cada hora)
+server/entrada-discord.js   inicio de sesión de los espectadores con Discord (OAuth2, permiso identify; no guarda ningún token)
+server/twitch.js       API Helix y, si se configura, inicio de sesión con Twitch (con validación de tokens cada hora)
 server/canal.js        recompensa de puntos del canal y recogida de canjes
 server/sesion.js       sesiones firmadas y cifrado de los tokens del canal
 server/fantasy.js      alineaciones, estadísticas de cada partida y clasificación
 server/puntuacion.js   reglas de puntuación del fantasy
 server/datos.js        carpeta de datos locales (data/, o CARPETA_DATOS en las pruebas)
 scripts/twitch-falso.js   Twitch de mentira para las pruebas (npm run twitch-falso)
+scripts/entrada-discord-falso.js   Discord de mentira para las pruebas del inicio de sesión (npm run entrada-discord-falso)
 scripts/vista-previa.js   la web con jugadores y cartas inventados (npm run vista-previa)
 test/                  pruebas (npm test)
 diseno/marcos/         marcos de las cartas: generador SVG, exportador a PNG y WebP, y los diseños guardados
@@ -182,7 +184,7 @@ Se edita en el panel, apartado **Tier list**: cada jugador (por su puesto en la 
 
 ## Gachapon
 
-`/gachapon/`: cada espectador entra con su cuenta de Twitch y recibe **2 sobres**. Cada sobre trae **3 cartas**, de dos clases:
+`/gachapon/`: cada espectador entra con su cuenta de Discord y recibe **2 sobres**. Cada sobre trae **3 cartas**, de dos clases:
 
 - **Jugador:** los jugadores de la liga, con la rareza de su tier en la tier list (S, A, B, C; la D sigue funcionando mientras exista en la tier list).
 - **BOOST:** personajes de fuera de los clanes, de tier **S+**, S, A o B (abajo). No tienen clan ni rol, así que no se alinean en el fantasy.
@@ -211,34 +213,54 @@ El `id` es el nombre del dibujo (mayúsculas, números y guiones) y `tier` es `S
 - La web mira la carpeta cada minuto: los dibujos nuevos aparecen sin reiniciar. Las direcciones llevan la fecha del archivo, así que al cambiar un dibujo nadie ve el antiguo en caché.
 - Para verlo sin tocar datos reales: `npm run vista-previa` (jugadores inventados, una BOOST de cada tier y los dibujos de `public/cartas`) y entra en `http://localhost:3055/auth/prueba?nombre=Ana`.
 
-Más sobres: con la recompensa de puntos del canal **Sobre de Tenka Ichi**. La web recoge los canjes de la cola de Twitch cada minuto (y cuando alguien entra en el gachapon), da el sobre y marca el canje como hecho. Si la web está dormida, los canjes esperan en Twitch y no se pierden.
+Más sobres: el staff los **regala** desde el panel (premios, sorteos). Opcionalmente, con la recompensa de puntos del canal **Sobre de Tenka Ichi** (apartado «Puntos del canal de Twitch» más abajo).
 
-Todo se guarda como movimientos en la pestaña **Gachapon** de Google Sheets (altas, canjes, regalos, aperturas y cartas), así que ahí se ve quién tiene qué. La conexión del canal va cifrada en la pestaña **Ajustes**.
+Todo se guarda como movimientos en la pestaña **Gachapon** de Google Sheets (altas, canjes, regalos, aperturas y cartas), así que ahí se ve quién tiene qué. Cada cuenta se identifica por `discord-` y su id de Discord (o por el id de Twitch, si entra con Twitch). La conexión del canal, si se usa, va cifrada en la pestaña **Ajustes**.
 
-### Activarlo (gratis)
+### Activarlo con Discord (gratis)
+
+1. Entra en https://discord.com/developers/applications con tu cuenta de Discord y pulsa **New Application** (nombre: `Tenka Ichi`, o el que quieras). No hace falta crear ningún bot ni verificar la aplicación.
+2. En el menú **OAuth2**:
+   - Copia el **Client ID** y pulsa **Reset Secret** para sacar el **Client Secret**.
+   - En **Redirects** añade `https://tenka-ichi.onrender.com/auth/discord/callback` y, para probar en local, `http://localhost:3030/auth/discord/callback`. Guarda los cambios.
+3. En Render, en Environment del servicio, añade:
+   - `DISCORD_CLIENT_ID`: el Client ID.
+   - `DISCORD_CLIENT_SECRET`: el Client Secret.
+   - `SESION_SECRETO`: una cadena larga al azar. Puedes sacar una con `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. Si la cambias, se cierran todas las sesiones.
+
+La web pide a Discord solo el permiso **identify** (id, nombre y avatar). No guarda ningún token de Discord. Cualquiera con una cuenta de Discord puede entrar; no hay que estar en ningún servidor. El nombre se limpia al entrar (sin caracteres invisibles ni de control, máximo 32 caracteres y sin `=`, `+`, `-` o `@` al principio) para que en la hoja de Google no se interprete como una fórmula.
+
+Sin las variables de Discord, la página del gachapon dice que abre muy pronto. En local se puede probar sin Discord entrando en `/auth/prueba?nombre=Alguien`; esa entrada de prueba no existe en Render.
+
+### Puntos del canal de Twitch (opcional)
+
+Las cuentas de Discord y de Twitch son distintas: los sobres de los puntos del canal se dan a la cuenta del id de Twitch, así que solo los recibe quien entre en el gachapon con el botón «Entrar con Twitch». Ese botón solo sale si se configura la app de Twitch, y una misma persona tendría dos colecciones, una por cada forma de entrar. Para activarlo:
 
 1. Entra en https://dev.twitch.tv/console/apps con tu cuenta de Twitch y pulsa **Register Your Application**:
    - Name: `Tenka Ichi` (o el que quieras).
    - OAuth Redirect URLs: `https://tenka-ichi.onrender.com/auth/twitch/callback` y, para probar en local, `http://localhost:3030/auth/twitch/callback`.
    - Category: **Website Integration**. Client Type: **Confidential**.
 2. En la app creada copia el **Client ID** y pulsa **New Secret** para sacar el **Client Secret**.
-3. En Render, en Environment del servicio, añade:
-   - `TWITCH_CLIENT_ID`: el Client ID.
-   - `TWITCH_CLIENT_SECRET`: el Client Secret.
-   - `SESION_SECRETO`: una cadena larga al azar. Puedes sacar una con `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. Si la cambias, se cierran todas las sesiones y hay que volver a conectar el canal.
+3. En Render añade `TWITCH_CLIENT_ID` y `TWITCH_CLIENT_SECRET` (y `SESION_SECRETO`, si no lo tenías ya).
 4. En el panel, apartado **Gachapon**, pulsa **Conectar el canal de Twitch** y entra con la cuenta **koryubudo**. La web crea la recompensa «Sobre de Tenka Ichi» a 3000 puntos; el coste se cambia desde el panel.
 
-Los puntos del canal solo existen en canales afiliados o partner de Twitch. El staff puede **regalar sobres** desde el panel (premios, sorteos).
-
-Sin las variables de Twitch, la página del gachapon dice que abre muy pronto. En local se puede probar sin Twitch entrando en `/auth/prueba?nombre=Alguien`.
+La web recoge los canjes de la cola de Twitch cada minuto (y cuando alguien entra en el gachapon), da el sobre y marca el canje como hecho. Si la web está dormida, los canjes esperan en Twitch y no se pierden. Los puntos del canal solo existen en canales afiliados o partner de Twitch.
 
 Como pide Twitch, los tokens guardados se validan al arrancar y cada hora (`/oauth2/validate`). Si el canal cambia la contraseña o retira el permiso, el panel avisa «vuelve a conectarlo» y deja de recoger canjes hasta que se conecte otra vez.
 
-### Probarlo sin Twitch de verdad
+### Probarlo sin Discord ni Twitch de verdad
 
-`npm test` arranca la web con datos temporales contra un **Twitch falso** (`scripts/twitch-falso.js`, que imita el inicio de sesión, los tokens, la validación, la recompensa y los canjes) y prueba de punta a punta: entrar, abrir sobres, conectar el canal, canjes que dan sobres una sola vez, renovación de tokens, regalos, reinicio de la web, permiso retirado y una partida del fantasy. No toca `data/`, las plantillas ni Google Sheets.
+`npm test` arranca la web con datos temporales contra un **Discord falso** (`scripts/entrada-discord-falso.js`) y un **Twitch falso** (`scripts/twitch-falso.js`):
 
-El Twitch falso también se puede arrancar suelto (`npm run twitch-falso`, en el puerto 4040) y apuntar la web a él con `TWITCH_URL_ID=http://localhost:4040` y `TWITCH_URL_API=http://localhost:4040/helix`, con `TWITCH_CLIENT_ID=cliente-prueba` y `TWITCH_CLIENT_SECRET=secreto-prueba`. Sus usuarios son koryubudo (el canal, afiliado), ana, beto y carla.
+- Inicio de sesión con Discord (`test/entrada-discord.test.js`): entrar y recibir 2 sobres una sola vez, cancelar, estados y códigos inválidos, que `volver` no saque de la web, nombres que no puedan ser fórmulas, regalos por nombre, reinicio de la web y que en Render sin claves no haya ni inicio de sesión ni entrada de prueba.
+- Twitch (`test/twitch.test.js`): entrar, abrir sobres, conectar el canal, canjes que dan sobres una sola vez, renovación de tokens, regalos, reinicio, permiso retirado y una partida del fantasy.
+
+No tocan `data/`, las plantillas ni Google Sheets.
+
+Los falsos también se pueden arrancar sueltos y apuntar la web a ellos:
+
+- Inicio de sesión con Discord (`npm run entrada-discord-falso`, puerto 4041): `DISCORD_URL_WEB=http://localhost:4041`, `DISCORD_URL_API=http://localhost:4041/api/v10` y `DISCORD_URL_CDN=http://localhost:4041/cdn`, con `DISCORD_CLIENT_ID=cliente-prueba` y `DISCORD_CLIENT_SECRET=secreto-prueba`. Sus usuarios son ana, beto (sin nombre visible ni avatar), carla (nombre con una fórmula) y dani (nombre con caracteres raros).
+- Twitch (`npm run twitch-falso`, puerto 4040): `TWITCH_URL_ID=http://localhost:4040` y `TWITCH_URL_API=http://localhost:4040/helix`, con `TWITCH_CLIENT_ID=cliente-prueba` y `TWITCH_CLIENT_SECRET=secreto-prueba`. Sus usuarios son koryubudo (el canal, afiliado), ana, beto y carla.
 
 ## Fantasy
 

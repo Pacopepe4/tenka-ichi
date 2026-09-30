@@ -21,13 +21,15 @@ async function arrancarWeb() {
   const puerto = 3900 + Math.floor(Math.random() * 90);
   urlWeb = `http://127.0.0.1:${puerto}`;
   const entorno = { ...process.env };
-  for (const k of Object.keys(entorno)) if (/^(GOOGLE_|TWITCH_|RENDER)/.test(k)) delete entorno[k];
+  for (const k of Object.keys(entorno)) if (/^(GOOGLE_|TWITCH_|DISCORD_|RENDER)/.test(k)) delete entorno[k];
   web = spawn(process.execPath, ['server/index.js'], {
     cwd: RAIZ, stdio: ['ignore', 'pipe', 'pipe'],
     env: { ...entorno, PORT: String(puerto), PANEL_CLAVE: CLAVE, SESION_SECRETO: 'secreto-de-las-pruebas',
       TWITCH_CLIENT_ID: CLIENTE.id, TWITCH_CLIENT_SECRET: CLIENTE.secreto, CANAL_TWITCH: 'koryubudo',
       TWITCH_URL_ID: urlTwitch, TWITCH_URL_API: `${urlTwitch}/helix`,
-      CARPETA_DATOS: carpeta, ARCHIVO_PLANTILLAS: path.join(carpeta, 'plantillas.json') },
+      CARPETA_DATOS: carpeta, ARCHIVO_PLANTILLAS: path.join(carpeta, 'plantillas.json'),
+      // Sin las BOOST ni los campeones del proyecto: la prueba alinea la primera carta que le sale y tiene que ser de jugador
+      ARCHIVO_BOOSTS: path.join(carpeta, 'boosts.json'), ARCHIVO_CAMPEONES: path.join(carpeta, 'campeones.json') },
   });
   web.stderr.on('data', d => { if (process.env.VER_WEB) process.stderr.write(d); });
   for (let i = 0; i < 60; i++) {

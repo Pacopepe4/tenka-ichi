@@ -24,7 +24,8 @@ export const REGLAS_PUNTOS = {
 };
 
 // Estadística de una partida, igual venga de donde venga (null = no se sabe):
-// { victoria, k, d, a, cs, vision, dano, primeraSangre, triples, quadras, pentas, torres, kp (0-100), mvp }
+// { victoria, k, d, a, cs, vision, dano, danoTorres, primeraSangre, triples, quadras, pentas, torres, kp (0-100), mvp }
+// (el daño a torres no puntúa por sí mismo: solo sirve para la condición de alguna carta BOOST)
 const hay = v => v != null && v !== '' && Number.isFinite(Number(v));
 const redondear = x => Math.round(x * 10) / 10;
 const plural = (n, uno, varios) => `${n.toLocaleString('es-ES')} ${n === 1 ? uno : varios}`;
@@ -62,6 +63,18 @@ export function participacion(k, a, asesinatosEquipo) {
   return Math.min(100, Math.round((Number(k) + Number(a)) / Number(asesinatosEquipo) * 100));
 }
 
+// Cartas BOOST: multiplican los puntos del jugador al que están vinculadas si en esa partida es «el que más X» de los
+// diez jugadores. Cada condición mira un dato de la fila de estadísticas. Con un empate gana quien lo comparte, y si
+// a alguno de los diez le falta el dato no se sabe quién fue el mejor, así que no hay bonus (como en el resto de reglas).
+export const CAMPO_CONDICION = { dano: 'dano', participacion: 'kp', 'dano-torres': 'danoTorres', cs: 'cs', asistencias: 'a' };
+
+export function cumpleCondicion(condicion, fila, filas) {
+  const campo = CAMPO_CONDICION[condicion];
+  if (!campo || !fila || !filas.length || !filas.every(f => hay(f[campo]))) return false;
+  const mejor = Math.max(...filas.map(f => Number(f[campo])));
+  return mejor > 0 && Number(fila[campo]) >= mejor;
+}
+
 // Un participante de la API de Riot (match-v5, /lol/match/v5/matches/{id} → info.participants[]).
 // Sus multikills ya son acumulativos (un pentakill cuenta también en quadraKills y tripleKills).
 export function desdeMatchV5(p) {
@@ -70,7 +83,7 @@ export function desdeMatchV5(p) {
   return {
     victoria: Boolean(p.win), k: num(p.kills), d: num(p.deaths), a: num(p.assists),
     cs: hay(p.totalMinionsKilled) ? Number(p.totalMinionsKilled) + (num(p.neutralMinionsKilled) || 0) : null,
-    vision: num(p.visionScore), dano: num(p.totalDamageDealtToChampions),
+    vision: num(p.visionScore), dano: num(p.totalDamageDealtToChampions), danoTorres: num(p.damageDealtToTurrets),
     primeraSangre: p.firstBloodKill == null ? null : Boolean(p.firstBloodKill),
     triples: num(p.tripleKills), quadras: num(p.quadraKills), pentas: num(p.pentaKills),
     torres: num(p.turretTakedowns ?? p.turretKills), kp: kp == null ? null : Math.round(kp * 100),

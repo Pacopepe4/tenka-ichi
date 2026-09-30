@@ -20,6 +20,7 @@ import { cargarGacha, catalogo, probabilidades, abrirSobre, darAlta, darSobres, 
 import { cargarCanal, conectarCanal, cambiarCoste, sondear, sondearSiHaceFalta, estadoCanal, SCOPE_CANAL } from './canal.js';
 import { firmar, verificar, leerCookies, ponerCookie } from './sesion.js';
 import { twitchActivo, urlAutorizar, canjearCodigo, usuarioDeToken, usuarioPorNombre, CANAL } from './twitch.js';
+import { loginDiscordActivo, urlAutorizarDiscord, sesionDeDiscord } from './entrada-discord.js';
 import crypto from 'node:crypto';
 import { cargarFantasy, infoFantasy, cambiarAlineacion, guardarEstadisticas, cerrarAlineaciones } from './fantasy.js';
 import { cargarPartida, recibir as recibirPartida, resumen as resumenPartida, empezarPrueba, pararPrueba, enPrueba, olvidarPartida,
@@ -245,7 +246,7 @@ async function accion(nombre, d = {}) {
           const s = d.filas?.find(x => x.lado === lado && Number(x.indice) === i) || {};
           filas.push({ jornada: estado.config.jornada, fase: estado.config.fase, clan: eq.clan, rol, jugador: eq.jugadores[i] || '',
             id: `${eq.clan}-${rol}`, victoria: res.ganador === lado, k: s.k, d: s.d, a: s.a, mvp: d.mvp === `${lado}-${i}`,
-            cs: s.cs, vision: s.vision, dano: s.dano, primeraSangre: s.primeraSangre, triples: s.triples, quadras: s.quadras,
+            cs: s.cs, vision: s.vision, dano: s.dano, danoTorres: s.danoTorres, primeraSangre: s.primeraSangre, triples: s.triples, quadras: s.quadras,
             pentas: s.pentas, torres: s.torres, fuente: s.fuente });
         });
       }
@@ -274,7 +275,7 @@ async function accion(nombre, d = {}) {
         const t = await usuarioPorNombre(d.usuario).catch(() => null);
         if (t) u = { id: t.id, nombre: t.display_name };
       }
-      if (!u) return { ok: false, error: `No encuentro a «${d.usuario}»: tiene que haber entrado en el gachapon o existir en Twitch` };
+      if (!u) return { ok: false, error: `No encuentro a «${d.usuario}»: tiene que haber entrado ya en el gachapon${twitchActivo() ? ' o existir en Twitch' : ''}` };
       await darSobres({ id: u.id, nombre: u.nombre }, cantidad, 'regalo', d.motivo || 'Regalo del staff');
       return { ok: true, nombre: u.nombre, gacha: estadoGachaPanel() };
     }
@@ -334,20 +335,22 @@ async function accion(nombre, d = {}) {
   return { ok: true };
 }
 
-// ---------- gachapon y sesiones de Twitch ----------
+// ---------- gachapon y sesiones (Discord; Twitch solo para los puntos del canal) ----------
 const EN_RENDER = Boolean(process.env.RENDER);
-const loginActivo = () => twitchActivo() || !EN_RENDER; // en local se puede entrar sin Twitch para probar
+const loginActivo = () => loginDiscordActivo() || !EN_RENDER; // en local se puede entrar sin Discord para probar
 const origen = req => `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`;
 const usuarioDeSesion = req => verificar(leerCookies(req).tk_sesion);
+// A dónde volver tras entrar: solo rutas de esta web. «//sitio.com» y «/\sitio.com» los toman los navegadores por otro sitio
+const volverSeguro = v => (/^\/(?![/\\])/.test(v || '') ? v : '/gachapon/');
 
 function estadoGachaPanel() {
-  return { login: twitchActivo(), canal: estadoCanal(), resumen: resumenGacha(), probabilidades: probabilidades(), cerrado: infoFantasy(null).cerrado };
+  return { login: loginDiscordActivo(), canal: estadoCanal(), resumen: resumenGacha(), probabilidades: probabilidades(), cerrado: infoFantasy(null).cerrado };
 }
 
 function infoGacha(u) {
   const c = estadoCanal();
   return {
-    activo: loginActivo(), twitch: twitchActivo(), canal: CANAL,
+    activo: loginActivo(), discord: loginDiscordActivo(), twitch: twitchActivo(), canal: CANAL,
     cartasPorSobre: CARTAS_POR_SOBRE, sobresIniciales: SOBRES_INICIALES, pesos: PESOS,
     probabilidades: probabilidades(),
     catalogo: catalogo().map(({ peso, ...carta }) => carta),
@@ -378,24 +381,59 @@ function redirigir(res, destino) {
   return true;
 }
 
-// Página mínima para contar el resultado de conectar el canal
-function paginaAviso(res, titulo, texto, codigo = 200) {
+const escaparHTML = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
+// Página mínima para contar el resultado de conectar el canal o de entrar; el enlace de salida es el panel salvo que se diga otro
+function paginaAviso(res, titulo, texto, codigo = 200, enlace = ['/panel/', 'Volver al panel']) {
   res.writeHead(codigo, { 'Content-Type': 'text/html; charset=utf-8' });
   res.end(`<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${titulo}</title>
 <link rel="stylesheet" href="/marca.css"><body style="margin:0;min-height:100vh;display:grid;place-items:center;background:var(--sumi);color:var(--washi);font-family:var(--gothic);padding:24px">
-<main style="max-width:32em"><h1 style="font-family:var(--mincho);font-weight:800">${titulo}</h1><p style="color:var(--hai);font-size:18px">${texto}</p><p><a href="/panel/" style="color:var(--washi)">Volver al panel</a></p></main></body></html>`);
+<main style="max-width:32em"><h1 style="font-family:var(--mincho);font-weight:800">${titulo}</h1><p style="color:var(--hai);font-size:18px">${texto}</p><p><a href="${enlace[0]}" style="color:var(--washi)">${enlace[1]}</a></p></main></body></html>`);
   return true;
 }
+const aGachapon = ['/gachapon/', 'Volver al gachapon'];
 
-async function rutasTwitch(req, res, url) {
+async function rutasSesion(req, res, url) {
   const p = url.pathname;
 
-  if (p === '/auth/twitch') {
-    if (!loginActivo()) return paginaAviso(res, 'Muy pronto', 'El inicio de sesión con Twitch aún no está configurado.', 503);
-    if (!twitchActivo()) return redirigir(res, '/auth/prueba');
+  // ---------- Discord: el inicio de sesión de los espectadores ----------
+  if (p === '/auth/discord') {
+    if (!loginActivo()) return paginaAviso(res, 'Muy pronto', 'El inicio de sesión con Discord aún no está configurado.', 503, aGachapon);
+    if (!loginDiscordActivo()) return redirigir(res, '/auth/prueba');
     const state = crypto.randomBytes(16).toString('hex');
-    const volver = url.searchParams.get('volver')?.startsWith('/') ? url.searchParams.get('volver') : '/gachapon/';
-    ponerCookie(res, 'tk_oauth', firmar({ state, tipo: 'login', volver }, 600), 600, req);
+    ponerCookie(res, 'tk_oauth', firmar({ state, tipo: 'login', volver: volverSeguro(url.searchParams.get('volver')) }, 600), 600, req);
+    return redirigir(res, urlAutorizarDiscord({ redirect: `${origen(req)}/auth/discord/callback`, state }));
+  }
+
+  if (p === '/auth/discord/callback') {
+    const guardado = verificar(leerCookies(req).tk_oauth);
+    ponerCookie(res, 'tk_oauth', '', 0, req);
+    if (!loginDiscordActivo() || !guardado || guardado.state !== url.searchParams.get('state')) {
+      return paginaAviso(res, 'No se pudo entrar', 'La petición a Discord caducó o no es válida. Vuelve a intentarlo.', 400, aGachapon);
+    }
+    if (url.searchParams.get('error')) return redirigir(res, volverSeguro(guardado.volver));   // pulsó «Cancelar»
+    let sesion;
+    try {
+      sesion = await sesionDeDiscord(url.searchParams.get('code'), `${origen(req)}/auth/discord/callback`);
+    } catch (e) {
+      console.error('Inicio de sesión con Discord:', e.message);
+      return paginaAviso(res, 'No se pudo entrar', `Discord no ha aceptado el inicio de sesión (${escaparHTML(e.message)}). Vuelve a intentarlo.`, 502, aGachapon);
+    }
+    try {
+      await darAlta(sesion);
+    } catch (e) {
+      console.error('Alta en el gachapon:', e.message);
+      return paginaAviso(res, 'No se pudo entrar', 'No se ha podido guardar tu cuenta ahora mismo. Vuelve a intentarlo en un momento.', 500, aGachapon);
+    }
+    ponerCookie(res, 'tk_sesion', firmar(sesion, 30 * 86400), 30 * 86400, req);
+    return redirigir(res, volverSeguro(guardado.volver));
+  }
+
+  // ---------- Twitch: solo si se configura la app; los puntos del canal llegan a las cuentas entradas con Twitch ----------
+  if (p === '/auth/twitch') {
+    if (!twitchActivo()) return paginaAviso(res, 'No disponible', 'El inicio de sesión con Twitch no está activo. Entra con Discord.', 503, aGachapon);
+    const state = crypto.randomBytes(16).toString('hex');
+    ponerCookie(res, 'tk_oauth', firmar({ state, tipo: 'login', volver: volverSeguro(url.searchParams.get('volver')) }, 600), 600, req);
     return redirigir(res, urlAutorizar({ redirect: `${origen(req)}/auth/twitch/callback`, state }));
   }
 
@@ -451,7 +489,7 @@ async function rutasTwitch(req, res, url) {
 
   if (p === '/api/gacha/abrir' && req.method === 'POST') {
     const u = usuarioDeSesion(req);
-    if (!u) return json(res, { ok: false, error: 'Entra con tu cuenta de Twitch para abrir sobres' }, 401);
+    if (!u) return json(res, { ok: false, error: 'Entra con tu cuenta de Discord para abrir sobres' }, 401);
     try {
       const sobre = await abrirSobre(u);
       return json(res, { ok: true, sobre, usuario: { nombre: u.nombre, avatar: u.avatar || null, ...estadoUsuario(u.id) } });
@@ -466,7 +504,7 @@ async function rutasTwitch(req, res, url) {
 
   if (p === '/api/fantasy/alineacion' && req.method === 'POST') {
     const u = usuarioDeSesion(req);
-    if (!u) return json(res, { ok: false, error: 'Entra con tu cuenta de Twitch para alinear' }, 401);
+    if (!u) return json(res, { ok: false, error: 'Entra con tu cuenta de Discord para alinear' }, 401);
     try {
       const slots = await leerCuerpo(req);
       return json(res, { ok: true, alineacion: await cambiarAlineacion(u, slots) });
@@ -484,8 +522,8 @@ const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; ch
 
 const servidor = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
-  const rutaTwitch = url.pathname.startsWith('/auth/') || url.pathname.startsWith('/api/gacha') || url.pathname.startsWith('/api/fantasy') || url.pathname === '/api/tierlist';
-  if (rutaTwitch && await rutasTwitch(req, res, url)) return;
+  const rutaSesion = url.pathname.startsWith('/auth/') || url.pathname.startsWith('/api/gacha') || url.pathname.startsWith('/api/fantasy') || url.pathname === '/api/tierlist';
+  if (rutaSesion && await rutasSesion(req, res, url)) return;
   if (url.pathname === '/api/clanes') {
     await refrescarPlantillas();
     res.writeHead(200, { 'Content-Type': TIPOS['.json'], 'Cache-Control': 'no-cache' });

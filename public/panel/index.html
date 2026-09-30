@@ -151,7 +151,7 @@
       <ol id="resultados" class="resultados"></ol>
       <div class="fantasy-panel">
         <h3>Estadísticas para el fantasy</h3>
-        <p class="ayuda">Después de marcar el ganador y antes de pulsar «Siguiente partida»: las estadísticas de la pantalla final de cada jugador y el MVP. Si el puente ha seguido la partida, al terminar se rellenan solos el KDA, el farmeo y la visión, y cuentan la primera sangre, los multikills y las torres; el daño a campeones hay que apuntarlo (si lo dejáis vacío, esa partida nadie puntúa por daño: mejor apuntarlo siempre o nunca). Puntos: +1 por jugar, +3 si gana, +2 por asesinato, +1,5 por asistencia, −1 por muerte, +2 sin morir, +1 por cada 30 de farmeo, +1 por cada 10 de visión, +1 por cada 5000 de daño, +2 primera sangre, triple +2, cuádruple +5, pentakill +10, +2 si participa en el 70 % de los asesinatos de su equipo, +1 por torre y +3 al MVP. Al guardar, pasa el ratón por un jugador para ver su desglose. Si te equivocas, corrígelo y vuelve a guardar.</p>
+        <p class="ayuda">Después de marcar el ganador y antes de pulsar «Siguiente partida»: las estadísticas de la pantalla final de cada jugador y el MVP. Si el puente ha seguido la partida, al terminar se rellenan solos el KDA, el farmeo y la visión, y cuentan la primera sangre, los multikills y las torres; el daño a campeones hay que apuntarlo (si lo dejáis vacío, esa partida nadie puntúa por daño: mejor apuntarlo siempre o nunca). El daño a torres no puntúa, pero la carta BOOST de «más daño a torres» (Igrid) lo necesita, igual que la de «más daño» necesita el daño de los diez: si a alguno le falta el dato, esa BOOST no da bonus en esa partida. Puntos: +1 por jugar, +3 si gana, +2 por asesinato, +1,5 por asistencia, −1 por muerte, +2 sin morir, +1 por cada 30 de farmeo, +1 por cada 10 de visión, +1 por cada 5000 de daño, +2 primera sangre, triple +2, cuádruple +5, pentakill +10, +2 si participa en el 70 % de los asesinatos de su equipo, +1 por torre y +3 al MVP. Al guardar, pasa el ratón por un jugador para ver su desglose. Si te equivocas, corrígelo y vuelve a guardar.</p>
         <div class="kda dos"></div>
         <div class="fila"><button type="button" id="guardarKda">Guardar estadísticas</button><button type="button" id="rellenarKda" class="secundario">Rellenar con la partida</button></div>
         <p class="estado" id="estadoKda"></p>
@@ -172,7 +172,8 @@
       <h2>Gachapon</h2>
       <p class="ayuda" id="estadoLoginTwitch"></p>
       <div class="caja-gacha">
-        <h3>Canal de Twitch</h3>
+        <h3>Canal de Twitch (opcional)</h3>
+        <p class="ayuda">Sobres por puntos del canal. Necesita la app de Twitch y un canal afiliado, y los sobres llegan a quien entre en el gachapon con Twitch, no con Discord.</p>
         <p class="estado" id="estadoCanal"></p>
         <div class="fila">
           <button type="button" id="conectarCanal">Conectar el canal de Twitch</button>
@@ -191,9 +192,9 @@
       </div>
       <div class="caja-gacha">
         <h3>Regalar sobres</h3>
-        <p class="ayuda">Para premios o sorteos. Vale el nombre de Twitch de alguien que ya haya entrado en el gachapon o cualquier cuenta de Twitch si el inicio de sesión está configurado.</p>
+        <p class="ayuda">Para premios o sorteos. Vale el nombre en Discord de alguien que ya haya entrado en el gachapon. Si dos personas tienen el mismo nombre, se elige la primera que entró.</p>
         <div class="fila">
-          <input id="regaloUsuario" placeholder="Nombre en Twitch" aria-label="Nombre en Twitch">
+          <input id="regaloUsuario" placeholder="Nombre en Discord" aria-label="Nombre en Discord">
           <input id="regaloCantidad" type="number" min="1" max="20" value="1" aria-label="Número de sobres">
           <button type="button" id="regalar">Regalar sobres</button>
         </div>

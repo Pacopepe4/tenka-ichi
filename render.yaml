@@ -14,10 +14,15 @@ services:
         sync: false
       - key: GOOGLE_CREDENTIALS
         sync: false
-      # Gachapon: inicio de sesión con Twitch y puntos del canal (app gratis en dev.twitch.tv)
+      # Gachapon: inicio de sesión con Discord (app gratis en discord.com/developers)
+      - key: DISCORD_CLIENT_ID
+        sync: false
+      - key: DISCORD_CLIENT_SECRET
+        sync: false
+      - key: SESION_SECRETO
+        sync: false
+      # Opcional: puntos del canal de Twitch (app gratis en dev.twitch.tv)
       - key: TWITCH_CLIENT_ID
         sync: false
       - key: TWITCH_CLIENT_SECRET
-        sync: false
-      - key: SESION_SECRETO
         sync: false

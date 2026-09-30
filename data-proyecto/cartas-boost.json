@@ -1,1 +1,42 @@
-[]
+[
+ {
+  "id": "BOOST-MAKITAH",
+  "nombre": "MAKITAH",
+  "tier": "S+",
+  "subtitulo": "EL TITIRITERO",
+  "multiplicador": 3,
+  "condicion": "dano"
+ },
+ {
+  "id": "BOOST-SONS",
+  "nombre": "SONS",
+  "tier": "S+",
+  "subtitulo": "THE CEO",
+  "multiplicador": 3,
+  "condicion": "participacion"
+ },
+ {
+  "id": "BOOST-IGRID",
+  "nombre": "IGRID",
+  "tier": "S+",
+  "subtitulo": "TOPFATHER",
+  "multiplicador": 3,
+  "condicion": "dano-torres"
+ },
+ {
+  "id": "BOOST-LOLEX",
+  "nombre": "LOLEX",
+  "tier": "S+",
+  "subtitulo": "EL PEQUEÑÍSIMO",
+  "multiplicador": 3,
+  "condicion": "cs"
+ },
+ {
+  "id": "BOOST-GYPSICUACK",
+  "nombre": "GYPSICUACK",
+  "tier": "S",
+  "subtitulo": "EL GITANO",
+  "multiplicador": 2,
+  "condicion": "asistencias"
+ }
+]

@@ -1,4 +1,4 @@
-// Gachapon: entrar con Twitch, abrir sobres y ver la colección
+// Gachapon: entrar con Discord, abrir sobres y ver la colección
 import { cargarClanes, logo } from '/comun.js';
 import { iniciarDirecto } from '/directo.js';
 
@@ -31,11 +31,12 @@ async function cargar() {
 function cartaHTML(c, cantidad = null) {
   const falta = cantidad === 0, k = claveTier(c.tier), boost = c.tipo === 'boost';
   const quien = boost ? escapar(c.subtitulo) : `${ROL[c.rol] || c.rol} de ${escapar(nombreClan(c.clan))}`;
-  return `<div class="carta-g${falta ? ' falta' : ''}${c.marco ? ' con-marco' : ''}${boost ? ' boost' : ''}" data-tier="${k}" style="--color-tier: var(--tier-${k})">
+  // Las BOOST llevan su multiplicador bajo el apodo y la frase entera al pasar el ratón
+  return `<div class="carta-g${falta ? ' falta' : ''}${c.marco ? ' con-marco' : ''}${boost ? ' boost' : ''}" data-tier="${k}" style="--color-tier: var(--tier-${k})"${c.bonus ? ` title="${escapar(c.bonus.texto)}"` : ''}>
     <img class="arte" src="${escapar(c.arte || `/clanes/${c.clan}.jpg`)}" alt="" loading="lazy"><span class="velo"></span>
     ${c.marco ? `<img class="marco" src="${escapar(c.marco)}" alt="" loading="lazy">` : ''}
     <span class="hanko rareza" title="Tier ${c.tier}">${c.tier}</span>${c.clan ? `<img class="logo" src="${logo(c.clan)}" alt="">` : ''}
-    <div class="pie"><b class="nick">${escapar(c.nombre)}</b><span class="rol">${quien}</span></div>
+    <div class="pie"><b class="nick">${escapar(c.nombre)}</b><span class="rol">${quien}</span>${c.bonus ? `<b class="bonus">${escapar(c.bonus.etiqueta)}</b>` : ''}</div>
     ${cantidad > 1 ? `<span class="cantidad" title="La tienes repetida">×${cantidad}</span>` : ''}
   </div>`;
 }
@@ -57,8 +58,10 @@ function pintarCuenta() {
     return;
   }
   if (!u) {
-    cuenta.innerHTML = `<a class="boton-twitch" href="/auth/twitch?volver=/gachapon/">Entrar con Twitch</a>
-      <p class="aviso">La primera vez te llevas ${info.sobresIniciales} sobres.</p>`;
+    // Con Twitch configurado también se puede entrar con Twitch: los sobres de los puntos del canal llegan a esa cuenta
+    cuenta.innerHTML = `<a class="boton-entrar" href="/auth/discord?volver=/gachapon/">Entrar con Discord</a>
+      ${info.twitch ? '<a class="boton-entrar secundario" href="/auth/twitch?volver=/gachapon/">Entrar con Twitch</a>' : ''}
+      <p class="aviso">La primera vez te llevas ${info.sobresIniciales} sobres.${info.twitch ? ' Los sobres de los puntos del canal llegan a la cuenta de Twitch.' : ''}</p>`;
     sobre.disabled = true;
     $('.sobre-contador').textContent = '';
   } else {
@@ -75,8 +78,8 @@ function pintarCuenta() {
   $('.como-mas').innerHTML = !hayCartas
     ? 'Todavía no hay cartas: el staff está preparando la tier list de los jugadores.'
     : info.recompensa
-      ? `Consigue más sobres canjeando <b>${escapar(info.recompensa.titulo)}</b> por ${info.recompensa.coste} puntos del canal en <a href="https://twitch.tv/${info.canal}" target="_blank" rel="noopener">twitch.tv/${info.canal}</a>. Aparecen aquí en un minuto.`
-      : 'Pronto podrás conseguir más sobres con los puntos del canal de Twitch.';
+      ? `Consigue más sobres canjeando <b>${escapar(info.recompensa.titulo)}</b> por ${info.recompensa.coste} puntos del canal en <a href="https://twitch.tv/${info.canal}" target="_blank" rel="noopener">twitch.tv/${info.canal}</a>. Aparecen en la cuenta con la que entras con Twitch, en un minuto.`
+      : 'Más sobres: el staff los regala en premios y sorteos.';
 }
 
 function pintarAlbum() {
@@ -87,9 +90,9 @@ function pintarAlbum() {
     || (a.tipo === 'boost') - (b.tipo === 'boost') || (a.clan || '').localeCompare(b.clan || '') || a.nombre.localeCompare(b.nombre));
   const lista = orden.filter(c => filtro === 'todas' || (filtro === 'tengo' ? mias.get(c.id) : !mias.get(c.id)));
   const tengo = info.catalogo.filter(c => mias.get(c.id)).length;
-  $('.progreso').textContent = conSesion ? `Tienes ${tengo} de ${info.catalogo.length} cartas.` : `${info.catalogo.length} cartas en total. Entra con Twitch para empezar tu colección.`;
+  $('.progreso').textContent = conSesion ? `Tienes ${tengo} de ${info.catalogo.length} cartas.` : `${info.catalogo.length} cartas en total. Entra con Discord para empezar tu colección.`;
   let vacio = 'Todavía no hay cartas.';
-  if (info.catalogo.length && filtro !== 'todas') vacio = !conSesion ? 'Entra con Twitch para ver tu colección.' : filtro === 'tengo' ? 'Aún no tienes ninguna carta: abre un sobre.' : '¡Las tienes todas!';
+  if (info.catalogo.length && filtro !== 'todas') vacio = !conSesion ? 'Entra con Discord para ver tu colección.' : filtro === 'tengo' ? 'Aún no tienes ninguna carta: abre un sobre.' : '¡Las tienes todas!';
   $('.album').innerHTML = lista.length ? lista.map(c => cartaHTML(c, conSesion ? (mias.get(c.id) || 0) : null)).join('') : `<p class="vacio">${vacio}</p>`;
 }
 
@@ -114,26 +117,45 @@ const ROLES = ['TOP', 'JUNGLA', 'MEDIO', 'ADC', 'SUPPORT'];
 const puntosTexto = n => `${n.toLocaleString('es-ES')} ${n === 1 ? 'punto' : 'puntos'}`;
 const cartaPorId = id => info.catalogo.find(c => c.id === id) || null;
 const puntosDe = id => fantasia.jugadores.find(j => j.id === id)?.puntos || 0;
+const alineacion = () => fantasia.yo?.alineacion || {};
+// Las dos BOOST de la alineación: { carta, rol } (el rol del jugador con el que van) o null
+const boostsDe = () => alineacion().boosts || Array(fantasia.boostsMaximos).fill(null);
 
 function pintarFantasy() {
   const yo = fantasia.yo, caja = $('.alineacion');
   const estado = $('.estado-alineacion');
   if (!info.usuario) {
-    estado.textContent = 'Entra con Twitch y abre sobres para alinear a tus jugadores.';
+    estado.textContent = 'Entra con Discord y abre sobres para alinear a tus jugadores.';
   } else if (fantasia.cerrado) {
     estado.innerHTML = `Las alineaciones están <b>cerradas</b> mientras se juega la jornada. Llevas ${puntosTexto(yo.puntos)}${yo.puesto ? `, ${yo.puesto}.º en la clasificación` : ''}.`;
   } else {
-    estado.innerHTML = yo.puesto ? `Llevas <b>${puntosTexto(yo.puntos)}</b>, ${yo.puesto}.º en la clasificación. Pulsa un hueco para cambiar al jugador.`
+    estado.innerHTML = yo.puesto ? `Llevas <b>${puntosTexto(yo.puntos)}</b>${yo.puntosBoost ? ` (${puntosTexto(yo.puntosBoost)} de tus BOOST)` : ''}, ${yo.puesto}.º en la clasificación. Pulsa un hueco para cambiar al jugador.`
       : 'Pulsa un hueco para elegir al jugador de ese rol entre tus cartas.';
   }
+  const bloqueado = !info.usuario || fantasia.cerrado;
+  const boosts = boostsDe();
+  // La BOOST vinculada a cada jugador, para ponérsela debajo
+  const boostDeRol = rol => { const b = boosts.find(x => x?.rol === rol); return b ? cartaPorId(b.carta) : null; };
   caja.innerHTML = ROLES.map(rol => {
-    const carta = yo?.alineacion?.[rol] ? cartaPorId(yo.alineacion[rol]) : null;
-    return `<button type="button" class="hueco-ali" data-rol="${rol}" ${!info.usuario || fantasia.cerrado ? 'disabled' : ''}>
+    const carta = yo?.alineacion?.[rol] ? cartaPorId(yo.alineacion[rol]) : null, boost = carta ? boostDeRol(rol) : null;
+    return `<button type="button" class="hueco-ali" data-rol="${rol}" ${bloqueado ? 'disabled' : ''}>
       <span class="rol-ali">${ROL[rol]}</span>
       ${carta ? cartaHTML(carta) : '<span class="vacio-ali">Elegir</span>'}
-      ${carta ? `<span class="puntos-ali">${puntosTexto(puntosDe(carta.id))}</span>` : ''}</button>`;
+      ${carta ? `<span class="puntos-ali">${puntosTexto(puntosDe(carta.id))}</span>` : ''}
+      ${boost ? `<span class="boost-ali" title="${escapar(boost.bonus?.texto)}">+ ${escapar(boost.nombre)} ${escapar(boost.bonus?.etiqueta)}</span>` : ''}</button>`;
   }).join('');
   caja.querySelectorAll('.hueco-ali:not(:disabled)').forEach(b => b.addEventListener('click', () => elegir(b.dataset.rol)));
+
+  // Los huecos de BOOST: cada una se vincula a uno de los jugadores de arriba
+  const cajaBoost = $('.alineacion-boost');
+  cajaBoost.innerHTML = boosts.map((b, i) => {
+    const carta = b ? cartaPorId(b.carta) : null, jugador = carta && yo?.alineacion?.[b.rol] ? cartaPorId(yo.alineacion[b.rol]) : null;
+    return `<button type="button" class="hueco-ali" data-i="${i}" ${bloqueado ? 'disabled' : ''}>
+      <span class="rol-ali">BOOST ${i + 1}</span>
+      ${carta ? cartaHTML(carta) : '<span class="vacio-ali">Elegir</span>'}
+      ${carta ? `<span class="puntos-ali">con ${escapar(jugador?.nombre || ROL[b.rol])}</span>` : ''}</button>`;
+  }).join('');
+  cajaBoost.querySelectorAll('.hueco-ali:not(:disabled)').forEach(b => b.addEventListener('click', () => elegirBoost(Number(b.dataset.i))));
 
   const lista = $('.clasificacion-fantasy');
   lista.innerHTML = fantasia.clasificacion.length
@@ -158,8 +180,45 @@ function elegir(rol) {
   dialogoElegir.showModal();
 }
 
-async function guardarHueco(rol, carta) {
-  const slots = { ...(fantasia.yo?.alineacion || {}), [rol]: carta };
+// Dejar un hueco de rol vacío también suelta la BOOST que llevaba ese jugador
+function guardarHueco(rol, carta) {
+  return enviarAlineacion({ ...alineacion(), [rol]: carta, boosts: boostsDe().map(b => (!carta && b?.rol === rol ? null : b)) });
+}
+
+// Elegir una BOOST entre las que tienes (sin pasarte de las copias que tienes) y luego el jugador con el que va
+function elegirBoost(i) {
+  const mias = new Map((info.usuario?.cartas || []).map(c => [c.id, c.cantidad]));
+  const boosts = boostsDe();
+  const enOtra = id => boosts.filter((b, j) => j !== i && b?.carta === id).length;
+  const opciones = info.catalogo.filter(c => c.tipo === 'boost' && (mias.get(c.id) || 0) > enOtra(c.id));
+  $('#titulo-elegir').textContent = `Elige tu BOOST ${i + 1}`;
+  $('.elegir .opciones').innerHTML = opciones.length
+    ? opciones.map(c => `<button type="button" class="opcion" data-id="${c.id}" aria-pressed="${c.id === boosts[i]?.carta}">${cartaHTML(c, mias.get(c.id))}</button>`).join('')
+    : '<p class="sin-cartas">No tienes ninguna carta BOOST para este hueco. Abre sobres para conseguirla.</p>';
+  dialogoElegir.querySelectorAll('.opcion').forEach(b => b.addEventListener('click', () => vincularBoost(i, b.dataset.id)));
+  dialogoElegir.querySelector('.quitar').onclick = () => guardarBoost(i, null, null);
+  dialogoElegir.querySelector('.cancelar').onclick = () => dialogoElegir.close();
+  dialogoElegir.showModal();
+}
+
+function vincularBoost(i, id) {
+  const boost = cartaPorId(id), boosts = boostsDe(), ali = alineacion();
+  const ocupados = new Set(boosts.filter((b, j) => j !== i && b).map(b => b.rol));
+  const libres = ROLES.filter(rol => ali[rol] && !ocupados.has(rol));
+  $('#titulo-elegir').textContent = `¿Con quién juega ${boost.nombre}?`;
+  $('.elegir .opciones').innerHTML = `<p class="condicion-boost">${escapar(boost.bonus?.texto)}. Cada jugador solo puede llevar una BOOST.</p>`
+    + (libres.length
+      ? libres.map(rol => `<button type="button" class="opcion-rol" data-rol="${rol}" aria-pressed="${boosts[i]?.carta === id && boosts[i]?.rol === rol}">
+          <b>${escapar(cartaPorId(ali[rol])?.nombre || rol)}</b><span>${ROL[rol]}</span></button>`).join('')
+      : '<p class="sin-cartas">Primero alinea a algún jugador que no lleve ya otra BOOST.</p>');
+  dialogoElegir.querySelectorAll('.opcion-rol').forEach(b => b.addEventListener('click', () => guardarBoost(i, id, b.dataset.rol)));
+}
+
+function guardarBoost(i, carta, rol) {
+  return enviarAlineacion({ ...alineacion(), boosts: boostsDe().map((b, j) => (j === i ? (carta ? { carta, rol } : null) : b)) });
+}
+
+async function enviarAlineacion(slots) {
   const r = await fetch('/api/fantasy/alineacion', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(slots) })
     .then(x => x.json()).catch(() => ({ ok: false, error: 'No hay conexión con la web' }));
   dialogoElegir.close();

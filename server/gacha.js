@@ -27,7 +27,7 @@ export const CARPETA_ARTE = process.env.CARPETA_CARTAS ? path.resolve(process.en
 
 const ARCHIVO = archivoDatos('gacha.json');
 const PESTANA = 'Gachapon';
-const CABECERA = ['Fecha', 'Twitch ID', 'Usuario', 'Tipo', 'Detalle', 'Cantidad', 'Rareza'];
+const CABECERA = ['Fecha', 'ID de usuario', 'Usuario', 'Tipo', 'Detalle', 'Cantidad', 'Rareza'];
 
 let registro = [];
 const usuarios = new Map();
@@ -90,8 +90,26 @@ const enCola = fn => { const p = cola.then(fn); cola = p.catch(() => {}); return
 const ahora = () => new Date().toISOString();
 
 // ---------- cartas BOOST, arte y marcos ----------
-// Personajes de fuera de los clanes. No tienen clan ni rol, así que no se alinean en el fantasy.
-// data-proyecto/cartas-boost.json: [{ "id": "BOOST-NOMBRE", "nombre": "…", "tier": "S+", "subtitulo": "…", "activa": true }]
+// Personajes de fuera de los clanes. No tienen clan ni rol, así que no ocupan un hueco de rol en el fantasy: se vinculan
+// a uno de los jugadores alineados (server/fantasy.js).
+// data-proyecto/cartas-boost.json: [{ "id": "BOOST-NOMBRE", "nombre": "…", "tier": "S+", "subtitulo": "…", "activa": true,
+//   "multiplicador": 3, "condicion": "dano" }]
+// El multiplicador se aplica a los puntos si en la partida cumple la condición (sin condición válida no hay bonus)
+export const CONDICIONES_BOOST = {
+  dano: { texto: 'el que más daño hace', corto: 'más daño' },
+  participacion: { texto: 'el que más participación en asesinatos tiene', corto: 'más participación' },
+  'dano-torres': { texto: 'el que más daño hace a torres', corto: 'más daño a torres' },
+  cs: { texto: 'el que más CS tiene', corto: 'más CS' },
+  asistencias: { texto: 'el que más asistencias tiene', corto: 'más asistencias' },
+};
+// etiqueta cabe en la carta; texto es la frase entera
+function bonusBoost(e) {
+  const multiplicador = Number(e.multiplicador), c = CONDICIONES_BOOST[e.condicion];
+  return multiplicador > 1 && c
+    ? { multiplicador, condicion: e.condicion, etiqueta: `×${multiplicador} · ${c.corto}`, texto: `×${multiplicador} si es ${c.texto} de la partida` }
+    : null;
+}
+
 let boosts = [];
 async function cargarBoosts() {
   let lista = [];
@@ -101,14 +119,37 @@ async function cargarBoosts() {
   boosts = (Array.isArray(lista) ? lista : [])
     .filter(e => e?.id && e?.nombre && TIERS_BOOST.includes(e.tier) && e.activa !== false)
     .map(e => ({ id: String(e.id).trim().toUpperCase().replace(/[^A-Z0-9-]+/g, '-'), nombre: String(e.nombre), tier: e.tier,
-      subtitulo: e.subtitulo ? String(e.subtitulo) : 'Boost', clan: null, rol: null, tipo: 'boost' }))
+      subtitulo: e.subtitulo ? String(e.subtitulo) : 'Boost', clan: null, rol: null, tipo: 'boost', bonus: bonusBoost(e) }))
     .filter((e, i, todas) => !deJugador.has(e.id) && todas.findIndex(x => x.id === e.id) === i);
+}
+
+// Campeón de cada carta (jugadores y BOOST), con el id de Data Dragon: { "KAIJU-TOP": "Rumble", "BOOST-SONS": "Sejuani" }
+// data-proyecto/campeones-cartas.json. Su splash es el fondo de la carta mientras no tenga un dibujo propio; el nombre
+// no se escribe en la carta. Un id que Data Dragon no conoce se descarta con un aviso.
+const ARCHIVO_CAMPEONES = process.env.ARCHIVO_CAMPEONES
+  ? path.resolve(process.env.ARCHIVO_CAMPEONES) : path.join(RAIZ, 'data-proyecto', 'campeones-cartas.json');
+let campeones = new Map(), splashes = new Set();
+const campeonesAvisados = new Set();
+async function cargarCampeones() {
+  let lista = {}, nombres = new Map();
+  try { lista = JSON.parse(await readFile(ARCHIVO_CAMPEONES, 'utf8')); }
+  catch (e) { if (e.code !== 'ENOENT') console.error('No se pudieron leer los campeones de las cartas:', e.message); }
+  try {
+    const { campeones: todos } = JSON.parse(await readFile(path.join(RAIZ, 'public', 'ddragon', 'campeones.json'), 'utf8'));
+    nombres = new Map(todos.map(c => [c.id, c.nombre]));
+  } catch (e) { console.error('No se pudo leer la lista de campeones de Data Dragon:', e.message); }
+  splashes = new Set(await readdir(path.join(RAIZ, 'public', 'ddragon', 'splash')).catch(() => []));
+  campeones = new Map();
+  for (const [carta, id] of Object.entries(lista)) {
+    if (nombres.has(id)) campeones.set(carta.trim().toUpperCase(), { id, nombre: nombres.get(id) });
+    else if (nombres.size && !campeonesAvisados.has(carta)) { campeonesAvisados.add(carta); console.error(`Campeón desconocido en ${carta}: ${id}`); }
+  }
 }
 
 // Arte propio de cada carta en public/cartas/ID.webp|png|jpg (p. ej. KAIJU-TOP.png o BOOST-NOMBRE.png).
 // Marcos de cada clase y tier en public/cartas/marcos/jugador/ y boost/ (TIER.webp; la S+ es SP) y el reverso,
 // igual para todas, en public/cartas/marcos/reverso.webp. Salen de diseno/marcos/. Mientras no estén, la carta
-// lleva la imagen de su clan (o el sol partido si es BOOST) y el marco dibujado con CSS.
+// lleva el splash de su campeón, si no la imagen de su clan (o el sol partido si es BOOST), y el marco dibujado con CSS.
 // La dirección lleva la fecha del archivo: se puede guardar en caché y, si cambia el dibujo, cambia la dirección.
 const EXTENSIONES = ['.webp', '.png', '.jpg', '.jpeg'];
 let artes = new Map(), marcos = { jugador: new Map(), boost: new Map() }, reverso = null;
@@ -128,7 +169,7 @@ async function indiceImagenes(carpeta, prefijo) {
 }
 
 async function cargarCartas() {
-  await cargarBoosts();
+  await Promise.all([cargarBoosts(), cargarCampeones()]);
   const carpeta = path.join(CARPETA_ARTE, 'marcos');
   const [a, jugador, boost, sueltos] = await Promise.all([indiceImagenes(CARPETA_ARTE, '/cartas/'),
     indiceImagenes(path.join(carpeta, 'jugador'), '/cartas/marcos/jugador/'), indiceImagenes(path.join(carpeta, 'boost'), '/cartas/marcos/boost/'),
@@ -142,7 +183,8 @@ setInterval(() => cargarCartas().catch(() => {}), 60000).unref();
 
 // Clave de la tier para archivos y CSS: la S+ es SP
 export const claveTier = t => (t === 'S+' ? 'SP' : t);
-const arteDe = c => artes.get(c.id) || (c.clan ? `/clanes/${c.clan}.jpg` : '/marca/sol-partido.jpg');
+const splashDe = c => (c.campeon && splashes.has(`${c.campeon.id}.jpg`) ? `/ddragon/splash/${c.campeon.id}.jpg` : null);
+const arteDe = c => artes.get(c.id) || splashDe(c) || (c.clan ? `/clanes/${c.clan}.jpg` : '/marca/sol-partido.jpg');
 const marcoDe = c => marcos[c.tipo]?.get(claveTier(c.tier)) || null;
 // El reverso es el mismo para todas las cartas: al abrir el sobre no se sabe qué ha tocado hasta darle la vuelta
 export const reversoCarta = () => reverso;
@@ -150,7 +192,8 @@ export const reversoCarta = () => reverso;
 // ---------- cartas y probabilidades ----------
 export function catalogo() {
   const jugadores = vistaTierlist().jugadores.filter(j => j.nombre && j.tier).map(j => ({ ...j, tipo: 'jugador' }));
-  return [...boosts, ...jugadores].map(c => ({ ...c, arte: arteDe(c), marco: marcoDe(c), peso: PESOS[c.tier] }));
+  return [...boosts, ...jugadores].map(c => ({ ...c, campeon: campeones.get(c.id) || null }))
+    .map(c => ({ ...c, arte: arteDe(c), marco: marcoDe(c), peso: PESOS[c.tier] }));
 }
 
 // Probabilidad de que una carta cualquiera del sobre sea de cada tier

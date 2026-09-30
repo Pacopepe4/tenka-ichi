@@ -331,8 +331,8 @@ pintarEditorTier();
 const porcentaje = p => `${(p * 100).toLocaleString('es-ES', { maximumFractionDigits: 1 })} %`;
 function pintarGacha(g) {
   $('#estadoLoginTwitch').textContent = g.login
-    ? 'El inicio de sesión con Twitch está activo: cualquiera puede entrar en /gachapon/ y recibir sus sobres.'
-    : 'Falta configurar el inicio de sesión con Twitch en Render (TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET y SESION_SECRETO). Los pasos están en la guía del README.';
+    ? 'El inicio de sesión con Discord está activo: cualquiera con Discord puede entrar en /gachapon/ y recibir sus sobres.'
+    : 'Falta configurar el inicio de sesión con Discord en Render (DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET y SESION_SECRETO). Los pasos están en la guía del README.';
   $('#estadoLoginTwitch').classList.toggle('mal', !g.login);
   const c = g.canal, est = $('#estadoCanal');
   est.className = `estado ${c.error ? 'mal' : c.conectado ? 'ok' : ''}`;
@@ -361,7 +361,7 @@ $('#recogerCanjes').onclick = async () => { const r = await enviar('gachaSondear
 $('#guardarCoste').onclick = async () => { const r = await enviar('gachaCoste', { coste: $('#costeSobre').value }); if (r.ok) { pintarGacha(r.gacha); aviso('Coste cambiado en Twitch'); } };
 $('#regalar').onclick = async () => {
   const usuario = $('#regaloUsuario').value.trim();
-  if (!usuario) return aviso('Escribe el nombre en Twitch');
+  if (!usuario) return aviso('Escribe el nombre en Discord');
   const r = await enviar('gachaRegalar', { usuario, cantidad: $('#regaloCantidad').value });
   if (r.ok) { pintarGacha(r.gacha); aviso(`Sobres regalados a ${r.nombre}`); $('#regaloUsuario').value = ''; }
 };
@@ -378,10 +378,10 @@ function pintarKda(e) {
     partidaKda = `${e.config.jornada}|${e.config.partida}|${e.equipos.azul.clan}|${e.equipos.rojo.clan}`;
     caja.innerHTML = ['azul', 'rojo'].map(lado => `<div class="lado-kda ${lado}" data-lado="${lado}"><h4>${clanes.clan(e.equipos[lado].clan).nombre}</h4>
       <div class="cabeza-kda"><span>Jugador</span><span title="Asesinatos">K</span><span title="Muertes">D</span><span title="Asistencias">A</span>
-        <span title="Súbditos y monstruos">Farmeo</span><span title="Puntuación de visión">Visión</span><span title="Daño a campeones">Daño</span><span>MVP</span></div>
+        <span title="Súbditos y monstruos">Farmeo</span><span title="Puntuación de visión">Visión</span><span title="Daño a campeones">Daño</span><span title="Daño a torres (solo lo usan algunas cartas BOOST)">Torres</span><span>MVP</span></div>
       ${ROLES.map((r, i) => `<div class="fila-kda" data-indice="${i}"><span class="quien"></span>
         <input type="number" min="0" max="99" class="k" aria-label="Asesinatos"><input type="number" min="0" max="99" class="d" aria-label="Muertes"><input type="number" min="0" max="99" class="a" aria-label="Asistencias">
-        <input type="number" min="0" max="2000" class="cs" aria-label="Farmeo"><input type="number" min="0" max="500" class="vision" aria-label="Visión"><input type="number" min="0" max="500000" step="100" class="dano" aria-label="Daño a campeones">
+        <input type="number" min="0" max="2000" class="cs" aria-label="Farmeo"><input type="number" min="0" max="500" class="vision" aria-label="Visión"><input type="number" min="0" max="500000" step="100" class="dano" aria-label="Daño a campeones"><input type="number" min="0" max="200000" step="100" class="danoTorres" aria-label="Daño a torres">
         <label><input type="radio" name="mvp" value="${lado}-${i}" aria-label="MVP"></label><span class="extras-kda"></span></div>`).join('')}</div>`).join('');
     $('#estadoKda').textContent = '';
   }
@@ -399,7 +399,7 @@ $('#guardarKda').onclick = async () => {
   const filas = [...document.querySelectorAll('.kda .fila-kda')].map(f => ({
     lado: f.closest('.lado-kda').dataset.lado, indice: Number(f.dataset.indice),
     k: f.querySelector('.k').value, d: f.querySelector('.d').value, a: f.querySelector('.a').value,
-    cs: f.querySelector('.cs').value, vision: f.querySelector('.vision').value, dano: f.querySelector('.dano').value,
+    cs: f.querySelector('.cs').value, vision: f.querySelector('.vision').value, dano: f.querySelector('.dano').value, danoTorres: f.querySelector('.danoTorres').value,
     // Lo que ha dado el puente de los sucesos de la partida (vacío si no lo sabe)
     ...(f.dataset.extras ? JSON.parse(f.dataset.extras) : {}),
   }));
