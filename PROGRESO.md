@@ -91,3 +91,12 @@
 - Guardadas para ediciones especiales: la laca completa y la S+ washi con torii (en el lienzo y en `diseno/marcos/svg/guardadas/`).
 - Web: las cartas especiales pasan a ser BOOST (`data-proyecto/cartas-boost.json`, con tier S+, S, A o B); marcos por clase en `public/cartas/marcos/jugador|boost/` (WebP de 700 px: de 9 a 80 KB los marcos y 173 KB el reverso) y reverso común en la apertura de sobres. `diseno/marcos/generar.mjs` y `exportar.mjs` los rehacen.
 - Pendiente del usuario: decidir si la D se queda en la tier list (las de Jugador son S, A, B, C) y qué hace cada BOOST en el fantasy; los dibujos de cada carta (Excel de campeones).
+
+## 30/09: primeras cartas reales (SARU, KAIJU, TORA y 5 BOOST) y campeón en cada carta
+
+- Plantillas de SARU, KAIJU y TORA con sus cinco jugadores (`data-proyecto/plantillas.json`) y su tier (copia local `data/tierlist.json`, que no se sube a GitHub). Los otros 12 clanes siguen sin jugadores ni tier, así que sus cartas aún no existen.
+- Cinco cartas BOOST en `data-proyecto/cartas-boost.json`: MAKITAH «El Titiritero», SONS «The CEO», IGRID «Topfather» y LOLEX «El Pequeñísimo» (S+, ×3) y GYPSICUACK «El Gitano» (S, ×2). Cada una lleva `multiplicador` y `condicion` (`dano`, `participacion`, `dano-torres`, `cs` o `asistencias`); sin una condición conocida y más de ×1 no hay bonus. Sale en la carta como «×3 · más daño» y la frase entera al pasar el ratón.
+- Campeón de cada carta, jugadores y BOOST, en `data-proyecto/campeones-cartas.json` (id de Data Dragon por id de carta; uno desconocido se descarta con un aviso en el log). La carta lo enseña bajo el rol. El campeón va con el puesto (CLAN-ROL), no con la persona: si cambia el jugador en el panel, el campeón se queda.
+- En Render los nombres y las tiers viven en Google Sheets (pestañas Plantillas y Tierlist), así que los de este día no llegan solos: hay que meterlos por el panel o pegarlos en la hoja. Los campeones y las BOOST sí llegan al desplegar, porque salen del repositorio.
+- Pendiente: la web todavía no aplica el multiplicador de las BOOST al fantasy (siguen sin poder alinearse); falta decidir cómo se juegan y qué dato de fin de partida comprueba cada condición.
+- S de Jugador rehecha (le faltaba nivel): laca bermellón con asanoha de oro, banda de pan de oro, marcos de oro en el nombre, la ventana y la caja, y estrellas de oro. Alternativa en pan de oro con anillos shippō bermellón en el lienzo y en `diseno/marcos/svg/propuestas/`; la anterior, guardada.

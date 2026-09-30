@@ -2,7 +2,8 @@
 // letras y 天下一 en la fuente de la marca (originales en diseno/marcos/png/), y a WebP de 700 px, mucho más
 // ligeros, donde los busca la web (public/cartas/marcos/).
 //   node diseno/marcos/exportar.mjs              → marcos de Jugador, BOOST y el reverso
-//   node diseno/marcos/exportar.mjs --guardadas  → además, las guardadas, en diseno/marcos/png/guardadas/
+//   node diseno/marcos/exportar.mjs --guardadas  → además, las guardadas y las propuestas, en diseno/marcos/png/
+//   node diseno/marcos/exportar.mjs jugador/S    → solo las piezas cuyo archivo contenga eso (se pueden poner varias)
 // Usa Google Chrome o Microsoft Edge sin ventana (o el que diga CHROME) y hace falta conexión para la fuente.
 import { mkdirSync, writeFileSync, existsSync, rmSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
@@ -38,6 +39,8 @@ const PIEZAS = [
   { svg: 'reverso.svg', salida: 'reverso.png', ...reverso(TINTA, [320, 948, 360, 108]) },
 ];
 const GUARDADAS = [
+  { svg: 'propuestas/jugador-S-oro.svg', salida: 'propuestas/jugador-S-oro.png', textos: [letra('S')] },
+  { svg: 'guardadas/washi-S.svg', salida: 'guardadas/washi-S.png', textos: [letra('S')] },
   ...['S', 'A', 'B', 'C'].map(t => ({ svg: `guardadas/laca-${t}.svg`, salida: `guardadas/laca-${t}.png`, textos: [letra(t)] })),
   { svg: 'guardadas/laca-SP.svg', salida: 'guardadas/laca-SP.png', textos: [selloSP, tenka(ORO, 202)] },
   { svg: 'guardadas/washi-SP.svg', salida: 'guardadas/washi-SP.png', textos: [selloSP, tenka(TINTA, 206)] },
@@ -141,9 +144,12 @@ window.addEventListener('load', () => {
   });
 }
 
+const filtros = process.argv.slice(2).filter(a => !a.startsWith('--'));
+const elegidas = lista => lista.filter(p => !filtros.length || filtros.some(f => p.salida.includes(f)));
 mkdirSync(TMP, { recursive: true });
-let bien = PIEZAS.map(exportar).every(Boolean);
-if (bien) aWebp(PIEZAS);
-if (process.argv.includes('--guardadas')) bien = GUARDADAS.map(exportar).every(Boolean) && bien;
+const web = elegidas(PIEZAS);
+let bien = web.map(exportar).every(Boolean);
+if (bien && web.length) aWebp(web);
+if (process.argv.includes('--guardadas')) bien = elegidas(GUARDADAS).map(exportar).every(Boolean) && bien;
 rmSync(TMP, { recursive: true, force: true });
 if (!bien) process.exit(1);

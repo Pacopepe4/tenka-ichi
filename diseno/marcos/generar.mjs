@@ -94,6 +94,42 @@ function kozane(id, cordon, cordonOscuro) {
     + `</pattern>`;
 }
 
+// Asanoha (hoja de cáñamo): red de triángulos con líneas del centro de cada uno a sus vértices
+function asanoha(id, s, color, grosor, opacidad) {
+  const h = s * Math.sqrt(3) / 2;
+  const triangulos = [
+    [[0, 0], [s, 0], [s / 2, h]], [[0, 0], [s / 2, h], [-s / 2, h]], [[s, 0], [1.5 * s, h], [s / 2, h]],
+    [[s / 2, h], [0, 2 * h], [s, 2 * h]], [[-s / 2, h], [s / 2, h], [0, 2 * h]], [[s / 2, h], [1.5 * s, h], [s, 2 * h]],
+  ];
+  let d = '';
+  for (const t of triangulos) {
+    const cx = (t[0][0] + t[1][0] + t[2][0]) / 3, cy = (t[0][1] + t[1][1] + t[2][1]) / 3;
+    d += `M${n1(t[0][0])} ${n1(t[0][1])}L${n1(t[1][0])} ${n1(t[1][1])}L${n1(t[2][0])} ${n1(t[2][1])}Z`;
+    for (const [x, y] of t) d += `M${n1(cx)} ${n1(cy)}L${n1(x)} ${n1(y)}`;
+  }
+  return `<pattern id="${id}" width="${s}" height="${n1(2 * h)}" patternUnits="userSpaceOnUse">`
+    + `<path d="${d}" fill="none" stroke="${color}" stroke-opacity="${opacidad}" stroke-width="${grosor}" stroke-linejoin="round"/></pattern>`;
+}
+
+// Pan de oro (kinpaku): cuadrados de hoja de oro con tonos un poco distintos y la junta entre ellos
+function kinpaku(id, lado) {
+  const tonos = ['#D9B25B', '#E2C06D', '#D1A850', '#DCB864', '#D5AE57', '#E4C473', '#D0A64E', '#DFBB68', '#D7B05A'];
+  let c = '', juntas = '';
+  tonos.forEach((t, i) => { c += `<rect x="${(i % 3) * lado}" y="${Math.floor(i / 3) * lado}" width="${lado}" height="${lado}" fill="${t}"/>`; });
+  for (let i = 0; i <= 3; i++) juntas += `M0 ${i * lado}H${3 * lado}M${i * lado} 0V${3 * lado}`;
+  return `<pattern id="${id}" width="${3 * lado}" height="${3 * lado}" patternUnits="userSpaceOnUse">${c}`
+    + `<path d="${juntas}" stroke="#A07C30" stroke-opacity="0.5" stroke-width="1"/></pattern>`;
+}
+
+// Shippō (siete tesoros): anillos que se cruzan de cuatro en cuatro
+function shippo(id, r, color, grosor, opacidad) {
+  let c = '';
+  for (const [x, y] of [[0, 0], [2 * r, 0], [0, 2 * r], [2 * r, 2 * r], [r, r]]) {
+    c += `<circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="${color}" stroke-opacity="${opacidad}" stroke-width="${grosor}"/>`;
+  }
+  return `<pattern id="${id}" width="${2 * r}" height="${2 * r}" patternUnits="userSpaceOnUse">${c}</pattern>`;
+}
+
 function rayos(cx, cy, n, largo, color, opacidad, ancho = 0.5) {
   let d = '';
   for (let i = 0; i < n; i++) {
@@ -203,6 +239,62 @@ function washi(tier) {
   return svg(defs, s);
 }
 
+// ================= S de Jugador: bermellón y oro =================
+// La S de Jugador sube de nivel respecto a la washi: todo el marco es laca bermellón con asanoha de oro y una
+// banda de pan de oro («bermellon»), o pan de oro con anillos shippō bermellón y banda de laca («oro»).
+// Las placas del nombre y de la caja siguen siendo de papel para que el texto de la web se lea igual
+const oroDefs = `<linearGradient id="oro" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F3DA92"/><stop offset="0.45" stop-color="#CFA64C"/><stop offset="0.8" stop-color="#8E6B22"/><stop offset="1" stop-color="#D9B864"/></linearGradient>`
+  + `<radialGradient id="oro-estrella" cx="0.36" cy="0.3" r="0.75"><stop offset="0" stop-color="#FFF4CC"/><stop offset="0.4" stop-color="#D9B155"/><stop offset="1" stop-color="#7C5D1C"/></radialGradient>`
+  + `<linearGradient id="brillo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFF6D8" stop-opacity="0"/><stop offset="0.3" stop-color="#FFF6D8" stop-opacity="0.35"/>`
+  + `<stop offset="0.45" stop-color="#FFF6D8" stop-opacity="0"/><stop offset="0.7" stop-color="#FFF6D8" stop-opacity="0.22"/><stop offset="1" stop-color="#FFF6D8" stop-opacity="0"/></linearGradient>`
+  + `<linearGradient id="laca-roja" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#D0352F"/><stop offset="0.55" stop-color="#AE2126"/><stop offset="1" stop-color="#80171C"/></linearGradient>`;
+const ROMBOS_BANDA = [[500, 23], [500, 1377], [23, 700], [977, 700], [250, 23], [750, 23], [250, 1377], [750, 1377], [23, 380], [23, 1020], [977, 380], [977, 1020]];
+
+function jugadorS(variante) {
+  const rojo = variante === 'bermellon';
+  const marcoPanel = rojo ? 'url(#oro)' : C.shu, filete = rojo ? C.shu : C.oro;
+  const defs = fibra + fuera + oroDefs + (rojo
+    ? asanoha('patron', 36, '#E8C66E', 1.8, 0.85) + kinpaku('banda', 20)
+    : kinpaku('campo', 46) + shippo('patron', 23, '#B3262C', 2.6, 0.85));
+  // Campo: laca bermellón con asanoha de oro, o pan de oro con brillo y anillos bermellón
+  let s = `<path d="${CARTA} ${VENTANA}" fill-rule="evenodd" fill="${rojo ? 'url(#laca-roja)' : 'url(#campo)'}"/>`
+    + `<g clip-path="url(#fuera)">${rojo ? '' : `<rect x="0" y="0" width="${W}" height="${H}" fill="url(#brillo)"/>`}`
+    + `<rect x="40" y="40" width="920" height="1320" fill="url(#patron)"/></g>`;
+  // Banda: pan de oro sobre la laca, o laca sobre el oro; puntos y rombos del color contrario
+  const banda = `${inset(6, 30)} ${inset(40, 14)}`;
+  s += rojo
+    ? `<path d="${banda}" fill-rule="evenodd" fill="url(#banda)"/><path d="${banda}" fill-rule="evenodd" fill="url(#brillo)"/>`
+    : `<path d="${banda}" fill-rule="evenodd" fill="url(#laca-roja)"/>`;
+  s += `<path d="${inset(6, 30)}" fill="none" stroke="${C.oroOscuro}" stroke-width="4"/><path d="${inset(40, 14)}" fill="none" stroke="${C.oroOscuro}" stroke-width="3"/>`
+    + `<path d="${inset(52, 8)}" fill="none" stroke="${rojo ? '#F0D48A' : C.shu}" stroke-width="6" stroke-linecap="round" stroke-dasharray="0.1 17"/>`;
+  for (const [x, y] of ROMBOS_BANDA) s += `<path d="${rombo(x, y, 12, 10)}" fill="${rojo ? C.shu : 'url(#oro)'}" stroke="${C.oroOscuro}" stroke-width="2"/>`;
+  s += esquinasCarta(58, 100, 24, rojo ? 'url(#oro)' : C.shu, C.oroOscuro);
+
+  // Barra del nombre y hueco del emblema: papel con marco de oro (o de laca) y filete del color contrario
+  s += `<path d="${rr(56, 60, 888, 126, 14)}" fill="${marcoPanel}"/>`
+    + `<path d="${rr(62, 66, 876, 114, 10)}" fill="${C.papelClaro}"/><path d="${rr(62, 66, 876, 114, 10)}" fill="#000" filter="url(#fibra)"/>`
+    + `<path d="${rr(69, 73, 862, 100, 7)}" fill="none" stroke="${filete}" stroke-width="2"/>`
+    + `<circle cx="875" cy="123" r="54" fill="${marcoPanel}"/><circle cx="875" cy="123" r="47" fill="${C.papel}"/>`
+    + `<circle cx="875" cy="123" r="42" fill="none" stroke="${filete}" stroke-width="2.5"/>`;
+
+  // Sello bermellón con borde de oro y cinco estrellas: de oro sobre la laca, bermellón sobre el oro
+  s += `<rect x="125" y="198" width="68" height="68" rx="6" fill="${C.shu}" stroke="${rojo ? 'url(#oro)' : C.oroOscuro}" stroke-width="4"/>`
+    + `<rect x="132" y="205" width="54" height="54" rx="3" fill="none" stroke="${C.papelClaro}" stroke-opacity="0.6" stroke-width="1.5"/>`;
+  s += filaEstrellas(TIERS.S.estrellas, 232, (x, y) => `<circle cx="${x}" cy="${y + 3}" r="28" fill="#000" fill-opacity="0.35"/>`
+    + `<circle cx="${x}" cy="${y}" r="27" fill="${rojo ? 'url(#oro-estrella)' : C.shu}" stroke="${C.oroOscuro}" stroke-width="2.5"/>`
+    + `<path d="${estrella(x, y, 17)}" fill="${rojo ? C.shu : '#F0D48A'}"/>`);
+
+  // Ventana del arte (transparente) con marco de oro (o de laca) y esquineras
+  s += `<path d="M114 271H886V1043H114Z" fill="none" stroke="${rojo ? '#6F5115' : C.oro}" stroke-width="2.5"/>` + marcoVentana(marcoPanel)
+    + esquinasVentana(rojo ? 'url(#oro)' : C.shu, C.oroOscuro);
+
+  // Caja de texto: papel con el mismo marco
+  s += `<path d="${rr(84, 1056, 832, 284, 14)}" fill="${marcoPanel}"/><path d="${rr(92, 1064, 816, 268, 9)}" fill="${C.papelClaro}"/>`
+    + `<path d="${rr(92, 1064, 816, 268, 9)}" fill="#000" filter="url(#fibra)"/><path d="${rr(99, 1071, 802, 254, 6)}" fill="none" stroke="${filete}" stroke-width="2"/>`
+    + `<path d="M116 1146H884" stroke="${C.tinta}" stroke-width="2"/>`;
+  return svg(defs, s);
+}
+
 // ================= Alternativa 2: laca (laca y metal de armadura) =================
 function metalDefs(m) {
   const M = METALES[m];
@@ -301,7 +393,11 @@ function reversoLaca() {
 }
 
 const guardar = (nombre, contenido) => writeFileSync(path.join(SALIDA, nombre), contenido);
-for (const t of ['S', 'A', 'B', 'C', 'D']) guardar(`jugador-${t}.svg`, washi(t));
+mkdirSync(path.join(SALIDA, 'propuestas'), { recursive: true });
+guardar('jugador-S.svg', jugadorS('bermellon'));
+guardar('propuestas/jugador-S-oro.svg', jugadorS('oro'));
+guardar('guardadas/washi-S.svg', washi('S'));
+for (const t of ['A', 'B', 'C', 'D']) guardar(`jugador-${t}.svg`, washi(t));
 for (const t of ['SP', 'S', 'A', 'B']) guardar(`boost-${t}.svg`, laca(t, BOOST[t]));
 guardar('reverso.svg', reversoWashi());
 for (const t of ['SP', 'S', 'A', 'B', 'C']) guardar(`guardadas/laca-${t}.svg`, laca(t, LACA[t]));
