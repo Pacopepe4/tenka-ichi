@@ -1,6 +1,7 @@
 // Gachapon: entrar con Discord, abrir sobres y ver la colección
 import { cargarClanes, logo } from '/comun.js';
 import { iniciarDirecto } from '/directo.js';
+import { imagenColeccion, imagenAlineacion, descargar, publicar } from '/compartir.js';
 
 const $ = s => document.querySelector(s);
 // Dos clases de carta: Jugador (jugadores de la liga) y BOOST (personajes de fuera de los clanes, de S+ a B).
@@ -82,7 +83,9 @@ function pintarCuenta() {
       : 'Más sobres: el staff los regala en premios y sorteos.';
 }
 
-function pintarAlbum() {
+// El álbum entra escalonado la primera vez y al cambiar de filtro, no cada vez que se refresca solo
+let albumPintado = false;
+function pintarAlbum(animar = !albumPintado) {
   const mias = new Map((info.usuario?.cartas || []).map(c => [c.id, c.cantidad]));
   const conSesion = Boolean(info.usuario);
   // Por tier; en cada tier, primero los jugadores (por clan) y después las BOOST
@@ -94,6 +97,9 @@ function pintarAlbum() {
   let vacio = 'Todavía no hay cartas.';
   if (info.catalogo.length && filtro !== 'todas') vacio = !conSesion ? 'Entra con Discord para ver tu colección.' : filtro === 'tengo' ? 'Aún no tienes ninguna carta: abre un sobre.' : '¡Las tienes todas!';
   $('.album').innerHTML = lista.length ? lista.map(c => cartaHTML(c, conSesion ? (mias.get(c.id) || 0) : null)).join('') : `<p class="vacio">${vacio}</p>`;
+  $('.album').classList.toggle('entrando', animar);
+  $('.album').querySelectorAll('.carta-g').forEach((c, i) => c.style.setProperty('--i', Math.min(i, 30)));
+  albumPintado = true;
 }
 
 function pintarProbabilidades() {
@@ -254,6 +260,7 @@ document.querySelectorAll('.filtros-rol button').forEach(b => b.addEventListener
 }));
 
 function pintar() {
+  pintarCompartir();
   pintarCuenta();
   pintarFantasy();
   pintarAlbum();
@@ -284,7 +291,7 @@ const dorso = () => (info.reverso
 function mostrarApertura(cartas) {
   const reducido = matchMedia('(prefers-reduced-motion: reduce)').matches;
   dialogo.classList.remove('cortando', 'abierto');
-  $('.reparto').innerHTML = cartas.map((c, i) => `<div class="volteable" data-tier="${claveTier(c.tier)}" tabindex="0" role="button" aria-label="Carta ${i + 1}: dale la vuelta">
+  $('.reparto').innerHTML = cartas.map((c, i) => `<div class="volteable" style="--giro: ${(i - (cartas.length - 1) / 2) * 7}deg" data-tier="${claveTier(c.tier)}" tabindex="0" role="button" aria-label="Carta ${i + 1}: dale la vuelta">
     <div class="giro">${dorso()}<div class="cara frente">${cartaHTML(c)}</div></div></div>`).join('');
   $('.descubrir').hidden = false;
   $('.otro').hidden = true;
@@ -326,9 +333,41 @@ $('.sobre').addEventListener('click', abrir);
 document.querySelectorAll('.filtros button').forEach(b => b.addEventListener('click', () => {
   filtro = b.dataset.filtro;
   document.querySelectorAll('.filtros button').forEach(x => x.setAttribute('aria-selected', String(x === b)));
-  pintarAlbum();
+  pintarAlbum(true);
 }));
 
 await cargar();
 // Los sobres canjeados con puntos del canal aparecen solos: se vuelve a mirar cada 45 s
 setInterval(() => { if (info?.usuario && !dialogo.open && !document.hidden) cargar(); }, 45000);
+
+// ---------- compartir la colección y la alineación: descargar la imagen o publicarla en Discord ----------
+function pintarCompartir() {
+  document.querySelectorAll('.compartir').forEach(caja => {
+    caja.hidden = !info.usuario;
+    caja.querySelector('.publicar').hidden = !info.publicarDiscord;
+  });
+}
+async function imagenDe(que) {
+  const mias = new Map((info.usuario?.cartas || []).map(c => [c.id, c.cantidad]));
+  if (que === 'coleccion') {
+    return imagenColeccion({ nombre: info.usuario.nombre, total: info.catalogo.length, nombreClan,
+      cartas: info.catalogo.filter(c => mias.get(c.id)).map(c => ({ ...c, cantidad: mias.get(c.id) })) });
+  }
+  const ali = fantasia.yo?.alineacion || {};
+  return imagenAlineacion({ nombre: info.usuario.nombre, nombreClan, total: fantasia.yo?.puntos || 0, puesto: fantasia.yo?.puesto || null,
+    alineacion: Object.fromEntries(ROLES.map(r => [r, ali[r] ? cartaPorId(ali[r]) : null])),
+    puntos: Object.fromEntries(ROLES.map(r => [r, ali[r] ? puntosDe(ali[r]) : 0])) });
+}
+document.querySelectorAll('.compartir').forEach(caja => {
+  const que = caja.dataset.que, estado = caja.querySelector('.estado-compartir');
+  const hacer = async (boton, accion) => {
+    boton.disabled = true;
+    estado.textContent = 'Preparando la imagen…';
+    try { estado.textContent = await accion(await imagenDe(que)); }
+    catch { estado.textContent = 'No se pudo preparar la imagen'; }
+    boton.disabled = false;
+    setTimeout(() => { estado.textContent = ''; }, 6000);
+  };
+  caja.querySelector('.descargar').onclick = e => hacer(e.currentTarget, async img => { descargar(img, `tenka-ichi-${que}.jpg`); return 'Imagen descargada'; });
+  caja.querySelector('.publicar').onclick = e => hacer(e.currentTarget, async img => { const r = await publicar(que, img); return r.ok ? '¡Publicada en Discord!' : r.error; });
+});

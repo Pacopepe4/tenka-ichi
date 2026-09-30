@@ -112,3 +112,20 @@
 - Pruebas: `test/entrada-discord.test.js` (16) con `scripts/entrada-discord-falso.js`; `npm test` 59 en verde. Probado en el navegador con el Discord falso (`tenka-entrada-discord` en launch.json).
 - Pendiente del usuario: crear la app en discord.com/developers, añadir las redirecciones (`/auth/discord/callback` en Render y en local) y poner `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` y `SESION_SECRETO` en Render (pasos en el README).
 - Pendiente: probarlo con Discord de verdad; decidir cómo se consiguen sobres extra sin los puntos del canal; los regalos por nombre toman al primero si hay dos personas con el mismo nombre. Las hojas de Sheets que ya existan conservan la cabecera «Twitch ID» (cosmético).
+
+## 30/09 (noche): animaciones, panel más claro y Discord enganchado (SIN SUBIR: se sube mañana)
+
+Todo está en commits locales en master; no se ha hecho push para no cambiar la web publicada mientras el usuario duerme. Mañana: revisar, `git push` y configurar Discord.
+
+- Guardado en commits aparte el trabajo de las otras sesiones (entrar con Discord, campeones del Excel, BOOST con multiplicador) y la publicación en Discord.
+- Animaciones: los botones de todas las páginas responden suave al pasar, pulsar y enfocar (marca.css). En el gachapon, las cartas salen del sobre en abanico, se levantan al girarlas, las boca abajo se asoman al pasar el ratón, las S y S+ se descubren con un destello que las cruza, y el álbum entra escalonado (solo la primera vez y al cambiar de filtro, no en cada refresco). Todo respeta «reducir movimiento».
+- Panel: el índice de arriba marca el apartado que se está viendo, el botón pulsado espera la respuesta y hace un destello verde si ha ido bien, los avisos entran suaves y los apartados no quedan tapados por la barra al saltar a ellos.
+- Discord enganchado: «Descargar imagen» y «Publicar en Discord» en Colección y en Fantasy (el de publicar solo sale si hay webhook), y en el panel, apartado Tier list, descargar y publicar la tier list (con la contraseña del panel). Ruta POST /api/discord/publicar. Sin webhook, avisa de que falta.
+
+### Prueba general de mañana (lista)
+1. `npm test` (61 pruebas en verde esta noche) y arrancar la prueba local (`tenka-prueba-cartas` en el panel de vista previa, http://localhost:3057/auth/prueba?nombre=Koryu).
+2. Gachapon: abrir sobres (abanico, girar de una en una y «Descubrir todas», destello de S y S+), álbum y filtros, alinear jugadores y BOOST.
+3. Descargar las imágenes de colección y alineación; mirar que la alineación salga bien con las BOOST vinculadas (la imagen de ahora solo pinta los cinco jugadores).
+4. Panel: índice que marca el apartado al bajar (no se pudo comprobar esta noche con la ventana en segundo plano), destello verde al guardar, tier list descargada.
+5. Discord: crear el webhook del canal (Ajustes del servidor › Integraciones › Webhooks), ponerlo en Render como DISCORD_WEBHOOK_URL (y DISCORD_WEBHOOK_TIERLIST si la tier list va en otro canal) y, para entrar con Discord, DISCORD_CLIENT_ID y DISCORD_CLIENT_SECRET (README). Probar a publicar colección, alineación y tier list.
+6. `git push` cuando todo esté bien y comprobar la web publicada.

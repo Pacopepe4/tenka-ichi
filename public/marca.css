@@ -33,3 +33,13 @@
   font-family: var(--mincho); font-weight: 800; line-height: 1;
   border-radius: 3px;
 }
+
+/* Respuesta suave de botones en todas las páginas: no cambia su aspecto, solo cómo reaccionan al pasar,
+   pulsar y enfocar con el teclado (:where no pesa, así que cualquier estilo propio manda) */
+:where(button, [role="button"], .boton-claro, .boton-twitch, .boton-discord) {
+  transition: transform .18s cubic-bezier(.2, .8, .2, 1), background-color .2s, color .2s, border-color .2s, box-shadow .2s, opacity .2s;
+}
+:where(button:not(:disabled):active, .boton-claro:active, .boton-twitch:active, .boton-discord:active) { transform: translateY(1px) scale(.97); transition-duration: .06s; }
+:where(button, a, input, select, textarea, [tabindex]):focus-visible { outline: 2px solid var(--washi); outline-offset: 3px; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+@media (prefers-reduced-motion: reduce) { :where(button, [role="button"], .boton-claro, .boton-twitch, .boton-discord) { transition: none; } }

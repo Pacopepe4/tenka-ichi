@@ -184,3 +184,16 @@ button.marca { display: inline-flex; align-items: center; gap: 6px; padding: 6px
   border: 1px solid var(--sumi-linea); box-shadow: inset 3px 0 0 var(--color); font-size: 13px; font-weight: 600; }
 button.marca span { font-family: var(--mincho); font-weight: 800; font-size: 15px; color: var(--color); }
 button.marca:hover { background: transparent; border-color: var(--color); }
+
+/* ---------- Más claro y más fluido ----------
+   El índice marca dónde estás, el botón pulsado espera la respuesta y hace un destello verde al hacerse,
+   y los avisos entran suaves */
+.indice a { transition: color .2s, background-color .2s; }
+.indice a[aria-current="true"] { color: var(--sumi); background: var(--washi); }
+button[aria-busy="true"] { cursor: progress; opacity: .7; }
+button.hecho { box-shadow: 0 0 0 2px #7FA36B, 0 0 16px rgba(127, 163, 107, .5); }
+button:not(:disabled):hover { box-shadow: 0 4px 12px rgba(0, 0, 0, .3); }
+#aviso:not([hidden]) { animation: aviso-entra .28s cubic-bezier(.2, .8, .2, 1); }
+@keyframes aviso-entra { from { opacity: 0; transform: translate(-50%, 12px); } }
+section[id] { scroll-margin-top: 90px; }
+@media (prefers-reduced-motion: reduce) { #aviso:not([hidden]) { animation: none; } }

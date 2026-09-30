@@ -23,6 +23,7 @@ import { twitchActivo, urlAutorizar, canjearCodigo, usuarioDeToken, usuarioPorNo
 import { loginDiscordActivo, urlAutorizarDiscord, sesionDeDiscord } from './entrada-discord.js';
 import crypto from 'node:crypto';
 import { cargarFantasy, infoFantasy, cambiarAlineacion, guardarEstadisticas, cerrarAlineaciones } from './fantasy.js';
+import { atenderPublicacion, discordActivo } from './discord.js';
 import { cargarPartida, recibir as recibirPartida, resumen as resumenPartida, empezarPrueba, pararPrueba, enPrueba, olvidarPartida,
   ponerContexto, marcarObjetivo, deshacerMarca } from './partida.js';
 import { crearZip } from './zip.js';
@@ -354,6 +355,7 @@ function infoGacha(u) {
     cartasPorSobre: CARTAS_POR_SOBRE, sobresIniciales: SOBRES_INICIALES, pesos: PESOS,
     probabilidades: probabilidades(),
     catalogo: catalogo().map(({ peso, ...carta }) => carta),
+    publicarDiscord: discordActivo('coleccion'),
     reverso: reversoCarta(),
     recompensa: c.conectado && c.recompensa ? { titulo: c.titulo, coste: c.coste } : null,
     usuario: u ? { nombre: u.nombre, avatar: u.avatar || null, ...estadoUsuario(u.id) } : null,
@@ -502,6 +504,19 @@ async function rutasSesion(req, res, url) {
 
   if (p === '/api/fantasy') return json(res, infoFantasy(usuarioDeSesion(req)));
 
+  // Publicar en el canal de Discord la imagen que dibuja la página: la colección o la alineación del que ha
+  // entrado, o la tier list (el staff, con la contraseña del panel). El texto lo pone discord.js con estos datos
+  if (p === '/api/discord/publicar' && req.method === 'POST') {
+    const tipo = url.searchParams.get('tipo'), u = usuarioDeSesion(req);
+    const yo = tipo === 'alineacion' && u ? infoFantasy(u).yo : null;
+    const r = await atenderPublicacion({
+      tipo, req, usuario: u, staff: req.headers['x-clave-panel'] === CLAVE,
+      datos: tipo === 'coleccion' && u ? { tiene: estadoUsuario(u.id).cartas.length, total: catalogo().length } : yo ? { puntos: yo.puntos, puesto: yo.puesto } : {},
+      avatar: `${origen(req)}/marca/tenka-ichi-cuadro.png`, enlace: `${origen(req)}/gachapon/`,
+    });
+    return json(res, r.cuerpo, r.estado);
+  }
+
   if (p === '/api/fantasy/alineacion' && req.method === 'POST') {
     const u = usuarioDeSesion(req);
     if (!u) return json(res, { ok: false, error: 'Entra con tu cuenta de Discord para alinear' }, 401);
@@ -522,7 +537,8 @@ const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; ch
 
 const servidor = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
-  const rutaSesion = url.pathname.startsWith('/auth/') || url.pathname.startsWith('/api/gacha') || url.pathname.startsWith('/api/fantasy') || url.pathname === '/api/tierlist';
+  const rutaSesion = url.pathname.startsWith('/auth/') || url.pathname.startsWith('/api/gacha') || url.pathname.startsWith('/api/fantasy') || url.pathname === '/api/tierlist'
+    || url.pathname.startsWith('/api/discord');
   if (rutaSesion && await rutasSesion(req, res, url)) return;
   if (url.pathname === '/api/clanes') {
     await refrescarPlantillas();

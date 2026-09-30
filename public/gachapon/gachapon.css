@@ -238,3 +238,48 @@ button.boton-secundario { background: transparent; font: inherit; font-weight: 7
 .carta-g.con-marco .cantidad { right: 9%; bottom: 7%; font-size: 6cqw; color: var(--tinta-marco); }
 .carta-g.con-marco.falta .marco { filter: grayscale(1) brightness(.55); }
 .carta-g.con-marco.falta .pie .nick, .carta-g.con-marco.falta .pie .rol, .carta-g.con-marco.falta .bonus { color: #4A443C; }
+
+/* ---------- Animaciones más fluidas ----------
+   Las cartas salen del sobre en abanico, se levantan al girarlas, las boca abajo se asoman al pasar el ratón,
+   las S y S+ se descubren con un destello que las cruza, y el álbum entra escalonado */
+.volteable { transform: translateY(70px) scale(.82) rotate(var(--giro, 0deg)); transition: opacity .45s ease-out, transform .6s cubic-bezier(.2, .9, .25, 1.15); }
+.volteable.fuera { transform: none; }
+.volteable.fuera:not(.girada):hover .giro { transform: translateY(-8px) rotate(-1.5deg); }
+.volteable.girada .giro { animation: voltear .75s cubic-bezier(.3, .7, .2, 1) both; }
+@keyframes voltear {
+  0% { transform: rotateY(0) scale(1); }
+  45% { transform: translateY(-12px) rotateY(100deg) scale(1.1); }
+  100% { transform: rotateY(180deg) scale(1); }
+}
+.volteable .frente { overflow: hidden; }
+.volteable.girada[data-tier="S"] .frente::after, .volteable.girada[data-tier="SP"] .frente::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: 8px;
+  background: linear-gradient(115deg, transparent 35%, rgba(255, 236, 190, .6) 50%, transparent 65%);
+  transform: translateX(-130%); animation: barrido 1.1s .5s ease-out forwards; }
+.volteable.girada[data-tier="SP"] .frente::after {
+  background: linear-gradient(115deg, transparent 28%, rgba(255, 246, 214, .8) 45%, rgba(214, 170, 255, .55) 56%, transparent 72%);
+  animation-duration: 1.5s; }
+@keyframes barrido { to { transform: translateX(130%); } }
+
+.album .carta-g { transition: transform .25s cubic-bezier(.2, .8, .2, 1), box-shadow .25s; }
+.album .carta-g:not(.falta):hover { transform: translateY(-5px) scale(1.02); }
+.album.entrando .carta-g { animation: aparecer .45s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 22ms); }
+@keyframes aparecer { from { opacity: 0; transform: translateY(14px) scale(.97); } }
+
+.boton-claro:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0, 0, 0, .35); }
+.sobre:not(:disabled):hover { filter: drop-shadow(0 10px 22px rgba(190, 42, 47, .35)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .volteable, .volteable.fuera, .album .carta-g { transition: none; transform: none; }
+  .volteable.girada .giro { animation: none; transform: rotateY(180deg); }
+  .volteable.girada .frente::after, .album.entrando .carta-g { animation: none; }
+}
+
+/* Descargar o publicar en Discord la colección y la alineación */
+.compartir { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.compartir[hidden], .compartir [hidden] { display: none; }
+.compartir button { padding: 7px 14px; border: 1px solid var(--sumi-linea); border-radius: 3px; color: var(--washi); font-size: 14px; }
+.compartir button:not(:disabled):hover { border-color: var(--hai); transform: translateY(-1px); }
+.compartir .publicar { border-color: #5865F2; }
+.compartir button:disabled { opacity: .5; cursor: progress; }
+.estado-compartir { font-size: 13px; color: var(--hai); }

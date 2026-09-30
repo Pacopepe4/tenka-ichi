@@ -1,5 +1,6 @@
 // Panel de producción: conecta DraftCore, configura el enfrentamiento, corrige huecos y registra resultados
 import { cargarCampeones, cargarClanes, conectarDirecto, icono, logo, disposicionCamaras } from '/comun.js';
+import { imagenTierlist, descargar, publicar } from '/compartir.js';
 
 const $ = s => document.querySelector(s);
 const campeones = await cargarCampeones();
@@ -33,9 +34,22 @@ const directo = conectarDirecto({
   },
 });
 
+// El botón que se acaba de pulsar se queda «trabajando» hasta la respuesta y hace un destello verde si ha ido bien
+let ultimoBoton = null, ultimoClic = 0;
+document.addEventListener('click', e => { ultimoBoton = e.target.closest?.('button') || null; ultimoClic = Date.now(); }, true);
+
 async function enviar(accion, datos) {
+  const boton = ultimoBoton && Date.now() - ultimoClic < 1500 ? ultimoBoton : null;
+  boton?.setAttribute('aria-busy', 'true');
   const r = await directo.enviar(accion, datos, claveInput.value);
+  boton?.removeAttribute('aria-busy');
   if (!r.ok) aviso(r.error === 'Contraseña incorrecta' ? 'Contraseña incorrecta: escríbela arriba a la derecha' : (r.error || 'No se pudo hacer'));
+  else if (boton) {
+    boton.classList.remove('hecho');
+    void boton.offsetWidth;
+    boton.classList.add('hecho');
+    setTimeout(() => boton.classList.remove('hecho'), 900);
+  }
   return r;
 }
 
@@ -599,3 +613,24 @@ pintar = function () { pintarAntesMarcas(); pintarMarcas(); };
 listo = true;
 if (estado) pintar();
 if (partidaPendiente) pintarPartidaPanel(partidaPendiente);
+
+// El índice de arriba marca el apartado que se está viendo
+const enlacesIndice = [...document.querySelectorAll('.indice a[href^="#"]')];
+const vigia = new IntersectionObserver(entradas => {
+  for (const e of entradas) {
+    if (!e.isIntersecting) continue;
+    enlacesIndice.forEach(a => a.setAttribute('aria-current', String(a.getAttribute('href') === `#${e.target.id}`)));
+  }
+}, { rootMargin: '-40% 0px -55% 0px' });
+enlacesIndice.forEach(a => { const seccion = document.getElementById(a.getAttribute('href').slice(1)); if (seccion) vigia.observe(seccion); });
+
+// ---------- Tier list: descargar la imagen o publicarla en Discord (con la contraseña del panel) ----------
+async function imagenTier() {
+  const t = await fetch('/api/tierlist', { cache: 'no-store' }).then(r => r.json());
+  return imagenTierlist({ jugadores: t.jugadores, equipos: t.equipos, nombreClan: id => clanes.clan(id).nombre });
+}
+$('#descargarTier').onclick = async () => descargar(await imagenTier(), 'tenka-ichi-tierlist.jpg');
+$('#publicarTier').onclick = async () => {
+  const r = await publicar('tierlist', await imagenTier(), { clave: claveInput.value });
+  aviso(r.ok ? 'Tier list publicada en Discord' : r.error);
+};
