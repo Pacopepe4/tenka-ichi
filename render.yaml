@@ -21,6 +21,11 @@ services:
         sync: false
       - key: SESION_SECRETO
         sync: false
+      # Publicar colección, alineación y tier list en un canal (webhook del canal)
+      - key: DISCORD_WEBHOOK_URL
+        sync: false
+      - key: DISCORD_WEBHOOK_TIERLIST   # opcional: la tier list en otro canal
+        sync: false
       # Opcional: puntos del canal de Twitch (app gratis en dev.twitch.tv)
       - key: TWITCH_CLIENT_ID
         sync: false

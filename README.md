@@ -230,6 +230,15 @@ Todo se guarda como movimientos en la pestaña **Gachapon** de Google Sheets (al
 
 La web pide a Discord solo el permiso **identify** (id, nombre y avatar). No guarda ningún token de Discord. Cualquiera con una cuenta de Discord puede entrar; no hay que estar en ningún servidor. El nombre se limpia al entrar (sin caracteres invisibles ni de control, máximo 32 caracteres y sin `=`, `+`, `-` o `@` al principio) para que en la hoja de Google no se interprete como una fórmula.
 
+### Publicar en un canal de Discord
+
+La colección y la alineación (botones en el gachapon) y la tier list (panel, apartado Tier list) se publican como imagen en un canal con un **webhook**, que no necesita bot:
+
+1. En el servidor de Discord: **Ajustes del servidor › Integraciones › Webhooks › Nuevo webhook**, elige el canal y pulsa **Copiar URL del webhook**. No la pegues en ningún chat: quien la tenga puede publicar en ese canal.
+2. En Render, en Environment: `DISCORD_WEBHOOK_URL` con esa dirección. Si la tier list va en otro canal, crea otro webhook ahí y ponlo en `DISCORD_WEBHOOK_TIERLIST`.
+
+El texto lo pone la web (menciona a quien publica sin enviarle aviso y no deja colar menciones a todo el servidor), y cada persona puede publicar su colección y su alineación una vez cada 10 minutos. Sin webhook, el botón de publicar no sale y la imagen se puede descargar igual.
+
 Sin las variables de Discord, la página del gachapon dice que abre muy pronto. En local se puede probar sin Discord entrando en `/auth/prueba?nombre=Alguien`; esa entrada de prueba no existe en Render.
 
 ### Puntos del canal de Twitch (opcional)
