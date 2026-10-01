@@ -197,3 +197,6 @@ button:not(:disabled):hover { box-shadow: 0 4px 12px rgba(0, 0, 0, .3); }
 @keyframes aviso-entra { from { opacity: 0; transform: translate(-50%, 12px); } }
 section[id] { scroll-margin-top: 90px; }
 @media (prefers-reduced-motion: reduce) { #aviso:not([hidden]) { animation: none; } }
+
+/* «Ir a la partida», siempre a mano en la barra de arriba */
+.ir-partida { white-space: nowrap; }

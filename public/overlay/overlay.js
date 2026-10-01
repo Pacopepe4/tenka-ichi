@@ -30,6 +30,11 @@ const fijados = { azul: Array(5).fill(null), rojo: Array(5).fill(null) };
 const nombreEquipo = (c, lado) => (c.id === 'NONAME' ? `Lado ${lado}` : c.nombre);
 
 function pintar(e) {
+  // «Ir a la partida»: el draft se esconde y sale el marcador de la partida (se carga la primera vez que hace falta)
+  const enPartida = e.vistaOverlay === 'partida', marco = document.querySelector('.vista-partida');
+  if (enPartida && !marco.getAttribute('src')) marco.src = '/ingame/';
+  marco.hidden = !enPartida;
+  document.body.classList.toggle('en-partida', enPartida);
   const d = e.draft;
   const activo = d.activo;
   for (const lado of ['azul', 'rojo']) {

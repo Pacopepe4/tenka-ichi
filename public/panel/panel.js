@@ -634,3 +634,20 @@ $('#publicarTier').onclick = async () => {
   const r = await publicar('tierlist', await imagenTier(), { clave: claveInput.value });
   aviso(r.ok ? 'Tier list publicada en Discord' : r.error);
 };
+
+// ---------- «Ir a la partida» (arriba, siempre a mano) ----------
+// El overlay del draft en OBS pasa al marcador de la partida y el puente se pone a buscarla, aunque no se haya hecho draft.
+// Al pulsar «Siguiente partida» vuelve solo al draft
+function pintarIrPartida() {
+  const boton = $('#irPartida'), enPartida = estado?.vistaOverlay === 'partida';
+  boton.textContent = enPartida ? 'Volver al draft' : 'Ir a la partida';
+  boton.classList.toggle('secundario', enPartida);
+}
+const pintarAntesIr = pintar;
+pintar = function () { pintarAntesIr(); pintarIrPartida(); };
+if (estado) pintarIrPartida();
+$('#irPartida').onclick = async () => {
+  const ir = estado?.vistaOverlay !== 'partida';
+  const r = await enviar('vistaOverlay', { vista: ir ? 'partida' : 'draft' });
+  if (r.ok) aviso(ir ? 'El overlay enseña la partida y el puente la está buscando' : 'El overlay vuelve al draft');
+};

@@ -155,3 +155,8 @@ body.guia .camara .medidas { display: grid; place-items: center; position: absol
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0s !important; transition-duration: 0s !important; }
 }
+
+/* «Ir a la partida»: el marcador de la partida ocupa la fuente y el draft se esconde */
+.vista-partida { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; background: transparent; z-index: 10; }
+.vista-partida[hidden] { display: none; }
+body.en-partida #lienzo { visibility: hidden; }

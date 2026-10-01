@@ -55,6 +55,8 @@ const estado = {
   camaras: { cantidad: 0, lista: Array.from({ length: 4 }, () => ({ tipo: 'caster', nombre: '', detalle: '' })) },
   // Overlay de partida (/ingame/): el panel puede ocultarlo aunque llegue la partida del puente
   partidaVisible: true,
+  // Qué enseña el overlay del draft (/overlay/): el draft o, con «Ir a la partida» del panel, el marcador de la partida
+  vistaOverlay: 'draft',
   // El puente del PC del espectador solo busca la partida cuando se lo pide el panel (o al acabar el draft)
   buscarPartida: { activa: false, alAcabarDraft: true },
   // Grafismo que el panel saca encima de la partida: { tipo: 'lineas', id } o nada
@@ -206,12 +208,19 @@ async function accion(nombre, d = {}) {
       }
       return { ok: true, enHoja: r.enHoja };
     }
+    case 'vistaOverlay':
+      // «Ir a la partida»: el overlay del draft pasa al marcador de la partida (haya draft o no) y el puente se pone a buscarla
+      estado.vistaOverlay = d.vista === 'partida' ? 'partida' : 'draft';
+      if (estado.vistaOverlay === 'partida') { estado.buscarPartida.activa = true; busquedaTocada = true; }
+      break;
     case 'siguiente':
+      estado.vistaOverlay = 'draft';
       estado.config.partida += 1;
       estado.draft = { turno: 0, activo: null, hover: null, tiempo: null, bans: vacio(), picks: vacio() };
       estado.aviso = null;
       break;
     case 'nuevaSerie':
+      estado.vistaOverlay = 'draft';
       estado.config.partida = 1;
       estado.fearless = [];
       estado.resultados = [];
