@@ -3,10 +3,11 @@
 // de LoL (https://127.0.0.1:2999/liveclientdata/…) y la manda aquí cada segundo. Con eso se monta
 // el marcador (asesinatos, oro, torres, dragones, larvas, heraldo, barón e inhibidores), los
 // temporizadores de los objetivos y el marcador línea por línea.
-// La API no da el oro sin gastar de cada jugador, así que el oro es el valor de los objetos.
+// La API no da el oro de cada jugador: se estima por sus ingresos (INGRESOS) y nunca baja del valor de sus objetos.
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { puntuar, participacion } from './puntuacion.js';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 let precios = {};            // id de objeto → oro total (Data Dragon)
@@ -36,6 +37,10 @@ export const REGLAS = {
   reaparicionInhibidor: 300,
 };
 
+// Resumen de pelea: muertes a 12 s o menos de la anterior son la misma pelea; se anuncia desde 3 muertes y se
+// destaca a quien haga 2 asesinatos o más
+export const REGLAS_PELEA = { separacion: 12, minimo: 3, destacadoDesde: 2 };
+
 const LADO = { ORDER: 'azul', CHAOS: 'rojo' };
 const OTRO = { azul: 'rojo', rojo: 'azul' };
 const DRAGON = { Fire: 'infernal', Water: 'oceano', Earth: 'montana', Air: 'nube', Hextech: 'hextech', Chemtech: 'quimtech', Elder: 'ancestral' };
@@ -44,10 +49,14 @@ const POSICION = { TOP: 0, JUNGLE: 1, MIDDLE: 2, MID: 2, BOTTOM: 3, BOT: 3, UTIL
 const SIN_DATOS_MS = 10000;      // sin latidos del puente durante 10 s, el puente se da por cerrado
 const GRACIA_PARTIDA_MS = 20000; // sin datos de la partida durante 20 s, se da por parada: un corte corto no quita el marcador
 
+// Interruptores del panel que cambian el cálculo (los demás, puntos y peleas, solo deciden si el overlay los enseña)
+const ajustes = { oroIngresos: true };
+export function ajustarIngame(a = {}) { if (typeof a.oroIngresos === 'boolean') ajustes.oroIngresos = a.oroIngresos; }
+
 // Cada partida lleva un número: así el servidor sabe si la que ha terminado es la misma de antes
 let numeroPartida = 0;
 const vacia = () => ({ numero: ++numeroPartida, tiempo: 0, recibido: 0, velocidad: 1, prueba: false, sinPartida: true, jugadores: [],
-  eventos: new Map(), ids: new Set(), firmas: new Set(), llegada: new Map(), manuales: [] });
+  eventos: new Map(), ids: new Set(), firmas: new Set(), llegada: new Map(), manuales: [], muestras: [] });
 
 // ---------- objetivos marcados a mano desde el panel ----------
 // Como espectador, el cliente no da los dragones, el heraldo ni el Barón (solo al jugar): el panel los
@@ -116,8 +125,22 @@ export function recibir(cuerpo, { prueba = false } = {}) {
     bruto.eventos.set(ev.EventID, ev);
     bruto.llegada.set(ev.EventID, Date.now());  // los avisos van por cuándo llega, no por el reloj de la partida
   }
-  return { ...resumen(), reenviar };
+  const foto = resumen();
+  tomarMuestra(tiempo, foto.azul.oro - foto.rojo.oro);  // la gráfica de la foto apunta a la misma lista: ya lleva la muestra
+  return { ...foto, reenviar };
 }
+
+// ---------- gráfica de oro: la diferencia (azul menos rojo) cada 15 s de partida ----------
+// Si el reloj vuelve atrás unos segundos (una repetición), las muestras posteriores se tiran y se sigue desde ahí.
+// Un retroceso mayor ya es partida nueva (arriba) y empieza de cero. Si se entra con la partida empezada, la
+// gráfica empieza donde hay datos
+const CADA_MUESTRA = 15;
+function tomarMuestra(t, dif) {
+  const m = bruto.muestras;
+  while (m.length && m.at(-1)[0] > t) m.pop();
+  if (!m.length || t >= m.at(-1)[0] + CADA_MUESTRA) m.push([Math.round(t), Math.round(dif)]);
+}
+const grafica = () => ({ cada: CADA_MUESTRA, muestras: bruto.muestras });
 
 export function olvidarPartida() { bruto = vacia(); return resumen(); }
 
@@ -193,11 +216,31 @@ export const RECOMPENSAS = {
 };
 const baseRecompensa = nivel => 300 + 10 * Math.max(0, Math.min(18, Math.round(nivel)) - 6);
 
+// ---------- oro estimado por ingresos ----------
+// El cliente no da el oro de nadie a los espectadores, y el valor de los objetos se queda corto con el oro sin gastar.
+// Se estima lo que ha ingresado cada uno: oro inicial, pasivo por tiempo, súbditos y monstruos, asesinatos y
+// asistencias (el valor de cada muerte sale de estimarRecompensas) y torres. El oro de cada jugador es el mayor de
+// la estimación y el valor de sus objetos. Reglas de la temporada 2026 (parche 26.03); comprobadas en la wiki el
+// 4/10/2026: inicial, pasivo y torres. Sin comprobar: súbditos (media), Barón y heraldo.
+export const INGRESOS = {
+  inicial: 500,                       // oro con el que se empieza
+  pasivoCada10s: 20.4, pasivoDesde: 65,  // oro pasivo por cada 10 s, desde 1:05
+  // Oro de las torres: local para quien la tira (y quien ayuda) y global para los cinco; la primera, 300 más al clan
+  torreLocal: 250, torreGlobal: 50, primeraTorre: 300,
+  baron: 300,                         // a cada uno del clan (sin comprobar)
+  heraldo: 100,                       // a quien lo mata (sin comprobar)
+  // Lo de antes de entrar a mirar, que solo está en el KDA: por asesinato y por asistencia
+  asesinatoCiego: 300, asistenciaCiega: 100,
+};
+
 function estimarRecompensas(jugadores, eventos, t, eq, jugadorPorNombre) {
-  const R = RECOMPENSAS;
+  const R = RECOMPENSAS, I = INGRESOS;
   const todos = [...jugadores.azul, ...jugadores.rojo];
   const lado = new Map([...jugadores.azul.map(j => [j, 'azul']), ...jugadores.rojo.map(j => [j, 'rojo'])]);
   const cuenta = new Map(todos.map(j => [j, { b: 0, cs: 0, k: 0, a: 0 }]));
+  // Ingresos de cada uno: lo fijo (inicial, pasivo y súbditos) y lo que dan los sucesos
+  const pasivo = Math.max(0, t - I.pasivoDesde) / 10 * I.pasivoCada10s;
+  for (const j of todos) j.ingresos = I.inicial + pasivo + j.cs * R.oroPorSubdito;
   // Solo se sabe el nivel y los súbditos de ahora: a mitad de partida se suponen repartidos por igual
   const parte = tt => Math.min(1, tt / Math.max(1, t));
   const shutdown = c => Math.max(0, c.b - R.colchon);
@@ -208,8 +251,22 @@ function estimarRecompensas(jugadores, eventos, t, eq, jugadorPorNombre) {
     }
   };
   const jugadorDe = nombre => jugadorPorNombre.get(normalizar(nombre));
-  let primeraSangre = true;
+  const clanDe = ev => ev.lado || lado.get(jugadorDe(ev.KillerName)) || (ev.Assisters || []).map(n => lado.get(jugadorDe(n))).find(Boolean);
+  let primeraSangre = true, primeraTorre = true;
   for (const ev of eventos) {
+    // Torres, Barón y heraldo: solo cuentan para los ingresos
+    if (ev.EventName === 'TurretKilled') {
+      const dueno = duenoEstructura(ev.TurretKilled || '');
+      const quien = dueno ? OTRO[dueno] : clanDe(ev);
+      if (!quien) continue;
+      const participantes = [...new Set([ev.KillerName, ...(ev.Assisters || [])].map(jugadorDe).filter(j => j && lado.get(j) === quien))];
+      for (const j of participantes) j.ingresos += I.torreLocal / participantes.length;
+      for (const j of jugadores[quien]) j.ingresos += I.torreGlobal + (primeraTorre ? I.primeraTorre / 5 : 0);
+      primeraTorre = false;
+      continue;
+    }
+    if (ev.EventName === 'BaronKill') { const quien = clanDe(ev); if (quien) for (const j of jugadores[quien]) j.ingresos += I.baron; continue; }
+    if (ev.EventName === 'HeraldKill') { const j = jugadorDe(ev.KillerName); if (j) j.ingresos += I.heraldo; continue; }
     if (ev.EventName !== 'ChampionKill') continue;
     farmear(ev.EventTime);
     const victima = jugadorDe(ev.VictimName), asesino = jugadorDe(ev.KillerName);
@@ -223,9 +280,10 @@ function estimarRecompensas(jugadores, eventos, t, eq, jugadorPorNombre) {
       primeraSangre = false;
       cuenta.get(asesino).b += oro / R.porAsesinato;
       cuenta.get(asesino).k++;
+      asesino.ingresos += oro;
       const ayudantes = (ev.Assisters || []).map(jugadorDe).filter(a => a && a !== asesino && a !== victima);
       const bolsa = ayudantes.length ? Math.min(valor / 2, base / 2) : 0;
-      for (const a of ayudantes) { cuenta.get(a).b += bolsa / ayudantes.length / R.porAsesinato; cuenta.get(a).a++; }
+      for (const a of ayudantes) { cuenta.get(a).b += bolsa / ayudantes.length / R.porAsesinato; cuenta.get(a).a++; a.ingresos += bolsa / ayudantes.length; }
       repartido = oro + bolsa;
     }
     // Si tenía shutdown, lo pierde entero; si no, baja según el oro que ha dado (sin bajar del mínimo)
@@ -237,7 +295,13 @@ function estimarRecompensas(jugadores, eventos, t, eq, jugadorPorNombre) {
   for (const j of todos) {
     const c = cuenta.get(j);
     if (j.d === 0) c.b += (Math.max(0, j.k - c.k) * 300 + Math.max(0, j.a - c.a) * 100) / R.porAsesinato;
+    // Para los ingresos cuentan siempre, haya muerto o no
+    j.ingresos += Math.max(0, j.k - c.k) * I.asesinatoCiego + Math.max(0, j.a - c.a) * I.asistenciaCiega;
+    j.ingresos = Math.round(j.ingresos);
+    // El oro que se enseña: la estimación, sin bajar nunca del valor de los objetos (o solo los objetos, si el panel lo apaga)
+    j.oro = ajustes.oroIngresos ? Math.max(j.oroObjetos, j.ingresos) : j.oroObjetos;
   }
+  for (const l of ['azul', 'rojo']) eq[l].oro = jugadores[l].reduce((s, j) => s + j.oro, 0);
   farmear(t);
   for (const j of todos) {
     const l = lado.get(j);
@@ -268,10 +332,12 @@ export function resumen() {
     const s = j.scores || {};
     // La visión (wardScore) llega con decimales; la pantalla final la enseña redondeada.
     // Primera sangre, multikills y torres salen de los sucesos, para la puntuación del fantasy
+    // oro: la estimación por ingresos (nunca menor que los objetos); oroObjetos e ingresos, los dos sumandos aparte
+    const objetos = oroObjetos(j.items);
     const jugador = { campeon: idCampeon(j), nombre: nombreJugador(j), nivel: j.level || 1,
-      k: s.kills || 0, d: s.deaths || 0, a: s.assists || 0, cs: s.creepScore || 0, oro: oroObjetos(j.items),
+      k: s.kills || 0, d: s.deaths || 0, a: s.assists || 0, cs: s.creepScore || 0, oro: objetos, oroObjetos: objetos, ingresos: 0,
       vision: Number.isFinite(Number(s.wardScore)) ? Math.round(Number(s.wardScore)) : null,
-      primeraSangre: false, triples: 0, quadras: 0, pentas: 0, torres: 0,
+      primeraSangre: false, triples: 0, quadras: 0, pentas: 0, torres: 0, puntos: null, kp: null,
       muerto: Boolean(j.isDead), reaparece: Math.round(j.respawnTimer || 0), objetos: porHuecos(j.items), racha: 0,
       posicion: j.position || '', aplastar: tieneAplastar(j) };
     jugadores[lado].push(jugador);
@@ -280,16 +346,16 @@ export function resumen() {
   const porRol = { azul: porLineas(jugadores.azul, 'azul'), rojo: porLineas(jugadores.rojo, 'rojo') };
   const lineas = ROLES.map((rol, i) => ({ rol, azul: porRol.azul[i], rojo: porRol.rojo[i] }));
 
-  const base = () => ({ kills: 0, oro: 0, torres: 0, inhibidores: 0, dragones: [], alma: null, puntoDeAlma: false, ancestrales: 0,
+  const base = () => ({ kills: 0, oro: 0, oroObjetos: 0, torres: 0, inhibidores: 0, dragones: [], alma: null, puntoDeAlma: false, ancestrales: 0,
     larvas: 0, heraldos: 0, barones: 0, atakhan: 0 });
   const eq = { azul: base(), rojo: base() };
   for (const lado of ['azul', 'rojo']) {
     eq[lado].kills = jugadores[lado].reduce((s, j) => s + j.k, 0);
-    eq[lado].oro = jugadores[lado].reduce((s, j) => s + j.oro, 0);
+    eq[lado].oro = eq[lado].oroObjetos = jugadores[lado].reduce((s, j) => s + j.oroObjetos, 0);
   }
 
   const t = bruto.tiempo;
-  const buffs = [], avisos = [], caidos = new Map(), desconocidos = new Set(), muertesLarvas = [];
+  const buffs = [], avisos = [], caidos = new Map(), desconocidos = new Set(), muertesLarvas = [], peleas = [];
   let ultimoDragon = null, ultimoBaron = null, heraldoMuerto = false, terminada = false;
   // Solo lo que ya ha pasado según el reloj: en una repetición, al volver atrás el cliente conserva
   // los sucesos que ya se habían visto más adelante
@@ -360,6 +426,17 @@ export function resumen() {
         const asesino = jugadorPorNombre.get(normalizar(ev.KillerName)), victima = jugadorPorNombre.get(normalizar(ev.VictimName));
         if (asesino && asesino !== victima) asesino.racha++;
         if (victima) victima.racha = 0;
+        // Peleas: muertes encadenadas. La muerte cuenta para el clan del asesino o, si fue una torre o un súbdito,
+        // para el contrario de la víctima
+        const ladoVictima = ladoDe(ev.VictimName);
+        const quien = (asesino && asesino !== victima ? ladoDe(ev.KillerName) : null) || (ladoVictima ? OTRO[ladoVictima] : null);
+        if (!quien) break;
+        const ultima = peleas.at(-1);
+        const pelea = ultima && ev.EventTime - ultima.hasta <= REGLAS_PELEA.separacion ? ultima
+          : peleas[peleas.push({ id: `pelea-${ev.EventID}`, desde: ev.EventTime, hasta: ev.EventTime, azul: 0, rojo: 0, asesinos: new Map() }) - 1];
+        pelea.hasta = ev.EventTime;
+        pelea[quien]++;
+        if (asesino && asesino !== victima) pelea.asesinos.set(asesino, (pelea.asesinos.get(asesino) || 0) + 1);
         break;
       }
       case 'FirstBlood': {
@@ -419,6 +496,26 @@ export function resumen() {
     for (const j of [...jugadores.azul, ...jugadores.rojo]) Object.assign(j, { primeraSangre: null, triples: null, quadras: null, pentas: null, torres: null });
   }
 
+  // Puntos de fantasy provisionales: lo que daría puntuar con lo que hay en vivo. El daño no existe hasta el final,
+  // y la victoria, el MVP y las BOOST tampoco entran. Lo que falta por la historia incompleta ya llega en null
+  for (const lado of ['azul', 'rojo']) for (const j of jugadores[lado]) {
+    j.kp = participacion(j.k, j.a, eq[lado].kills);
+    j.puntos = puntuar({ k: j.k, d: j.d, a: j.a, cs: j.cs, vision: j.vision, primeraSangre: j.primeraSangre,
+      triples: j.triples, quadras: j.quadras, pentas: j.pentas, torres: j.torres, kp: j.kp }).total;
+  }
+
+  // Resumen de pelea: una pelea se cierra cuando pasan 12 s sin muertes (o acaba la partida); con tres muertes o más
+  // sale el aviso, una sola vez: su «llegada» es el momento en que se cierra, como el resto de avisos
+  for (const pl of peleas) {
+    const cerrada = terminada || t - pl.hasta > REGLAS_PELEA.separacion;
+    if (!cerrada || pl.azul + pl.rojo < REGLAS_PELEA.minimo) continue;
+    if (!bruto.llegada.has(pl.id)) bruto.llegada.set(pl.id, Date.now());
+    const [mejor, n] = [...pl.asesinos.entries()].sort((a, b) => b[1] - a[1])[0] || [null, 0];
+    avisos.push({ id: pl.id, tipo: 'pelea', lado: pl.azul === pl.rojo ? null : pl.azul > pl.rojo ? 'azul' : 'rojo', t: pl.hasta, desde: pl.desde,
+      marcador: { azul: pl.azul, rojo: pl.rojo },
+      destacado: n >= REGLAS_PELEA.destacadoDesde ? { nombre: mejor.nombre, lado: jugadores.azul.includes(mejor) ? 'azul' : 'rojo', asesinatos: n } : null });
+  }
+
   // Temporizadores de los objetivos neutrales, en el orden en que salen en el overlay:
   // dragón, larvas o heraldo (lo que toque) y Barón. «desde» es cuando empezó la cuenta atrás.
   // Como espectador, el cliente no da dragones, heraldo ni Barón: pasado su primer momento, cada temporizador
@@ -461,7 +558,7 @@ export function resumen() {
     sinPartida: bruto.sinPartida, prueba: bruto.prueba, terminada,
     tiempo: t, velocidad: bruto.velocidad, recibido: bruto.recibido,
     azul: eq.azul, rojo: eq.rojo, jugadores, lineas,
-    objetivos, historiaIncompleta,
+    objetivos, historiaIncompleta, grafica: grafica(),
     buffs: buffs.filter(b => b.hasta > t),
     inhibidores: [...caidos.values()].filter(i => i.vuelve > t),
     // Avisos de lo que ha llegado en los últimos 8 s (reales: en una repetición acelerada el reloj corre más),
