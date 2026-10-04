@@ -53,8 +53,10 @@ Decisión del usuario: camino «lo permitido». Los objetivos se siguen marcando
 - El panel tiene un selector **«Estilo del marcador: A / B»**. Por defecto, A. Se guarda con el resto del estado del panel y vuelve tras un reinicio.
 - El overlay aplica el estilo con un atributo en la raíz (por ejemplo `data-estilo="a|b"`) y las reglas de cada versión van acotadas a ese atributo. El parámetro `?estilo=a|b` en la dirección del overlay fuerza una versión, para comparar las dos en dos pestañas o dos fuentes de OBS.
 - Las dos versiones enseñan **los mismos datos** y comparten el servidor y, en lo posible, el mismo HTML. Lo que cambia es el aspecto. Lo que piden R3 a R7 (qué se enseña y cuándo) vale para las dos.
-- **Versión A, «retoque»:** la composición de hoy, pulida (R2 y R3).
-- **Versión B, «rediseño»:** propuesta más atrevida dentro del estilo de Koryu Budo, con libertad para recomponer la barra, los temporizadores y el línea por línea. Tiene que diferenciarse de A a simple vista; si no, no sirve para elegir.
+- **Dirección del usuario para las dos:** que recuerde a la estética que se viene siguiendo, pero **un poco más atrevida, como las cartas «full art»**: algo más juguetona con los colores, sin perder el estilo. La referencia está en el propio proyecto: `.carta-g.fullart` en `public/carta.css` (filo de oro, sello y emblema) y los dibujos de `public/cartas/fullart/` (las BOOST S+, a todo color). El marcador de hoy se queda corto de color: casi todo es tinta sobre negro.
+- **Versión A, «retoque»:** la composición de hoy, pulida (R2 y R3), con un paso más de color: el de cada clan con más presencia, oro viejo en filos y sellos, y acentos de color en avisos y cifras que cambian.
+- **Versión B, «full art»:** la más atrevida, con libertad para recomponer la barra, los temporizadores y el línea por línea, y con el color y los detalles de las cartas full art llevados al marcador. Tiene que diferenciarse de A a simple vista; si no, no sirve para elegir.
+- En las dos manda la lectura: el color acompaña, pero las cifras se tienen que leer de un vistazo sobre la imagen del juego.
 - Cuando el usuario elija, la otra versión se borra. Hay que dejarlas separadas de forma que borrar una sea fácil.
 
 ### R2. Barra de arriba y temporizadores (versión A)
