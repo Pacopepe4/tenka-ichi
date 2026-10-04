@@ -180,4 +180,5 @@ Todo está en commits locales en master; no se ha hecho push para no cambiar la 
 - Comprobado en local con la demo (álbum, sobre con carta extra, ficha de Amateratsu y la carta de la web junto a la de las imágenes de Discord). Pruebas: 82 (`test/legacy.test.js` nueva).
 - **Dibujos (04/10, noche):** los cuatro, en vertical de 1000×1400 (`public/cartas/fullart/LEGACY-<NOMBRE>.webp`) y con su cuadrado de reserva (`public/cartas/LEGACY-<NOMBRE>.webp`). Los hizo la sesión de las cartas con los colores de Amateratsu (negro, hueso y oro); los originales en 2K están en `koryu-budo/gachapón/fullart/`. Con ellos las cuatro LEGACY ya salen en la web. Comprobadas en la demo, la carta de la web junto a la de las imágenes de Discord: en la de SERGI el emblema cae sobre la punta de la lanza.
 - **El nombre es GAATSU:** el usuario lo revisó el 04/10 («Gattsu» fue una errata suya y estuvo puesto unos minutos).
-- **Pendiente:** la carta de Dextyle (campeón y dibujo); guardar la plantilla de Amateratsu desde el panel.
+- **Dextyle (04/10, noche):** el usuario dio su campeón en la sesión de las cartas («haz la Qyana de Dextyle, el mote dejale JUNGAP»). Carta activada (`LEGACY-DEXTYLE`, Qiyana, «JUNGAP») y dibujo subido: ya son las cinco LEGACY.
+- **Pendiente:** guardar la plantilla de Amateratsu desde el panel.
