@@ -106,7 +106,7 @@ test('las LEGACY son de colección: ni se alinean ni sirven de BOOST, pero las r
 test('las LEGACY del proyecto: los cuatro de Amateratsu con carta, y Dextyle guardado sin activar', async () => {
   const lista = JSON.parse(await readFile(path.join(RAIZ, 'data-proyecto', 'cartas-legacy.json'), 'utf8'));
   const activas = lista.filter(c => c.activa !== false);
-  assert.deepEqual(activas.map(c => [c.nombre, c.subtitulo]), [['GAATSU', 'DEMON'], ['MAKITAH', 'EL TITIRITERO'], ['D4DT0R', 'THEBEAST'], ['SERGI', 'THE ENGAGE']]);
+  assert.deepEqual(activas.map(c => [c.nombre, c.subtitulo]), [['GATTSU', 'DEMON'], ['MAKITAH', 'EL TITIRITERO'], ['D4DT0R', 'THEBEAST'], ['SERGI', 'THE ENGAGE']]);
   assert.ok(lista.every(c => c.clan === 'AMATERATSU' && /^LEGACY-[A-Z0-9]+$/.test(c.id)));
   assert.deepEqual(lista.filter(c => c.activa === false).map(c => [c.nombre, c.subtitulo]), [['DEXTYLE', 'JUNGAP']]);
   const campeones = JSON.parse(await readFile(path.join(RAIZ, 'data-proyecto', 'campeones-cartas.json'), 'utf8'));
