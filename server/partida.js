@@ -580,6 +580,7 @@ const OBJETOS_PRUEBA = [
 const CAMPEONES_PRUEBA = { azul: ['Aatrox', 'LeeSin', 'Ahri', 'Jinx', 'Thresh'], rojo: ['Jax', 'Viego', 'Syndra', 'Kaisa', 'Nautilus'] };
 const POSICIONES_PRUEBA = ['TOP', 'JUNGLE', 'MIDDLE', 'BOTTOM', 'UTILITY'];
 const FARMEO_PRUEBA = [0.125, 0.09, 0.13, 0.135, 0.02];  // súbditos por segundo según el rol
+const COMPRAS_PRUEBA = [1, 0.8, 1, 1, 0.45];              // qué parte de las compras hace cada rol (el apoyo, menos de la mitad)
 const VISION_PRUEBA = [0.01, 0.018, 0.011, 0.009, 0.032];  // puntos de visión por segundo según el rol
 let temporizadorPrueba = null;
 
@@ -625,8 +626,8 @@ export function empezarPrueba({ picks, jugadores }, alPaquete) {
         if (Math.random() < FARMEO_PRUEBA[j.rol]) j.cs++;
         if (Math.random() < VISION_PRUEBA[j.rol]) j.vision++;
         j.nivel = Math.min(18, 1 + Math.floor(s / 105));
-        // Una compra cada 100 s; con el inventario lleno, un componente pasa a objeto completo
-        if (s % 100 === 0) {
+        // Una compra cada 120 s (el apoyo, menos); con el inventario lleno, un componente pasa a objeto completo
+        if (s % 120 === 0 && Math.random() < COMPRAS_PRUEBA[j.rol]) {
           const id = objetoPara(s);
           if (id && j.items.length < 6) j.items.push({ itemID: Number(id), count: 1 });
           else if (id && s >= 1080) j.items[Math.floor(Math.random() * 6)] = { itemID: Number(id), count: 1 };

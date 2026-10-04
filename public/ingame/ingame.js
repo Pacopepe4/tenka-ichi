@@ -3,7 +3,7 @@
 // avisos de objetivos y resumen de pelea y, cuando lo saca el panel, el línea por línea, la ficha de un
 // jugador o la gráfica de oro. Los clanes salen del enfrentamiento del panel (lado azul a la izquierda).
 // El aspecto lo decide data-estilo en <body> (A «retoque» o B «full art»): lo elige el panel o ?estilo= en la dirección.
-import { cargarClanes, conectarDirecto, logo, icono } from '/comun.js';
+import { cargarClanes, conectarDirecto, logo, icono, splash } from '/comun.js';
 import { cartaHTML } from '/carta.js';
 
 const $ = s => document.querySelector(s);
@@ -457,7 +457,8 @@ function pintarFicha(g) {
   if (fichaPintada !== clave) {
     fichaPintada = clave;
     const hueco = caja.querySelector('.ficha-carta');
-    const retrato = `<div class="ficha-retrato"><img src="${icono(j.campeon)}" alt=""><span class="ficha-retrato-nivel"></span></div>`;
+    // Sin carta, el splash de su campeón recortado a lo alto (si tampoco carga, su icono): nunca una imagen rota
+    const retrato = `<div class="ficha-retrato"><img src="${splash(j.campeon)}" alt="" onerror="this.onerror=null;this.src='${icono(j.campeon)}'"><span class="ficha-retrato-nivel"></span></div>`;
     hueco.innerHTML = retrato;
     const id = `${c.id}-${rol}`;
     cartaDe(id).then(carta => {
