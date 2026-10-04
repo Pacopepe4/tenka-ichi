@@ -39,6 +39,14 @@ Es trabajo de aspecto. Lo que la web hace y los datos que enseña no cambian. Es
 - **Apertura de sobres:** animación nueva, con un brillo especial cuando sale una S+. Estaba pendiente en `PROGRESO.md` y es el momento más vistoso de la página: tiene que lucir.
 - Los estados de la colección (carta que se tiene, que no se tiene, repetida, full art) tienen que distinguirse a simple vista.
 
+**Cartas LEGACY** (entraron en `master` el 4/10; lo cuenta la sesión que las hizo):
+
+- **El sobre puede traer cuatro cartas:** las tres de siempre y, a veces, una LEGACY de regalo. Llega la última con `extra: true` y `gachapon.js` la pinta como `.volteable.extra`, con un `<span class="aviso-extra">Carta extra</span>` encima. La animación nueva tiene que contar con esa cuarta carta y con su aviso.
+- **Brillo propio:** además del de la S+, la LEGACY tiene el suyo en `gachapon.css` (`.volteable.girada[data-tier="LEGACY"]`, `destello-legacy` y el barrido). Si se rehace el brillo de la S+, la LEGACY no se queda sin el suyo.
+- **La carta:** las LEGACY van siempre a carta completa (`.carta-g.fullart.legacy`, con `data-tier="LEGACY"`), con una placa de oro ancha en `.rareza` y solo el título bajo el nombre, sin estrellas ni multiplicador. El color es `--tier-LEGACY`, en `marca.css`. En `compartir.js` es la rama `c.tier === 'LEGACY'` de `dibujarCompleta`.
+- **Otras piezas:** la frase `.prob-legacy` bajo la tabla de probabilidades (LEGACY no es una fila de la tabla); `TIERS` empieza por `'LEGACY'` en `carta.js` y `compartir.js` (van las primeras del álbum); y en la portada la ficha de Amateratsu lleva `.ficha-legacy`, con miniaturas `.carta-legacy` que abren la carta en grande (`abrirCartaLegacy` en `inicio.js`).
+- **Para verlo:** en `npm run prueba-directo` la carta extra sale en la mitad de los sobres y el usuario Koryu ya tiene una LEGACY. `test/legacy.test.js` cubre el servidor.
+
 ### W4. Guía
 
 - Ponerla al nivel de las otras dos: misma cabecera, misma tipografía y ritmo, índice claro y pasos bien separados. Es una página de instrucciones para el staff: manda la lectura.
