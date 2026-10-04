@@ -304,6 +304,10 @@ test('los archivos se validan con su huella: si no han cambiado, no se vuelven a
   assert.equal(r.headers.get('cache-control'), 'no-cache');
   const otra = await fetch(`${urlWeb}/marca.css`, { headers: { 'If-None-Match': etag } });
   assert.equal(otra.status, 304);
+  // El proxy de Render devuelve la huella como «débil» (W/"…") y el navegador pregunta con ella
+  const debil = await fetch(`${urlWeb}/marca.css`, { headers: { 'If-None-Match': `"otra", W/${etag}` } });
+  assert.equal(debil.status, 304);
+  assert.equal((await fetch(`${urlWeb}/marca.css`, { headers: { 'If-None-Match': '"otra"' } })).status, 200);
   const logo = await fetch(`${urlWeb}/logos/KAIJU.png`);
   assert.match(logo.headers.get('cache-control'), /max-age=86400/);
   await logo.arrayBuffer();

@@ -843,7 +843,9 @@ const servidor = http.createServer(async (req, res) => {
     // estilos y el código se comprueban siempre, pero solo se vuelven a bajar si han cambiado (ETag)
     const cache = ruta.startsWith('/cartas/') && url.searchParams.has('v') ? 'public, max-age=31536000, immutable'
       : /\/(ddragon|logos|marca|clanes|cartas)\//.test(ruta) ? 'public, max-age=86400, stale-while-revalidate=604800' : 'no-cache';
-    if (req.headers['if-none-match'] === etag) { res.writeHead(304, { ETag: etag, 'Cache-Control': cache }); return res.end(); }
+    // (el proxy de Render comprime y devuelve la huella como «débil», W/"…": se compara sin esa marca)
+    const pedidas = String(req.headers['if-none-match'] || '').split(',').map(h => h.trim().replace(/^W\//, ''));
+    if (pedidas.includes(etag)) { res.writeHead(304, { ETag: etag, 'Cache-Control': cache }); return res.end(); }
     res.writeHead(200, { 'Content-Type': TIPOS[path.extname(archivo)] || 'application/octet-stream', 'Cache-Control': cache, ETag: etag });
     res.end(datos || await readFile(archivo));
   } catch {

@@ -670,12 +670,17 @@ function ponerFase(nueva) {
   document.querySelectorAll('main > section').forEach(seccion => {
     seccion.hidden = fase !== 'todo' && !(seccion.dataset.fases || '').split(' ').includes(fase);
   });
-  try { localStorage.setItem('tenka-fase', fase); } catch {}
+  recordar('tenka-fase', fase);
 }
 function ponerSeguir(sola) {
   seguirFase = sola;
   $('#seguirFase').checked = sola;
-  try { localStorage.setItem('tenka-fase-sola', sola ? '1' : '0'); } catch {}
+  recordar('tenka-fase-sola', sola ? '1' : '0');
+}
+// Lo elegido se recuerda en este navegador, salvo que el panel se haya abierto con ?fase= (eso es solo para esa vez)
+function recordar(clave, valor) {
+  if (FASES.includes(fasePedida)) return;
+  try { localStorage.setItem(clave, valor); } catch {}
 }
 // Con «Cambiar sola», la fase sigue al overlay; solo salta cuando el overlay cambia, no con cada dato que llega
 function seguirOverlay() {
@@ -742,15 +747,18 @@ $('#terminarJornada').onclick = async () => {
 const camposPremio = ['#premio1', '#premio2', '#premio3'].map($);
 camposPremio.forEach(campo => campo.addEventListener('change', async () => {
   const r = await enviar('jornadaAuto', { premios: camposPremio.map(c => Number(c.value) || 0) });
-  if (r.ok) { aviso('Sobres de la jornada cambiados'); if (jornada) pintarJornada(jornada); }
+  if (r.ok) aviso('Sobres de la jornada cambiados');
 }));
 $('#cerrarSolas').onchange = e => enviar('jornadaAuto', { cerrar: e.target.checked });
+let premiosPintados = '';
 function pintarJornadaAuto() {
   const a = estado?.jornadaAuto;
   if (!a) return;
   camposPremio.forEach((campo, i) => { if (document.activeElement !== campo) campo.value = a.premios[i]; });
   $('#cerrarSolas').checked = a.cerrar;
   if (estado.fantasy) pintarAlineaciones(estado.fantasy.cerrado);
+  // Si cambian los sobres de cada puesto, la clasificación de la jornada los enseña al momento
+  if (premiosPintados !== a.premios.join()) { premiosPintados = a.premios.join(); if (jornada) pintarJornada(jornada); }
 }
 
 // ---------- Código de directo ----------
