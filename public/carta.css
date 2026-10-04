@@ -1,5 +1,7 @@
 /* La carta del gachapon, igual en todas las páginas: el álbum, la portada («Ver carta») y el overlay.
-   El HTML lo escribe carta.js. --color-tier es el color de su tier */
+   El HTML lo escribe carta.js. --color-tier es el color de su tier.
+   Las imágenes que se publican en Discord la dibujan aparte, en un lienzo (dibujarCarta en compartir.js): lo que
+   cambie aquí se cambia allí en el mismo cambio, para que la carta se vea igual en la web y en Discord */
 .carta-g { position: relative; aspect-ratio: 5 / 7; border-radius: 8px; overflow: hidden; background: var(--sumi-alzado);
   box-shadow: inset 0 0 0 3px var(--color-tier), 0 10px 22px rgba(0, 0, 0, .45); }
 .carta-g .arte { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }

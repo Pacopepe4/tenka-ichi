@@ -88,18 +88,23 @@ function pie(ctx, alto, ruta) {
 const aImagen = (c, tipo = 'image/jpeg') => new Promise(ok => c.toBlob(ok, tipo, 0.9));
 
 // ---------- una carta, igual que en la web ----------
+// La carta se dibuja dos veces: en la web con carta.js y carta.css, y aquí en un lienzo para las imágenes de Discord.
+// Lo que cambie en un sitio se cambia en el otro en el mismo cambio: tienen que verse igual
 export async function dibujarCarta(ctx, c, x, y, w, { cantidad = 1, nombreClan = id => id } = {}) {
   const h = Math.round(w * 1.4);
   const boost = c.tipo === 'boost';
   const quien = boost ? (c.subtitulo || 'Boost') : `${ROL[c.rol] || c.rol} de ${nombreClan(c.clan)}`;
-  const [arte, marco, emblema] = await Promise.all([imagen(c.arte), imagen(c.marco), imagen(emblemaDe(c))]);
+  // Las «full art» van a carta completa, como en la web; si su dibujo no carga, salen con su marco de siempre
+  const [arte, marco, emblema, completa] = await Promise.all([imagen(c.arte), imagen(c.marco), imagen(emblemaDe(c)), imagen(c.fullart)]);
   ctx.save();
   ctx.beginPath();
   ctx.roundRect(x, y, w, h, w * 0.04);
   ctx.clip();
   ctx.fillStyle = C.sumi;
   ctx.fillRect(x, y, w, h);
-  if (marco) {
+  if (completa) {
+    dibujarCompleta(ctx, c, { x, y, w, h, completa, emblema, quien, cantidad });
+  } else if (marco) {
     // Con marco: el dibujo en su ventana y los textos en tinta sobre las placas de papel
     if (arte) cubrir(ctx, arte, x + w * 0.125, y + h * 0.2014, w * 0.75, h * 0.5357);
     ctx.drawImage(marco, x, y, w, h);
@@ -126,6 +131,68 @@ export async function dibujarCarta(ctx, c, x, y, w, { cantidad = 1, nombreClan =
   }
   ctx.restore();
   return h;
+}
+
+// Carta «full art», con las mismas medidas que .carta-g.fullart de carta.css (allí en cqw: centésimas del ancho):
+// el dibujo a carta completa con un velo arriba y abajo, un filo de oro, el sello de la tier y el emblema arriba, y
+// las estrellas, el nombre, lo que hace y el multiplicador abajo, en claro sobre el dibujo
+const ORO_CARTA = '#EBD28A', CLARO_CARTA = '#F5EFE2';
+const ESTRELLAS = { 'S+': 6, S: 5, A: 4, B: 3 };
+function dibujarCompleta(ctx, c, { x, y, w, h, completa, emblema, quien, cantidad }) {
+  const u = w / 100;
+  const sombra = (desenfoque, opacidad) => { ctx.shadowColor = `rgba(0, 0, 0, ${opacidad})`; ctx.shadowBlur = desenfoque * u; ctx.shadowOffsetY = desenfoque * u / 3; };
+  const sinSombra = () => { ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0; };
+  cubrir(ctx, completa, x, y, w, h);
+  const velo = ctx.createLinearGradient(0, y, 0, y + h);
+  velo.addColorStop(0, 'rgba(22,20,18,0.62)');
+  velo.addColorStop(0.18, 'rgba(22,20,18,0)');
+  velo.addColorStop(0.56, 'rgba(22,20,18,0)');
+  velo.addColorStop(0.88, 'rgba(22,20,18,0.94)');
+  ctx.fillStyle = velo;
+  ctx.fillRect(x, y, w, h);
+  // El filo de oro, con una línea de tinta a cada lado para que se despegue del dibujo
+  const filo = (margen, grosor, radio, color) => {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = grosor * u;
+    ctx.beginPath();
+    ctx.roundRect(x + margen * u, y + margen * u, w - 2 * margen * u, h - 2 * margen * u, radio * u);
+    ctx.stroke();
+  };
+  filo(2.2, 0.4, 2.8, 'rgba(29, 26, 23, 0.8)');
+  filo(2.8, 0.8, 2.2, ORO_CARTA);
+  filo(3.4, 0.4, 1.6, 'rgba(29, 26, 23, 0.55)');
+
+  // Arriba: el sello de la tier, algo girado, y el emblema
+  ctx.save();
+  ctx.translate(x + 12.5 * u, y + 12.5 * u);
+  ctx.rotate(-4 * Math.PI / 180);
+  sombra(2.4, 0.5);
+  ctx.fillStyle = COLOR_TIER[c.tier] || C.hai;
+  ctx.beginPath();
+  ctx.roundRect(-6.5 * u, -6.5 * u, 13 * u, 13 * u, 0.9 * u);
+  ctx.fill();
+  sinSombra();
+  texto(ctx, c.tier, 0, 0.3 * u, { fuente: `800 ${6.2 * u}px ${MINCHO}`, color: ['S', 'S+'].includes(c.tier) ? C.washi : C.sumi, alinear: 'center', base: 'middle' });
+  ctx.restore();
+  if (emblema) { sombra(1.2, 0.7); contener(ctx, emblema, x + w - 18.5 * u, y + 6 * u, 12.5 * u, 12.5 * u); sinSombra(); }
+
+  // Abajo, de abajo arriba: el multiplicador, lo que hace, el nombre y las estrellas
+  const izquierda = x + 8 * u, ancho = w - 16 * u;
+  let linea = y + h - 7.5 * u;
+  const renglon = (alto, pintar) => { linea -= alto * u; pintar(linea + alto * u / 2); };
+  sombra(0.8, 0.9);
+  if (c.bonus) renglon(7.7, medio => texto(ctx, c.bonus.etiqueta, izquierda, medio, { fuente: `800 ${4.8 * u}px ${GOTHIC}`, color: CLARO_CARTA, base: 'middle', ancho }));
+  renglon(7.7, medio => texto(ctx, quien, izquierda, medio, { fuente: `700 ${4.8 * u}px ${GOTHIC}`, color: ORO_CARTA, base: 'middle', ancho }));
+  sombra(1.4, 0.95);
+  renglon(11, medio => texto(ctx, c.nombre, izquierda, medio, { fuente: `800 ${10 * u}px ${MINCHO}`, color: CLARO_CARTA, base: 'middle', ancho }));
+  sombra(0.8, 0.9);
+  renglon(6.4, medio => {
+    ctx.font = `400 ${4 * u}px ${GOTHIC}`;
+    const paso = ctx.measureText('★').width + 0.9 * u;
+    for (let i = 0; i < (ESTRELLAS[c.tier] || 0); i++) texto(ctx, '★', izquierda + i * paso, medio, { fuente: ctx.font, color: ORO_CARTA, base: 'middle' });
+  });
+  if (cantidad > 1) texto(ctx, `×${cantidad}`, x + w - 8 * u, y + h - 9.6 * u, { fuente: `800 ${6 * u}px ${MINCHO}`, color: CLARO_CARTA, alinear: 'right' });
+  sinSombra();
 }
 
 const ordenCartas = (a, b) => TIERS.indexOf(a.tier) - TIERS.indexOf(b.tier)

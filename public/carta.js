@@ -1,4 +1,5 @@
 // La carta del gachapon, igual en todas las páginas (el álbum, la portada y el overlay). Los estilos, en carta.css.
+// Las imágenes de Discord la dibujan aparte (dibujarCarta en compartir.js): lo que cambie aquí se cambia allí a la vez.
 // Dos clases de carta: Jugador (jugadores de la liga) y BOOST (personajes de fuera de los clanes, de S+ a B).
 import { logo } from '/comun.js';
 
