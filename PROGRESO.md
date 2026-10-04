@@ -146,3 +146,10 @@ Todo está en commits locales en master; no se ha hecho push para no cambiar la 
 - Pantalla final: el daño de cada jugador va en una barra fina debajo de él, con la cifra en medio; se llena hacia el centro de la pantalla (la azul de izquierda a derecha y la roja en espejo: al usuario no le gustó que saliera del centro).
 - Descartado por el usuario: marcar dragones con teclas o Stream Deck, la carta del jugador al hacer pick y una web de pruebas aparte.
 - **Pendiente:** probarlo con una partida real como espectador (¿llega `GameEnd`? Si no llega, la pantalla final sale cuando el cliente se cierra); las cámaras no salen en el postdraft (el centro es para los clanes); webhook y login de Discord en Render.
+
+## 04/10: dibujos propios de las 20 cartas
+
+- Las 20 cartas que existen (SARU, KAIJU, TORA y las 5 BOOST) tienen ya su dibujo en `public/cartas/<ID>.webp` (1024 px, ~270 KB cada uno, 5,5 MB en total). Son el campeón de cada carta reinterpretado en Google Flow con la estética de Tenka Ichi (tinta irezumi y ukiyo-e, detalles en el color del clan; las BOOST en oro viejo). La web los usa solos en lugar del splash de Riot: no ha hecho falta tocar código.
+- Los originales en 2K no están en el repositorio: `koryu-budo/gachapón/`. El método, los prompts y el script que los convierte, en `koryu-budo/flow/cartas/`.
+- Comprobado en local con las 20 cartas dentro de su marco (ninguna imagen rota). Subido a GitHub el 04/10.
+- Pendiente: los otros 12 clanes no tienen jugadores, tier ni campeón, así que no tienen carta ni dibujo.
