@@ -66,7 +66,7 @@ const equipo = lista => ROLES.map((r, i) => `${lista[i]}-${r}`);
 const coleccionistas = [['prueba-koryu', 'Koryu', equipo([A, A, B, B, C])], ['prueba-izakaya', 'Izakaya', equipo([C, C, C, A, B])], ['prueba-budoka', 'Budoka', equipo([B, B, A, C, A])]];
 const gacha = coleccionistas.flatMap(([id, nombre, cartas]) => [alta(id, nombre, id === 'prueba-koryu' ? 6 : 2), ...cartas.flatMap(c => carta(id, nombre, c))]);
 // Koryu tiene además una LEGACY (si están en el proyecto), para verla en el álbum sin esperar a que toque
-gacha.push(...carta('prueba-koryu', 'Koryu', 'LEGACY-GATTSU'), ...carta('prueba-koryu', 'Koryu', `${A}-TOP`, 3), ...carta('prueba-koryu', 'Koryu', `${B}-ADC`, 2), ...carta('prueba-koryu', 'Koryu', `${C}-TOP`, 3));
+gacha.push(...carta('prueba-koryu', 'Koryu', 'LEGACY-GAATSU'), ...carta('prueba-koryu', 'Koryu', `${A}-TOP`, 3), ...carta('prueba-koryu', 'Koryu', `${B}-ADC`, 2), ...carta('prueba-koryu', 'Koryu', `${C}-TOP`, 3));
 const alineaciones = coleccionistas.map(([id, usuario, cartas]) => ({ fecha: '2026-10-02T10:00:00.000Z', id, usuario,
   slots: { ...Object.fromEntries(ROLES.map((r, i) => [r, cartas[i]])), boosts: [null, null] } }));
 

@@ -1,7 +1,7 @@
 [
  {
-  "id": "LEGACY-GATTSU",
-  "nombre": "GATTSU",
+  "id": "LEGACY-GAATSU",
+  "nombre": "GAATSU",
   "subtitulo": "DEMON",
   "clan": "AMATERATSU"
  },
@@ -9,8 +9,7 @@
   "id": "LEGACY-DEXTYLE",
   "nombre": "DEXTYLE",
   "subtitulo": "JUNGAP",
-  "clan": "AMATERATSU",
-  "activa": false
+  "clan": "AMATERATSU"
  },
  {
   "id": "LEGACY-MAKITAH",

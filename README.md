@@ -262,11 +262,11 @@ Van en `data-proyecto/cartas-legacy.json`:
 
 ```json
 [
-  { "id": "LEGACY-GATTSU", "nombre": "GATTSU", "subtitulo": "DEMON", "clan": "AMATERATSU" }
+  { "id": "LEGACY-GAATSU", "nombre": "GAATSU", "subtitulo": "DEMON", "clan": "AMATERATSU" }
 ]
 ```
 
-`subtitulo` es el título de la carta y `clan` tiene que ser un equipo Legacy (pone su emblema y la carta sale en su ficha de la portada). Con `"activa": false` la carta queda guardada sin salir: así está la de Dextyle, a la espera de su campeón.
+`subtitulo` es el título de la carta y `clan` tiene que ser un equipo Legacy (pone su emblema y la carta sale en su ficha de la portada). Con `"activa": false` la carta queda guardada sin salir.
 
 **Una LEGACY no existe hasta que tiene su dibujo**, el vertical de 1000×1400 en `public/cartas/fullart/<ID>.webp`. Mientras falte no sale en los sobres, en el álbum ni en la ficha del equipo, así nunca se ve con el splash de Riot; en cuanto se sube, entra sola. Para verlas antes de tener los dibujos, `npm run prueba-directo` las enseña con el splash de su campeón (`LEGACY_SIN_DIBUJO=1`) y saca la carta extra en la mitad de los sobres.
 
