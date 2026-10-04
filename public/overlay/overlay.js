@@ -374,8 +374,8 @@ function pintarFinal(e) {
       `<span class="col puntos">${extra?.puntos == null ? '–' : numero(extra.puntos)}</span>`,
     ];
   };
-  // El daño de cada jugador va debajo de él: una barra fina que crece desde el centro, en proporción al que más
-  // daño ha hecho de los diez, con la cifra en medio. La de quien gana su línea va más clara
+  // El daño de cada jugador va debajo de él: una barra fina que se llena hacia el centro de la pantalla, en proporción
+  // al que más daño ha hecho de los diez, con la cifra en medio. La de quien gana su línea va más clara
   const danoDe = (lado, i) => f.extras?.[`${lado}-${i}`]?.dano ?? null;
   const danos = ROLES.flatMap((_, i) => [danoDe('azul', i), danoDe('rojo', i)]).filter(d => d != null);
   const maximo = Math.max(1, ...danos);
@@ -389,7 +389,10 @@ function pintarFinal(e) {
       const quien = `<span class="retrato">${j?.campeon ? `<img src="${icono(j.campeon)}" alt="">` : ''}${j?.nivel ? `<i>${j.nivel}</i>` : ''}</span>
         <span class="quien"><b>${escapar(j?.nombre || '—')}${esMvp ? '<em class="hanko">MVP</em>' : ''}</b><small>${j?.campeon ? escapar(campeones.nombre(j.campeon)) : ''}</small></span>`;
       const dano = danoDe(lado, i), delRival = danoDe(otro, i);
-      const barra = dano == null ? '' : `<span class="dano-final${delRival != null && dano > delRival ? ' mejor' : ''}" style="--parte: ${(dano / maximo * 100).toFixed(1)}%"><i></i><b>${miles(dano)}</b></span>`;
+      // La cifra tapa el centro de la barra: si el relleno acabara justo al asomar por el otro lado, quedaría un
+      // punto suelto, así que en ese tramo se queda debajo de la cifra
+      const parte = dano == null ? 0 : dano / maximo * 100, relleno = parte > 55 && parte < 60 ? 55 : parte;
+      const barra = dano == null ? '' : `<span class="dano-final${delRival != null && dano > delRival ? ' mejor' : ''}" style="--parte: ${relleno.toFixed(1)}%"><i></i><b>${miles(dano)}</b></span>`;
       caja.classList.toggle('mvp', esMvp);
       caja.style.backgroundImage = j?.campeon ? `url(${splash(j.campeon)})` : '';
       caja.innerHTML = (lado === 'azul' ? `${quien}${cols.join('')}` : `${[...cols].reverse().join('')}${quien}`) + barra;

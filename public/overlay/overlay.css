@@ -295,8 +295,9 @@ body[data-vista="postdraft"] .versus { opacity: 1; visibility: visible; transiti
 .final-jugador .col.oro.mejor { color: #E8B85A; }
 .final-jugador .col.puntos { color: var(--washi); }
 
-/* El daño de cada jugador, debajo de él: una barra fina que crece desde el centro de la pantalla, en proporción al
-   que más daño ha hecho de los diez, con la cifra en medio. Solo sale si el staff ha apuntado el daño */
+/* El daño de cada jugador, debajo de él: una barra fina que se llena hacia el centro de la pantalla (la azul, de
+   izquierda a derecha; la roja, en espejo), en proporción al que más daño ha hecho de los diez, con la cifra en
+   medio. Solo sale si el staff ha apuntado el daño */
 .final-filas.con-dano .final-jugador, .final-filas.con-dano .final-rol { padding-bottom: 26px; }
 .final-filas.con-dano .final-rol small { display: block; }
 .dano-final { position: absolute; bottom: 8px; width: 44%; height: 18px; display: grid; place-items: center; }
@@ -304,8 +305,8 @@ body[data-vista="postdraft"] .versus { opacity: 1; visibility: visible; transiti
 .final-jugador.rojo .dano-final { left: 14px; }
 .dano-final::before { content: ''; position: absolute; left: 0; right: 0; top: 7px; height: 4px; border-radius: 2px; background: rgba(231, 223, 210, .12); }
 .dano-final i { position: absolute; top: 7px; width: var(--parte, 0%); height: 4px; border-radius: 2px; background: var(--azul-lado); }
-.final-jugador.azul .dano-final i { right: 0; }
-.final-jugador.rojo .dano-final i { left: 0; background: #E4474C; }
+.final-jugador.azul .dano-final i { left: 0; }
+.final-jugador.rojo .dano-final i { right: 0; background: #E4474C; }
 .dano-final b { position: relative; padding: 0 9px; background: #221E1A; font-size: 15px; font-weight: 700; line-height: 18px; font-variant-numeric: tabular-nums; color: #B5AC9C; }
 .dano-final.mejor b { color: var(--washi); }
 
