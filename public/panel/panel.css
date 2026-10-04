@@ -234,3 +234,11 @@ button:disabled { opacity: .45; cursor: default; }
 .kda.dos { grid-template-columns: minmax(0, 1fr); gap: 16px; }
 details.ayuda summary { cursor: pointer; color: var(--washi); font-weight: 500; }
 details.ayuda[open] summary { margin-bottom: 6px; }
+
+/* Estilo del marcador de partida (A o B): dos botones pegados, el elegido en bermellón */
+.fila .etiqueta { font-size: 14px; color: var(--hai); }
+.estilos { display: inline-flex; border: 1px solid var(--sumi-linea); border-radius: 4px; overflow: hidden; }
+.estilos button { padding: 7px 14px; background: transparent; color: var(--hai); border-radius: 0; font-size: 14px; font-weight: 500; }
+.estilos button + button { border-left: 1px solid var(--sumi-linea); }
+.estilos button:hover { background: var(--sumi); color: var(--washi); }
+.estilos button[aria-pressed="true"] { background: var(--shu); color: var(--washi); font-weight: 700; }

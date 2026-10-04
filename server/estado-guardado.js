@@ -14,7 +14,7 @@ export function fotoEstado(e, { draftcore = false } = {}) {
     config: e.config, equipos: e.equipos, enlace: draftcore ? e.fuente.enlace : '',
     draft: { bans: e.draft.bans, picks: e.draft.picks }, fearless: e.fearless, resultados: e.resultados,
     camaras: e.camaras, partidaVisible: e.partidaVisible, buscarPartida: e.buscarPartida, avisosPropios: e.avisosPropios,
-    vista: e.vista, final: e.final, jornadaAuto: e.jornadaAuto,
+    vista: e.vista, final: e.final, jornadaAuto: e.jornadaAuto, ingame: e.ingame,
   };
 }
 
@@ -54,6 +54,11 @@ export function restaurarEstado(e, texto = ajuste(CLAVE), ahora = Date.now()) {
     if (typeof g.jornadaAuto.cerradaPara === 'string') e.jornadaAuto.cerradaPara = g.jornadaAuto.cerradaPara;
   }
   if (g.final && typeof g.final === 'object' && Array.isArray(g.final.lineas)) e.final = g.final;
+  // El marcador de partida: estilo e interruptores (un estado anterior a esta versión no los trae: se quedan como están)
+  if (g.ingame && typeof g.ingame === 'object' && e.ingame) {
+    if (['a', 'b'].includes(g.ingame.estilo)) e.ingame.estilo = g.ingame.estilo;
+    for (const k of ['puntosFantasy', 'resumenPelea', 'oroIngresos']) if (typeof g.ingame[k] === 'boolean') e.ingame[k] = g.ingame[k];
+  }
   if (reciente) {
     if (typeof g.buscarPartida?.activa === 'boolean') e.buscarPartida.activa = g.buscarPartida.activa;
     if (g.vista && typeof g.vista === 'object') {

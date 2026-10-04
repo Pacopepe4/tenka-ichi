@@ -513,11 +513,12 @@ function pintarPartidaPanel(p) {
     const e = p[lado];
     const extra = [e.dragones.length ? `${e.dragones.length} dragones` : '', e.alma ? 'alma' : '', e.larvas ? `${e.larvas} larvas` : '',
       e.heraldos ? 'heraldo' : '', e.barones ? `${e.barones} barón` : '', e.ancestrales ? 'ancestral' : ''].filter(Boolean).join(', ');
-    return `<dt class="${lado}">${nombre(lado)}</dt><dd>${e.kills} asesinatos · ${milesOro(e.oro)} de oro en objetos · ${e.torres} torres${extra ? ` · ${extra}` : ''}</dd>`;
+    return `<dt class="${lado}">${nombre(lado)}</dt><dd>${e.kills} asesinatos · ≈${milesOro(e.oro)} de oro estimado (${milesOro(e.oroObjetos ?? e.oro)} en objetos) · ${e.torres} torres${extra ? ` · ${extra}` : ''}</dd>`;
   }).join('') + (p.eventosSinReconocer?.length ? `<dt>Eventos que el overlay aún no sabe pintar</dt><dd>${p.eventosSinReconocer.join(', ')}</dd>` : '')
     + (p.eventosRecibidos ? `<dt>Sucesos que da el cliente</dt><dd>${Object.entries(p.eventosRecibidos).map(([n, c]) => `${n} ${c}`).join(' · ') || 'ninguno'}</dd>` : '') : '';
   $('#pruebaPartida').textContent = p.prueba && p.activo ? 'Parar la partida de prueba' : 'Empezar una partida de prueba';
   $('#pruebaPartida').dataset.activa = p.prueba && p.activo ? '1' : '0';
+  if (estado) pintarOpcionesFicha();
 }
 function pintarVisibilidadPartida() {
   $('#verPartida').textContent = estado?.partidaVisible === false ? 'Mostrar el marcador' : 'Ocultar el marcador';
@@ -536,6 +537,50 @@ $('#verLineas').onclick = async () => {
   if (!fuera && !ultimaPartida?.activo) return aviso('El línea por línea sale cuando hay una partida en marcha');
   await enviar('grafico', fuera ? { tipo: null } : { tipo: 'lineas', segundos: Number($('#duracionLineas').value) });
 };
+
+// ---------- Ficha de jugador y gráfica de oro (un grafismo a la vez) ----------
+// La ficha es de un puesto del enfrentamiento: el jugador que el panel tiene en ese puesto (o el que da el cliente)
+function pintarOpcionesFicha() {
+  const lado = $('#fichaLado').value;
+  const sel = $('#fichaJugador');
+  const antes = sel.value;
+  sel.innerHTML = ROLES.map((rol, i) => {
+    const nombre = estado?.equipos?.[lado]?.jugadores?.[i] || ultimaPartida?.lineas?.[i]?.[lado]?.nombre || '';
+    return `<option value="${i}">${ROL_LEGIBLE[rol]}${nombre ? ` · ${escapar(nombre)}` : ''}</option>`;
+  }).join('');
+  if (antes) sel.value = antes;
+  const g = estado?.grafico;
+  $('#verFicha').textContent = g?.tipo === 'ficha' ? 'Quitar la ficha' : 'Sacar la ficha';
+  $('#verOro').textContent = g?.tipo === 'oro' ? 'Quitar la gráfica de oro' : 'Sacar la gráfica de oro';
+}
+$('#fichaLado').onchange = pintarOpcionesFicha;
+$('#verFicha').onclick = async () => {
+  const fuera = estado?.grafico?.tipo === 'ficha';
+  if (!fuera && !ultimaPartida?.activo) return aviso('La ficha sale cuando hay una partida en marcha');
+  await enviar('grafico', fuera ? { tipo: null } : { tipo: 'ficha', lado: $('#fichaLado').value, indice: Number($('#fichaJugador').value), segundos: Number($('#duracionFicha').value) });
+};
+// La gráfica necesita al menos dos minutos de datos: si no, se avisa y no se saca nada
+const MINIMO_GRAFICA_S = 120;
+$('#verOro').onclick = async () => {
+  const fuera = estado?.grafico?.tipo === 'oro';
+  if (!fuera) {
+    const m = ultimaPartida?.grafica?.muestras || [];
+    const abarca = m.length ? m.at(-1)[0] - m[0][0] : 0;
+    if (!ultimaPartida?.activo) return aviso('La gráfica de oro sale cuando hay una partida en marcha');
+    if (abarca < MINIMO_GRAFICA_S) return aviso(`Aún no hay gráfica: hacen falta dos minutos de partida (hay ${mmss(abarca)})`);
+  }
+  await enviar('grafico', fuera ? { tipo: null } : { tipo: 'oro', segundos: Number($('#duracionOro').value) });
+};
+
+// ---------- Estilo del marcador e interruptores de lo nuevo ----------
+document.querySelectorAll('.estilos .estilo').forEach(b => b.addEventListener('click', () => enviar('ingame', { estilo: b.dataset.estilo })));
+for (const k of ['resumenPelea', 'puntosFantasy', 'oroIngresos']) $(`#${k}`).onchange = e => enviar('ingame', { [k]: e.target.checked });
+function pintarIngame() {
+  const i = estado?.ingame || { estilo: 'a', puntosFantasy: true, resumenPelea: true, oroIngresos: true };
+  document.querySelectorAll('.estilos .estilo').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.estilo === i.estilo)));
+  for (const k of ['resumenPelea', 'puntosFantasy', 'oroIngresos']) $(`#${k}`).checked = i[k] !== false;
+  pintarOpcionesFicha();
+}
 
 // Estadísticas del fantasy desde la partida: cada puesto del panel con el jugador de esa línea.
 // El puente da el KDA, el farmeo y la visión; de los sucesos, la primera sangre, los multikills y las torres
@@ -611,7 +656,7 @@ function pintarMarcas() {
   $('#avisosPropios').checked = Boolean(estado?.avisosPropios);
 }
 const pintarAntesMarcas = pintar;
-pintar = function () { pintarAntesMarcas(); pintarMarcas(); };
+pintar = function () { pintarAntesMarcas(); pintarMarcas(); pintarIngame(); };
 
 // El panel ya está entero: se pinta lo que haya llegado mientras cargaba
 listo = true;

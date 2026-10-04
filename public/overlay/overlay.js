@@ -119,7 +119,8 @@ function pintarVista(e) {
   if (vista === vistaActual) return;
   vistaActual = vista;
   const marco = $('.vista-partida');
-  if (vista === 'partida' && !marco.getAttribute('src')) marco.src = '/ingame/';
+  // ?estilo=a|b en la dirección del overlay fuerza una versión del marcador (para comparar las dos en OBS)
+  if (vista === 'partida' && !marco.getAttribute('src')) marco.src = `/ingame/${params.has('estilo') ? `?estilo=${encodeURIComponent(params.get('estilo'))}` : ''}`;
   document.body.dataset.vista = vista;
   // En el postdraft y en la pantalla final no hay cámaras: el fondo va entero
   firmaCamaras = '';
