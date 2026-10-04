@@ -153,3 +153,11 @@ Todo está en commits locales en master; no se ha hecho push para no cambiar la 
 - Los originales en 2K no están en el repositorio: `koryu-budo/gachapón/`. El método, los prompts y el script que los convierte, en `koryu-budo/flow/cartas/`.
 - Comprobado en local con las 20 cartas dentro de su marco (ninguna imagen rota). Subido a GitHub el 04/10.
 - Pendiente: los otros 12 clanes no tienen jugadores, tier ni campeón, así que no tienen carta ni dibujo.
+
+## 04/10 (noche): las BOOST S+ a todo color y «full art»
+
+- Decisión del usuario: las cartas de mayor rango destacan progresivamente, sobre todo las BOOST. Las de jugador se quedan con el estilo sobrio (tinta, hueso y el color del clan). Las cuatro BOOST S+ (MAKITAH, SONS, IGRID y LOLEX) tienen dibujo nuevo a todo color; MAKITAH, «El Titiritero», lleva hilos de marioneta. GYPSICUACK (S) sigue en tinta y oro.
+- **Carta «full art»**: si una carta tiene un dibujo vertical en `public/cartas/fullart/<ID>.webp` (1000×1400), el catálogo lleva `fullart` y `cartaHTML` la pinta a carta completa, sin la imagen del marco: filo de oro, sello y emblema arriba, y estrellas, nombre, apodo y multiplicador abajo sobre el dibujo (`.carta-g.fullart` en `public/carta.css`, todo en cqw para que escale sola). `arte` (el cuadrado) y `marco` no cambian. De momento solo las cuatro S+; vale para cualquier carta con solo poner su archivo.
+- En `public/gachapon/gachapon.css`, los tamaños fijos de la carta sin marco van con `:not(.con-marco):not(.fullart)`.
+- Comprobado en local a 84, 142, 170, 300 y 380 px, y apagada (cuando no se tiene). 75 pruebas.
+- Pendiente: las imágenes para Discord (`public/compartir.js`) siguen pintando estas cuatro con marco y el dibujo cuadrado.

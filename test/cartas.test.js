@@ -44,6 +44,9 @@ before(async () => {
   await writeFile(path.join(cartas, 'marcos', 'jugador', 'C.webp'), 'webp');
   await writeFile(path.join(cartas, 'marcos', 'boost', 'SP.webp'), 'webp');
   await writeFile(path.join(cartas, 'marcos', 'reverso.webp'), 'webp');
+  // Dibujo «full art» (vertical) de una BOOST; el de la carpeta fullart no cuenta como dibujo cuadrado
+  await mkdir(path.join(cartas, 'fullart'), { recursive: true });
+  await writeFile(path.join(cartas, 'fullart', 'boost-kami.webp'), 'webp');
 
   for (const k of Object.keys(process.env)) if (/^(GOOGLE_)/.test(k)) delete process.env[k];
   Object.assign(process.env, { CARPETA_DATOS: carpeta, ARCHIVO_PLANTILLAS: path.join(carpeta, 'plantillas.json'),
@@ -114,6 +117,16 @@ test('marcos por clase y tier, sin mezclar: la S de Jugador no usa uno de BOOST 
   assert.equal(cat.get('KAIJU-TOP').marco, null, 'la S de Jugador aún no tiene marco');
   assert.equal(cat.get('BOOST-TENGU').marco, null, 'la S de BOOST tampoco');
   assert.equal(g.claveTier('S+'), 'SP');
+});
+
+test('carta «full art»: solo la que tiene dibujo vertical en fullart/, y conserva su dibujo cuadrado y su marco', () => {
+  const cat = porId();
+  const kami = cat.get('BOOST-KAMI');
+  assert.match(kami.fullart, /^\/cartas\/fullart\/boost-kami\.webp\?v=[0-9a-z]+$/);
+  assert.equal(kami.arte, '/ddragon/splash/Ornn.jpg', 'el fondo cuadrado no cambia: lo usan las imágenes de compartir');
+  assert.match(kami.marco, /^\/cartas\/marcos\/boost\/SP\.webp\?v=/, 'el marco tampoco');
+  assert.equal(cat.get('BOOST-TENGU').fullart, null);
+  assert.equal(cat.get('KAIJU-TOP').fullart, null, 'un dibujo cuadrado no es full art');
 });
 
 test('el reverso es el mismo para todas las cartas', () => {

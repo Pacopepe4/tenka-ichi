@@ -46,3 +46,28 @@
 .carta-g.con-marco .cantidad { right: 9%; bottom: 7%; font-size: 6cqw; color: var(--tinta-marco); }
 .carta-g.con-marco.falta .marco { filter: grayscale(1) brightness(.55); }
 .carta-g.con-marco.falta .pie .nick, .carta-g.con-marco.falta .pie .rol, .carta-g.con-marco.falta .bonus { color: #4A443C; }
+
+/* ---------- Carta «full art» ----------
+   Las de mayor rango (de momento, las BOOST S+) llevan el dibujo a carta completa, sin la imagen del marco: un filo
+   de oro, el sello y el emblema arriba, y las estrellas, el nombre, lo que hace y el multiplicador abajo, sobre el
+   dibujo. El dibujo es public/cartas/fullart/ID.webp (1000×1400). Todo va en cqw para que escale sola, como la carta
+   con marco: en el álbum, en el overlay y en la portada. */
+.carta-g.fullart { container-type: inline-size; background: var(--sumi); }
+.carta-g.fullart:not(.falta) { box-shadow: 0 0 34px rgba(214, 170, 72, .6), 0 10px 22px rgba(0, 0, 0, .45); }
+.carta-g.fullart .velo { background: linear-gradient(180deg, rgba(22,20,18,.62) 0%, rgba(22,20,18,0) 18%, rgba(22,20,18,0) 56%, rgba(22,20,18,.94) 88%); }
+.carta-g.fullart::after { content: ''; position: absolute; inset: 2.4cqw; border: .8cqw solid #EBD28A; border-radius: 2.6cqw; pointer-events: none;
+  box-shadow: 0 0 0 .4cqw rgba(29, 26, 23, .8), inset 0 0 0 .4cqw rgba(29, 26, 23, .55); }
+.carta-g.fullart .rareza { top: 6cqw; left: 6cqw; width: 13cqw; height: 13cqw; font-size: 6.2cqw; }
+.carta-g.fullart .logo { top: 6cqw; right: 6cqw; width: 12.5cqw; height: 12.5cqw; }
+.carta-g.fullart .pie { left: 8cqw; right: 8cqw; bottom: 7.5cqw; }
+.carta-g.fullart .pie::before { font-size: 4cqw; letter-spacing: .9cqw; color: #EBD28A; text-shadow: 0 .3cqw .8cqw rgba(0, 0, 0, .9); }
+.carta-g.fullart[data-tier="SP"] .pie::before { content: '★★★★★★'; }
+.carta-g.fullart[data-tier="S"] .pie::before { content: '★★★★★'; }
+.carta-g.fullart[data-tier="A"] .pie::before { content: '★★★★'; }
+.carta-g.fullart[data-tier="B"] .pie::before { content: '★★★'; }
+.carta-g.fullart .nick { font-size: 10cqw; color: #F5EFE2; text-shadow: 0 .4cqw 1.4cqw rgba(0, 0, 0, .95); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.carta-g.fullart .rol { font-size: 4.8cqw; font-weight: 700; letter-spacing: .06em; color: #EBD28A; text-shadow: 0 .3cqw .8cqw rgba(0, 0, 0, .9); }
+.carta-g.fullart .bonus { font-size: 4.8cqw; color: #F5EFE2; text-shadow: 0 .3cqw .8cqw rgba(0, 0, 0, .9); }
+.carta-g.fullart .cantidad { right: 8cqw; bottom: 8cqw; font-size: 6cqw; }
+.carta-g.fullart.falta::after { border-color: #6B665E; }
+.carta-g.fullart.falta .pie::before, .carta-g.fullart.falta .nick, .carta-g.fullart.falta .rol, .carta-g.fullart.falta .bonus { color: var(--hai); }

@@ -109,7 +109,7 @@ button.boton-secundario { background: transparent; font: inherit; font-weight: 7
   .cabeza-gacha { grid-template-columns: 1fr; }
   .sobre { width: min(220px, 60vw); }
   .album { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
-  .carta-g:not(.con-marco) .nick { font-size: 19px; }
+  .carta-g:not(.con-marco):not(.fullart) .nick { font-size: 19px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .sobre, .volteable, .volteable .giro { transition: none; }
@@ -131,9 +131,9 @@ button.boton-secundario { background: transparent; font: inherit; font-weight: 7
 .hueco-ali .vacio-ali { display: grid; place-items: center; aspect-ratio: 5 / 7; border: 2px dashed var(--sumi-linea); border-radius: 8px; color: var(--hai); font-size: 14px; }
 .hueco-ali:not(:disabled):hover .vacio-ali { border-color: var(--hai); color: var(--washi); }
 /* Tamaños para la carta sin marco; con marco, todo va en proporción a su ancho (carta.css) */
-.hueco-ali .carta-g:not(.con-marco) .nick { font-size: 18px; }
-.hueco-ali .carta-g:not(.con-marco) .rareza { width: 32px; height: 32px; font-size: 19px; }
-.hueco-ali .carta-g:not(.con-marco) .logo { width: 30px; height: 28px; }
+.hueco-ali .carta-g:not(.con-marco):not(.fullart) .nick { font-size: 18px; }
+.hueco-ali .carta-g:not(.con-marco):not(.fullart) .rareza { width: 32px; height: 32px; font-size: 19px; }
+.hueco-ali .carta-g:not(.con-marco):not(.fullart) .logo { width: 30px; height: 28px; }
 .hueco-ali .puntos-ali { font-size: 13px; color: var(--hai); }
 .hueco-ali .boost-ali { font-size: 12px; font-weight: 700; color: var(--washi); overflow-wrap: anywhere; }
 .titulo-boost { margin: 26px 0 10px; font-family: var(--mincho); font-weight: 800; font-size: 20px; }
@@ -174,7 +174,7 @@ button.boton-secundario { background: transparent; font: inherit; font-weight: 7
 .elegir .opciones { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
 .elegir .opcion { padding: 0; border: 0; background: none; cursor: pointer; border-radius: 8px; }
 .elegir .opcion[aria-pressed="true"] .carta-g { outline: 3px solid var(--washi); outline-offset: 3px; }
-.elegir .opcion .carta-g:not(.con-marco) .nick { font-size: 19px; }
+.elegir .opcion .carta-g:not(.con-marco):not(.fullart) .nick { font-size: 19px; }
 .elegir .sin-cartas { color: var(--hai); }
 .elegir .condicion-boost { grid-column: 1 / -1; margin: 0 0 4px; color: var(--hai); }
 .elegir .opcion-rol { display: flex; flex-direction: column; gap: 2px; padding: 14px 16px; border: 1px solid var(--sumi-linea); border-radius: 8px; background: var(--sumi); color: inherit; font: inherit; text-align: left; cursor: pointer; }
@@ -191,7 +191,7 @@ button.boton-secundario { background: transparent; font: inherit; font-weight: 7
   .tabla-puntos th:nth-child(3), .tabla-puntos td:nth-child(3) { display: none; }
 }
 .probabilidades .titulo-reglas { margin-top: 56px; }
-.hueco-ali .carta-g:not(.con-marco) .rol { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
+.hueco-ali .carta-g:not(.con-marco):not(.fullart) .rol { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
 
 /* ---------- Animaciones más fluidas ----------
    Las cartas salen del sobre en abanico, se levantan al girarlas, las boca abajo se asoman al pasar el ratón,

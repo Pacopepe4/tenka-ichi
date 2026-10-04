@@ -161,9 +161,12 @@ async function cargarCampeones() {
 // Marcos de cada clase y tier en public/cartas/marcos/jugador/ y boost/ (TIER.webp; la S+ es SP) y el reverso,
 // igual para todas, en public/cartas/marcos/reverso.webp. Salen de diseno/marcos/. Mientras no estén, la carta
 // lleva el splash de su campeón, si no la imagen de su clan (o el sol partido si es BOOST), y el marco dibujado con CSS.
+// Carta «full art»: si además hay un dibujo vertical (1000×1400) en public/cartas/fullart/ID.webp, la carta se pinta
+// con él a carta completa en vez de con el marco (lo llevan las BOOST S+). El cuadrado sigue haciendo falta: es el
+// que usan las imágenes de compartir.
 // La dirección lleva la fecha del archivo: se puede guardar en caché y, si cambia el dibujo, cambia la dirección.
 const EXTENSIONES = ['.webp', '.png', '.jpg', '.jpeg'];
-let artes = new Map(), marcos = { jugador: new Map(), boost: new Map() }, reverso = null;
+let artes = new Map(), completas = new Map(), marcos = { jugador: new Map(), boost: new Map() }, reverso = null;
 
 async function indiceImagenes(carpeta, prefijo) {
   let archivos = [];
@@ -182,10 +185,12 @@ async function indiceImagenes(carpeta, prefijo) {
 async function cargarCartas() {
   await Promise.all([cargarBoosts(), cargarCampeones()]);
   const carpeta = path.join(CARPETA_ARTE, 'marcos');
-  const [a, jugador, boost, sueltos] = await Promise.all([indiceImagenes(CARPETA_ARTE, '/cartas/'),
+  const [a, full, jugador, boost, sueltos] = await Promise.all([indiceImagenes(CARPETA_ARTE, '/cartas/'),
+    indiceImagenes(path.join(CARPETA_ARTE, 'fullart'), '/cartas/fullart/'),
     indiceImagenes(path.join(carpeta, 'jugador'), '/cartas/marcos/jugador/'), indiceImagenes(path.join(carpeta, 'boost'), '/cartas/marcos/boost/'),
     indiceImagenes(carpeta, '/cartas/marcos/')]);
   artes = a;
+  completas = full;
   marcos = { jugador, boost };
   reverso = sueltos.get('REVERSO') || null;
 }
@@ -204,7 +209,7 @@ export const reversoCarta = () => reverso;
 export function catalogo() {
   const jugadores = vistaTierlist().jugadores.filter(j => j.nombre && j.tier).map(j => ({ ...j, tipo: 'jugador' }));
   return [...boosts, ...jugadores].map(c => ({ ...c, campeon: campeones.get(c.id) || null }))
-    .map(c => ({ ...c, arte: arteDe(c), marco: marcoDe(c), peso: PESOS[c.tier] }));
+    .map(c => ({ ...c, arte: arteDe(c), fullart: completas.get(c.id) || null, marco: marcoDe(c), peso: PESOS[c.tier] }));
 }
 
 // Probabilidad de que una carta cualquiera del sobre sea de cada tier
