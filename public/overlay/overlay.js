@@ -316,11 +316,12 @@ function pintarPostdraft() {
 
 // ---------- Pantalla final ----------
 const DRAGON = { infernal: '炎', oceano: '海', montana: '山', nube: '雲', hextech: '雷', quimtech: '毒', ancestral: '龍', dragon: '龍' };
-const TITULOS = ['KDA', 'Farmeo', 'Oro', 'Visión', 'Daño', 'Fantasy'];
+// El daño no va en columna: sale debajo de cada jugador, en una barra fina con la cifra en medio
+const TITULOS = ['KDA', 'Farmeo', 'Oro', 'Visión', 'Fantasy'];
 $('.final-columnas .titulos.azul').innerHTML = TITULOS.map(t => `<span>${t}</span>`).join('');
 $('.final-columnas .titulos.rojo').innerHTML = [...TITULOS].reverse().map(t => `<span>${t}</span>`).join('');
 $('.final-filas').innerHTML = ROLES.map((rol, i) => `<div class="final-fila" data-i="${i}">
-  <div class="final-jugador azul"></div><span class="final-rol">${ROL_LEGIBLE[rol]}</span><div class="final-jugador rojo"></div></div>`).join('');
+  <div class="final-jugador azul"></div><span class="final-rol"><b>${ROL_LEGIBLE[rol]}</b><small>Daño</small></span><div class="final-jugador rojo"></div></div>`).join('');
 
 let firmaFinal = '';
 function pintarFinal(e) {
@@ -370,10 +371,15 @@ function pintarFinal(e) {
       `<span class="col${mejor(j.cs, rival?.cs)}">${dato(j.cs)}</span>`,
       `<span class="col oro${mejor(j.oro, rival?.oro)}">${j.oro == null ? '–' : miles(j.oro)}</span>`,
       `<span class="col${mejor(j.vision, rival?.vision)}">${dato(j.vision)}</span>`,
-      `<span class="col${mejor(extra?.dano, extraRival?.dano)}">${extra?.dano == null ? '–' : miles(extra.dano)}</span>`,
       `<span class="col puntos">${extra?.puntos == null ? '–' : numero(extra.puntos)}</span>`,
     ];
   };
+  // El daño de cada jugador va debajo de él: una barra fina que crece desde el centro, en proporción al que más
+  // daño ha hecho de los diez, con la cifra en medio. La de quien gana su línea va más clara
+  const danoDe = (lado, i) => f.extras?.[`${lado}-${i}`]?.dano ?? null;
+  const danos = ROLES.flatMap((_, i) => [danoDe('azul', i), danoDe('rojo', i)]).filter(d => d != null);
+  const maximo = Math.max(1, ...danos);
+  $('.final-filas').classList.toggle('con-dano', danos.length > 0);
   document.querySelectorAll('.final-fila').forEach((fila, i) => {
     const l = f.lineas[i] || {};
     for (const lado of ['azul', 'rojo']) {
@@ -382,9 +388,11 @@ function pintarFinal(e) {
       const esMvp = f.mvp === `${lado}-${i}`;
       const quien = `<span class="retrato">${j?.campeon ? `<img src="${icono(j.campeon)}" alt="">` : ''}${j?.nivel ? `<i>${j.nivel}</i>` : ''}</span>
         <span class="quien"><b>${escapar(j?.nombre || '—')}${esMvp ? '<em class="hanko">MVP</em>' : ''}</b><small>${j?.campeon ? escapar(campeones.nombre(j.campeon)) : ''}</small></span>`;
+      const dano = danoDe(lado, i), delRival = danoDe(otro, i);
+      const barra = dano == null ? '' : `<span class="dano-final${delRival != null && dano > delRival ? ' mejor' : ''}" style="--parte: ${(dano / maximo * 100).toFixed(1)}%"><i></i><b>${miles(dano)}</b></span>`;
       caja.classList.toggle('mvp', esMvp);
       caja.style.backgroundImage = j?.campeon ? `url(${splash(j.campeon)})` : '';
-      caja.innerHTML = lado === 'azul' ? `${quien}${cols.join('')}` : `${[...cols].reverse().join('')}${quien}`;
+      caja.innerHTML = (lado === 'azul' ? `${quien}${cols.join('')}` : `${[...cols].reverse().join('')}${quien}`) + barra;
     }
   });
 

@@ -262,9 +262,11 @@ body[data-vista="postdraft"] .versus { opacity: 1; visibility: visible; transiti
 .final-columnas .titulos.azul { justify-content: flex-end; }
 .final-columnas .titulos span, .final-jugador .col { flex: none; width: 84px; text-align: center; }
 .final-columnas .titulos.azul span:first-child, .final-columnas .titulos.rojo span:last-child, .final-jugador .col.kda { width: 124px; }
-.final-filas { position: absolute; top: 208px; left: 48px; right: 48px; display: flex; flex-direction: column; gap: 8px; }
-.final-fila { height: 92px; }
-.final-rol { display: grid; place-items: center; font-size: 15px; letter-spacing: .12em; text-transform: uppercase; color: var(--hai); }
+.final-filas { position: absolute; top: 208px; left: 48px; right: 48px; display: flex; flex-direction: column; gap: 6px; }
+.final-fila { height: 100px; }
+.final-rol { position: relative; display: grid; place-items: center; font-size: 15px; letter-spacing: .12em; text-transform: uppercase; color: var(--hai); }
+.final-rol b { font-weight: 400; }
+.final-rol small { display: none; position: absolute; left: 0; right: 0; bottom: 10px; text-align: center; font-size: 11px; letter-spacing: .16em; line-height: 14px; }
 .final-jugador { position: relative; display: flex; align-items: center; height: 100%; overflow: hidden;
   background-color: var(--sumi-alzado); background-size: cover; background-position: 50% 22%; }
 .final-jugador::before { content: ''; position: absolute; inset: 0; background: rgba(34, 30, 26, .9); }
@@ -293,7 +295,21 @@ body[data-vista="postdraft"] .versus { opacity: 1; visibility: visible; transiti
 .final-jugador .col.oro.mejor { color: #E8B85A; }
 .final-jugador .col.puntos { color: var(--washi); }
 
-.final-pie { position: absolute; top: 720px; left: 48px; right: 48px; height: 252px; display: grid; grid-template-columns: 1fr 600px 1fr; gap: 20px; }
+/* El daño de cada jugador, debajo de él: una barra fina que crece desde el centro de la pantalla, en proporción al
+   que más daño ha hecho de los diez, con la cifra en medio. Solo sale si el staff ha apuntado el daño */
+.final-filas.con-dano .final-jugador, .final-filas.con-dano .final-rol { padding-bottom: 26px; }
+.final-filas.con-dano .final-rol small { display: block; }
+.dano-final { position: absolute; bottom: 8px; width: 44%; height: 18px; display: grid; place-items: center; }
+.final-jugador.azul .dano-final { right: 14px; }
+.final-jugador.rojo .dano-final { left: 14px; }
+.dano-final::before { content: ''; position: absolute; left: 0; right: 0; top: 7px; height: 4px; border-radius: 2px; background: rgba(231, 223, 210, .12); }
+.dano-final i { position: absolute; top: 7px; width: var(--parte, 0%); height: 4px; border-radius: 2px; background: var(--azul-lado); }
+.final-jugador.azul .dano-final i { right: 0; }
+.final-jugador.rojo .dano-final i { left: 0; background: #E4474C; }
+.dano-final b { position: relative; padding: 0 9px; background: #221E1A; font-size: 15px; font-weight: 700; line-height: 18px; font-variant-numeric: tabular-nums; color: #B5AC9C; }
+.dano-final.mejor b { color: var(--washi); }
+
+.final-pie { position: absolute; top: 746px; left: 48px; right: 48px; height: 228px; display: grid; grid-template-columns: 1fr 600px 1fr; gap: 20px; }
 .final-equipo { display: flex; flex-direction: column; justify-content: center; gap: 18px; padding: 20px 30px; background: var(--sumi-alzado); }
 .final-equipo.azul { box-shadow: inset 8px 0 0 var(--azul-lado); }
 .final-equipo.rojo { box-shadow: inset -8px 0 0 var(--rojo-lado); align-items: flex-end; }
@@ -320,7 +336,7 @@ body[data-vista="postdraft"] .versus { opacity: 1; visibility: visible; transiti
 .mvp-texto small { font-size: 19px; color: #CFC6B6; }
 .mvp-datos { display: flex; align-items: baseline; gap: 18px; margin-top: 10px; font-size: 18px; color: #CFC6B6; white-space: nowrap; }
 .mvp-datos b { font-family: var(--mincho); font-weight: 800; font-size: 28px; color: var(--washi); }
-.mvp-carta { position: absolute; top: 20px; right: 26px; width: 152px; transform: rotate(3deg); }
+.mvp-carta { position: absolute; top: 14px; right: 26px; width: 142px; transform: rotate(3deg); }
 .mvp-carta .carta-g { width: 100%; box-shadow: 0 12px 26px rgba(0, 0, 0, .6); }
 .final-mvp.vacio { flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
 .final-mvp.vacio::before { display: none; }
