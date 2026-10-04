@@ -544,11 +544,12 @@ function pintarOpcionesFicha() {
   const lado = $('#fichaLado').value;
   const sel = $('#fichaJugador');
   const antes = sel.value;
-  sel.innerHTML = ROLES.map((rol, i) => {
+  // Las opciones solo se rehacen si cambian los nombres (la partida llega cada segundo y no hay que cerrar el desplegable)
+  const opciones = ROLES.map((rol, i) => {
     const nombre = estado?.equipos?.[lado]?.jugadores?.[i] || ultimaPartida?.lineas?.[i]?.[lado]?.nombre || '';
     return `<option value="${i}">${ROL_LEGIBLE[rol]}${nombre ? ` · ${escapar(nombre)}` : ''}</option>`;
   }).join('');
-  if (antes) sel.value = antes;
+  if (sel.dataset.firma !== opciones) { sel.dataset.firma = opciones; sel.innerHTML = opciones; if (antes) sel.value = antes; }
   const g = estado?.grafico;
   $('#verFicha').textContent = g?.tipo === 'ficha' ? 'Quitar la ficha' : 'Sacar la ficha';
   $('#verOro').textContent = g?.tipo === 'oro' ? 'Quitar la gráfica de oro' : 'Sacar la gráfica de oro';
