@@ -329,7 +329,7 @@ button.ficha-tier:hover { border-color: var(--hai); transform: translateY(-1px);
   font-size: 12px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; }
 .etiqueta-legacy[hidden] { display: none; }
 .ficha .etiqueta-legacy { margin-top: 8px; }
-.legado { max-width: 1180px; margin: clamp(48px, 6vw, 72px) auto 0; padding: clamp(28px, 3.5vw, 44px) clamp(16px, 5vw, 64px) 0; border-top: 1px solid var(--sumi-linea); }
+.legado { max-width: 1180px; margin: clamp(72px, 8vw, 104px) auto 0; padding: clamp(28px, 3.5vw, 44px) clamp(16px, 5vw, 64px) 0; border-top: 1px solid var(--sumi-linea); }
 .legado[hidden] { display: none; }
 .equipo-legado { display: flex; align-items: center; gap: clamp(20px, 4vw, 48px); }
 .equipo-legado + .equipo-legado { margin-top: 28px; }
