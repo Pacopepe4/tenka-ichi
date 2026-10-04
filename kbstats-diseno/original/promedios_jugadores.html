@@ -1,0 +1,4338 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KBStats</title>
+
+    
+
+    <!-- Favicon -->
+    <link
+      rel="icon"
+      type="image/png"
+      href="/static/images/team_kaiju.png"
+    />
+
+    <!-- CSS global de tu proyecto -->
+    <link rel="stylesheet" href="/static/css/kbstats.css" />
+
+    <!-- Bootstrap -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- CSS extra por página -->
+    
+<style>
+  /* ── Panel lateral ─────────────────────────────────────────────────────── */
+  #col-panel {
+    position: fixed;
+    top: 0; right: -280px;
+    width: 260px;
+    height: 100vh;
+    background: #0b1220;
+    border-left: 1px solid #1f2937;
+    z-index: 1050;
+    overflow-y: auto;
+    transition: right 0.25s ease;
+    padding: 1.25rem 1rem;
+    box-shadow: -4px 0 20px rgba(0,0,0,.5);
+  }
+  #col-panel.open { right: 0; }
+
+  #panel-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.4);
+    z-index: 1040;
+  }
+  #panel-overlay.open { display: block; }
+
+  .panel-group { margin-bottom: 1rem; }
+  .panel-group-label {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: #6b7280;
+    margin-bottom: 0.4rem;
+  }
+  .panel-check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.2rem 0;
+    cursor: pointer;
+    font-size: 0.82rem;
+    color: #d1d5db;
+    user-select: none;
+  }
+  .panel-check input { accent-color: #22d3ee; width: 14px; height: 14px; cursor: pointer; }
+
+  /* ── Tabla scrollable ──────────────────────────────────────────────────── */
+  .table-scroll { overflow-x: auto; }
+  .table-scroll table { white-space: nowrap; }
+</style>
+
+  </head>
+
+  <body class="wrapper">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+      <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center fs-3" href="/">KB Stats</a>
+        <div class="d-flex gap-3 ms-auto align-items-center">
+          <a class="nav-link text-secondary" href="/promedios_jugadores/?format=html" style="font-size:0.85rem;">Promedios</a>
+          <a class="nav-link text-secondary" href="/tierlist/" style="font-size:0.85rem;">Tier List</a>
+          <a class="nav-link text-secondary" href="/ladder/" style="font-size:0.85rem;">Ladder</a>
+          
+        </div>
+      </div>
+    </nav>
+
+    <main class="container">
+<div class="container-fluid py-4">
+
+  <h1 class="page-title mb-3">
+    Promedios por Jugador
+  </h1>
+
+  <div class="filter-card">
+    <form method="get" class="row g-3 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label mb-1">Jugador</label>
+        <input
+          type="text"
+          name="jugador"
+          value=""
+          class="form-control"
+          placeholder="Filtrar por jugador"
+        />
+      </div>
+
+      <div class="col-md-2">
+        <label for="rol" class="form-label mb-1">Rol</label>
+        <select name="rol" id="rol" class="form-select">
+          <option value="">Todos</option>
+          <option value="TOP" >Top</option>
+          <option value="JGL" >Jungle</option>
+          <option value="MID" >Mid</option>
+          <option value="ADC" >ADC</option>
+          <option value="SUP" >Support</option>
+        </select>
+      </div>
+
+      <div class="col-md-2">
+        <label for="jornada" class="form-label mb-1">Jornada</label>
+        <select name="jornada" id="jornada" class="form-select">
+          <option value="">Todas</option>
+          
+            <option value="1" >1</option>
+          
+            <option value="2" >2</option>
+          
+            <option value="3" >3</option>
+          
+            <option value="4" >4</option>
+          
+            <option value="5" >5</option>
+          
+            <option value="6" >6</option>
+          
+            <option value="7" >7</option>
+          
+            <option value="FINAL" >FINAL</option>
+          
+        </select>
+      </div>
+
+      
+
+      <div class="col-md-3">
+        <label for="sort" class="form-label mb-1">Ordenar por</label>
+        <select name="sort" id="sort" class="form-select">
+          <option value="">No ordenar</option>
+          <option value="kills"                  >K</option>
+          <option value="muertes"                >D</option>
+          <option value="asistencias"            >A</option>
+          <option value="kda"                    >KDA</option>
+          <option value="kp"                     >KP %</option>
+          <option value="cs"                     >CS</option>
+          <option value="cs_min"                 >CS/min</option>
+          <option value="dano_min"               >Dmg/min</option>
+          <option value="dano_recibido"          >Dmg Rec</option>
+          <option value="porcentaje_dano_equipo" >% Dmg</option>
+          <option value="oro_min"                >Oro/min</option>
+          <option value="dano_oro"               >Dmg/Oro</option>
+          <option value="vision_min"             >Visión/min</option>
+          <option value="wpm"                    >W/min</option>
+          <option value="cwpm"                   >CW/min</option>
+          <option value="wcpm"                   >WC/min</option>
+          <option value="gold_pct"               >Gold%</option>
+          <option value="death_share"            >Death%</option>
+          <option value="win_rate"               >Win%</option>
+          <option value="gd15"                   >GD@15</option>
+          <option value="csd15"                  >CSD@15</option>
+          <option value="xpd15"                  >XPD@15</option>
+          <option value="cs15"                   >CS@15</option>
+          <option value="ka15"                   >KA@15</option>
+          <option value="fb_rate"                >FB%</option>
+          <option value="double_kills"           >2 kills</option>
+          <option value="triple_kills"           >3 kills</option>
+          <option value="quadra_kills"           >4 kills</option>
+          <option value="penta_kills"            >5 kills</option>
+          <option value="games"                  >Games</option>
+          <option value="game_time"              >Tiempo medio</option>
+        </select>
+      </div>
+
+      <div class="col-md-2">
+        <label for="order" class="form-label mb-1">Orden</label>
+        <select name="order" id="order" class="form-select">
+          <option value="desc" selected>Desc</option>
+          <option value="asc"  >Asc</option>
+        </select>
+      </div>
+
+      <div class="col-md-2 d-grid">
+        <button class="btn btn-primary">Aplicar</button>
+      </div>
+      <div class="col-md-auto d-grid">
+        <a href="/promedios_jugadores/exportar/csv/" class="btn btn-outline-success">Exportar CSV</a>
+      </div>
+      <div class="col-md-auto d-grid">
+        <button type="button" class="btn btn-outline-info" onclick="openPanel()">⊞ Columnas</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Tabla scrollable -->
+  <div class="table-scroll">
+    <table class="table table-dark-kb table-hover table-sm" id="stats-table">
+      <thead>
+        <tr>
+          <th class="col-base">#</th>
+          <th class="col-base">Jugador</th>
+          <th class="col-base">Rol</th>
+          <th class="col-combate">K</th>
+          <th class="col-combate">D</th>
+          <th class="col-combate">A</th>
+          <th class="col-combate">KDA</th>
+          <th class="col-combate">KP %</th>
+          <th class="col-farmeo">CS</th>
+          <th class="col-farmeo">CS/min</th>
+          <th class="col-farmeo">Oro/min</th>
+          <th class="col-dano">Dmg/min</th>
+          <th class="col-dano">Dmg Rec</th>
+          <th class="col-dano">% Dmg</th>
+          <th class="col-dano">Dmg/Oro</th>
+          <th class="col-vision">Visión</th>
+          <th class="col-vision">W/min</th>
+          <th class="col-vision">CW/min</th>
+          <th class="col-vision">WC/min</th>
+          <th class="col-equipo">Gold%</th>
+          <th class="col-equipo">Death%</th>
+          <th class="col-equipo">Win%</th>
+          <th class="col-early">GD@15</th>
+          <th class="col-early">CSD@15</th>
+          <th class="col-early">XPD@15</th>
+          <th class="col-early">CS@15</th>
+          <th class="col-early">KA@15</th>
+          <th class="col-early">FB%</th>
+          <th class="col-multi">2K</th>
+          <th class="col-multi">3K</th>
+          <th class="col-multi">4K</th>
+          <th class="col-multi">5K</th>
+          <th class="col-base">Games</th>
+          <th class="col-tiempo">T. medio</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td class="col-base">1</td>
+          <td class="col-base">ARS Gyökeres#ARS</td>
+          <td class="col-base">ADC</td>
+          <td class="col-combate">12</td>
+          <td class="col-combate">13</td>
+          <td class="col-combate">13</td>
+          <td class="col-combate">2.13</td>
+          <td class="col-combate">63.05</td>
+          <td class="col-farmeo">247</td>
+          <td class="col-farmeo">8.25</td>
+          <td class="col-farmeo">421.61</td>
+          <td class="col-dano">729.91</td>
+          <td class="col-dano">19059</td>
+          <td class="col-dano">29.46</td>
+          <td class="col-dano">1.70</td>
+          <td class="col-vision">0.56</td>
+          <td class="col-vision">0.21</td>
+          <td class="col-vision">0.00</td>
+          <td class="col-vision">0.11</td>
+          <td class="col-equipo">24.3</td>
+          <td class="col-equipo">20.1</td>
+          <td class="col-equipo">—</td>
+          <td class="col-early">-8</td>
+          <td class="col-early">-9.0</td>
+          <td class="col-early">-36</td>
+          <td class="col-early">122.7</td>
+          <td class="col-early">1.7</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">2</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">3</td>
+          <td class="col-tiempo">29.72</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">2</td>
+          <td class="col-base">Agnеs Tachyon#POKKE</td>
+          <td class="col-base">MID</td>
+          <td class="col-combate">5</td>
+          <td class="col-combate">17</td>
+          <td class="col-combate">5</td>
+          <td class="col-combate">0.64</td>
+          <td class="col-combate">22.22</td>
+          <td class="col-farmeo">249</td>
+          <td class="col-farmeo">7.95</td>
+          <td class="col-farmeo">344.34</td>
+          <td class="col-dano">402.49</td>
+          <td class="col-dano">21621</td>
+          <td class="col-dano">17.65</td>
+          <td class="col-dano">1.18</td>
+          <td class="col-vision">1.01</td>
+          <td class="col-vision">0.40</td>
+          <td class="col-vision">0.01</td>
+          <td class="col-vision">0.10</td>
+          <td class="col-equipo">19.7</td>
+          <td class="col-equipo">25.4</td>
+          <td class="col-equipo">—</td>
+          <td class="col-early">-1760</td>
+          <td class="col-early">-21.0</td>
+          <td class="col-early">-1154</td>
+          <td class="col-early">125.0</td>
+          <td class="col-early">0.3</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">3</td>
+          <td class="col-tiempo">31.32</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">3</td>
+          <td class="col-base">AlejandroMag#963</td>
+          <td class="col-base">MID</td>
+          <td class="col-combate">10</td>
+          <td class="col-combate">22</td>
+          <td class="col-combate">29</td>
+          <td class="col-combate">2.25</td>
+          <td class="col-combate">59.07</td>
+          <td class="col-farmeo">301</td>
+          <td class="col-farmeo">8.12</td>
+          <td class="col-farmeo">357.19</td>
+          <td class="col-dano">470.21</td>
+          <td class="col-dano">21154</td>
+          <td class="col-dano">20.60</td>
+          <td class="col-dano">1.33</td>
+          <td class="col-vision">1.17</td>
+          <td class="col-vision">0.29</td>
+          <td class="col-vision">0.10</td>
+          <td class="col-vision">0.17</td>
+          <td class="col-equipo">19.5</td>
+          <td class="col-equipo">30.1</td>
+          <td class="col-equipo">33%</td>
+          <td class="col-early">-198</td>
+          <td class="col-early">-4.2</td>
+          <td class="col-early">-418</td>
+          <td class="col-early">128.7</td>
+          <td class="col-early">1.7</td>
+          <td class="col-early">17%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">37.61</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">4</td>
+          <td class="col-base">Almo#ALMO</td>
+          <td class="col-base">SUP</td>
+          <td class="col-combate">1</td>
+          <td class="col-combate">6</td>
+          <td class="col-combate">28</td>
+          <td class="col-combate">5.83</td>
+          <td class="col-combate">76.09</td>
+          <td class="col-farmeo">97</td>
+          <td class="col-farmeo">3.54</td>
+          <td class="col-farmeo">295.90</td>
+          <td class="col-dano">229.29</td>
+          <td class="col-dano">15739</td>
+          <td class="col-dano">12.82</td>
+          <td class="col-dano">0.75</td>
+          <td class="col-vision">3.01</td>
+          <td class="col-vision">1.33</td>
+          <td class="col-vision">0.31</td>
+          <td class="col-vision">0.24</td>
+          <td class="col-equipo">16.6</td>
+          <td class="col-equipo">15.8</td>
+          <td class="col-equipo">67%</td>
+          <td class="col-early">-114</td>
+          <td class="col-early">0.3</td>
+          <td class="col-early">-54</td>
+          <td class="col-early">56.0</td>
+          <td class="col-early">1.7</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">3</td>
+          <td class="col-tiempo">29.32</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">5</td>
+          <td class="col-base">AnPuuR#1710</td>
+          <td class="col-base">MID</td>
+          <td class="col-combate">28</td>
+          <td class="col-combate">17</td>
+          <td class="col-combate">41</td>
+          <td class="col-combate">6.36</td>
+          <td class="col-combate">62.17</td>
+          <td class="col-farmeo">267</td>
+          <td class="col-farmeo">8.16</td>
+          <td class="col-farmeo">385.15</td>
+          <td class="col-dano">774.90</td>
+          <td class="col-dano">24201</td>
+          <td class="col-dano">26.31</td>
+          <td class="col-dano">1.96</td>
+          <td class="col-vision">0.96</td>
+          <td class="col-vision">0.37</td>
+          <td class="col-vision">0.09</td>
+          <td class="col-vision">0.10</td>
+          <td class="col-equipo">21.4</td>
+          <td class="col-equipo">15.8</td>
+          <td class="col-equipo">50%</td>
+          <td class="col-early">78</td>
+          <td class="col-early">7.3</td>
+          <td class="col-early">282</td>
+          <td class="col-early">128.7</td>
+          <td class="col-early">2.0</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">4</td>
+          <td class="col-multi">2</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">33.33</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">6</td>
+          <td class="col-base">BopaMeister#BOMBA</td>
+          <td class="col-base">TOP</td>
+          <td class="col-combate">11</td>
+          <td class="col-combate">5</td>
+          <td class="col-combate">25</td>
+          <td class="col-combate">11.63</td>
+          <td class="col-combate">78.22</td>
+          <td class="col-farmeo">309</td>
+          <td class="col-farmeo">7.87</td>
+          <td class="col-farmeo">446.57</td>
+          <td class="col-dano">812.54</td>
+          <td class="col-dano">37262</td>
+          <td class="col-dano">28.05</td>
+          <td class="col-dano">1.80</td>
+          <td class="col-vision">1.25</td>
+          <td class="col-vision">0.40</td>
+          <td class="col-vision">0.01</td>
+          <td class="col-vision">0.17</td>
+          <td class="col-equipo">22.5</td>
+          <td class="col-equipo">16.3</td>
+          <td class="col-equipo">100%</td>
+          <td class="col-early">592</td>
+          <td class="col-early">12.5</td>
+          <td class="col-early">196</td>
+          <td class="col-early">119.5</td>
+          <td class="col-early">2.0</td>
+          <td class="col-early">50%</td>
+          <td class="col-multi">2</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">2</td>
+          <td class="col-tiempo">38.73</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">7</td>
+          <td class="col-base">CHIRU Horizøn#CHIRU</td>
+          <td class="col-base">SUP</td>
+          <td class="col-combate">2</td>
+          <td class="col-combate">19</td>
+          <td class="col-combate">34</td>
+          <td class="col-combate">2.10</td>
+          <td class="col-combate">44.72</td>
+          <td class="col-farmeo">36</td>
+          <td class="col-farmeo">1.18</td>
+          <td class="col-farmeo">237.73</td>
+          <td class="col-dano">141.56</td>
+          <td class="col-dano">14368</td>
+          <td class="col-dano">5.85</td>
+          <td class="col-dano">0.60</td>
+          <td class="col-vision">3.03</td>
+          <td class="col-vision">1.30</td>
+          <td class="col-vision">0.28</td>
+          <td class="col-vision">0.35</td>
+          <td class="col-equipo">13.7</td>
+          <td class="col-equipo">14.6</td>
+          <td class="col-equipo">—</td>
+          <td class="col-early">-57</td>
+          <td class="col-early">1.2</td>
+          <td class="col-early">169</td>
+          <td class="col-early">25.7</td>
+          <td class="col-early">0.8</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">30.52</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">8</td>
+          <td class="col-base">CHIRU Xharon#CHIRU</td>
+          <td class="col-base">ADC</td>
+          <td class="col-combate">12</td>
+          <td class="col-combate">8</td>
+          <td class="col-combate">8</td>
+          <td class="col-combate">3.00</td>
+          <td class="col-combate">46.76</td>
+          <td class="col-farmeo">292</td>
+          <td class="col-farmeo">9.33</td>
+          <td class="col-farmeo">454.69</td>
+          <td class="col-dano">675.19</td>
+          <td class="col-dano">15125</td>
+          <td class="col-dano">29.33</td>
+          <td class="col-dano">1.49</td>
+          <td class="col-vision">0.62</td>
+          <td class="col-vision">0.33</td>
+          <td class="col-vision">0.02</td>
+          <td class="col-vision">0.12</td>
+          <td class="col-equipo">26.1</td>
+          <td class="col-equipo">11.3</td>
+          <td class="col-equipo">—</td>
+          <td class="col-early">-391</td>
+          <td class="col-early">-4.7</td>
+          <td class="col-early">-116</td>
+          <td class="col-early">127.0</td>
+          <td class="col-early">0.7</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">2</td>
+          <td class="col-multi">1</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">3</td>
+          <td class="col-tiempo">31.32</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">9</td>
+          <td class="col-base">CHOPIT0#EUW</td>
+          <td class="col-base">TOP</td>
+          <td class="col-combate">16</td>
+          <td class="col-combate">13</td>
+          <td class="col-combate">60</td>
+          <td class="col-combate">9.46</td>
+          <td class="col-combate">59.43</td>
+          <td class="col-farmeo">227</td>
+          <td class="col-farmeo">7.15</td>
+          <td class="col-farmeo">373.30</td>
+          <td class="col-dano">639.53</td>
+          <td class="col-dano">33453</td>
+          <td class="col-dano">21.99</td>
+          <td class="col-dano">1.72</td>
+          <td class="col-vision">1.19</td>
+          <td class="col-vision">0.44</td>
+          <td class="col-vision">0.08</td>
+          <td class="col-vision">0.14</td>
+          <td class="col-equipo">18.5</td>
+          <td class="col-equipo">15.4</td>
+          <td class="col-equipo">83%</td>
+          <td class="col-early">-206</td>
+          <td class="col-early">-9.2</td>
+          <td class="col-early">-317</td>
+          <td class="col-early">119.8</td>
+          <td class="col-early">1.2</td>
+          <td class="col-early">33%</td>
+          <td class="col-multi">1</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">31.81</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">10</td>
+          <td class="col-base">CarryDoctor#112</td>
+          <td class="col-base">ADC</td>
+          <td class="col-combate">30</td>
+          <td class="col-combate">11</td>
+          <td class="col-combate">53</td>
+          <td class="col-combate">8.47</td>
+          <td class="col-combate">74.57</td>
+          <td class="col-farmeo">272</td>
+          <td class="col-farmeo">8.78</td>
+          <td class="col-farmeo">493.73</td>
+          <td class="col-dano">902.17</td>
+          <td class="col-dano">12828</td>
+          <td class="col-dano">29.84</td>
+          <td class="col-dano">1.83</td>
+          <td class="col-vision">1.00</td>
+          <td class="col-vision">0.30</td>
+          <td class="col-vision">0.08</td>
+          <td class="col-vision">0.20</td>
+          <td class="col-equipo">24.1</td>
+          <td class="col-equipo">17.9</td>
+          <td class="col-equipo">100%</td>
+          <td class="col-early">421</td>
+          <td class="col-early">14.2</td>
+          <td class="col-early">-227</td>
+          <td class="col-early">141.0</td>
+          <td class="col-early">1.8</td>
+          <td class="col-early">20%</td>
+          <td class="col-multi">4</td>
+          <td class="col-multi">2</td>
+          <td class="col-multi">1</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">5</td>
+          <td class="col-tiempo">31.00</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">11</td>
+          <td class="col-base">ChuketaFanAcc#Demon</td>
+          <td class="col-base">ADC</td>
+          <td class="col-combate">16</td>
+          <td class="col-combate">18</td>
+          <td class="col-combate">37</td>
+          <td class="col-combate">3.00</td>
+          <td class="col-combate">47.97</td>
+          <td class="col-farmeo">265</td>
+          <td class="col-farmeo">8.47</td>
+          <td class="col-farmeo">442.94</td>
+          <td class="col-dano">686.45</td>
+          <td class="col-dano">16550</td>
+          <td class="col-dano">24.86</td>
+          <td class="col-dano">1.57</td>
+          <td class="col-vision">0.88</td>
+          <td class="col-vision">0.29</td>
+          <td class="col-vision">0.07</td>
+          <td class="col-vision">0.19</td>
+          <td class="col-equipo">22.3</td>
+          <td class="col-equipo">24.0</td>
+          <td class="col-equipo">80%</td>
+          <td class="col-early">-31</td>
+          <td class="col-early">-1.2</td>
+          <td class="col-early">-31</td>
+          <td class="col-early">127.6</td>
+          <td class="col-early">1.8</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">5</td>
+          <td class="col-tiempo">31.41</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">12</td>
+          <td class="col-base">Cuco#ESPÑA</td>
+          <td class="col-base">ADC</td>
+          <td class="col-combate">24</td>
+          <td class="col-combate">22</td>
+          <td class="col-combate">38</td>
+          <td class="col-combate">5.28</td>
+          <td class="col-combate">56.17</td>
+          <td class="col-farmeo">264</td>
+          <td class="col-farmeo">7.88</td>
+          <td class="col-farmeo">409.94</td>
+          <td class="col-dano">635.38</td>
+          <td class="col-dano">19751</td>
+          <td class="col-dano">22.27</td>
+          <td class="col-dano">1.54</td>
+          <td class="col-vision">0.98</td>
+          <td class="col-vision">0.33</td>
+          <td class="col-vision">0.06</td>
+          <td class="col-vision">0.20</td>
+          <td class="col-equipo">22.6</td>
+          <td class="col-equipo">20.4</td>
+          <td class="col-equipo">50%</td>
+          <td class="col-early">-1013</td>
+          <td class="col-early">-27.5</td>
+          <td class="col-early">-688</td>
+          <td class="col-early">109.8</td>
+          <td class="col-early">1.2</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">4</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">33.33</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">13</td>
+          <td class="col-base">D4dtor#444</td>
+          <td class="col-base">ADC</td>
+          <td class="col-combate">28</td>
+          <td class="col-combate">14</td>
+          <td class="col-combate">23</td>
+          <td class="col-combate">5.96</td>
+          <td class="col-combate">64.10</td>
+          <td class="col-farmeo">376</td>
+          <td class="col-farmeo">9.98</td>
+          <td class="col-farmeo">491.57</td>
+          <td class="col-dano">728.54</td>
+          <td class="col-dano">21511</td>
+          <td class="col-dano">31.46</td>
+          <td class="col-dano">1.47</td>
+          <td class="col-vision">1.33</td>
+          <td class="col-vision">0.40</td>
+          <td class="col-vision">0.12</td>
+          <td class="col-vision">0.28</td>
+          <td class="col-equipo">26.8</td>
+          <td class="col-equipo">11.6</td>
+          <td class="col-equipo">33%</td>
+          <td class="col-early">1126</td>
+          <td class="col-early">24.3</td>
+          <td class="col-early">756</td>
+          <td class="col-early">142.0</td>
+          <td class="col-early">1.5</td>
+          <td class="col-early">17%</td>
+          <td class="col-multi">5</td>
+          <td class="col-multi">1</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">37.61</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">14</td>
+          <td class="col-base">DAFenosa#ADC</td>
+          <td class="col-base">JGL</td>
+          <td class="col-combate">0</td>
+          <td class="col-combate">5</td>
+          <td class="col-combate">2</td>
+          <td class="col-combate">0.40</td>
+          <td class="col-combate">50.00</td>
+          <td class="col-farmeo">221</td>
+          <td class="col-farmeo">7.13</td>
+          <td class="col-farmeo">356.29</td>
+          <td class="col-dano">213.11</td>
+          <td class="col-dano">28275</td>
+          <td class="col-dano">6.83</td>
+          <td class="col-dano">0.60</td>
+          <td class="col-vision">0.94</td>
+          <td class="col-vision">0.42</td>
+          <td class="col-vision">0.03</td>
+          <td class="col-vision">0.13</td>
+          <td class="col-equipo">21.3</td>
+          <td class="col-equipo">41.7</td>
+          <td class="col-equipo">—</td>
+          <td class="col-early">-408</td>
+          <td class="col-early">19.0</td>
+          <td class="col-early">426</td>
+          <td class="col-early">107.0</td>
+          <td class="col-early">1.0</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">1</td>
+          <td class="col-tiempo">30.98</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">15</td>
+          <td class="col-base">DLT Ichigo#EUW</td>
+          <td class="col-base">SUP</td>
+          <td class="col-combate">0</td>
+          <td class="col-combate">0</td>
+          <td class="col-combate">14</td>
+          <td class="col-combate">14.00</td>
+          <td class="col-combate">82.35</td>
+          <td class="col-farmeo">33</td>
+          <td class="col-farmeo">1.18</td>
+          <td class="col-farmeo">284.99</td>
+          <td class="col-dano">232.75</td>
+          <td class="col-dano">3976</td>
+          <td class="col-dano">7.13</td>
+          <td class="col-dano">0.82</td>
+          <td class="col-vision">3.14</td>
+          <td class="col-vision">1.18</td>
+          <td class="col-vision">0.21</td>
+          <td class="col-vision">0.36</td>
+          <td class="col-equipo">13.6</td>
+          <td class="col-equipo">0.0</td>
+          <td class="col-equipo">100%</td>
+          <td class="col-early">594</td>
+          <td class="col-early">2.0</td>
+          <td class="col-early">744</td>
+          <td class="col-early">25.0</td>
+          <td class="col-early">2.0</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">1</td>
+          <td class="col-tiempo">27.98</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">16</td>
+          <td class="col-base">Dakin#DAK</td>
+          <td class="col-base">JGL</td>
+          <td class="col-combate">30</td>
+          <td class="col-combate">30</td>
+          <td class="col-combate">59</td>
+          <td class="col-combate">7.25</td>
+          <td class="col-combate">70.75</td>
+          <td class="col-farmeo">189</td>
+          <td class="col-farmeo">6.25</td>
+          <td class="col-farmeo">392.30</td>
+          <td class="col-dano">520.33</td>
+          <td class="col-dano">33100</td>
+          <td class="col-dano">16.14</td>
+          <td class="col-dano">1.32</td>
+          <td class="col-vision">1.35</td>
+          <td class="col-vision">0.27</td>
+          <td class="col-vision">0.18</td>
+          <td class="col-vision">0.21</td>
+          <td class="col-equipo">20.5</td>
+          <td class="col-equipo">19.5</td>
+          <td class="col-equipo">57%</td>
+          <td class="col-early">134</td>
+          <td class="col-early">6.7</td>
+          <td class="col-early">286</td>
+          <td class="col-early">110.4</td>
+          <td class="col-early">2.7</td>
+          <td class="col-early">29%</td>
+          <td class="col-multi">4</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">7</td>
+          <td class="col-tiempo">30.30</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">17</td>
+          <td class="col-base">Dantesaurio Rex#EUW</td>
+          <td class="col-base">SUP</td>
+          <td class="col-combate">1</td>
+          <td class="col-combate">13</td>
+          <td class="col-combate">63</td>
+          <td class="col-combate">5.54</td>
+          <td class="col-combate">70.51</td>
+          <td class="col-farmeo">32</td>
+          <td class="col-farmeo">1.01</td>
+          <td class="col-farmeo">264.46</td>
+          <td class="col-dano">168.77</td>
+          <td class="col-dano">14955</td>
+          <td class="col-dano">5.85</td>
+          <td class="col-dano">0.64</td>
+          <td class="col-vision">3.37</td>
+          <td class="col-vision">1.41</td>
+          <td class="col-vision">0.26</td>
+          <td class="col-vision">0.36</td>
+          <td class="col-equipo">13.2</td>
+          <td class="col-equipo">23.1</td>
+          <td class="col-equipo">75%</td>
+          <td class="col-early">-98</td>
+          <td class="col-early">2.2</td>
+          <td class="col-early">315</td>
+          <td class="col-early">21.8</td>
+          <td class="col-early">3.2</td>
+          <td class="col-early">25%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">4</td>
+          <td class="col-tiempo">31.27</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">18</td>
+          <td class="col-base">Dara#TOP</td>
+          <td class="col-base">TOP</td>
+          <td class="col-combate">22</td>
+          <td class="col-combate">19</td>
+          <td class="col-combate">47</td>
+          <td class="col-combate">5.09</td>
+          <td class="col-combate">43.31</td>
+          <td class="col-farmeo">229</td>
+          <td class="col-farmeo">7.36</td>
+          <td class="col-farmeo">360.08</td>
+          <td class="col-dano">607.74</td>
+          <td class="col-dano">29252</td>
+          <td class="col-dano">20.42</td>
+          <td class="col-dano">1.72</td>
+          <td class="col-vision">1.07</td>
+          <td class="col-vision">0.39</td>
+          <td class="col-vision">0.04</td>
+          <td class="col-vision">0.11</td>
+          <td class="col-equipo">18.8</td>
+          <td class="col-equipo">14.3</td>
+          <td class="col-equipo">50%</td>
+          <td class="col-early">64</td>
+          <td class="col-early">-5.6</td>
+          <td class="col-early">157</td>
+          <td class="col-early">121.8</td>
+          <td class="col-early">1.0</td>
+          <td class="col-early">25%</td>
+          <td class="col-multi">1</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">8</td>
+          <td class="col-tiempo">31.25</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">19</td>
+          <td class="col-base">De Tora Si Soy#Kbron</td>
+          <td class="col-base">MID</td>
+          <td class="col-combate">14</td>
+          <td class="col-combate">15</td>
+          <td class="col-combate">50</td>
+          <td class="col-combate">5.62</td>
+          <td class="col-combate">60.84</td>
+          <td class="col-farmeo">240</td>
+          <td class="col-farmeo">7.97</td>
+          <td class="col-farmeo">385.89</td>
+          <td class="col-dano">563.06</td>
+          <td class="col-dano">17059</td>
+          <td class="col-dano">20.05</td>
+          <td class="col-dano">1.40</td>
+          <td class="col-vision">1.20</td>
+          <td class="col-vision">0.43</td>
+          <td class="col-vision">0.20</td>
+          <td class="col-vision">0.14</td>
+          <td class="col-equipo">18.4</td>
+          <td class="col-equipo">33.2</td>
+          <td class="col-equipo">83%</td>
+          <td class="col-early">101</td>
+          <td class="col-early">-10.8</td>
+          <td class="col-early">-193</td>
+          <td class="col-early">126.3</td>
+          <td class="col-early">3.5</td>
+          <td class="col-early">50%</td>
+          <td class="col-multi">1</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">30.34</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">20</td>
+          <td class="col-base">Deiviaki#MVP</td>
+          <td class="col-base">SUP</td>
+          <td class="col-combate">2</td>
+          <td class="col-combate">2</td>
+          <td class="col-combate">15</td>
+          <td class="col-combate">8.50</td>
+          <td class="col-combate">77.27</td>
+          <td class="col-farmeo">44</td>
+          <td class="col-farmeo">0.94</td>
+          <td class="col-farmeo">270.98</td>
+          <td class="col-dano">363.22</td>
+          <td class="col-dano">30783</td>
+          <td class="col-dano">11.53</td>
+          <td class="col-dano">1.34</td>
+          <td class="col-vision">3.40</td>
+          <td class="col-vision">1.69</td>
+          <td class="col-vision">0.24</td>
+          <td class="col-vision">0.13</td>
+          <td class="col-equipo">14.1</td>
+          <td class="col-equipo">10.0</td>
+          <td class="col-equipo">100%</td>
+          <td class="col-early">-150</td>
+          <td class="col-early">17.0</td>
+          <td class="col-early">469</td>
+          <td class="col-early">31.0</td>
+          <td class="col-early">4.0</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">1</td>
+          <td class="col-tiempo">46.83</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">21</td>
+          <td class="col-base">DjMatrixMini#EUW</td>
+          <td class="col-base">ADC</td>
+          <td class="col-combate">11</td>
+          <td class="col-combate">2</td>
+          <td class="col-combate">5</td>
+          <td class="col-combate">8.00</td>
+          <td class="col-combate">80.00</td>
+          <td class="col-farmeo">222</td>
+          <td class="col-farmeo">7.26</td>
+          <td class="col-farmeo">564.90</td>
+          <td class="col-dano">771.40</td>
+          <td class="col-dano">22567</td>
+          <td class="col-dano">25.44</td>
+          <td class="col-dano">1.37</td>
+          <td class="col-vision">0.95</td>
+          <td class="col-vision">0.29</td>
+          <td class="col-vision">0.03</td>
+          <td class="col-vision">0.20</td>
+          <td class="col-equipo">26.0</td>
+          <td class="col-equipo">11.8</td>
+          <td class="col-equipo">100%</td>
+          <td class="col-early">-1050</td>
+          <td class="col-early">-14.0</td>
+          <td class="col-early">-1038</td>
+          <td class="col-early">115.0</td>
+          <td class="col-early">1.0</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">2</td>
+          <td class="col-multi">1</td>
+          <td class="col-multi">1</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">1</td>
+          <td class="col-tiempo">30.57</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">22</td>
+          <td class="col-base">DuncanRV#PUCHI</td>
+          <td class="col-base">MID</td>
+          <td class="col-combate">5</td>
+          <td class="col-combate">3</td>
+          <td class="col-combate">12</td>
+          <td class="col-combate">5.84</td>
+          <td class="col-combate">45.52</td>
+          <td class="col-farmeo">252</td>
+          <td class="col-farmeo">8.71</td>
+          <td class="col-farmeo">386.09</td>
+          <td class="col-dano">396.71</td>
+          <td class="col-dano">8997</td>
+          <td class="col-dano">17.31</td>
+          <td class="col-dano">1.02</td>
+          <td class="col-vision">0.98</td>
+          <td class="col-vision">0.44</td>
+          <td class="col-vision">0.06</td>
+          <td class="col-vision">0.05</td>
+          <td class="col-equipo">19.2</td>
+          <td class="col-equipo">16.7</td>
+          <td class="col-equipo">100%</td>
+          <td class="col-early">321</td>
+          <td class="col-early">8.0</td>
+          <td class="col-early">424</td>
+          <td class="col-early">137.5</td>
+          <td class="col-early">2.5</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">2</td>
+          <td class="col-tiempo">28.72</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">23</td>
+          <td class="col-base">EkoStolemybike#1460</td>
+          <td class="col-base">ADC</td>
+          <td class="col-combate">1</td>
+          <td class="col-combate">4</td>
+          <td class="col-combate">4</td>
+          <td class="col-combate">1.25</td>
+          <td class="col-combate">55.56</td>
+          <td class="col-farmeo">219</td>
+          <td class="col-farmeo">6.84</td>
+          <td class="col-farmeo">325.11</td>
+          <td class="col-dano">327.77</td>
+          <td class="col-dano">12768</td>
+          <td class="col-dano">17.46</td>
+          <td class="col-dano">1.01</td>
+          <td class="col-vision">0.81</td>
+          <td class="col-vision">0.34</td>
+          <td class="col-vision">0.00</td>
+          <td class="col-vision">0.03</td>
+          <td class="col-equipo">20.1</td>
+          <td class="col-equipo">19.1</td>
+          <td class="col-equipo">—</td>
+          <td class="col-early">-1138</td>
+          <td class="col-early">-32.0</td>
+          <td class="col-early">-442</td>
+          <td class="col-early">110.0</td>
+          <td class="col-early">1.0</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">1</td>
+          <td class="col-tiempo">32.02</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">24</td>
+          <td class="col-base">FOX Castañitas#SPAIN</td>
+          <td class="col-base">SUP</td>
+          <td class="col-combate">15</td>
+          <td class="col-combate">20</td>
+          <td class="col-combate">56</td>
+          <td class="col-combate">4.91</td>
+          <td class="col-combate">59.18</td>
+          <td class="col-farmeo">29</td>
+          <td class="col-farmeo">0.93</td>
+          <td class="col-farmeo">284.77</td>
+          <td class="col-dano">346.75</td>
+          <td class="col-dano">19174</td>
+          <td class="col-dano">11.60</td>
+          <td class="col-dano">1.18</td>
+          <td class="col-vision">2.35</td>
+          <td class="col-vision">0.93</td>
+          <td class="col-vision">0.15</td>
+          <td class="col-vision">0.24</td>
+          <td class="col-equipo">14.8</td>
+          <td class="col-equipo">14.0</td>
+          <td class="col-equipo">33%</td>
+          <td class="col-early">14</td>
+          <td class="col-early">-3.5</td>
+          <td class="col-early">-6</td>
+          <td class="col-early">17.2</td>
+          <td class="col-early">1.8</td>
+          <td class="col-early">33%</td>
+          <td class="col-multi">3</td>
+          <td class="col-multi">1</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">30.81</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">25</td>
+          <td class="col-base">FOX J4B4#J4B4</td>
+          <td class="col-base">JGL</td>
+          <td class="col-combate">26</td>
+          <td class="col-combate">24</td>
+          <td class="col-combate">42</td>
+          <td class="col-combate">4.14</td>
+          <td class="col-combate">59.44</td>
+          <td class="col-farmeo">190</td>
+          <td class="col-farmeo">6.25</td>
+          <td class="col-farmeo">382.27</td>
+          <td class="col-dano">482.14</td>
+          <td class="col-dano">32493</td>
+          <td class="col-dano">15.50</td>
+          <td class="col-dano">1.24</td>
+          <td class="col-vision">1.14</td>
+          <td class="col-vision">0.15</td>
+          <td class="col-vision">0.12</td>
+          <td class="col-vision">0.25</td>
+          <td class="col-equipo">20.1</td>
+          <td class="col-equipo">18.4</td>
+          <td class="col-equipo">33%</td>
+          <td class="col-early">-422</td>
+          <td class="col-early">-5.0</td>
+          <td class="col-early">-209</td>
+          <td class="col-early">101.0</td>
+          <td class="col-early">1.8</td>
+          <td class="col-early">17%</td>
+          <td class="col-multi">4</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">30.81</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">26</td>
+          <td class="col-base">Farlopez87#0487</td>
+          <td class="col-base">TOP</td>
+          <td class="col-combate">39</td>
+          <td class="col-combate">17</td>
+          <td class="col-combate">18</td>
+          <td class="col-combate">3.24</td>
+          <td class="col-combate">47.25</td>
+          <td class="col-farmeo">245</td>
+          <td class="col-farmeo">8.15</td>
+          <td class="col-farmeo">447.20</td>
+          <td class="col-dano">755.87</td>
+          <td class="col-dano">35210</td>
+          <td class="col-dano">26.51</td>
+          <td class="col-dano">1.68</td>
+          <td class="col-vision">1.05</td>
+          <td class="col-vision">0.40</td>
+          <td class="col-vision">0.08</td>
+          <td class="col-vision">0.13</td>
+          <td class="col-equipo">22.7</td>
+          <td class="col-equipo">18.7</td>
+          <td class="col-equipo">67%</td>
+          <td class="col-early">1346</td>
+          <td class="col-early">15.2</td>
+          <td class="col-early">732</td>
+          <td class="col-early">122.0</td>
+          <td class="col-early">3.0</td>
+          <td class="col-early">67%</td>
+          <td class="col-multi">3</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">30.21</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">27</td>
+          <td class="col-base">GoldShip#GLUE</td>
+          <td class="col-base">TOP</td>
+          <td class="col-combate">23</td>
+          <td class="col-combate">15</td>
+          <td class="col-combate">40</td>
+          <td class="col-combate">5.78</td>
+          <td class="col-combate">49.99</td>
+          <td class="col-farmeo">229</td>
+          <td class="col-farmeo">7.79</td>
+          <td class="col-farmeo">401.11</td>
+          <td class="col-dano">793.53</td>
+          <td class="col-dano">24844</td>
+          <td class="col-dano">25.11</td>
+          <td class="col-dano">1.98</td>
+          <td class="col-vision">0.84</td>
+          <td class="col-vision">0.33</td>
+          <td class="col-vision">0.02</td>
+          <td class="col-vision">0.07</td>
+          <td class="col-equipo">19.4</td>
+          <td class="col-equipo">14.7</td>
+          <td class="col-equipo">67%</td>
+          <td class="col-early">373</td>
+          <td class="col-early">12.0</td>
+          <td class="col-early">175</td>
+          <td class="col-early">127.8</td>
+          <td class="col-early">1.3</td>
+          <td class="col-early">33%</td>
+          <td class="col-multi">2</td>
+          <td class="col-multi">1</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">29.14</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">28</td>
+          <td class="col-base">H1dont#KURU</td>
+          <td class="col-base">JGL</td>
+          <td class="col-combate">33</td>
+          <td class="col-combate">16</td>
+          <td class="col-combate">56</td>
+          <td class="col-combate">11.08</td>
+          <td class="col-combate">71.26</td>
+          <td class="col-farmeo">218</td>
+          <td class="col-farmeo">7.59</td>
+          <td class="col-farmeo">458.66</td>
+          <td class="col-dano">665.66</td>
+          <td class="col-dano">31100</td>
+          <td class="col-dano">20.32</td>
+          <td class="col-dano">1.42</td>
+          <td class="col-vision">1.32</td>
+          <td class="col-vision">0.22</td>
+          <td class="col-vision">0.16</td>
+          <td class="col-vision">0.21</td>
+          <td class="col-equipo">21.8</td>
+          <td class="col-equipo">14.7</td>
+          <td class="col-equipo">67%</td>
+          <td class="col-early">821</td>
+          <td class="col-early">13.0</td>
+          <td class="col-early">914</td>
+          <td class="col-early">120.0</td>
+          <td class="col-early">4.8</td>
+          <td class="col-early">33%</td>
+          <td class="col-multi">5</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">29.14</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">29</td>
+          <td class="col-base">Hikigaayaa#YUKNO</td>
+          <td class="col-base">TOP</td>
+          <td class="col-combate">31</td>
+          <td class="col-combate">33</td>
+          <td class="col-combate">39</td>
+          <td class="col-combate">3.51</td>
+          <td class="col-combate">56.13</td>
+          <td class="col-farmeo">242</td>
+          <td class="col-farmeo">7.99</td>
+          <td class="col-farmeo">431.32</td>
+          <td class="col-dano">950.45</td>
+          <td class="col-dano">37739</td>
+          <td class="col-dano">29.11</td>
+          <td class="col-dano">2.22</td>
+          <td class="col-vision">1.26</td>
+          <td class="col-vision">0.37</td>
+          <td class="col-vision">0.07</td>
+          <td class="col-vision">0.18</td>
+          <td class="col-equipo">22.8</td>
+          <td class="col-equipo">21.1</td>
+          <td class="col-equipo">50%</td>
+          <td class="col-early">798</td>
+          <td class="col-early">18.9</td>
+          <td class="col-early">227</td>
+          <td class="col-early">130.6</td>
+          <td class="col-early">1.0</td>
+          <td class="col-early">25%</td>
+          <td class="col-multi">4</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">8</td>
+          <td class="col-tiempo">30.38</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">30</td>
+          <td class="col-base">HugoSexy#XXX</td>
+          <td class="col-base">TOP</td>
+          <td class="col-combate">18</td>
+          <td class="col-combate">27</td>
+          <td class="col-combate">20</td>
+          <td class="col-combate">1.78</td>
+          <td class="col-combate">51.52</td>
+          <td class="col-farmeo">229</td>
+          <td class="col-farmeo">7.52</td>
+          <td class="col-farmeo">398.29</td>
+          <td class="col-dano">790.70</td>
+          <td class="col-dano">29233</td>
+          <td class="col-dano">27.22</td>
+          <td class="col-dano">1.94</td>
+          <td class="col-vision">0.95</td>
+          <td class="col-vision">0.40</td>
+          <td class="col-vision">0.05</td>
+          <td class="col-vision">0.12</td>
+          <td class="col-equipo">21.1</td>
+          <td class="col-equipo">29.6</td>
+          <td class="col-equipo">25%</td>
+          <td class="col-early">266</td>
+          <td class="col-early">1.8</td>
+          <td class="col-early">486</td>
+          <td class="col-early">115.5</td>
+          <td class="col-early">1.8</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">4</td>
+          <td class="col-tiempo">30.48</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">31</td>
+          <td class="col-base">Hyakko#219</td>
+          <td class="col-base">ADC</td>
+          <td class="col-combate">5</td>
+          <td class="col-combate">1</td>
+          <td class="col-combate">5</td>
+          <td class="col-combate">10.00</td>
+          <td class="col-combate">50.00</td>
+          <td class="col-farmeo">263</td>
+          <td class="col-farmeo">8.92</td>
+          <td class="col-farmeo">494.85</td>
+          <td class="col-dano">735.02</td>
+          <td class="col-dano">13210</td>
+          <td class="col-dano">21.64</td>
+          <td class="col-dano">1.49</td>
+          <td class="col-vision">0.88</td>
+          <td class="col-vision">0.31</td>
+          <td class="col-vision">0.10</td>
+          <td class="col-vision">0.27</td>
+          <td class="col-equipo">22.8</td>
+          <td class="col-equipo">12.5</td>
+          <td class="col-equipo">100%</td>
+          <td class="col-early">719</td>
+          <td class="col-early">18.0</td>
+          <td class="col-early">533</td>
+          <td class="col-early">137.0</td>
+          <td class="col-early">0.0</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">1</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">1</td>
+          <td class="col-tiempo">29.50</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">32</td>
+          <td class="col-base">ILP#LPG</td>
+          <td class="col-base">JGL</td>
+          <td class="col-combate">34</td>
+          <td class="col-combate">15</td>
+          <td class="col-combate">62</td>
+          <td class="col-combate">10.42</td>
+          <td class="col-combate">79.13</td>
+          <td class="col-farmeo">234</td>
+          <td class="col-farmeo">6.38</td>
+          <td class="col-farmeo">406.80</td>
+          <td class="col-dano">516.92</td>
+          <td class="col-dano">33990</td>
+          <td class="col-dano">17.19</td>
+          <td class="col-dano">1.28</td>
+          <td class="col-vision">1.50</td>
+          <td class="col-vision">0.19</td>
+          <td class="col-vision">0.19</td>
+          <td class="col-vision">0.39</td>
+          <td class="col-equipo">20.9</td>
+          <td class="col-equipo">17.7</td>
+          <td class="col-equipo">83%</td>
+          <td class="col-early">373</td>
+          <td class="col-early">9.0</td>
+          <td class="col-early">306</td>
+          <td class="col-early">110.7</td>
+          <td class="col-early">3.8</td>
+          <td class="col-early">33%</td>
+          <td class="col-multi">3</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">36.59</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">33</td>
+          <td class="col-base">Invictutus#EUW</td>
+          <td class="col-base">SUP</td>
+          <td class="col-combate">7</td>
+          <td class="col-combate">20</td>
+          <td class="col-combate">52</td>
+          <td class="col-combate">4.43</td>
+          <td class="col-combate">58.16</td>
+          <td class="col-farmeo">72</td>
+          <td class="col-farmeo">2.15</td>
+          <td class="col-farmeo">284.42</td>
+          <td class="col-dano">365.26</td>
+          <td class="col-dano">17918</td>
+          <td class="col-dano">11.99</td>
+          <td class="col-dano">1.18</td>
+          <td class="col-vision">2.59</td>
+          <td class="col-vision">1.03</td>
+          <td class="col-vision">0.22</td>
+          <td class="col-vision">0.24</td>
+          <td class="col-equipo">14.5</td>
+          <td class="col-equipo">23.3</td>
+          <td class="col-equipo">80%</td>
+          <td class="col-early">-208</td>
+          <td class="col-early">-4.0</td>
+          <td class="col-early">-439</td>
+          <td class="col-early">41.4</td>
+          <td class="col-early">2.4</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">1</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">5</td>
+          <td class="col-tiempo">30.07</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">34</td>
+          <td class="col-base">J Lgend#0000</td>
+          <td class="col-base">JGL</td>
+          <td class="col-combate">38</td>
+          <td class="col-combate">6</td>
+          <td class="col-combate">38</td>
+          <td class="col-combate">10.64</td>
+          <td class="col-combate">70.85</td>
+          <td class="col-farmeo">268</td>
+          <td class="col-farmeo">8.88</td>
+          <td class="col-farmeo">484.16</td>
+          <td class="col-dano">501.70</td>
+          <td class="col-dano">28279</td>
+          <td class="col-dano">18.56</td>
+          <td class="col-dano">1.02</td>
+          <td class="col-vision">1.26</td>
+          <td class="col-vision">0.15</td>
+          <td class="col-vision">0.10</td>
+          <td class="col-vision">0.28</td>
+          <td class="col-equipo">23.1</td>
+          <td class="col-equipo">9.4</td>
+          <td class="col-equipo">83%</td>
+          <td class="col-early">1468</td>
+          <td class="col-early">28.2</td>
+          <td class="col-early">1540</td>
+          <td class="col-early">136.2</td>
+          <td class="col-early">4.2</td>
+          <td class="col-early">67%</td>
+          <td class="col-multi">6</td>
+          <td class="col-multi">1</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">30.34</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">35</td>
+          <td class="col-base">KB Cariatis#123</td>
+          <td class="col-base">MID</td>
+          <td class="col-combate">36</td>
+          <td class="col-combate">17</td>
+          <td class="col-combate">36</td>
+          <td class="col-combate">5.56</td>
+          <td class="col-combate">63.11</td>
+          <td class="col-farmeo">253</td>
+          <td class="col-farmeo">8.66</td>
+          <td class="col-farmeo">448.34</td>
+          <td class="col-dano">803.18</td>
+          <td class="col-dano">16008</td>
+          <td class="col-dano">25.72</td>
+          <td class="col-dano">1.80</td>
+          <td class="col-vision">1.11</td>
+          <td class="col-vision">0.40</td>
+          <td class="col-vision">0.11</td>
+          <td class="col-vision">0.12</td>
+          <td class="col-equipo">21.7</td>
+          <td class="col-equipo">34.3</td>
+          <td class="col-equipo">67%</td>
+          <td class="col-early">1189</td>
+          <td class="col-early">16.3</td>
+          <td class="col-early">376</td>
+          <td class="col-early">141.2</td>
+          <td class="col-early">3.8</td>
+          <td class="col-early">67%</td>
+          <td class="col-multi">6</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">29.14</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">36</td>
+          <td class="col-base">KB Davura#KAIJU</td>
+          <td class="col-base">ADC</td>
+          <td class="col-combate">31</td>
+          <td class="col-combate">4</td>
+          <td class="col-combate">24</td>
+          <td class="col-combate">10.50</td>
+          <td class="col-combate">61.66</td>
+          <td class="col-farmeo">316</td>
+          <td class="col-farmeo">10.35</td>
+          <td class="col-farmeo">551.62</td>
+          <td class="col-dano">683.73</td>
+          <td class="col-dano">12303</td>
+          <td class="col-dano">27.00</td>
+          <td class="col-dano">1.23</td>
+          <td class="col-vision">1.07</td>
+          <td class="col-vision">0.40</td>
+          <td class="col-vision">0.11</td>
+          <td class="col-vision">0.23</td>
+          <td class="col-equipo">26.5</td>
+          <td class="col-equipo">7.6</td>
+          <td class="col-equipo">80%</td>
+          <td class="col-early">2256</td>
+          <td class="col-early">26.8</td>
+          <td class="col-early">758</td>
+          <td class="col-early">145.6</td>
+          <td class="col-early">4.6</td>
+          <td class="col-early">20%</td>
+          <td class="col-multi">4</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">5</td>
+          <td class="col-tiempo">30.51</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">37</td>
+          <td class="col-base">KB Despo#KAIJU</td>
+          <td class="col-base">TOP</td>
+          <td class="col-combate">18</td>
+          <td class="col-combate">21</td>
+          <td class="col-combate">25</td>
+          <td class="col-combate">2.42</td>
+          <td class="col-combate">40.90</td>
+          <td class="col-farmeo">247</td>
+          <td class="col-farmeo">8.14</td>
+          <td class="col-farmeo">413.98</td>
+          <td class="col-dano">697.85</td>
+          <td class="col-dano">29605</td>
+          <td class="col-dano">27.55</td>
+          <td class="col-dano">1.68</td>
+          <td class="col-vision">1.54</td>
+          <td class="col-vision">0.51</td>
+          <td class="col-vision">0.15</td>
+          <td class="col-vision">0.12</td>
+          <td class="col-equipo">19.8</td>
+          <td class="col-equipo">44.3</td>
+          <td class="col-equipo">83%</td>
+          <td class="col-early">632</td>
+          <td class="col-early">19.8</td>
+          <td class="col-early">113</td>
+          <td class="col-early">127.0</td>
+          <td class="col-early">2.0</td>
+          <td class="col-early">33%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">30.34</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">38</td>
+          <td class="col-base">KB Sergi#KBK</td>
+          <td class="col-base">SUP</td>
+          <td class="col-combate">3</td>
+          <td class="col-combate">3</td>
+          <td class="col-combate">74</td>
+          <td class="col-combate">11.50</td>
+          <td class="col-combate">70.47</td>
+          <td class="col-farmeo">31</td>
+          <td class="col-farmeo">1.01</td>
+          <td class="col-farmeo">271.44</td>
+          <td class="col-dano">211.29</td>
+          <td class="col-dano">10778</td>
+          <td class="col-dano">7.73</td>
+          <td class="col-dano">0.77</td>
+          <td class="col-vision">3.32</td>
+          <td class="col-vision">1.44</td>
+          <td class="col-vision">0.31</td>
+          <td class="col-vision">0.39</td>
+          <td class="col-equipo">12.9</td>
+          <td class="col-equipo">4.7</td>
+          <td class="col-equipo">83%</td>
+          <td class="col-early">428</td>
+          <td class="col-early">1.7</td>
+          <td class="col-early">576</td>
+          <td class="col-early">22.2</td>
+          <td class="col-early">4.0</td>
+          <td class="col-early">17%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">30.34</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">39</td>
+          <td class="col-base">KB Xenius#KBK</td>
+          <td class="col-base">JGL</td>
+          <td class="col-combate">29</td>
+          <td class="col-combate">8</td>
+          <td class="col-combate">61</td>
+          <td class="col-combate">12.40</td>
+          <td class="col-combate">77.78</td>
+          <td class="col-farmeo">234</td>
+          <td class="col-farmeo">7.23</td>
+          <td class="col-farmeo">451.31</td>
+          <td class="col-dano">732.29</td>
+          <td class="col-dano">40939</td>
+          <td class="col-dano">24.29</td>
+          <td class="col-dano">1.59</td>
+          <td class="col-vision">1.12</td>
+          <td class="col-vision">0.16</td>
+          <td class="col-vision">0.08</td>
+          <td class="col-vision">0.21</td>
+          <td class="col-equipo">21.7</td>
+          <td class="col-equipo">13.8</td>
+          <td class="col-equipo">100%</td>
+          <td class="col-early">207</td>
+          <td class="col-early">2.0</td>
+          <td class="col-early">307</td>
+          <td class="col-early">113.4</td>
+          <td class="col-early">3.4</td>
+          <td class="col-early">20%</td>
+          <td class="col-multi">3</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">5</td>
+          <td class="col-tiempo">32.22</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">40</td>
+          <td class="col-base">KT Bdd#1EUW</td>
+          <td class="col-base">ADC</td>
+          <td class="col-combate">23</td>
+          <td class="col-combate">25</td>
+          <td class="col-combate">38</td>
+          <td class="col-combate">2.97</td>
+          <td class="col-combate">62.88</td>
+          <td class="col-farmeo">253</td>
+          <td class="col-farmeo">8.03</td>
+          <td class="col-farmeo">457.13</td>
+          <td class="col-dano">916.73</td>
+          <td class="col-dano">20418</td>
+          <td class="col-dano">28.03</td>
+          <td class="col-dano">1.91</td>
+          <td class="col-vision">0.70</td>
+          <td class="col-vision">0.27</td>
+          <td class="col-vision">0.00</td>
+          <td class="col-vision">0.15</td>
+          <td class="col-equipo">23.9</td>
+          <td class="col-equipo">26.9</td>
+          <td class="col-equipo">40%</td>
+          <td class="col-early">-530</td>
+          <td class="col-early">3.0</td>
+          <td class="col-early">122</td>
+          <td class="col-early">124.8</td>
+          <td class="col-early">1.6</td>
+          <td class="col-early">40%</td>
+          <td class="col-multi">2</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">5</td>
+          <td class="col-tiempo">31.29</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">41</td>
+          <td class="col-base">Kaboshi#4087</td>
+          <td class="col-base">JGL</td>
+          <td class="col-combate">37</td>
+          <td class="col-combate">25</td>
+          <td class="col-combate">72</td>
+          <td class="col-combate">6.90</td>
+          <td class="col-combate">69.33</td>
+          <td class="col-farmeo">202</td>
+          <td class="col-farmeo">6.50</td>
+          <td class="col-farmeo">399.50</td>
+          <td class="col-dano">475.27</td>
+          <td class="col-dano">34258</td>
+          <td class="col-dano">15.80</td>
+          <td class="col-dano">1.17</td>
+          <td class="col-vision">1.18</td>
+          <td class="col-vision">0.18</td>
+          <td class="col-vision">0.18</td>
+          <td class="col-vision">0.25</td>
+          <td class="col-equipo">20.9</td>
+          <td class="col-equipo">23.6</td>
+          <td class="col-equipo">50%</td>
+          <td class="col-early">240</td>
+          <td class="col-early">3.9</td>
+          <td class="col-early">173</td>
+          <td class="col-early">112.2</td>
+          <td class="col-early">2.9</td>
+          <td class="col-early">50%</td>
+          <td class="col-multi">2</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">8</td>
+          <td class="col-tiempo">31.25</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">42</td>
+          <td class="col-base">KingKai#EzTop</td>
+          <td class="col-base">TOP</td>
+          <td class="col-combate">2</td>
+          <td class="col-combate">7</td>
+          <td class="col-combate">1</td>
+          <td class="col-combate">0.43</td>
+          <td class="col-combate">37.50</td>
+          <td class="col-farmeo">222</td>
+          <td class="col-farmeo">7.25</td>
+          <td class="col-farmeo">335.73</td>
+          <td class="col-dano">486.40</td>
+          <td class="col-dano">29823</td>
+          <td class="col-dano">22.51</td>
+          <td class="col-dano">1.45</td>
+          <td class="col-vision">1.18</td>
+          <td class="col-vision">0.46</td>
+          <td class="col-vision">0.07</td>
+          <td class="col-vision">0.07</td>
+          <td class="col-equipo">20.3</td>
+          <td class="col-equipo">29.2</td>
+          <td class="col-equipo">—</td>
+          <td class="col-early">-341</td>
+          <td class="col-early">10.0</td>
+          <td class="col-early">-381</td>
+          <td class="col-early">115.0</td>
+          <td class="col-early">1.0</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">1</td>
+          <td class="col-tiempo">30.62</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">43</td>
+          <td class="col-base">Knight Artorias#TPG</td>
+          <td class="col-base">TOP</td>
+          <td class="col-combate">11</td>
+          <td class="col-combate">19</td>
+          <td class="col-combate">16</td>
+          <td class="col-combate">1.82</td>
+          <td class="col-combate">47.48</td>
+          <td class="col-farmeo">215</td>
+          <td class="col-farmeo">6.99</td>
+          <td class="col-farmeo">356.03</td>
+          <td class="col-dano">709.93</td>
+          <td class="col-dano">32444</td>
+          <td class="col-dano">28.21</td>
+          <td class="col-dano">1.98</td>
+          <td class="col-vision">0.82</td>
+          <td class="col-vision">0.28</td>
+          <td class="col-vision">0.02</td>
+          <td class="col-vision">0.08</td>
+          <td class="col-equipo">20.9</td>
+          <td class="col-equipo">25.5</td>
+          <td class="col-equipo">25%</td>
+          <td class="col-early">-960</td>
+          <td class="col-early">-15.0</td>
+          <td class="col-early">-667</td>
+          <td class="col-early">115.2</td>
+          <td class="col-early">0.8</td>
+          <td class="col-early">25%</td>
+          <td class="col-multi">1</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">4</td>
+          <td class="col-tiempo">30.63</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">44</td>
+          <td class="col-base">Kokü#95519</td>
+          <td class="col-base">SUP</td>
+          <td class="col-combate">13</td>
+          <td class="col-combate">17</td>
+          <td class="col-combate">69</td>
+          <td class="col-combate">7.66</td>
+          <td class="col-combate">67.32</td>
+          <td class="col-farmeo">65</td>
+          <td class="col-farmeo">2.17</td>
+          <td class="col-farmeo">289.43</td>
+          <td class="col-dano">313.37</td>
+          <td class="col-dano">15979</td>
+          <td class="col-dano">10.16</td>
+          <td class="col-dano">1.02</td>
+          <td class="col-vision">2.51</td>
+          <td class="col-vision">0.99</td>
+          <td class="col-vision">0.26</td>
+          <td class="col-vision">0.29</td>
+          <td class="col-equipo">14.3</td>
+          <td class="col-equipo">19.4</td>
+          <td class="col-equipo">83%</td>
+          <td class="col-early">120</td>
+          <td class="col-early">2.3</td>
+          <td class="col-early">348</td>
+          <td class="col-early">40.5</td>
+          <td class="col-early">2.0</td>
+          <td class="col-early">17%</td>
+          <td class="col-multi">3</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">31.81</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">45</td>
+          <td class="col-base">LEA JUGKING#EUW</td>
+          <td class="col-base">TOP</td>
+          <td class="col-combate">6</td>
+          <td class="col-combate">8</td>
+          <td class="col-combate">5</td>
+          <td class="col-combate">1.37</td>
+          <td class="col-combate">60.59</td>
+          <td class="col-farmeo">219</td>
+          <td class="col-farmeo">7.22</td>
+          <td class="col-farmeo">352.04</td>
+          <td class="col-dano">704.10</td>
+          <td class="col-dano">35005</td>
+          <td class="col-dano">29.85</td>
+          <td class="col-dano">1.92</td>
+          <td class="col-vision">0.69</td>
+          <td class="col-vision">0.30</td>
+          <td class="col-vision">0.00</td>
+          <td class="col-vision">0.05</td>
+          <td class="col-equipo">20.8</td>
+          <td class="col-equipo">22.5</td>
+          <td class="col-equipo">—</td>
+          <td class="col-early">-1593</td>
+          <td class="col-early">-27.5</td>
+          <td class="col-early">-905</td>
+          <td class="col-early">112.5</td>
+          <td class="col-early">0.5</td>
+          <td class="col-early">50%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">2</td>
+          <td class="col-tiempo">30.40</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">46</td>
+          <td class="col-base">LJX Cartabón#GULO</td>
+          <td class="col-base">TOP</td>
+          <td class="col-combate">7</td>
+          <td class="col-combate">12</td>
+          <td class="col-combate">3</td>
+          <td class="col-combate">0.84</td>
+          <td class="col-combate">44.95</td>
+          <td class="col-farmeo">194</td>
+          <td class="col-farmeo">7.00</td>
+          <td class="col-farmeo">334.82</td>
+          <td class="col-dano">592.46</td>
+          <td class="col-dano">21799</td>
+          <td class="col-dano">27.20</td>
+          <td class="col-dano">1.80</td>
+          <td class="col-vision">1.10</td>
+          <td class="col-vision">0.32</td>
+          <td class="col-vision">0.02</td>
+          <td class="col-vision">0.19</td>
+          <td class="col-equipo">20.9</td>
+          <td class="col-equipo">20.5</td>
+          <td class="col-equipo">—</td>
+          <td class="col-early">-1705</td>
+          <td class="col-early">-31.7</td>
+          <td class="col-early">-892</td>
+          <td class="col-early">100.3</td>
+          <td class="col-early">0.7</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">1</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">3</td>
+          <td class="col-tiempo">27.83</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">47</td>
+          <td class="col-base">LJX Escuadra#TRIÁN</td>
+          <td class="col-base">JGL</td>
+          <td class="col-combate">10</td>
+          <td class="col-combate">17</td>
+          <td class="col-combate">20</td>
+          <td class="col-combate">3.08</td>
+          <td class="col-combate">66.68</td>
+          <td class="col-farmeo">204</td>
+          <td class="col-farmeo">7.13</td>
+          <td class="col-farmeo">364.01</td>
+          <td class="col-dano">410.94</td>
+          <td class="col-dano">21591</td>
+          <td class="col-dano">17.79</td>
+          <td class="col-dano">1.10</td>
+          <td class="col-vision">1.22</td>
+          <td class="col-vision">0.25</td>
+          <td class="col-vision">0.23</td>
+          <td class="col-vision">0.30</td>
+          <td class="col-equipo">21.7</td>
+          <td class="col-equipo">15.9</td>
+          <td class="col-equipo">20%</td>
+          <td class="col-early">-571</td>
+          <td class="col-early">-3.8</td>
+          <td class="col-early">-318</td>
+          <td class="col-early">113.8</td>
+          <td class="col-early">1.8</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">5</td>
+          <td class="col-tiempo">28.24</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">48</td>
+          <td class="col-base">LYTHIUMM#EUW</td>
+          <td class="col-base">ADC</td>
+          <td class="col-combate">53</td>
+          <td class="col-combate">22</td>
+          <td class="col-combate">52</td>
+          <td class="col-combate">7.21</td>
+          <td class="col-combate">69.76</td>
+          <td class="col-farmeo">244</td>
+          <td class="col-farmeo">7.80</td>
+          <td class="col-farmeo">464.81</td>
+          <td class="col-dano">766.80</td>
+          <td class="col-dano">15826</td>
+          <td class="col-dano">25.23</td>
+          <td class="col-dano">1.65</td>
+          <td class="col-vision">0.61</td>
+          <td class="col-vision">0.28</td>
+          <td class="col-vision">0.07</td>
+          <td class="col-vision">0.06</td>
+          <td class="col-equipo">24.4</td>
+          <td class="col-equipo">20.1</td>
+          <td class="col-equipo">50%</td>
+          <td class="col-early">-119</td>
+          <td class="col-early">-5.6</td>
+          <td class="col-early">-13</td>
+          <td class="col-early">118.0</td>
+          <td class="col-early">2.5</td>
+          <td class="col-early">25%</td>
+          <td class="col-multi">11</td>
+          <td class="col-multi">1</td>
+          <td class="col-multi">1</td>
+          <td class="col-multi">1</td>
+          <td class="col-base">8</td>
+          <td class="col-tiempo">31.25</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">49</td>
+          <td class="col-base">Lady#2002</td>
+          <td class="col-base">MID</td>
+          <td class="col-combate">12</td>
+          <td class="col-combate">25</td>
+          <td class="col-combate">19</td>
+          <td class="col-combate">1.54</td>
+          <td class="col-combate">62.93</td>
+          <td class="col-farmeo">238</td>
+          <td class="col-farmeo">8.26</td>
+          <td class="col-farmeo">370.83</td>
+          <td class="col-dano">723.07</td>
+          <td class="col-dano">16641</td>
+          <td class="col-dano">30.64</td>
+          <td class="col-dano">2.01</td>
+          <td class="col-vision">1.16</td>
+          <td class="col-vision">0.46</td>
+          <td class="col-vision">0.13</td>
+          <td class="col-vision">0.09</td>
+          <td class="col-equipo">21.5</td>
+          <td class="col-equipo">21.1</td>
+          <td class="col-equipo">20%</td>
+          <td class="col-early">-661</td>
+          <td class="col-early">-5.8</td>
+          <td class="col-early">19</td>
+          <td class="col-early">127.8</td>
+          <td class="col-early">2.4</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">2</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">5</td>
+          <td class="col-tiempo">28.87</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">50</td>
+          <td class="col-base">LegendLegacyy#EUW</td>
+          <td class="col-base">ADC</td>
+          <td class="col-combate">25</td>
+          <td class="col-combate">16</td>
+          <td class="col-combate">38</td>
+          <td class="col-combate">6.51</td>
+          <td class="col-combate">48.19</td>
+          <td class="col-farmeo">283</td>
+          <td class="col-farmeo">9.76</td>
+          <td class="col-farmeo">495.46</td>
+          <td class="col-dano">685.86</td>
+          <td class="col-dano">15079</td>
+          <td class="col-dano">21.09</td>
+          <td class="col-dano">1.35</td>
+          <td class="col-vision">0.98</td>
+          <td class="col-vision">0.47</td>
+          <td class="col-vision">0.17</td>
+          <td class="col-vision">0.15</td>
+          <td class="col-equipo">23.7</td>
+          <td class="col-equipo">14.2</td>
+          <td class="col-equipo">67%</td>
+          <td class="col-early">55</td>
+          <td class="col-early">10.0</td>
+          <td class="col-early">230</td>
+          <td class="col-early">139.0</td>
+          <td class="col-early">1.7</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">4</td>
+          <td class="col-multi">1</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">29.14</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">51</td>
+          <td class="col-base">Lolex#Lolex</td>
+          <td class="col-base">ADC</td>
+          <td class="col-combate">44</td>
+          <td class="col-combate">16</td>
+          <td class="col-combate">51</td>
+          <td class="col-combate">8.64</td>
+          <td class="col-combate">77.14</td>
+          <td class="col-farmeo">352</td>
+          <td class="col-farmeo">9.58</td>
+          <td class="col-farmeo">505.09</td>
+          <td class="col-dano">956.01</td>
+          <td class="col-dano">17847</td>
+          <td class="col-dano">32.48</td>
+          <td class="col-dano">1.88</td>
+          <td class="col-vision">0.99</td>
+          <td class="col-vision">0.33</td>
+          <td class="col-vision">0.06</td>
+          <td class="col-vision">0.24</td>
+          <td class="col-equipo">25.9</td>
+          <td class="col-equipo">18.6</td>
+          <td class="col-equipo">83%</td>
+          <td class="col-early">1039</td>
+          <td class="col-early">25.0</td>
+          <td class="col-early">397</td>
+          <td class="col-early">139.0</td>
+          <td class="col-early">3.0</td>
+          <td class="col-early">17%</td>
+          <td class="col-multi">7</td>
+          <td class="col-multi">2</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">36.59</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">52</td>
+          <td class="col-base">Lord MargaKahn#EUW</td>
+          <td class="col-base">TOP</td>
+          <td class="col-combate">10</td>
+          <td class="col-combate">13</td>
+          <td class="col-combate">9</td>
+          <td class="col-combate">1.49</td>
+          <td class="col-combate">46.86</td>
+          <td class="col-farmeo">218</td>
+          <td class="col-farmeo">8.08</td>
+          <td class="col-farmeo">350.98</td>
+          <td class="col-dano">552.66</td>
+          <td class="col-dano">17946</td>
+          <td class="col-dano">24.41</td>
+          <td class="col-dano">1.56</td>
+          <td class="col-vision">0.88</td>
+          <td class="col-vision">0.39</td>
+          <td class="col-vision">0.04</td>
+          <td class="col-vision">0.04</td>
+          <td class="col-equipo">20.9</td>
+          <td class="col-equipo">16.4</td>
+          <td class="col-equipo">25%</td>
+          <td class="col-early">324</td>
+          <td class="col-early">20.5</td>
+          <td class="col-early">456</td>
+          <td class="col-early">133.2</td>
+          <td class="col-early">1.5</td>
+          <td class="col-early">50%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">4</td>
+          <td class="col-tiempo">27.30</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">53</td>
+          <td class="col-base">MIBR Gitano#CAMEL</td>
+          <td class="col-base">ADC</td>
+          <td class="col-combate">0</td>
+          <td class="col-combate">4</td>
+          <td class="col-combate">1</td>
+          <td class="col-combate">0.25</td>
+          <td class="col-combate">14.29</td>
+          <td class="col-farmeo">177</td>
+          <td class="col-farmeo">7.30</td>
+          <td class="col-farmeo">338.01</td>
+          <td class="col-dano">342.46</td>
+          <td class="col-dano">12688</td>
+          <td class="col-dano">14.88</td>
+          <td class="col-dano">1.01</td>
+          <td class="col-vision">0.41</td>
+          <td class="col-vision">0.21</td>
+          <td class="col-vision">0.00</td>
+          <td class="col-vision">0.08</td>
+          <td class="col-equipo">20.0</td>
+          <td class="col-equipo">17.4</td>
+          <td class="col-equipo">—</td>
+          <td class="col-early">-1546</td>
+          <td class="col-early">-29.0</td>
+          <td class="col-early">-608</td>
+          <td class="col-early">120.0</td>
+          <td class="col-early">1.0</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">1</td>
+          <td class="col-tiempo">24.23</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">54</td>
+          <td class="col-base">MPT BASTIII#MPT</td>
+          <td class="col-base">MID</td>
+          <td class="col-combate">19</td>
+          <td class="col-combate">16</td>
+          <td class="col-combate">58</td>
+          <td class="col-combate">8.58</td>
+          <td class="col-combate">61.54</td>
+          <td class="col-farmeo">272</td>
+          <td class="col-farmeo">7.53</td>
+          <td class="col-farmeo">375.43</td>
+          <td class="col-dano">568.36</td>
+          <td class="col-dano">21639</td>
+          <td class="col-dano">18.72</td>
+          <td class="col-dano">1.50</td>
+          <td class="col-vision">1.15</td>
+          <td class="col-vision">0.41</td>
+          <td class="col-vision">0.11</td>
+          <td class="col-vision">0.18</td>
+          <td class="col-equipo">19.3</td>
+          <td class="col-equipo">19.8</td>
+          <td class="col-equipo">83%</td>
+          <td class="col-early">-330</td>
+          <td class="col-early">-2.2</td>
+          <td class="col-early">-278</td>
+          <td class="col-early">127.5</td>
+          <td class="col-early">2.3</td>
+          <td class="col-early">17%</td>
+          <td class="col-multi">2</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">36.59</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">55</td>
+          <td class="col-base">MaikyG#EUW2</td>
+          <td class="col-base">JGL</td>
+          <td class="col-combate">4</td>
+          <td class="col-combate">13</td>
+          <td class="col-combate">7</td>
+          <td class="col-combate">0.84</td>
+          <td class="col-combate">70.00</td>
+          <td class="col-farmeo">156</td>
+          <td class="col-farmeo">5.70</td>
+          <td class="col-farmeo">334.22</td>
+          <td class="col-dano">394.32</td>
+          <td class="col-dano">28609</td>
+          <td class="col-dano">16.94</td>
+          <td class="col-dano">1.16</td>
+          <td class="col-vision">0.99</td>
+          <td class="col-vision">0.18</td>
+          <td class="col-vision">0.09</td>
+          <td class="col-vision">0.20</td>
+          <td class="col-equipo">19.2</td>
+          <td class="col-equipo">29.5</td>
+          <td class="col-equipo">—</td>
+          <td class="col-early">-1724</td>
+          <td class="col-early">-27.0</td>
+          <td class="col-early">-1316</td>
+          <td class="col-early">107.0</td>
+          <td class="col-early">2.5</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">2</td>
+          <td class="col-tiempo">27.58</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">56</td>
+          <td class="col-base">Makitah#EUW</td>
+          <td class="col-base">MID</td>
+          <td class="col-combate">37</td>
+          <td class="col-combate">25</td>
+          <td class="col-combate">68</td>
+          <td class="col-combate">6.69</td>
+          <td class="col-combate">69.29</td>
+          <td class="col-farmeo">269</td>
+          <td class="col-farmeo">8.60</td>
+          <td class="col-farmeo">414.35</td>
+          <td class="col-dano">807.36</td>
+          <td class="col-dano">16328</td>
+          <td class="col-dano">27.45</td>
+          <td class="col-dano">1.99</td>
+          <td class="col-vision">1.33</td>
+          <td class="col-vision">0.48</td>
+          <td class="col-vision">0.16</td>
+          <td class="col-vision">0.16</td>
+          <td class="col-equipo">21.7</td>
+          <td class="col-equipo">19.8</td>
+          <td class="col-equipo">50%</td>
+          <td class="col-early">780</td>
+          <td class="col-early">15.4</td>
+          <td class="col-early">96</td>
+          <td class="col-early">143.1</td>
+          <td class="col-early">2.2</td>
+          <td class="col-early">50%</td>
+          <td class="col-multi">5</td>
+          <td class="col-multi">1</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">8</td>
+          <td class="col-tiempo">31.25</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">57</td>
+          <td class="col-base">Marakaś #EUW</td>
+          <td class="col-base">JGL</td>
+          <td class="col-combate">6</td>
+          <td class="col-combate">1</td>
+          <td class="col-combate">6</td>
+          <td class="col-combate">12.00</td>
+          <td class="col-combate">70.59</td>
+          <td class="col-farmeo">178</td>
+          <td class="col-farmeo">7.00</td>
+          <td class="col-farmeo">448.29</td>
+          <td class="col-dano">603.38</td>
+          <td class="col-dano">24983</td>
+          <td class="col-dano">27.97</td>
+          <td class="col-dano">1.35</td>
+          <td class="col-vision">1.42</td>
+          <td class="col-vision">0.28</td>
+          <td class="col-vision">0.24</td>
+          <td class="col-vision">0.28</td>
+          <td class="col-equipo">21.5</td>
+          <td class="col-equipo">11.1</td>
+          <td class="col-equipo">100%</td>
+          <td class="col-early">1001</td>
+          <td class="col-early">12.0</td>
+          <td class="col-early">1125</td>
+          <td class="col-early">95.0</td>
+          <td class="col-early">4.0</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">1</td>
+          <td class="col-tiempo">25.42</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">58</td>
+          <td class="col-base">MiKi#56428</td>
+          <td class="col-base">TOP</td>
+          <td class="col-combate">22</td>
+          <td class="col-combate">17</td>
+          <td class="col-combate">40</td>
+          <td class="col-combate">5.67</td>
+          <td class="col-combate">52.11</td>
+          <td class="col-farmeo">289</td>
+          <td class="col-farmeo">7.82</td>
+          <td class="col-farmeo">380.90</td>
+          <td class="col-dano">641.52</td>
+          <td class="col-dano">30134</td>
+          <td class="col-dano">21.69</td>
+          <td class="col-dano">1.68</td>
+          <td class="col-vision">1.02</td>
+          <td class="col-vision">0.32</td>
+          <td class="col-vision">0.07</td>
+          <td class="col-vision">0.09</td>
+          <td class="col-equipo">19.6</td>
+          <td class="col-equipo">19.3</td>
+          <td class="col-equipo">83%</td>
+          <td class="col-early">199</td>
+          <td class="col-early">6.8</td>
+          <td class="col-early">657</td>
+          <td class="col-early">120.0</td>
+          <td class="col-early">2.2</td>
+          <td class="col-early">50%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">36.59</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">59</td>
+          <td class="col-base">Mitsu#PRIME</td>
+          <td class="col-base">JGL</td>
+          <td class="col-combate">2</td>
+          <td class="col-combate">3</td>
+          <td class="col-combate">4</td>
+          <td class="col-combate">2.00</td>
+          <td class="col-combate">66.67</td>
+          <td class="col-farmeo">125</td>
+          <td class="col-farmeo">4.92</td>
+          <td class="col-farmeo">309.64</td>
+          <td class="col-dano">297.48</td>
+          <td class="col-dano">19433</td>
+          <td class="col-dano">16.73</td>
+          <td class="col-dano">0.96</td>
+          <td class="col-vision">0.98</td>
+          <td class="col-vision">0.32</td>
+          <td class="col-vision">0.20</td>
+          <td class="col-vision">0.12</td>
+          <td class="col-equipo">18.8</td>
+          <td class="col-equipo">17.7</td>
+          <td class="col-equipo">—</td>
+          <td class="col-early">-1001</td>
+          <td class="col-early">-12.0</td>
+          <td class="col-early">-1125</td>
+          <td class="col-early">83.0</td>
+          <td class="col-early">5.0</td>
+          <td class="col-early">100%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">1</td>
+          <td class="col-tiempo">25.42</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">60</td>
+          <td class="col-base">Narcïso#ADC</td>
+          <td class="col-base">ADC</td>
+          <td class="col-combate">47</td>
+          <td class="col-combate">12</td>
+          <td class="col-combate">38</td>
+          <td class="col-combate">8.58</td>
+          <td class="col-combate">69.23</td>
+          <td class="col-farmeo">295</td>
+          <td class="col-farmeo">9.50</td>
+          <td class="col-farmeo">547.93</td>
+          <td class="col-dano">852.23</td>
+          <td class="col-dano">14598</td>
+          <td class="col-dano">31.18</td>
+          <td class="col-dano">1.54</td>
+          <td class="col-vision">0.92</td>
+          <td class="col-vision">0.33</td>
+          <td class="col-vision">0.04</td>
+          <td class="col-vision">0.20</td>
+          <td class="col-equipo">27.4</td>
+          <td class="col-equipo">16.2</td>
+          <td class="col-equipo">83%</td>
+          <td class="col-early">526</td>
+          <td class="col-early">9.2</td>
+          <td class="col-early">477</td>
+          <td class="col-early">134.7</td>
+          <td class="col-early">2.7</td>
+          <td class="col-early">17%</td>
+          <td class="col-multi">10</td>
+          <td class="col-multi">2</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">31.09</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">61</td>
+          <td class="col-base">OG BuZz#TPG</td>
+          <td class="col-base">JGL</td>
+          <td class="col-combate">24</td>
+          <td class="col-combate">25</td>
+          <td class="col-combate">47</td>
+          <td class="col-combate">5.73</td>
+          <td class="col-combate">73.37</td>
+          <td class="col-farmeo">213</td>
+          <td class="col-farmeo">6.40</td>
+          <td class="col-farmeo">383.77</td>
+          <td class="col-dano">476.32</td>
+          <td class="col-dano">34409</td>
+          <td class="col-dano">17.10</td>
+          <td class="col-dano">1.23</td>
+          <td class="col-vision">1.43</td>
+          <td class="col-vision">0.21</td>
+          <td class="col-vision">0.14</td>
+          <td class="col-vision">0.34</td>
+          <td class="col-equipo">21.3</td>
+          <td class="col-equipo">22.5</td>
+          <td class="col-equipo">50%</td>
+          <td class="col-early">-99</td>
+          <td class="col-early">0.2</td>
+          <td class="col-early">-178</td>
+          <td class="col-early">104.5</td>
+          <td class="col-early">2.7</td>
+          <td class="col-early">33%</td>
+          <td class="col-multi">3</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">33.33</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">62</td>
+          <td class="col-base">PSF Alatriste#123</td>
+          <td class="col-base">SUP</td>
+          <td class="col-combate">0</td>
+          <td class="col-combate">2</td>
+          <td class="col-combate">3</td>
+          <td class="col-combate">1.50</td>
+          <td class="col-combate">50.00</td>
+          <td class="col-farmeo">48</td>
+          <td class="col-farmeo">1.46</td>
+          <td class="col-farmeo">236.80</td>
+          <td class="col-dano">329.34</td>
+          <td class="col-dano">12313</td>
+          <td class="col-dano">14.46</td>
+          <td class="col-dano">1.39</td>
+          <td class="col-vision">3.93</td>
+          <td class="col-vision">1.77</td>
+          <td class="col-vision">0.24</td>
+          <td class="col-vision">0.49</td>
+          <td class="col-equipo">15.2</td>
+          <td class="col-equipo">8.3</td>
+          <td class="col-equipo">—</td>
+          <td class="col-early">-220</td>
+          <td class="col-early">6.0</td>
+          <td class="col-early">624</td>
+          <td class="col-early">25.0</td>
+          <td class="col-early">1.0</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">1</td>
+          <td class="col-tiempo">32.78</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">63</td>
+          <td class="col-base">PSF Dayx#1312</td>
+          <td class="col-base">JGL</td>
+          <td class="col-combate">12</td>
+          <td class="col-combate">28</td>
+          <td class="col-combate">13</td>
+          <td class="col-combate">0.94</td>
+          <td class="col-combate">50.89</td>
+          <td class="col-farmeo">186</td>
+          <td class="col-farmeo">6.24</td>
+          <td class="col-farmeo">337.02</td>
+          <td class="col-dano">331.18</td>
+          <td class="col-dano">26862</td>
+          <td class="col-dano">15.28</td>
+          <td class="col-dano">0.99</td>
+          <td class="col-vision">0.78</td>
+          <td class="col-vision">0.14</td>
+          <td class="col-vision">0.08</td>
+          <td class="col-vision">0.17</td>
+          <td class="col-equipo">21.0</td>
+          <td class="col-equipo">21.2</td>
+          <td class="col-equipo">—</td>
+          <td class="col-early">-742</td>
+          <td class="col-early">-10.5</td>
+          <td class="col-early">-432</td>
+          <td class="col-early">109.5</td>
+          <td class="col-early">1.0</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">2</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">29.94</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">64</td>
+          <td class="col-base">PSF JFet#PSF</td>
+          <td class="col-base">SUP</td>
+          <td class="col-combate">0</td>
+          <td class="col-combate">10</td>
+          <td class="col-combate">12</td>
+          <td class="col-combate">1.38</td>
+          <td class="col-combate">63.75</td>
+          <td class="col-farmeo">28</td>
+          <td class="col-farmeo">0.90</td>
+          <td class="col-farmeo">222.61</td>
+          <td class="col-dano">130.53</td>
+          <td class="col-dano">15787</td>
+          <td class="col-dano">6.10</td>
+          <td class="col-dano">0.59</td>
+          <td class="col-vision">2.99</td>
+          <td class="col-vision">1.32</td>
+          <td class="col-vision">0.36</td>
+          <td class="col-vision">0.31</td>
+          <td class="col-equipo">13.7</td>
+          <td class="col-equipo">24.3</td>
+          <td class="col-equipo">—</td>
+          <td class="col-early">-278</td>
+          <td class="col-early">-1.5</td>
+          <td class="col-early">-332</td>
+          <td class="col-early">23.0</td>
+          <td class="col-early">2.0</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">2</td>
+          <td class="col-tiempo">30.67</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">65</td>
+          <td class="col-base">PSF Lucyfer#lord</td>
+          <td class="col-base">MID</td>
+          <td class="col-combate">15</td>
+          <td class="col-combate">21</td>
+          <td class="col-combate">18</td>
+          <td class="col-combate">2.81</td>
+          <td class="col-combate">66.69</td>
+          <td class="col-farmeo">221</td>
+          <td class="col-farmeo">7.34</td>
+          <td class="col-farmeo">339.44</td>
+          <td class="col-dano">656.01</td>
+          <td class="col-dano">17769</td>
+          <td class="col-dano">29.63</td>
+          <td class="col-dano">1.91</td>
+          <td class="col-vision">0.93</td>
+          <td class="col-vision">0.44</td>
+          <td class="col-vision">0.16</td>
+          <td class="col-vision">0.13</td>
+          <td class="col-equipo">21.1</td>
+          <td class="col-equipo">15.4</td>
+          <td class="col-equipo">—</td>
+          <td class="col-early">-550</td>
+          <td class="col-early">-14.7</td>
+          <td class="col-early">-188</td>
+          <td class="col-early">121.0</td>
+          <td class="col-early">1.7</td>
+          <td class="col-early">17%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">29.94</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">66</td>
+          <td class="col-base">PSF NdeNero#xdd</td>
+          <td class="col-base">ADC</td>
+          <td class="col-combate">11</td>
+          <td class="col-combate">30</td>
+          <td class="col-combate">13</td>
+          <td class="col-combate">0.85</td>
+          <td class="col-combate">50.37</td>
+          <td class="col-farmeo">235</td>
+          <td class="col-farmeo">7.85</td>
+          <td class="col-farmeo">386.55</td>
+          <td class="col-dano">516.53</td>
+          <td class="col-dano">17294</td>
+          <td class="col-dano">24.33</td>
+          <td class="col-dano">1.35</td>
+          <td class="col-vision">0.90</td>
+          <td class="col-vision">0.37</td>
+          <td class="col-vision">0.13</td>
+          <td class="col-vision">0.14</td>
+          <td class="col-equipo">24.1</td>
+          <td class="col-equipo">23.0</td>
+          <td class="col-equipo">—</td>
+          <td class="col-early">-1028</td>
+          <td class="col-early">-15.8</td>
+          <td class="col-early">-512</td>
+          <td class="col-early">115.5</td>
+          <td class="col-early">0.8</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">29.94</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">67</td>
+          <td class="col-base">PSF Phantom#Nashe</td>
+          <td class="col-base">TOP</td>
+          <td class="col-combate">7</td>
+          <td class="col-combate">15</td>
+          <td class="col-combate">12</td>
+          <td class="col-combate">1.35</td>
+          <td class="col-combate">45.56</td>
+          <td class="col-farmeo">201</td>
+          <td class="col-farmeo">6.79</td>
+          <td class="col-farmeo">312.55</td>
+          <td class="col-dano">472.74</td>
+          <td class="col-dano">21444</td>
+          <td class="col-dano">22.39</td>
+          <td class="col-dano">1.51</td>
+          <td class="col-vision">1.27</td>
+          <td class="col-vision">0.58</td>
+          <td class="col-vision">0.22</td>
+          <td class="col-vision">0.13</td>
+          <td class="col-equipo">19.6</td>
+          <td class="col-equipo">13.7</td>
+          <td class="col-equipo">—</td>
+          <td class="col-early">-268</td>
+          <td class="col-early">-8.6</td>
+          <td class="col-early">-18</td>
+          <td class="col-early">119.4</td>
+          <td class="col-early">0.8</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">5</td>
+          <td class="col-tiempo">29.80</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">68</td>
+          <td class="col-base">PSF Zroly#AST</td>
+          <td class="col-base">SUP</td>
+          <td class="col-combate">1</td>
+          <td class="col-combate">20</td>
+          <td class="col-combate">7</td>
+          <td class="col-combate">0.41</td>
+          <td class="col-combate">37.42</td>
+          <td class="col-farmeo">33</td>
+          <td class="col-farmeo">1.14</td>
+          <td class="col-farmeo">225.55</td>
+          <td class="col-dano">166.45</td>
+          <td class="col-dano">18149</td>
+          <td class="col-dano">7.80</td>
+          <td class="col-dano">0.74</td>
+          <td class="col-vision">2.42</td>
+          <td class="col-vision">0.88</td>
+          <td class="col-vision">0.20</td>
+          <td class="col-vision">0.39</td>
+          <td class="col-equipo">14.1</td>
+          <td class="col-equipo">29.4</td>
+          <td class="col-equipo">—</td>
+          <td class="col-early">-261</td>
+          <td class="col-early">2.7</td>
+          <td class="col-early">-17</td>
+          <td class="col-early">24.0</td>
+          <td class="col-early">0.7</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">3</td>
+          <td class="col-tiempo">28.51</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">69</td>
+          <td class="col-base">Persian Prince#3961</td>
+          <td class="col-base">MID</td>
+          <td class="col-combate">7</td>
+          <td class="col-combate">4</td>
+          <td class="col-combate">3</td>
+          <td class="col-combate">2.50</td>
+          <td class="col-combate">58.82</td>
+          <td class="col-farmeo">266</td>
+          <td class="col-farmeo">8.70</td>
+          <td class="col-farmeo">434.26</td>
+          <td class="col-dano">632.98</td>
+          <td class="col-dano">21318</td>
+          <td class="col-dano">24.17</td>
+          <td class="col-dano">1.46</td>
+          <td class="col-vision">0.62</td>
+          <td class="col-vision">0.36</td>
+          <td class="col-vision">0.00</td>
+          <td class="col-vision">0.03</td>
+          <td class="col-equipo">24.3</td>
+          <td class="col-equipo">20.0</td>
+          <td class="col-equipo">—</td>
+          <td class="col-early">-827</td>
+          <td class="col-early">-35.0</td>
+          <td class="col-early">-1026</td>
+          <td class="col-early">114.0</td>
+          <td class="col-early">0.0</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">1</td>
+          <td class="col-tiempo">30.57</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">70</td>
+          <td class="col-base">PoluciónNocturna#LECHE</td>
+          <td class="col-base">JGL</td>
+          <td class="col-combate">8</td>
+          <td class="col-combate">8</td>
+          <td class="col-combate">29</td>
+          <td class="col-combate">5.86</td>
+          <td class="col-combate">49.21</td>
+          <td class="col-farmeo">201</td>
+          <td class="col-farmeo">6.02</td>
+          <td class="col-farmeo">353.54</td>
+          <td class="col-dano">281.86</td>
+          <td class="col-dano">31745</td>
+          <td class="col-dano">9.37</td>
+          <td class="col-dano">0.80</td>
+          <td class="col-vision">0.70</td>
+          <td class="col-vision">0.12</td>
+          <td class="col-vision">0.07</td>
+          <td class="col-vision">0.10</td>
+          <td class="col-equipo">17.5</td>
+          <td class="col-equipo">15.4</td>
+          <td class="col-equipo">100%</td>
+          <td class="col-early">226</td>
+          <td class="col-early">0.0</td>
+          <td class="col-early">25</td>
+          <td class="col-early">100.7</td>
+          <td class="col-early">2.0</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">3</td>
+          <td class="col-tiempo">33.57</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">71</td>
+          <td class="col-base">Potayu#2117</td>
+          <td class="col-base">MID</td>
+          <td class="col-combate">8</td>
+          <td class="col-combate">3</td>
+          <td class="col-combate">6</td>
+          <td class="col-combate">6.00</td>
+          <td class="col-combate">48.21</td>
+          <td class="col-farmeo">275</td>
+          <td class="col-farmeo">9.35</td>
+          <td class="col-farmeo">402.53</td>
+          <td class="col-dano">395.45</td>
+          <td class="col-dano">15645</td>
+          <td class="col-dano">15.77</td>
+          <td class="col-dano">0.95</td>
+          <td class="col-vision">1.13</td>
+          <td class="col-vision">0.46</td>
+          <td class="col-vision">0.13</td>
+          <td class="col-vision">0.14</td>
+          <td class="col-equipo">21.2</td>
+          <td class="col-equipo">6.0</td>
+          <td class="col-equipo">50%</td>
+          <td class="col-early">-172</td>
+          <td class="col-early">13.5</td>
+          <td class="col-early">371</td>
+          <td class="col-early">145.5</td>
+          <td class="col-early">0.0</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">3</td>
+          <td class="col-multi">1</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">2</td>
+          <td class="col-tiempo">29.32</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">72</td>
+          <td class="col-base">QYRRΔN#xxxx</td>
+          <td class="col-base">MID</td>
+          <td class="col-combate">3</td>
+          <td class="col-combate">9</td>
+          <td class="col-combate">6</td>
+          <td class="col-combate">0.93</td>
+          <td class="col-combate">38.57</td>
+          <td class="col-farmeo">229</td>
+          <td class="col-farmeo">7.81</td>
+          <td class="col-farmeo">353.11</td>
+          <td class="col-dano">422.35</td>
+          <td class="col-dano">16433</td>
+          <td class="col-dano">17.79</td>
+          <td class="col-dano">1.18</td>
+          <td class="col-vision">0.86</td>
+          <td class="col-vision">0.33</td>
+          <td class="col-vision">0.07</td>
+          <td class="col-vision">0.12</td>
+          <td class="col-equipo">20.7</td>
+          <td class="col-equipo">23.3</td>
+          <td class="col-equipo">—</td>
+          <td class="col-early">-1222</td>
+          <td class="col-early">-29.5</td>
+          <td class="col-early">-931</td>
+          <td class="col-early">122.0</td>
+          <td class="col-early">1.5</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">2</td>
+          <td class="col-tiempo">29.30</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">73</td>
+          <td class="col-base">RF caPs#FNC</td>
+          <td class="col-base">MID</td>
+          <td class="col-combate">1</td>
+          <td class="col-combate">5</td>
+          <td class="col-combate">2</td>
+          <td class="col-combate">0.60</td>
+          <td class="col-combate">33.33</td>
+          <td class="col-farmeo">196</td>
+          <td class="col-farmeo">6.50</td>
+          <td class="col-farmeo">316.02</td>
+          <td class="col-dano">553.37</td>
+          <td class="col-dano">19926</td>
+          <td class="col-dano">23.19</td>
+          <td class="col-dano">1.75</td>
+          <td class="col-vision">1.06</td>
+          <td class="col-vision">0.40</td>
+          <td class="col-vision">0.10</td>
+          <td class="col-vision">0.13</td>
+          <td class="col-equipo">19.3</td>
+          <td class="col-equipo">20.8</td>
+          <td class="col-equipo">—</td>
+          <td class="col-early">-34</td>
+          <td class="col-early">-1.0</td>
+          <td class="col-early">40</td>
+          <td class="col-early">128.0</td>
+          <td class="col-early">0.0</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">1</td>
+          <td class="col-tiempo">30.15</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">74</td>
+          <td class="col-base">Ragnarok#9167</td>
+          <td class="col-base">TOP</td>
+          <td class="col-combate">15</td>
+          <td class="col-combate">21</td>
+          <td class="col-combate">19</td>
+          <td class="col-combate">1.70</td>
+          <td class="col-combate">74.06</td>
+          <td class="col-farmeo">215</td>
+          <td class="col-farmeo">7.09</td>
+          <td class="col-farmeo">396.45</td>
+          <td class="col-dano">701.31</td>
+          <td class="col-dano">29680</td>
+          <td class="col-dano">29.78</td>
+          <td class="col-dano">1.77</td>
+          <td class="col-vision">0.81</td>
+          <td class="col-vision">0.37</td>
+          <td class="col-vision">0.02</td>
+          <td class="col-vision">0.06</td>
+          <td class="col-equipo">22.6</td>
+          <td class="col-equipo">22.7</td>
+          <td class="col-equipo">—</td>
+          <td class="col-early">64</td>
+          <td class="col-early">-13.8</td>
+          <td class="col-early">540</td>
+          <td class="col-early">107.8</td>
+          <td class="col-early">2.2</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">1</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">4</td>
+          <td class="col-tiempo">30.58</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">75</td>
+          <td class="col-base">Ranita Chikitita#RMU</td>
+          <td class="col-base">SUP</td>
+          <td class="col-combate">2</td>
+          <td class="col-combate">8</td>
+          <td class="col-combate">24</td>
+          <td class="col-combate">3.25</td>
+          <td class="col-combate">45.30</td>
+          <td class="col-farmeo">32</td>
+          <td class="col-farmeo">0.94</td>
+          <td class="col-farmeo">265.32</td>
+          <td class="col-dano">183.52</td>
+          <td class="col-dano">17846</td>
+          <td class="col-dano">5.33</td>
+          <td class="col-dano">0.66</td>
+          <td class="col-vision">3.94</td>
+          <td class="col-vision">1.54</td>
+          <td class="col-vision">0.45</td>
+          <td class="col-vision">0.38</td>
+          <td class="col-equipo">14.0</td>
+          <td class="col-equipo">18.2</td>
+          <td class="col-equipo">50%</td>
+          <td class="col-early">-322</td>
+          <td class="col-early">1.0</td>
+          <td class="col-early">-518</td>
+          <td class="col-early">18.0</td>
+          <td class="col-early">2.5</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">2</td>
+          <td class="col-tiempo">34.52</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">76</td>
+          <td class="col-base">Reiko#HRTCS</td>
+          <td class="col-base">MID</td>
+          <td class="col-combate">15</td>
+          <td class="col-combate">3</td>
+          <td class="col-combate">15</td>
+          <td class="col-combate">10.00</td>
+          <td class="col-combate">80.97</td>
+          <td class="col-farmeo">302</td>
+          <td class="col-farmeo">9.57</td>
+          <td class="col-farmeo">460.58</td>
+          <td class="col-dano">727.16</td>
+          <td class="col-dano">15667</td>
+          <td class="col-dano">28.81</td>
+          <td class="col-dano">1.59</td>
+          <td class="col-vision">1.44</td>
+          <td class="col-vision">0.42</td>
+          <td class="col-vision">0.16</td>
+          <td class="col-vision">0.18</td>
+          <td class="col-equipo">23.8</td>
+          <td class="col-equipo">6.8</td>
+          <td class="col-equipo">50%</td>
+          <td class="col-early">1318</td>
+          <td class="col-early">18.5</td>
+          <td class="col-early">898</td>
+          <td class="col-early">139.0</td>
+          <td class="col-early">3.5</td>
+          <td class="col-early">50%</td>
+          <td class="col-multi">1</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">2</td>
+          <td class="col-tiempo">32.00</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">77</td>
+          <td class="col-base">Rerocama#BBO</td>
+          <td class="col-base">SUP</td>
+          <td class="col-combate">0</td>
+          <td class="col-combate">1</td>
+          <td class="col-combate">19</td>
+          <td class="col-combate">19.00</td>
+          <td class="col-combate">79.17</td>
+          <td class="col-farmeo">39</td>
+          <td class="col-farmeo">1.27</td>
+          <td class="col-farmeo">266.03</td>
+          <td class="col-dano">97.92</td>
+          <td class="col-dano">8461</td>
+          <td class="col-dano">3.54</td>
+          <td class="col-dano">0.37</td>
+          <td class="col-vision">2.94</td>
+          <td class="col-vision">1.11</td>
+          <td class="col-vision">0.33</td>
+          <td class="col-vision">0.49</td>
+          <td class="col-equipo">13.1</td>
+          <td class="col-equipo">12.5</td>
+          <td class="col-equipo">100%</td>
+          <td class="col-early">35</td>
+          <td class="col-early">9.0</td>
+          <td class="col-early">237</td>
+          <td class="col-early">30.0</td>
+          <td class="col-early">1.0</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">1</td>
+          <td class="col-tiempo">30.62</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">78</td>
+          <td class="col-base">Señor Gallego#EUW</td>
+          <td class="col-base">MID</td>
+          <td class="col-combate">10</td>
+          <td class="col-combate">10</td>
+          <td class="col-combate">35</td>
+          <td class="col-combate">5.25</td>
+          <td class="col-combate">53.68</td>
+          <td class="col-farmeo">290</td>
+          <td class="col-farmeo">8.59</td>
+          <td class="col-farmeo">404.83</td>
+          <td class="col-dano">517.29</td>
+          <td class="col-dano">15967</td>
+          <td class="col-dano">17.83</td>
+          <td class="col-dano">1.27</td>
+          <td class="col-vision">0.84</td>
+          <td class="col-vision">0.22</td>
+          <td class="col-vision">0.02</td>
+          <td class="col-vision">0.16</td>
+          <td class="col-equipo">20.7</td>
+          <td class="col-equipo">24.3</td>
+          <td class="col-equipo">75%</td>
+          <td class="col-early">-510</td>
+          <td class="col-early">-10.0</td>
+          <td class="col-early">-113</td>
+          <td class="col-early">135.8</td>
+          <td class="col-early">1.5</td>
+          <td class="col-early">25%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">4</td>
+          <td class="col-tiempo">33.69</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">79</td>
+          <td class="col-base">SonsOfAston#EUW</td>
+          <td class="col-base">SUP</td>
+          <td class="col-combate">6</td>
+          <td class="col-combate">20</td>
+          <td class="col-combate">76</td>
+          <td class="col-combate">6.35</td>
+          <td class="col-combate">63.48</td>
+          <td class="col-farmeo">30</td>
+          <td class="col-farmeo">1.06</td>
+          <td class="col-farmeo">279.33</td>
+          <td class="col-dano">245.30</td>
+          <td class="col-dano">14892</td>
+          <td class="col-dano">7.77</td>
+          <td class="col-dano">0.87</td>
+          <td class="col-vision">2.35</td>
+          <td class="col-vision">0.90</td>
+          <td class="col-vision">0.26</td>
+          <td class="col-vision">0.33</td>
+          <td class="col-equipo">13.4</td>
+          <td class="col-equipo">22.2</td>
+          <td class="col-equipo">67%</td>
+          <td class="col-early">240</td>
+          <td class="col-early">-0.3</td>
+          <td class="col-early">-182</td>
+          <td class="col-early">23.8</td>
+          <td class="col-early">2.7</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">29.14</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">80</td>
+          <td class="col-base">SτyłΣR#Pingu</td>
+          <td class="col-base">TOP</td>
+          <td class="col-combate">13</td>
+          <td class="col-combate">20</td>
+          <td class="col-combate">27</td>
+          <td class="col-combate">3.59</td>
+          <td class="col-combate">52.40</td>
+          <td class="col-farmeo">307</td>
+          <td class="col-farmeo">8.21</td>
+          <td class="col-farmeo">385.36</td>
+          <td class="col-dano">571.60</td>
+          <td class="col-dano">37775</td>
+          <td class="col-dano">25.40</td>
+          <td class="col-dano">1.52</td>
+          <td class="col-vision">0.99</td>
+          <td class="col-vision">0.34</td>
+          <td class="col-vision">0.05</td>
+          <td class="col-vision">0.10</td>
+          <td class="col-equipo">21.0</td>
+          <td class="col-equipo">26.9</td>
+          <td class="col-equipo">33%</td>
+          <td class="col-early">-420</td>
+          <td class="col-early">-4.0</td>
+          <td class="col-early">-395</td>
+          <td class="col-early">126.0</td>
+          <td class="col-early">0.3</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">3</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">37.61</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">81</td>
+          <td class="col-base">T1 Adryh#yaya</td>
+          <td class="col-base">ADC</td>
+          <td class="col-combate">4</td>
+          <td class="col-combate">5</td>
+          <td class="col-combate">3</td>
+          <td class="col-combate">1.40</td>
+          <td class="col-combate">53.85</td>
+          <td class="col-farmeo">254</td>
+          <td class="col-farmeo">8.94</td>
+          <td class="col-farmeo">446.73</td>
+          <td class="col-dano">731.80</td>
+          <td class="col-dano">20327</td>
+          <td class="col-dano">29.73</td>
+          <td class="col-dano">1.64</td>
+          <td class="col-vision">0.95</td>
+          <td class="col-vision">0.32</td>
+          <td class="col-vision">0.00</td>
+          <td class="col-vision">0.18</td>
+          <td class="col-equipo">24.6</td>
+          <td class="col-equipo">20.0</td>
+          <td class="col-equipo">—</td>
+          <td class="col-early">702</td>
+          <td class="col-early">12.0</td>
+          <td class="col-early">-258</td>
+          <td class="col-early">146.0</td>
+          <td class="col-early">0.0</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">1</td>
+          <td class="col-tiempo">28.40</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">82</td>
+          <td class="col-base">TG Arxan#5091</td>
+          <td class="col-base">SUP</td>
+          <td class="col-combate">2</td>
+          <td class="col-combate">10</td>
+          <td class="col-combate">10</td>
+          <td class="col-combate">1.91</td>
+          <td class="col-combate">53.95</td>
+          <td class="col-farmeo">29</td>
+          <td class="col-farmeo">0.94</td>
+          <td class="col-farmeo">242.25</td>
+          <td class="col-dano">137.11</td>
+          <td class="col-dano">15338</td>
+          <td class="col-dano">6.26</td>
+          <td class="col-dano">0.57</td>
+          <td class="col-vision">2.03</td>
+          <td class="col-vision">0.78</td>
+          <td class="col-vision">0.13</td>
+          <td class="col-vision">0.16</td>
+          <td class="col-equipo">13.5</td>
+          <td class="col-equipo">21.3</td>
+          <td class="col-equipo">50%</td>
+          <td class="col-early">-656</td>
+          <td class="col-early">-8.0</td>
+          <td class="col-early">-673</td>
+          <td class="col-early">23.5</td>
+          <td class="col-early">0.5</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">1</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">2</td>
+          <td class="col-tiempo">28.85</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">83</td>
+          <td class="col-base">TG Fonkai#4005</td>
+          <td class="col-base">ADC</td>
+          <td class="col-combate">5</td>
+          <td class="col-combate">8</td>
+          <td class="col-combate">5</td>
+          <td class="col-combate">1.25</td>
+          <td class="col-combate">66.67</td>
+          <td class="col-farmeo">185</td>
+          <td class="col-farmeo">6.41</td>
+          <td class="col-farmeo">402.16</td>
+          <td class="col-dano">669.56</td>
+          <td class="col-dano">21749</td>
+          <td class="col-dano">21.28</td>
+          <td class="col-dano">1.66</td>
+          <td class="col-vision">0.45</td>
+          <td class="col-vision">0.17</td>
+          <td class="col-vision">0.00</td>
+          <td class="col-vision">0.10</td>
+          <td class="col-equipo">23.1</td>
+          <td class="col-equipo">22.2</td>
+          <td class="col-equipo">—</td>
+          <td class="col-early">-1454</td>
+          <td class="col-early">-32.0</td>
+          <td class="col-early">-1170</td>
+          <td class="col-early">95.0</td>
+          <td class="col-early">3.0</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">1</td>
+          <td class="col-tiempo">28.87</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">84</td>
+          <td class="col-base">TG Hazard#Taboo</td>
+          <td class="col-base">ADC</td>
+          <td class="col-combate">6</td>
+          <td class="col-combate">12</td>
+          <td class="col-combate">6</td>
+          <td class="col-combate">1.22</td>
+          <td class="col-combate">49.12</td>
+          <td class="col-farmeo">225</td>
+          <td class="col-farmeo">8.01</td>
+          <td class="col-farmeo">387.51</td>
+          <td class="col-dano">436.01</td>
+          <td class="col-dano">14948</td>
+          <td class="col-dano">18.05</td>
+          <td class="col-dano">1.09</td>
+          <td class="col-vision">0.90</td>
+          <td class="col-vision">0.31</td>
+          <td class="col-vision">0.01</td>
+          <td class="col-vision">0.16</td>
+          <td class="col-equipo">22.7</td>
+          <td class="col-equipo">19.3</td>
+          <td class="col-equipo">33%</td>
+          <td class="col-early">-1323</td>
+          <td class="col-early">-25.0</td>
+          <td class="col-early">-1017</td>
+          <td class="col-early">113.0</td>
+          <td class="col-early">0.3</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">3</td>
+          <td class="col-tiempo">27.81</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">85</td>
+          <td class="col-base">TG Huais#EUW</td>
+          <td class="col-base">JGL</td>
+          <td class="col-combate">6</td>
+          <td class="col-combate">9</td>
+          <td class="col-combate">8</td>
+          <td class="col-combate">1.56</td>
+          <td class="col-combate">93.33</td>
+          <td class="col-farmeo">147</td>
+          <td class="col-farmeo">5.09</td>
+          <td class="col-farmeo">403.44</td>
+          <td class="col-dano">632.22</td>
+          <td class="col-dano">32953</td>
+          <td class="col-dano">20.10</td>
+          <td class="col-dano">1.57</td>
+          <td class="col-vision">0.76</td>
+          <td class="col-vision">0.14</td>
+          <td class="col-vision">0.07</td>
+          <td class="col-vision">0.14</td>
+          <td class="col-equipo">23.2</td>
+          <td class="col-equipo">25.0</td>
+          <td class="col-equipo">—</td>
+          <td class="col-early">-371</td>
+          <td class="col-early">-17.0</td>
+          <td class="col-early">-1326</td>
+          <td class="col-early">90.0</td>
+          <td class="col-early">6.0</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">1</td>
+          <td class="col-tiempo">28.87</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">86</td>
+          <td class="col-base">TG Patoal#PATO</td>
+          <td class="col-base">TOP</td>
+          <td class="col-combate">1</td>
+          <td class="col-combate">4</td>
+          <td class="col-combate">3</td>
+          <td class="col-combate">1.00</td>
+          <td class="col-combate">26.67</td>
+          <td class="col-farmeo">229</td>
+          <td class="col-farmeo">7.93</td>
+          <td class="col-farmeo">325.88</td>
+          <td class="col-dano">431.50</td>
+          <td class="col-dano">33400</td>
+          <td class="col-dano">13.72</td>
+          <td class="col-dano">1.32</td>
+          <td class="col-vision">0.80</td>
+          <td class="col-vision">0.28</td>
+          <td class="col-vision">0.07</td>
+          <td class="col-vision">0.00</td>
+          <td class="col-equipo">18.8</td>
+          <td class="col-equipo">11.1</td>
+          <td class="col-equipo">—</td>
+          <td class="col-early">-175</td>
+          <td class="col-early">3.0</td>
+          <td class="col-early">-313</td>
+          <td class="col-early">130.0</td>
+          <td class="col-early">0.0</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">1</td>
+          <td class="col-tiempo">28.87</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">87</td>
+          <td class="col-base">ThaιGer#thaig</td>
+          <td class="col-base">JGL</td>
+          <td class="col-combate">4</td>
+          <td class="col-combate">12</td>
+          <td class="col-combate">21</td>
+          <td class="col-combate">2.21</td>
+          <td class="col-combate">67.76</td>
+          <td class="col-farmeo">183</td>
+          <td class="col-farmeo">6.17</td>
+          <td class="col-farmeo">331.29</td>
+          <td class="col-dano">357.50</td>
+          <td class="col-dano">25068</td>
+          <td class="col-dano">14.59</td>
+          <td class="col-dano">1.08</td>
+          <td class="col-vision">1.17</td>
+          <td class="col-vision">0.24</td>
+          <td class="col-vision">0.17</td>
+          <td class="col-vision">0.19</td>
+          <td class="col-equipo">19.2</td>
+          <td class="col-equipo">20.6</td>
+          <td class="col-equipo">—</td>
+          <td class="col-early">-387</td>
+          <td class="col-early">-2.0</td>
+          <td class="col-early">-342</td>
+          <td class="col-early">104.7</td>
+          <td class="col-early">1.0</td>
+          <td class="col-early">33%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">3</td>
+          <td class="col-tiempo">29.72</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">88</td>
+          <td class="col-base">Torrente#ESPÑA</td>
+          <td class="col-base">SUP</td>
+          <td class="col-combate">0</td>
+          <td class="col-combate">16</td>
+          <td class="col-combate">31</td>
+          <td class="col-combate">2.26</td>
+          <td class="col-combate">51.13</td>
+          <td class="col-farmeo">27</td>
+          <td class="col-farmeo">0.89</td>
+          <td class="col-farmeo">225.89</td>
+          <td class="col-dano">150.05</td>
+          <td class="col-dano">18168</td>
+          <td class="col-dano">5.48</td>
+          <td class="col-dano">0.65</td>
+          <td class="col-vision">2.74</td>
+          <td class="col-vision">1.26</td>
+          <td class="col-vision">0.28</td>
+          <td class="col-vision">0.27</td>
+          <td class="col-equipo">13.2</td>
+          <td class="col-equipo">22.7</td>
+          <td class="col-equipo">25%</td>
+          <td class="col-early">-498</td>
+          <td class="col-early">-4.2</td>
+          <td class="col-early">-138</td>
+          <td class="col-early">19.8</td>
+          <td class="col-early">1.0</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">4</td>
+          <td class="col-tiempo">30.63</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">89</td>
+          <td class="col-base">Tuff Pigeon Dr#Aura</td>
+          <td class="col-base">ADC</td>
+          <td class="col-combate">8</td>
+          <td class="col-combate">4</td>
+          <td class="col-combate">24</td>
+          <td class="col-combate">8.00</td>
+          <td class="col-combate">78.45</td>
+          <td class="col-farmeo">257</td>
+          <td class="col-farmeo">8.27</td>
+          <td class="col-farmeo">463.11</td>
+          <td class="col-dano">935.21</td>
+          <td class="col-dano">16796</td>
+          <td class="col-dano">26.15</td>
+          <td class="col-dano">2.02</td>
+          <td class="col-vision">0.60</td>
+          <td class="col-vision">0.27</td>
+          <td class="col-vision">0.00</td>
+          <td class="col-vision">0.18</td>
+          <td class="col-equipo">22.9</td>
+          <td class="col-equipo">16.7</td>
+          <td class="col-equipo">100%</td>
+          <td class="col-early">472</td>
+          <td class="col-early">10.0</td>
+          <td class="col-early">334</td>
+          <td class="col-early">123.5</td>
+          <td class="col-early">1.0</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">1</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">2</td>
+          <td class="col-tiempo">31.04</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">90</td>
+          <td class="col-base">Tusk0 Jones#PRYCA</td>
+          <td class="col-base">JGL</td>
+          <td class="col-combate">45</td>
+          <td class="col-combate">17</td>
+          <td class="col-combate">48</td>
+          <td class="col-combate">6.64</td>
+          <td class="col-combate">73.55</td>
+          <td class="col-farmeo">225</td>
+          <td class="col-farmeo">7.10</td>
+          <td class="col-farmeo">465.10</td>
+          <td class="col-dano">607.06</td>
+          <td class="col-dano">31615</td>
+          <td class="col-dano">20.30</td>
+          <td class="col-dano">1.29</td>
+          <td class="col-vision">1.64</td>
+          <td class="col-vision">0.22</td>
+          <td class="col-vision">0.17</td>
+          <td class="col-vision">0.38</td>
+          <td class="col-equipo">23.1</td>
+          <td class="col-equipo">31.8</td>
+          <td class="col-equipo">83%</td>
+          <td class="col-early">488</td>
+          <td class="col-early">-4.2</td>
+          <td class="col-early">-14</td>
+          <td class="col-early">111.0</td>
+          <td class="col-early">2.8</td>
+          <td class="col-early">50%</td>
+          <td class="col-multi">9</td>
+          <td class="col-multi">2</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">31.81</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">91</td>
+          <td class="col-base">Wesele16#0303</td>
+          <td class="col-base">MID</td>
+          <td class="col-combate">11</td>
+          <td class="col-combate">8</td>
+          <td class="col-combate">3</td>
+          <td class="col-combate">1.75</td>
+          <td class="col-combate">82.85</td>
+          <td class="col-farmeo">258</td>
+          <td class="col-farmeo">9.24</td>
+          <td class="col-farmeo">478.82</td>
+          <td class="col-dano">949.52</td>
+          <td class="col-dano">21135</td>
+          <td class="col-dano">40.56</td>
+          <td class="col-dano">1.98</td>
+          <td class="col-vision">0.66</td>
+          <td class="col-vision">0.25</td>
+          <td class="col-vision">0.00</td>
+          <td class="col-vision">0.07</td>
+          <td class="col-equipo">27.4</td>
+          <td class="col-equipo">18.2</td>
+          <td class="col-equipo">—</td>
+          <td class="col-early">967</td>
+          <td class="col-early">28.0</td>
+          <td class="col-early">1253</td>
+          <td class="col-early">137.0</td>
+          <td class="col-early">2.0</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">1</td>
+          <td class="col-multi">1</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">2</td>
+          <td class="col-tiempo">27.58</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">92</td>
+          <td class="col-base">Wiki#109</td>
+          <td class="col-base">MID</td>
+          <td class="col-combate">9</td>
+          <td class="col-combate">1</td>
+          <td class="col-combate">17</td>
+          <td class="col-combate">26.00</td>
+          <td class="col-combate">72.22</td>
+          <td class="col-farmeo">224</td>
+          <td class="col-farmeo">7.76</td>
+          <td class="col-farmeo">522.19</td>
+          <td class="col-dano">714.94</td>
+          <td class="col-dano">21689</td>
+          <td class="col-dano">18.47</td>
+          <td class="col-dano">1.37</td>
+          <td class="col-vision">0.59</td>
+          <td class="col-vision">0.21</td>
+          <td class="col-vision">0.00</td>
+          <td class="col-vision">0.07</td>
+          <td class="col-equipo">22.1</td>
+          <td class="col-equipo">6.7</td>
+          <td class="col-equipo">100%</td>
+          <td class="col-early">1819</td>
+          <td class="col-early">7.0</td>
+          <td class="col-early">412</td>
+          <td class="col-early">128.0</td>
+          <td class="col-early">7.0</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">1</td>
+          <td class="col-tiempo">28.87</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">93</td>
+          <td class="col-base">angelgenius#EUW</td>
+          <td class="col-base">SUP</td>
+          <td class="col-combate">2</td>
+          <td class="col-combate">29</td>
+          <td class="col-combate">75</td>
+          <td class="col-combate">2.99</td>
+          <td class="col-combate">69.94</td>
+          <td class="col-farmeo">37</td>
+          <td class="col-farmeo">1.14</td>
+          <td class="col-farmeo">259.36</td>
+          <td class="col-dano">353.87</td>
+          <td class="col-dano">22456</td>
+          <td class="col-dano">10.96</td>
+          <td class="col-dano">1.34</td>
+          <td class="col-vision">3.16</td>
+          <td class="col-vision">1.19</td>
+          <td class="col-vision">0.44</td>
+          <td class="col-vision">0.42</td>
+          <td class="col-equipo">14.0</td>
+          <td class="col-equipo">27.5</td>
+          <td class="col-equipo">33%</td>
+          <td class="col-early">52</td>
+          <td class="col-early">2.0</td>
+          <td class="col-early">-136</td>
+          <td class="col-early">23.0</td>
+          <td class="col-early">2.2</td>
+          <td class="col-early">50%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">32.36</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">94</td>
+          <td class="col-base">angelowo#frost</td>
+          <td class="col-base">MID</td>
+          <td class="col-combate">21</td>
+          <td class="col-combate">17</td>
+          <td class="col-combate">52</td>
+          <td class="col-combate">6.63</td>
+          <td class="col-combate">57.28</td>
+          <td class="col-farmeo">238</td>
+          <td class="col-farmeo">7.69</td>
+          <td class="col-farmeo">374.75</td>
+          <td class="col-dano">593.70</td>
+          <td class="col-dano">17280</td>
+          <td class="col-dano">22.28</td>
+          <td class="col-dano">1.58</td>
+          <td class="col-vision">0.90</td>
+          <td class="col-vision">0.31</td>
+          <td class="col-vision">0.11</td>
+          <td class="col-vision">0.11</td>
+          <td class="col-equipo">18.7</td>
+          <td class="col-equipo">21.9</td>
+          <td class="col-equipo">83%</td>
+          <td class="col-early">-398</td>
+          <td class="col-early">-7.7</td>
+          <td class="col-early">-307</td>
+          <td class="col-early">128.0</td>
+          <td class="col-early">2.7</td>
+          <td class="col-early">17%</td>
+          <td class="col-multi">2</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">31.09</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">95</td>
+          <td class="col-base">coña malą#EUW</td>
+          <td class="col-base">SUP</td>
+          <td class="col-combate">8</td>
+          <td class="col-combate">26</td>
+          <td class="col-combate">62</td>
+          <td class="col-combate">4.11</td>
+          <td class="col-combate">56.87</td>
+          <td class="col-farmeo">28</td>
+          <td class="col-farmeo">0.91</td>
+          <td class="col-farmeo">256.23</td>
+          <td class="col-dano">282.73</td>
+          <td class="col-dano">17712</td>
+          <td class="col-dano">8.59</td>
+          <td class="col-dano">1.10</td>
+          <td class="col-vision">3.15</td>
+          <td class="col-vision">1.34</td>
+          <td class="col-vision">0.25</td>
+          <td class="col-vision">0.35</td>
+          <td class="col-equipo">13.7</td>
+          <td class="col-equipo">18.9</td>
+          <td class="col-equipo">50%</td>
+          <td class="col-early">26</td>
+          <td class="col-early">-2.9</td>
+          <td class="col-early">-397</td>
+          <td class="col-early">18.0</td>
+          <td class="col-early">1.9</td>
+          <td class="col-early">25%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">8</td>
+          <td class="col-tiempo">30.38</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">96</td>
+          <td class="col-base">dr filtros#46180</td>
+          <td class="col-base">ADC</td>
+          <td class="col-combate">29</td>
+          <td class="col-combate">25</td>
+          <td class="col-combate">22</td>
+          <td class="col-combate">4.36</td>
+          <td class="col-combate">52.73</td>
+          <td class="col-farmeo">241</td>
+          <td class="col-farmeo">8.00</td>
+          <td class="col-farmeo">449.75</td>
+          <td class="col-dano">758.28</td>
+          <td class="col-dano">18212</td>
+          <td class="col-dano">24.29</td>
+          <td class="col-dano">1.67</td>
+          <td class="col-vision">0.55</td>
+          <td class="col-vision">0.28</td>
+          <td class="col-vision">0.09</td>
+          <td class="col-vision">0.07</td>
+          <td class="col-equipo">24.4</td>
+          <td class="col-equipo">20.2</td>
+          <td class="col-equipo">33%</td>
+          <td class="col-early">-383</td>
+          <td class="col-early">-13.7</td>
+          <td class="col-early">-71</td>
+          <td class="col-early">116.0</td>
+          <td class="col-early">2.0</td>
+          <td class="col-early">17%</td>
+          <td class="col-multi">3</td>
+          <td class="col-multi">1</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">30.16</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">97</td>
+          <td class="col-base">ironfranman#ELX</td>
+          <td class="col-base">SUP</td>
+          <td class="col-combate">5</td>
+          <td class="col-combate">21</td>
+          <td class="col-combate">89</td>
+          <td class="col-combate">6.45</td>
+          <td class="col-combate">74.79</td>
+          <td class="col-farmeo">34</td>
+          <td class="col-farmeo">0.92</td>
+          <td class="col-farmeo">275.96</td>
+          <td class="col-dano">302.63</td>
+          <td class="col-dano">19960</td>
+          <td class="col-dano">9.92</td>
+          <td class="col-dano">1.12</td>
+          <td class="col-vision">3.61</td>
+          <td class="col-vision">1.67</td>
+          <td class="col-vision">0.33</td>
+          <td class="col-vision">0.34</td>
+          <td class="col-equipo">14.2</td>
+          <td class="col-equipo">24.6</td>
+          <td class="col-equipo">83%</td>
+          <td class="col-early">287</td>
+          <td class="col-early">1.2</td>
+          <td class="col-early">409</td>
+          <td class="col-early">21.0</td>
+          <td class="col-early">3.0</td>
+          <td class="col-early">17%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">36.59</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">98</td>
+          <td class="col-base">kurutta#ESP</td>
+          <td class="col-base">SUP</td>
+          <td class="col-combate">0</td>
+          <td class="col-combate">23</td>
+          <td class="col-combate">25</td>
+          <td class="col-combate">1.10</td>
+          <td class="col-combate">58.27</td>
+          <td class="col-farmeo">32</td>
+          <td class="col-farmeo">1.14</td>
+          <td class="col-farmeo">235.52</td>
+          <td class="col-dano">251.21</td>
+          <td class="col-dano">17262</td>
+          <td class="col-dano">9.86</td>
+          <td class="col-dano">1.05</td>
+          <td class="col-vision">2.86</td>
+          <td class="col-vision">1.13</td>
+          <td class="col-vision">0.20</td>
+          <td class="col-vision">0.36</td>
+          <td class="col-equipo">14.4</td>
+          <td class="col-equipo">27.4</td>
+          <td class="col-equipo">—</td>
+          <td class="col-early">-432</td>
+          <td class="col-early">3.2</td>
+          <td class="col-early">-336</td>
+          <td class="col-early">20.2</td>
+          <td class="col-early">2.2</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">4</td>
+          <td class="col-tiempo">28.09</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">99</td>
+          <td class="col-base">limpiar enyoyer#DATO</td>
+          <td class="col-base">SUP</td>
+          <td class="col-combate">2</td>
+          <td class="col-combate">14</td>
+          <td class="col-combate">43</td>
+          <td class="col-combate">5.03</td>
+          <td class="col-combate">64.73</td>
+          <td class="col-farmeo">35</td>
+          <td class="col-farmeo">0.93</td>
+          <td class="col-farmeo">244.66</td>
+          <td class="col-dano">160.19</td>
+          <td class="col-dano">18396</td>
+          <td class="col-dano">7.61</td>
+          <td class="col-dano">0.66</td>
+          <td class="col-vision">3.43</td>
+          <td class="col-vision">1.42</td>
+          <td class="col-vision">0.29</td>
+          <td class="col-vision">0.45</td>
+          <td class="col-equipo">13.5</td>
+          <td class="col-equipo">16.4</td>
+          <td class="col-equipo">20%</td>
+          <td class="col-early">-61</td>
+          <td class="col-early">-6.0</td>
+          <td class="col-early">-340</td>
+          <td class="col-early">17.6</td>
+          <td class="col-early">2.0</td>
+          <td class="col-early">20%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">5</td>
+          <td class="col-tiempo">38.94</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">100</td>
+          <td class="col-base">sporfu#LPS</td>
+          <td class="col-base">MID</td>
+          <td class="col-combate">20</td>
+          <td class="col-combate">22</td>
+          <td class="col-combate">54</td>
+          <td class="col-combate">4.92</td>
+          <td class="col-combate">62.45</td>
+          <td class="col-farmeo">220</td>
+          <td class="col-farmeo">7.21</td>
+          <td class="col-farmeo">360.85</td>
+          <td class="col-dano">764.73</td>
+          <td class="col-dano">20499</td>
+          <td class="col-dano">22.48</td>
+          <td class="col-dano">2.12</td>
+          <td class="col-vision">1.01</td>
+          <td class="col-vision">0.44</td>
+          <td class="col-vision">0.10</td>
+          <td class="col-vision">0.13</td>
+          <td class="col-equipo">18.9</td>
+          <td class="col-equipo">18.1</td>
+          <td class="col-equipo">57%</td>
+          <td class="col-early">-174</td>
+          <td class="col-early">-5.0</td>
+          <td class="col-early">423</td>
+          <td class="col-early">125.3</td>
+          <td class="col-early">2.1</td>
+          <td class="col-early">29%</td>
+          <td class="col-multi">2</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">7</td>
+          <td class="col-tiempo">30.42</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">101</td>
+          <td class="col-base">sustanon#EUW</td>
+          <td class="col-base">JGL</td>
+          <td class="col-combate">18</td>
+          <td class="col-combate">17</td>
+          <td class="col-combate">31</td>
+          <td class="col-combate">5.11</td>
+          <td class="col-combate">52.27</td>
+          <td class="col-farmeo">232</td>
+          <td class="col-farmeo">6.24</td>
+          <td class="col-farmeo">351.92</td>
+          <td class="col-dano">338.49</td>
+          <td class="col-dano">33315</td>
+          <td class="col-dano">14.71</td>
+          <td class="col-dano">0.93</td>
+          <td class="col-vision">1.51</td>
+          <td class="col-vision">0.27</td>
+          <td class="col-vision">0.22</td>
+          <td class="col-vision">0.28</td>
+          <td class="col-equipo">19.1</td>
+          <td class="col-equipo">17.8</td>
+          <td class="col-equipo">33%</td>
+          <td class="col-early">-429</td>
+          <td class="col-early">-10.7</td>
+          <td class="col-early">-317</td>
+          <td class="col-early">103.3</td>
+          <td class="col-early">1.7</td>
+          <td class="col-early">17%</td>
+          <td class="col-multi">2</td>
+          <td class="col-multi">1</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">37.61</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">102</td>
+          <td class="col-base">xNearK AG#EUW</td>
+          <td class="col-base">SUP</td>
+          <td class="col-combate">3</td>
+          <td class="col-combate">1</td>
+          <td class="col-combate">32</td>
+          <td class="col-combate">17.50</td>
+          <td class="col-combate">86.06</td>
+          <td class="col-farmeo">27</td>
+          <td class="col-farmeo">0.98</td>
+          <td class="col-farmeo">306.57</td>
+          <td class="col-dano">274.51</td>
+          <td class="col-dano">9746</td>
+          <td class="col-dano">11.53</td>
+          <td class="col-dano">0.90</td>
+          <td class="col-vision">3.29</td>
+          <td class="col-vision">1.11</td>
+          <td class="col-vision">0.18</td>
+          <td class="col-vision">0.40</td>
+          <td class="col-equipo">14.6</td>
+          <td class="col-equipo">6.3</td>
+          <td class="col-equipo">100%</td>
+          <td class="col-early">446</td>
+          <td class="col-early">0.0</td>
+          <td class="col-early">-120</td>
+          <td class="col-early">20.5</td>
+          <td class="col-early">4.5</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">2</td>
+          <td class="col-tiempo">27.92</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">103</td>
+          <td class="col-base">xXBorjaocerinXx#EUW</td>
+          <td class="col-base">MID</td>
+          <td class="col-combate">1</td>
+          <td class="col-combate">8</td>
+          <td class="col-combate">5</td>
+          <td class="col-combate">0.75</td>
+          <td class="col-combate">37.50</td>
+          <td class="col-farmeo">252</td>
+          <td class="col-farmeo">7.71</td>
+          <td class="col-farmeo">329.02</td>
+          <td class="col-dano">670.76</td>
+          <td class="col-dano">23179</td>
+          <td class="col-dano">20.10</td>
+          <td class="col-dano">2.04</td>
+          <td class="col-vision">0.49</td>
+          <td class="col-vision">0.25</td>
+          <td class="col-vision">0.00</td>
+          <td class="col-vision">0.03</td>
+          <td class="col-equipo">18.3</td>
+          <td class="col-equipo">28.6</td>
+          <td class="col-equipo">—</td>
+          <td class="col-early">-772</td>
+          <td class="col-early">-4.0</td>
+          <td class="col-early">-902</td>
+          <td class="col-early">130.0</td>
+          <td class="col-early">0.0</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">1</td>
+          <td class="col-tiempo">32.70</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">104</td>
+          <td class="col-base">xXSanscraftXx#EUW</td>
+          <td class="col-base">SUP</td>
+          <td class="col-combate">1</td>
+          <td class="col-combate">0</td>
+          <td class="col-combate">10</td>
+          <td class="col-combate">11.00</td>
+          <td class="col-combate">91.67</td>
+          <td class="col-farmeo">17</td>
+          <td class="col-farmeo">0.55</td>
+          <td class="col-farmeo">270.82</td>
+          <td class="col-dano">275.18</td>
+          <td class="col-dano">7420</td>
+          <td class="col-dano">8.98</td>
+          <td class="col-dano">1.02</td>
+          <td class="col-vision">3.00</td>
+          <td class="col-vision">1.16</td>
+          <td class="col-vision">0.19</td>
+          <td class="col-vision">0.13</td>
+          <td class="col-equipo">13.9</td>
+          <td class="col-equipo">0.0</td>
+          <td class="col-equipo">100%</td>
+          <td class="col-early">-598</td>
+          <td class="col-early">-4.0</td>
+          <td class="col-early">361</td>
+          <td class="col-early">11.0</td>
+          <td class="col-early">3.0</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">1</td>
+          <td class="col-tiempo">30.98</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">105</td>
+          <td class="col-base">zInviicTusCL#X1LAS</td>
+          <td class="col-base">TOP</td>
+          <td class="col-combate">24</td>
+          <td class="col-combate">19</td>
+          <td class="col-combate">30</td>
+          <td class="col-combate">2.96</td>
+          <td class="col-combate">42.57</td>
+          <td class="col-farmeo">219</td>
+          <td class="col-farmeo">7.11</td>
+          <td class="col-farmeo">385.84</td>
+          <td class="col-dano">495.23</td>
+          <td class="col-dano">23458</td>
+          <td class="col-dano">17.13</td>
+          <td class="col-dano">1.25</td>
+          <td class="col-vision">1.10</td>
+          <td class="col-vision">0.50</td>
+          <td class="col-vision">0.13</td>
+          <td class="col-vision">0.09</td>
+          <td class="col-equipo">19.2</td>
+          <td class="col-equipo">25.6</td>
+          <td class="col-equipo">83%</td>
+          <td class="col-early">-621</td>
+          <td class="col-early">-15.2</td>
+          <td class="col-early">-468</td>
+          <td class="col-early">107.8</td>
+          <td class="col-early">1.2</td>
+          <td class="col-early">17%</td>
+          <td class="col-multi">2</td>
+          <td class="col-multi">1</td>
+          <td class="col-multi">1</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">6</td>
+          <td class="col-tiempo">31.09</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">106</td>
+          <td class="col-base">ΘμΘ#goat</td>
+          <td class="col-base">JGL</td>
+          <td class="col-combate">5</td>
+          <td class="col-combate">18</td>
+          <td class="col-combate">11</td>
+          <td class="col-combate">0.97</td>
+          <td class="col-combate">43.98</td>
+          <td class="col-farmeo">153</td>
+          <td class="col-farmeo">4.90</td>
+          <td class="col-farmeo">304.90</td>
+          <td class="col-dano">411.06</td>
+          <td class="col-dano">36982</td>
+          <td class="col-dano">17.76</td>
+          <td class="col-dano">1.35</td>
+          <td class="col-vision">0.66</td>
+          <td class="col-vision">0.07</td>
+          <td class="col-vision">0.01</td>
+          <td class="col-vision">0.15</td>
+          <td class="col-equipo">17.5</td>
+          <td class="col-equipo">26.0</td>
+          <td class="col-equipo">—</td>
+          <td class="col-early">-1693</td>
+          <td class="col-early">-43.7</td>
+          <td class="col-early">-2834</td>
+          <td class="col-early">87.0</td>
+          <td class="col-early">1.0</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">3</td>
+          <td class="col-tiempo">31.32</td>
+        </tr>
+        
+        <tr>
+          <td class="col-base">107</td>
+          <td class="col-base">ﾛくしÇ#ACLG</td>
+          <td class="col-base">TOP</td>
+          <td class="col-combate">5</td>
+          <td class="col-combate">14</td>
+          <td class="col-combate">23</td>
+          <td class="col-combate">3.33</td>
+          <td class="col-combate">53.10</td>
+          <td class="col-farmeo">244</td>
+          <td class="col-farmeo">7.36</td>
+          <td class="col-farmeo">359.97</td>
+          <td class="col-dano">700.96</td>
+          <td class="col-dano">46223</td>
+          <td class="col-dano">21.65</td>
+          <td class="col-dano">1.95</td>
+          <td class="col-vision">1.06</td>
+          <td class="col-vision">0.34</td>
+          <td class="col-vision">0.01</td>
+          <td class="col-vision">0.13</td>
+          <td class="col-equipo">19.1</td>
+          <td class="col-equipo">25.5</td>
+          <td class="col-equipo">33%</td>
+          <td class="col-early">-875</td>
+          <td class="col-early">-9.7</td>
+          <td class="col-early">-518</td>
+          <td class="col-early">115.3</td>
+          <td class="col-early">0.7</td>
+          <td class="col-early">0%</td>
+          <td class="col-multi">1</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-multi">0</td>
+          <td class="col-base">3</td>
+          <td class="col-tiempo">33.68</td>
+        </tr>
+        
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- ── Panel lateral ──────────────────────────────────────────────────────── -->
+<div id="panel-overlay"></div>
+
+<div id="col-panel">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+    <span style="color:#22d3ee;font-size:0.85rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;">Columnas</span>
+    <button onclick="closePanel()" style="background:none;border:none;color:#6b7280;font-size:1.1rem;cursor:pointer;">✕</button>
+  </div>
+
+  <div class="panel-group">
+    <div class="panel-group-label">Combate</div>
+    <label class="panel-check"><input type="checkbox" data-group="col-combate" checked> K / D / A / KDA / KP%</label>
+  </div>
+
+  <div class="panel-group">
+    <div class="panel-group-label">Farmeo</div>
+    <label class="panel-check"><input type="checkbox" data-group="col-farmeo" checked> CS / CS/min / Oro/min</label>
+  </div>
+
+  <div class="panel-group">
+    <div class="panel-group-label">Daño</div>
+    <label class="panel-check"><input type="checkbox" data-group="col-dano" checked> Dmg/min / Rec / % / Oro</label>
+  </div>
+
+  <div class="panel-group">
+    <div class="panel-group-label">Visión</div>
+    <label class="panel-check"><input type="checkbox" data-group="col-vision" checked> Visión / W/min / CW/min / WC/min</label>
+  </div>
+
+  <div class="panel-group">
+    <div class="panel-group-label">Equipo</div>
+    <label class="panel-check"><input type="checkbox" data-group="col-equipo" checked> Gold% / Death% / Win%</label>
+  </div>
+
+  <div class="panel-group">
+    <div class="panel-group-label">Early Game</div>
+    <label class="panel-check"><input type="checkbox" data-group="col-early" checked> GD@15 / CSD@15 / XPD@15 / CS@15 / KA@15 / FB%</label>
+  </div>
+
+  <div class="panel-group">
+    <div class="panel-group-label">Multi-kills</div>
+    <label class="panel-check"><input type="checkbox" data-group="col-multi" checked> 2K / 3K / 4K / 5K</label>
+  </div>
+
+  <div class="panel-group">
+    <div class="panel-group-label">Tiempo</div>
+    <label class="panel-check"><input type="checkbox" data-group="col-tiempo" checked> Tiempo medio</label>
+  </div>
+
+  <div style="margin-top:1.25rem;display:flex;gap:0.5rem;">
+    <button onclick="setAll(true)"  class="btn btn-sm btn-outline-secondary" style="flex:1;font-size:0.75rem;">Todas</button>
+    <button onclick="setAll(false)" class="btn btn-sm btn-outline-secondary" style="flex:1;font-size:0.75rem;">Ninguna</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  const STORAGE_KEY = 'kbstats_col_prefs';
+
+  function getCells(group) {
+    return document.querySelectorAll(`#stats-table .${group}`);
+  }
+
+  function applyGroup(group, visible) {
+    getCells(group).forEach(el => { el.style.display = visible ? '' : 'none'; });
+  }
+
+  function savePrefs() {
+    const prefs = {};
+    document.querySelectorAll('#col-panel input[data-group]').forEach(cb => {
+      prefs[cb.dataset.group] = cb.checked;
+    });
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs)); } catch {}
+  }
+
+  function loadPrefs() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  }
+
+  // Init: apply saved prefs or defaults
+  const saved = loadPrefs();
+  document.querySelectorAll('#col-panel input[data-group]').forEach(cb => {
+    if (saved && saved[cb.dataset.group] !== undefined) {
+      cb.checked = saved[cb.dataset.group];
+    }
+    applyGroup(cb.dataset.group, cb.checked);
+    cb.addEventListener('change', () => {
+      applyGroup(cb.dataset.group, cb.checked);
+      savePrefs();
+    });
+  });
+
+  window.openPanel = function () {
+    document.getElementById('col-panel').classList.add('open');
+    document.getElementById('panel-overlay').classList.add('open');
+  };
+  window.closePanel = function () {
+    document.getElementById('col-panel').classList.remove('open');
+    document.getElementById('panel-overlay').classList.remove('open');
+  };
+  window.setAll = function (on) {
+    document.querySelectorAll('#col-panel input[data-group]').forEach(cb => {
+      cb.checked = on;
+      applyGroup(cb.dataset.group, on);
+    });
+    // col-base siempre visible
+    applyGroup('col-base', true);
+    savePrefs();
+  };
+
+  document.getElementById('panel-overlay').addEventListener('click', closePanel);
+})();
+</script>
+</main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

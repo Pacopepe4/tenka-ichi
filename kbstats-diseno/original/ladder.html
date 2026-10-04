@@ -1,0 +1,3195 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KBStats</title>
+
+    
+
+    <!-- Favicon -->
+    <link
+      rel="icon"
+      type="image/png"
+      href="/static/images/team_kaiju.png"
+    />
+
+    <!-- CSS global de tu proyecto -->
+    <link rel="stylesheet" href="/static/css/kbstats.css" />
+
+    <!-- Bootstrap -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- CSS extra por página -->
+    
+<style>
+.section-card { background:#0b1220; border:1px solid #1f2937; border-radius:.6rem; padding:1.25rem; margin-bottom:1.5rem; }
+.ladder-table { width:100%; border-collapse:collapse; font-size:.82rem; }
+.ladder-table th { color:#4b5563; font-weight:500; text-transform:uppercase; font-size:.65rem; letter-spacing:.07em; padding:.45rem .75rem; border-bottom:2px solid #1f2937; white-space:nowrap; }
+.ladder-table td { padding:.5rem .75rem; border-bottom:1px solid #0d1424; color:#d1d5db; vertical-align:middle; }
+.ladder-table tr:hover td { background:#0f1828; }
+.pos-cell { font-weight:700; font-size:.9rem; min-width:36px; text-align:center; }
+.pos-1 { color:#fbbf24; } .pos-2 { color:#9ca3af; } .pos-3 { color:#b45309; }
+.tier-badge { display:inline-flex; align-items:center; gap:.4rem; font-weight:600; font-size:.83rem; }
+.tier-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+.tier-CHALLENGER  { color:#fbbf24; } .dot-CHALLENGER  { background:#fbbf24; box-shadow:0 0 6px #fbbf24; }
+.tier-GRANDMASTER { color:#f43f5e; } .dot-GRANDMASTER { background:#f43f5e; }
+.tier-MASTER      { color:#c084fc; } .dot-MASTER      { background:#c084fc; }
+.tier-DIAMOND     { color:#818cf8; } .dot-DIAMOND     { background:#818cf8; }
+.tier-EMERALD     { color:#22c55e; } .dot-EMERALD     { background:#22c55e; }
+.tier-PLATINUM    { color:#14b8a6; } .dot-PLATINUM    { background:#14b8a6; }
+.tier-GOLD        { color:#d97706; } .dot-GOLD        { background:#d97706; }
+.tier-SILVER      { color:#94a3b8; } .dot-SILVER      { background:#94a3b8; }
+.tier-BRONZE      { color:#a16207; } .dot-BRONZE      { background:#92400e; }
+.tier-IRON        { color:#6b7280; } .dot-IRON        { background:#6b7280; }
+.tier-UNRANKED    { color:#374151; } .dot-UNRANKED    { background:#374151; }
+.tier-none        { color:#1f2937; } .dot-none        { background:#1f2937; }
+.wr-good { color:#4ade80; font-weight:600; }
+.wr-ok   { color:#facc15; font-weight:600; }
+.wr-bad  { color:#f87171; font-weight:600; }
+.rol-badge { display:inline-block; border-radius:.25rem; padding:.1rem .4rem; font-size:.68rem; font-weight:600; letter-spacing:.04em; }
+.rol-TOP     { background:#1e1b4b; color:#a78bfa; border:1px solid #4338ca; }
+.rol-JUNGLE  { background:#052e16; color:#4ade80; border:1px solid #16a34a; }
+.rol-MID     { background:#713f12; color:#fcd34d; border:1px solid #d97706; }
+.rol-ADC     { background:#450a0a; color:#f87171; border:1px solid #dc2626; }
+.rol-SUPPORT { background:#0c4a6e; color:#7dd3fc; border:1px solid #0284c7; }
+.filter-select { background:#111827; border:1px solid #374151; color:#e5e7eb; border-radius:.3rem; padding:.3rem .65rem; font-size:.78rem; cursor:pointer; }
+.filter-select:focus { outline:none; border-color:#22d3ee; }
+.update-bar { height:4px; border-radius:2px; background:linear-gradient(90deg,#22d3ee,#6366f1); transition:width .4s; }
+.update-bar-track { height:4px; background:#1f2937; border-radius:2px; overflow:hidden; }
+.name-cell { font-weight:600; color:#e5e7eb; }
+</style>
+
+  </head>
+
+  <body class="wrapper">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+      <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center fs-3" href="/">KB Stats</a>
+        <div class="d-flex gap-3 ms-auto align-items-center">
+          <a class="nav-link text-secondary" href="/promedios_jugadores/?format=html" style="font-size:0.85rem;">Promedios</a>
+          <a class="nav-link text-secondary" href="/tierlist/" style="font-size:0.85rem;">Tier List</a>
+          <a class="nav-link text-secondary" href="/ladder/" style="font-size:0.85rem;">Ladder</a>
+          
+        </div>
+      </div>
+    </nav>
+
+    <main class="container">
+
+<!-- Header -->
+<div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-4">
+  <div>
+    <h2 class="text-gradient mb-1" style="font-size:1.6rem;">Ladder KB</h2>
+    <div style="font-size:.78rem;color:#6b7280;">Ranked Solo/Duo · EUW</div>
+  </div>
+  <div class="d-flex align-items-center gap-3">
+    <div style="text-align:right;">
+      <div id="update-label" style="font-size:.72rem;margin-bottom:.3rem;color:#4b5563;">
+        Actualizado 0 minutes ago
+        
+      </div>
+      <div id="upd-bar-track" style="width:180px;display:none;" class="update-bar-track">
+        <div class="update-bar" id="upd-bar" style="width:100%;"></div>
+      </div>
+    </div>
+    
+  </div>
+</div>
+
+<!-- Filtros + ordenación -->
+<form method="get" class="d-flex align-items-center flex-wrap gap-2 mb-3" id="filter-form">
+  <input type="hidden" name="sort" value="rank">
+  <input type="hidden" name="dir"  value="desc">
+  <select name="equipo" class="filter-select" onchange="this.form.submit()">
+    <option value="">Todos los equipos</option>
+    
+    <option value="KB ARASHI" >KB ARASHI</option>
+    
+    <option value="KB ATSUI" >KB ATSUI</option>
+    
+    <option value="KB BUSHI" >KB BUSHI</option>
+    
+    <option value="KB CHIRU" >KB CHIRU</option>
+    
+    <option value="KB KAIJU" >KB KAIJU</option>
+    
+    <option value="KB KAMIKAZE" >KB KAMIKAZE</option>
+    
+    <option value="KB KANJI" >KB KANJI</option>
+    
+    <option value="KB KITSUNE" >KB KITSUNE</option>
+    
+    <option value="KB KURU" >KB KURU</option>
+    
+    <option value="KB PSF" >KB PSF</option>
+    
+    <option value="KB SARU" >KB SARU</option>
+    
+    <option value="KB SORAIRO" >KB SORAIRO</option>
+    
+    <option value="KB TABU" >KB TABU</option>
+    
+    <option value="KB TORA" >KB TORA</option>
+    
+  </select>
+  <select name="rol" class="filter-select" onchange="this.form.submit()">
+    <option value="">Todos los roles</option>
+    
+    <option value="TOP" >Top</option>
+    
+    <option value="JUNGLE" >Jungla</option>
+    
+    <option value="MID" >Mid</option>
+    
+    <option value="ADC" >ADC</option>
+    
+    <option value="SUPPORT" >Support</option>
+    
+  </select>
+  
+  <span style="font-size:.72rem;color:#4b5563;margin-left:auto;">92 jugadors</span>
+</form>
+
+<!-- Tabla -->
+
+<div class="section-card" style="padding:.75rem;">
+  <div style="overflow-x:auto;">
+    <table class="ladder-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Jugador</th>
+          <th>
+
+  
+    
+    <a href="?sort=rank&dir=asc"
+       style="color:#22d3ee;text-decoration:none;white-space:nowrap;">Tier ▼</a>
+    
+  
+
+</th>
+          <th>
+
+  <a href="?sort=wins&dir=desc"
+     style="color:#4b5563;text-decoration:none;white-space:nowrap;">V</a>
+
+ / 
+
+  <a href="?sort=losses&dir=desc"
+     style="color:#4b5563;text-decoration:none;white-space:nowrap;">D</a>
+
+</th>
+          <th>
+
+  <a href="?sort=games&dir=desc"
+     style="color:#4b5563;text-decoration:none;white-space:nowrap;">Partidas</a>
+
+</th>
+          <th>
+
+  <a href="?sort=winrate&dir=desc"
+     style="color:#4b5563;text-decoration:none;white-space:nowrap;">WR</a>
+
+</th>
+          <th>Equipo</th>
+          <th>Rol</th>
+        </tr>
+      </thead>
+      <tbody id="ladder-tbody">
+        
+
+<tr>
+  <td class="pos-cell pos-1">1</td>
+  <td class="name-cell">D4dtor#444</td>
+  <td>
+    <span class="tier-badge tier-MASTER">
+      <span class="tier-dot dot-MASTER"></span>
+      Master 1034 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">255V</span> / <span style="color:#f87171;">237D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    492
+  </td>
+  <td>
+    
+    <span class="wr-ok">52%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB SARU</td>
+  <td>
+    
+    <span class="rol-badge rol-ADC">ADC</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell pos-2">2</td>
+  <td class="name-cell">PSF Alatriste#123</td>
+  <td>
+    <span class="tier-badge tier-MASTER">
+      <span class="tier-dot dot-MASTER"></span>
+      Master 834 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">348V</span> / <span style="color:#f87171;">316D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    664
+  </td>
+  <td>
+    
+    <span class="wr-ok">52%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB PSF</td>
+  <td>
+    
+    <span class="rol-badge rol-SUPPORT">SUPPORT</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell pos-3">3</td>
+  <td class="name-cell">ironfranman#ELX</td>
+  <td>
+    <span class="tier-badge tier-MASTER">
+      <span class="tier-dot dot-MASTER"></span>
+      Master 819 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">519V</span> / <span style="color:#f87171;">506D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    1025
+  </td>
+  <td>
+    
+    <span class="wr-ok">51%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KAMIKAZE</td>
+  <td>
+    
+    <span class="rol-badge rol-SUPPORT">SUPPORT</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">4</td>
+  <td class="name-cell">Hikigaayaa#YUKNO</td>
+  <td>
+    <span class="tier-badge tier-MASTER">
+      <span class="tier-dot dot-MASTER"></span>
+      Master 722 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">512V</span> / <span style="color:#f87171;">523D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    1035
+  </td>
+  <td>
+    
+    <span class="wr-ok">49%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB ATSUI</td>
+  <td>
+    
+    <span class="rol-badge rol-TOP">TOP</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">5</td>
+  <td class="name-cell">Lolex#Lolex</td>
+  <td>
+    <span class="tier-badge tier-MASTER">
+      <span class="tier-dot dot-MASTER"></span>
+      Master 615 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">819V</span> / <span style="color:#f87171;">827D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    1646
+  </td>
+  <td>
+    
+    <span class="wr-ok">50%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KAMIKAZE</td>
+  <td>
+    
+    <span class="rol-badge rol-ADC">ADC</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">6</td>
+  <td class="name-cell">Ragnarok#9167</td>
+  <td>
+    <span class="tier-badge tier-MASTER">
+      <span class="tier-dot dot-MASTER"></span>
+      Master 552 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">620V</span> / <span style="color:#f87171;">584D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    1204
+  </td>
+  <td>
+    
+    <span class="wr-ok">51%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB CHIRU</td>
+  <td>
+    
+    <span class="rol-badge rol-TOP">TOP</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">7</td>
+  <td class="name-cell">ILP#LPG</td>
+  <td>
+    <span class="tier-badge tier-MASTER">
+      <span class="tier-dot dot-MASTER"></span>
+      Master 548 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">247V</span> / <span style="color:#f87171;">234D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    481
+  </td>
+  <td>
+    
+    <span class="wr-ok">51%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KAMIKAZE</td>
+  <td>
+    
+    <span class="rol-badge rol-JUNGLE">JUNGLE</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">8</td>
+  <td class="name-cell">Almo#ALMO</td>
+  <td>
+    <span class="tier-badge tier-MASTER">
+      <span class="tier-dot dot-MASTER"></span>
+      Master 546 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">211V</span> / <span style="color:#f87171;">189D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    400
+  </td>
+  <td>
+    
+    <span class="wr-ok">53%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KITSUNE</td>
+  <td>
+    
+    <span class="rol-badge rol-SUPPORT">SUPPORT</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">9</td>
+  <td class="name-cell">Hyakko#219</td>
+  <td>
+    <span class="tier-badge tier-MASTER">
+      <span class="tier-dot dot-MASTER"></span>
+      Master 420 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">164V</span> / <span style="color:#f87171;">147D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    311
+  </td>
+  <td>
+    
+    <span class="wr-ok">53%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KAIJU</td>
+  <td>
+    
+    <span class="rol-badge rol-ADC">ADC</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">10</td>
+  <td class="name-cell">xNearK AG#EUW</td>
+  <td>
+    <span class="tier-badge tier-MASTER">
+      <span class="tier-dot dot-MASTER"></span>
+      Master 279 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">203V</span> / <span style="color:#f87171;">177D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    380
+  </td>
+  <td>
+    
+    <span class="wr-ok">53%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KANJI</td>
+  <td>
+    
+    <span class="rol-badge rol-SUPPORT">SUPPORT</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">11</td>
+  <td class="name-cell">CarryDoctor#112</td>
+  <td>
+    <span class="tier-badge tier-MASTER">
+      <span class="tier-dot dot-MASTER"></span>
+      Master 208 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">704V</span> / <span style="color:#f87171;">716D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    1420
+  </td>
+  <td>
+    
+    <span class="wr-ok">50%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB BUSHI</td>
+  <td>
+    
+    <span class="rol-badge rol-ADC">ADC</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">12</td>
+  <td class="name-cell">coña malą#EUW</td>
+  <td>
+    <span class="tier-badge tier-MASTER">
+      <span class="tier-dot dot-MASTER"></span>
+      Master 204 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">249V</span> / <span style="color:#f87171;">230D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    479
+  </td>
+  <td>
+    
+    <span class="wr-ok">52%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB ATSUI</td>
+  <td>
+    
+    <span class="rol-badge rol-SUPPORT">SUPPORT</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">13</td>
+  <td class="name-cell">KB Despo#KAIJU</td>
+  <td>
+    <span class="tier-badge tier-MASTER">
+      <span class="tier-dot dot-MASTER"></span>
+      Master 190 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">195V</span> / <span style="color:#f87171;">178D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    373
+  </td>
+  <td>
+    
+    <span class="wr-ok">52%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KAIJU</td>
+  <td>
+    
+    <span class="rol-badge rol-TOP">TOP</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">14</td>
+  <td class="name-cell">Ranita Chikitita#RMU</td>
+  <td>
+    <span class="tier-badge tier-MASTER">
+      <span class="tier-dot dot-MASTER"></span>
+      Master 126 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">188V</span> / <span style="color:#f87171;">196D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    384
+  </td>
+  <td>
+    
+    <span class="wr-ok">49%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB SORAIRO</td>
+  <td>
+    
+    <span class="rol-badge rol-SUPPORT">SUPPORT</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">15</td>
+  <td class="name-cell">Tusk0 Jones#PRYCA</td>
+  <td>
+    <span class="tier-badge tier-MASTER">
+      <span class="tier-dot dot-MASTER"></span>
+      Master 119 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">273V</span> / <span style="color:#f87171;">255D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    528
+  </td>
+  <td>
+    
+    <span class="wr-ok">52%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB BUSHI</td>
+  <td>
+    
+    <span class="rol-badge rol-JUNGLE">JUNGLE</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">16</td>
+  <td class="name-cell">LegendLegacyy#EUW</td>
+  <td>
+    <span class="tier-badge tier-MASTER">
+      <span class="tier-dot dot-MASTER"></span>
+      Master 14 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">592V</span> / <span style="color:#f87171;">599D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    1191
+  </td>
+  <td>
+    
+    <span class="wr-ok">50%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KURU</td>
+  <td>
+    
+    <span class="rol-badge rol-ADC">ADC</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">17</td>
+  <td class="name-cell">angelowo#frost</td>
+  <td>
+    <span class="tier-badge tier-MASTER">
+      <span class="tier-dot dot-MASTER"></span>
+      Master 11 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">702V</span> / <span style="color:#f87171;">707D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    1409
+  </td>
+  <td>
+    
+    <span class="wr-ok">50%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB TORA</td>
+  <td>
+    
+    <span class="rol-badge rol-MID">MID</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">18</td>
+  <td class="name-cell">AnPuuR#1710</td>
+  <td>
+    <span class="tier-badge tier-MASTER">
+      <span class="tier-dot dot-MASTER"></span>
+      Master 6 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">200V</span> / <span style="color:#f87171;">187D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    387
+  </td>
+  <td>
+    
+    <span class="wr-ok">52%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB ARASHI</td>
+  <td>
+    
+    <span class="rol-badge rol-MID">MID</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">19</td>
+  <td class="name-cell">SτyłΣR#Pingu</td>
+  <td>
+    <span class="tier-badge tier-MASTER">
+      <span class="tier-dot dot-MASTER"></span>
+      Master 6 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">458V</span> / <span style="color:#f87171;">439D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    897
+  </td>
+  <td>
+    
+    <span class="wr-ok">51%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB SARU</td>
+  <td>
+    
+    <span class="rol-badge rol-TOP">TOP</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">20</td>
+  <td class="name-cell">HugoSexy#XXX</td>
+  <td>
+    <span class="tier-badge tier-MASTER">
+      <span class="tier-dot dot-MASTER"></span>
+      Master 0 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">128V</span> / <span style="color:#f87171;">117D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    245
+  </td>
+  <td>
+    
+    <span class="wr-ok">52%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KITSUNE</td>
+  <td>
+    
+    <span class="rol-badge rol-TOP">TOP</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">21</td>
+  <td class="name-cell">Dakin#DAK</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond I · 95 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">274V</span> / <span style="color:#f87171;">278D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    552
+  </td>
+  <td>
+    
+    <span class="wr-ok">50%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB ATSUI</td>
+  <td>
+    
+    <span class="rol-badge rol-JUNGLE">JUNGLE</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">22</td>
+  <td class="name-cell">KB Sergi#KBK</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond I · 75 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">46V</span> / <span style="color:#f87171;">35D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    81
+  </td>
+  <td>
+    
+    <span class="wr-good">57%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KAIJU</td>
+  <td>
+    
+    <span class="rol-badge rol-SUPPORT">SUPPORT</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">23</td>
+  <td class="name-cell">Reiko#HRTCS</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond I · 75 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">122V</span> / <span style="color:#f87171;">114D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    236
+  </td>
+  <td>
+    
+    <span class="wr-ok">52%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB BUSHI</td>
+  <td>
+    
+    <span class="rol-badge rol-MID">MID</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">24</td>
+  <td class="name-cell">Makitah#EUW</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond I · 66 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">46V</span> / <span style="color:#f87171;">50D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    96
+  </td>
+  <td>
+    
+    <span class="wr-ok">48%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KANJI</td>
+  <td>
+    
+    <span class="rol-badge rol-MID">MID</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">25</td>
+  <td class="name-cell">De Tora Si Soy#Kbron</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond I · 65 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">225V</span> / <span style="color:#f87171;">213D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    438
+  </td>
+  <td>
+    
+    <span class="wr-ok">51%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KAIJU</td>
+  <td>
+    
+    <span class="rol-badge rol-MID">MID</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">26</td>
+  <td class="name-cell">KingKai#EzTop</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond I · 53 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">474V</span> / <span style="color:#f87171;">468D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    942
+  </td>
+  <td>
+    
+    <span class="wr-ok">50%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB SARU</td>
+  <td>
+    
+    <span class="rol-badge rol-TOP">TOP</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">27</td>
+  <td class="name-cell">Mitsu#PRIME</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond I · 49 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">105V</span> / <span style="color:#f87171;">86D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    191
+  </td>
+  <td>
+    
+    <span class="wr-good">55%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB TORA</td>
+  <td>
+    
+    <span class="rol-badge rol-JUNGLE">JUNGLE</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">28</td>
+  <td class="name-cell">Kokü#95519</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond I · 41 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">370V</span> / <span style="color:#f87171;">392D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    762
+  </td>
+  <td>
+    
+    <span class="wr-ok">49%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB BUSHI</td>
+  <td>
+    
+    <span class="rol-badge rol-SUPPORT">SUPPORT</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">29</td>
+  <td class="name-cell">GoldShip#GLUE</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond I · 23 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">179V</span> / <span style="color:#f87171;">163D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    342
+  </td>
+  <td>
+    
+    <span class="wr-ok">52%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KURU</td>
+  <td>
+    
+    <span class="rol-badge rol-TOP">TOP</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">30</td>
+  <td class="name-cell">Wesele16#0303</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond I · 17 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">385V</span> / <span style="color:#f87171;">372D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    757
+  </td>
+  <td>
+    
+    <span class="wr-ok">51%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB SORAIRO</td>
+  <td>
+    
+    <span class="rol-badge rol-MID">MID</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">31</td>
+  <td class="name-cell">BopaMeister#BOMBA</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond I · 1 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">479V</span> / <span style="color:#f87171;">475D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    954
+  </td>
+  <td>
+    
+    <span class="wr-ok">50%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB ARASHI</td>
+  <td>
+    
+    <span class="rol-badge rol-TOP">TOP</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">32</td>
+  <td class="name-cell">J Lgend#0000</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond II · 81 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">57V</span> / <span style="color:#f87171;">67D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    124
+  </td>
+  <td>
+    
+    <span class="wr-bad">46%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KAIJU</td>
+  <td>
+    
+    <span class="rol-badge rol-JUNGLE">JUNGLE</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">33</td>
+  <td class="name-cell">AlejandroMag#963</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond II · 75 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">114V</span> / <span style="color:#f87171;">118D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    232
+  </td>
+  <td>
+    
+    <span class="wr-ok">49%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB SARU</td>
+  <td>
+    
+    <span class="rol-badge rol-MID">MID</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">34</td>
+  <td class="name-cell">KB Cariatis#123</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond II · 75 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">63V</span> / <span style="color:#f87171;">59D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    122
+  </td>
+  <td>
+    
+    <span class="wr-ok">52%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KURU</td>
+  <td>
+    
+    <span class="rol-badge rol-MID">MID</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">35</td>
+  <td class="name-cell">angelgenius#EUW</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond II · 75 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">103V</span> / <span style="color:#f87171;">102D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    205
+  </td>
+  <td>
+    
+    <span class="wr-ok">50%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KANJI</td>
+  <td>
+    
+    <span class="rol-badge rol-SUPPORT">SUPPORT</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">36</td>
+  <td class="name-cell">KB Xenius#KBK</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond II · 45 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">133V</span> / <span style="color:#f87171;">144D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    277
+  </td>
+  <td>
+    
+    <span class="wr-ok">48%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB TORA</td>
+  <td>
+    
+    <span class="rol-badge rol-JUNGLE">JUNGLE</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">37</td>
+  <td class="name-cell">DAFenosa#ADC</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond II · 43 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">100V</span> / <span style="color:#f87171;">107D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    207
+  </td>
+  <td>
+    
+    <span class="wr-ok">48%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB ATSUI</td>
+  <td>
+    
+    <span class="rol-badge rol-JUNGLE">JUNGLE</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">38</td>
+  <td class="name-cell">zInviicTusCL#X1LAS</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond II · 34 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">494V</span> / <span style="color:#f87171;">489D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    983
+  </td>
+  <td>
+    
+    <span class="wr-ok">50%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB TORA</td>
+  <td>
+    
+    <span class="rol-badge rol-TOP">TOP</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">39</td>
+  <td class="name-cell">DjMatrixMini#EUW</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond II · 29 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">230V</span> / <span style="color:#f87171;">212D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    442
+  </td>
+  <td>
+    
+    <span class="wr-ok">52%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB SORAIRO</td>
+  <td>
+    
+    <span class="rol-badge rol-ADC">ADC</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">40</td>
+  <td class="name-cell">Cuco#ESPÑA</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond II · 21 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">401V</span> / <span style="color:#f87171;">396D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    797
+  </td>
+  <td>
+    
+    <span class="wr-ok">50%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB ARASHI</td>
+  <td>
+    
+    <span class="rol-badge rol-ADC">ADC</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">41</td>
+  <td class="name-cell">limpiar enyoyer#DATO</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond II · 10 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">149V</span> / <span style="color:#f87171;">139D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    288
+  </td>
+  <td>
+    
+    <span class="wr-ok">52%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB SARU</td>
+  <td>
+    
+    <span class="rol-badge rol-SUPPORT">SUPPORT</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">42</td>
+  <td class="name-cell">Dara#TOP</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond II · 9 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">393V</span> / <span style="color:#f87171;">396D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    789
+  </td>
+  <td>
+    
+    <span class="wr-ok">50%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KANJI</td>
+  <td>
+    
+    <span class="rol-badge rol-TOP">TOP</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">43</td>
+  <td class="name-cell">FOX Castañitas#SPAIN</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond II · 4 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">76V</span> / <span style="color:#f87171;">73D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    149
+  </td>
+  <td>
+    
+    <span class="wr-ok">51%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KITSUNE</td>
+  <td>
+    
+    <span class="rol-badge rol-SUPPORT">SUPPORT</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">44</td>
+  <td class="name-cell">PSF Phantom#Nashe</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond II · 4 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">183V</span> / <span style="color:#f87171;">182D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    365
+  </td>
+  <td>
+    
+    <span class="wr-ok">50%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB PSF</td>
+  <td>
+    
+    <span class="rol-badge rol-TOP">TOP</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">45</td>
+  <td class="name-cell">Kaboshi#4087</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond III · 72 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">143V</span> / <span style="color:#f87171;">144D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    287
+  </td>
+  <td>
+    
+    <span class="wr-ok">50%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KANJI</td>
+  <td>
+    
+    <span class="rol-badge rol-JUNGLE">JUNGLE</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">46</td>
+  <td class="name-cell">KB Davura#KAIJU</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond III · 36 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">128V</span> / <span style="color:#f87171;">120D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    248
+  </td>
+  <td>
+    
+    <span class="wr-ok">52%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KAIJU</td>
+  <td>
+    
+    <span class="rol-badge rol-ADC">ADC</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">47</td>
+  <td class="name-cell">Tuff Pigeon Dr#Aura</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond III · 14 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">386V</span> / <span style="color:#f87171;">396D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    782
+  </td>
+  <td>
+    
+    <span class="wr-ok">49%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB ATSUI</td>
+  <td>
+    
+    <span class="rol-badge rol-ADC">ADC</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">48</td>
+  <td class="name-cell">Narcïso#ADC</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond IV · 74 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">257V</span> / <span style="color:#f87171;">275D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    532
+  </td>
+  <td>
+    
+    <span class="wr-ok">48%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB TORA</td>
+  <td>
+    
+    <span class="rol-badge rol-ADC">ADC</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">49</td>
+  <td class="name-cell">Deiviaki#MVP</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond IV · 52 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">81V</span> / <span style="color:#f87171;">82D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    163
+  </td>
+  <td>
+    
+    <span class="wr-ok">50%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB ARASHI</td>
+  <td>
+    
+    <span class="rol-badge rol-SUPPORT">SUPPORT</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">50</td>
+  <td class="name-cell">DuncanRV#PUCHI</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond IV · 34 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">278V</span> / <span style="color:#f87171;">263D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    541
+  </td>
+  <td>
+    
+    <span class="wr-ok">51%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB SORAIRO</td>
+  <td>
+    
+    <span class="rol-badge rol-MID">MID</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">51</td>
+  <td class="name-cell">Potayu#2117</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond IV · 18 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">286V</span> / <span style="color:#f87171;">277D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    563
+  </td>
+  <td>
+    
+    <span class="wr-ok">51%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KITSUNE</td>
+  <td>
+    
+    <span class="rol-badge rol-MID">MID</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">52</td>
+  <td class="name-cell">PSF Lucyfer#lord</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond IV · 15 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">89V</span> / <span style="color:#f87171;">95D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    184
+  </td>
+  <td>
+    
+    <span class="wr-ok">48%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KAMIKAZE</td>
+  <td>
+    
+    <span class="rol-badge rol-MID">MID</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">53</td>
+  <td class="name-cell">MaikyG#EUW2</td>
+  <td>
+    <span class="tier-badge tier-DIAMOND">
+      <span class="tier-dot dot-DIAMOND"></span>
+      Diamond IV · 8 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">669V</span> / <span style="color:#f87171;">653D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    1322
+  </td>
+  <td>
+    
+    <span class="wr-ok">51%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB SORAIRO</td>
+  <td>
+    
+    <span class="rol-badge rol-JUNGLE">JUNGLE</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">54</td>
+  <td class="name-cell">LYTHIUMM#EUW</td>
+  <td>
+    <span class="tier-badge tier-EMERALD">
+      <span class="tier-dot dot-EMERALD"></span>
+      Emerald I · 98 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">108V</span> / <span style="color:#f87171;">93D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    201
+  </td>
+  <td>
+    
+    <span class="wr-ok">54%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KANJI</td>
+  <td>
+    
+    <span class="rol-badge rol-ADC">ADC</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">55</td>
+  <td class="name-cell">FOX J4B4#J4B4</td>
+  <td>
+    <span class="tier-badge tier-EMERALD">
+      <span class="tier-dot dot-EMERALD"></span>
+      Emerald I · 75 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">154V</span> / <span style="color:#f87171;">144D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    298
+  </td>
+  <td>
+    
+    <span class="wr-ok">52%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KITSUNE</td>
+  <td>
+    
+    <span class="rol-badge rol-JUNGLE">JUNGLE</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">56</td>
+  <td class="name-cell">H1dont#KURU</td>
+  <td>
+    <span class="tier-badge tier-EMERALD">
+      <span class="tier-dot dot-EMERALD"></span>
+      Emerald I · 75 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">60V</span> / <span style="color:#f87171;">60D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    120
+  </td>
+  <td>
+    
+    <span class="wr-ok">50%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KURU</td>
+  <td>
+    
+    <span class="rol-badge rol-JUNGLE">JUNGLE</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">57</td>
+  <td class="name-cell">MPT BASTIII#MPT</td>
+  <td>
+    <span class="tier-badge tier-EMERALD">
+      <span class="tier-dot dot-EMERALD"></span>
+      Emerald I · 75 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">77V</span> / <span style="color:#f87171;">80D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    157
+  </td>
+  <td>
+    
+    <span class="wr-ok">49%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KAMIKAZE</td>
+  <td>
+    
+    <span class="rol-badge rol-MID">MID</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">58</td>
+  <td class="name-cell">ThaιGer#thaig</td>
+  <td>
+    <span class="tier-badge tier-EMERALD">
+      <span class="tier-dot dot-EMERALD"></span>
+      Emerald I · 75 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">54V</span> / <span style="color:#f87171;">52D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    106
+  </td>
+  <td>
+    
+    <span class="wr-ok">51%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB CHIRU</td>
+  <td>
+    
+    <span class="rol-badge rol-JUNGLE">JUNGLE</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">59</td>
+  <td class="name-cell">Wiki#109</td>
+  <td>
+    <span class="tier-badge tier-EMERALD">
+      <span class="tier-dot dot-EMERALD"></span>
+      Emerald I · 75 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">19V</span> / <span style="color:#f87171;">23D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    42
+  </td>
+  <td>
+    
+    <span class="wr-bad">45%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KITSUNE</td>
+  <td>
+    
+    <span class="rol-badge rol-MID">MID</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">60</td>
+  <td class="name-cell">T1 Adryh#yaya</td>
+  <td>
+    <span class="tier-badge tier-EMERALD">
+      <span class="tier-dot dot-EMERALD"></span>
+      Emerald I · 41 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">197V</span> / <span style="color:#f87171;">191D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    388
+  </td>
+  <td>
+    
+    <span class="wr-ok">51%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KITSUNE</td>
+  <td>
+    
+    <span class="rol-badge rol-ADC">ADC</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">61</td>
+  <td class="name-cell">sustanon#EUW</td>
+  <td>
+    <span class="tier-badge tier-EMERALD">
+      <span class="tier-dot dot-EMERALD"></span>
+      Emerald I · 24 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">102V</span> / <span style="color:#f87171;">103D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    205
+  </td>
+  <td>
+    
+    <span class="wr-ok">50%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB SARU</td>
+  <td>
+    
+    <span class="rol-badge rol-JUNGLE">JUNGLE</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">62</td>
+  <td class="name-cell">PSF JFet#PSF</td>
+  <td>
+    <span class="tier-badge tier-EMERALD">
+      <span class="tier-dot dot-EMERALD"></span>
+      Emerald I · 12 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">238V</span> / <span style="color:#f87171;">225D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    463
+  </td>
+  <td>
+    
+    <span class="wr-ok">51%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB PSF</td>
+  <td>
+    
+    <span class="rol-badge rol-SUPPORT">SUPPORT</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">63</td>
+  <td class="name-cell">SonsOfAston#EUW</td>
+  <td>
+    <span class="tier-badge tier-EMERALD">
+      <span class="tier-dot dot-EMERALD"></span>
+      Emerald I · 7 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">127V</span> / <span style="color:#f87171;">120D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    247
+  </td>
+  <td>
+    
+    <span class="wr-ok">51%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KURU</td>
+  <td>
+    
+    <span class="rol-badge rol-SUPPORT">SUPPORT</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">64</td>
+  <td class="name-cell">Rerocama#BBO</td>
+  <td>
+    <span class="tier-badge tier-EMERALD">
+      <span class="tier-dot dot-EMERALD"></span>
+      Emerald II · 92 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">166V</span> / <span style="color:#f87171;">147D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    313
+  </td>
+  <td>
+    
+    <span class="wr-ok">53%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB ARASHI</td>
+  <td>
+    
+    <span class="rol-badge rol-SUPPORT">SUPPORT</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">65</td>
+  <td class="name-cell">Dantesaurio Rex#EUW</td>
+  <td>
+    <span class="tier-badge tier-EMERALD">
+      <span class="tier-dot dot-EMERALD"></span>
+      Emerald II · 17 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">358V</span> / <span style="color:#f87171;">347D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    705
+  </td>
+  <td>
+    
+    <span class="wr-ok">51%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB TORA</td>
+  <td>
+    
+    <span class="rol-badge rol-SUPPORT">SUPPORT</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">66</td>
+  <td class="name-cell">PSF NdeNero#xdd</td>
+  <td>
+    <span class="tier-badge tier-EMERALD">
+      <span class="tier-dot dot-EMERALD"></span>
+      Emerald II · 16 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">218V</span> / <span style="color:#f87171;">216D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    434
+  </td>
+  <td>
+    
+    <span class="wr-ok">50%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB PSF</td>
+  <td>
+    
+    <span class="rol-badge rol-ADC">ADC</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">67</td>
+  <td class="name-cell">PSF Dayx#1312</td>
+  <td>
+    <span class="tier-badge tier-EMERALD">
+      <span class="tier-dot dot-EMERALD"></span>
+      Emerald II · 11 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">288V</span> / <span style="color:#f87171;">283D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    571
+  </td>
+  <td>
+    
+    <span class="wr-ok">50%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB PSF</td>
+  <td>
+    
+    <span class="rol-badge rol-JUNGLE">JUNGLE</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">68</td>
+  <td class="name-cell">QYRRΔN#xxxx</td>
+  <td>
+    <span class="tier-badge tier-EMERALD">
+      <span class="tier-dot dot-EMERALD"></span>
+      Emerald III · 97 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">251V</span> / <span style="color:#f87171;">244D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    495
+  </td>
+  <td>
+    
+    <span class="wr-ok">51%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB CHIRU</td>
+  <td>
+    
+    <span class="rol-badge rol-MID">MID</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">69</td>
+  <td class="name-cell">ﾛくしÇ#ACLG</td>
+  <td>
+    <span class="tier-badge tier-EMERALD">
+      <span class="tier-dot dot-EMERALD"></span>
+      Emerald III · 81 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">5V</span> / <span style="color:#f87171;">7D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    12
+  </td>
+  <td>
+    
+    <span class="wr-bad">42%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KITSUNE</td>
+  <td>
+    
+    <span class="rol-badge rol-TOP">TOP</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">70</td>
+  <td class="name-cell">ARS Gyökeres#ARS</td>
+  <td>
+    <span class="tier-badge tier-EMERALD">
+      <span class="tier-dot dot-EMERALD"></span>
+      Emerald III · 60 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">286V</span> / <span style="color:#f87171;">289D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    575
+  </td>
+  <td>
+    
+    <span class="wr-ok">50%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB CHIRU</td>
+  <td>
+    
+    <span class="rol-badge rol-ADC">ADC</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">71</td>
+  <td class="name-cell">xXBorjaocerinXx#EUW</td>
+  <td>
+    <span class="tier-badge tier-EMERALD">
+      <span class="tier-dot dot-EMERALD"></span>
+      Emerald III · 33 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">306V</span> / <span style="color:#f87171;">327D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    633
+  </td>
+  <td>
+    
+    <span class="wr-ok">48%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KITSUNE</td>
+  <td>
+    
+    <span class="rol-badge rol-MID">MID</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">72</td>
+  <td class="name-cell">Lady#2002</td>
+  <td>
+    <span class="tier-badge tier-EMERALD">
+      <span class="tier-dot dot-EMERALD"></span>
+      Emerald III · 22 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">59V</span> / <span style="color:#f87171;">64D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    123
+  </td>
+  <td>
+    
+    <span class="wr-ok">48%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB TABU</td>
+  <td>
+    
+    <span class="rol-badge rol-MID">MID</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">73</td>
+  <td class="name-cell">CHIRU Xharon#CHIRU</td>
+  <td>
+    <span class="tier-badge tier-EMERALD">
+      <span class="tier-dot dot-EMERALD"></span>
+      Emerald III · 17 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">42V</span> / <span style="color:#f87171;">41D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    83
+  </td>
+  <td>
+    
+    <span class="wr-ok">51%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB CHIRU</td>
+  <td>
+    
+    <span class="rol-badge rol-ADC">ADC</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">74</td>
+  <td class="name-cell">Knight Artorias#TPG</td>
+  <td>
+    <span class="tier-badge tier-EMERALD">
+      <span class="tier-dot dot-EMERALD"></span>
+      Emerald III · 17 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">42V</span> / <span style="color:#f87171;">37D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    79
+  </td>
+  <td>
+    
+    <span class="wr-ok">53%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB ARASHI</td>
+  <td>
+    
+    <span class="rol-badge rol-TOP">TOP</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">75</td>
+  <td class="name-cell">MiKi#56428</td>
+  <td>
+    <span class="tier-badge tier-EMERALD">
+      <span class="tier-dot dot-EMERALD"></span>
+      Emerald IV · 92 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">112V</span> / <span style="color:#f87171;">117D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    229
+  </td>
+  <td>
+    
+    <span class="wr-ok">49%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KAMIKAZE</td>
+  <td>
+    
+    <span class="rol-badge rol-TOP">TOP</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">76</td>
+  <td class="name-cell">sporfu#LPS</td>
+  <td>
+    <span class="tier-badge tier-EMERALD">
+      <span class="tier-dot dot-EMERALD"></span>
+      Emerald IV · 57 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">426V</span> / <span style="color:#f87171;">410D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    836
+  </td>
+  <td>
+    
+    <span class="wr-ok">51%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB ATSUI</td>
+  <td>
+    
+    <span class="rol-badge rol-MID">MID</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">77</td>
+  <td class="name-cell">TG Huais#EUW</td>
+  <td>
+    <span class="tier-badge tier-EMERALD">
+      <span class="tier-dot dot-EMERALD"></span>
+      Emerald IV · 56 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">69V</span> / <span style="color:#f87171;">59D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    128
+  </td>
+  <td>
+    
+    <span class="wr-ok">54%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB TABU</td>
+  <td>
+    
+    <span class="rol-badge rol-JUNGLE">JUNGLE</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">78</td>
+  <td class="name-cell">ChuketaFanAcc#Demon</td>
+  <td>
+    <span class="tier-badge tier-EMERALD">
+      <span class="tier-dot dot-EMERALD"></span>
+      Emerald IV · 55 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">199V</span> / <span style="color:#f87171;">218D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    417
+  </td>
+  <td>
+    
+    <span class="wr-ok">48%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB SORAIRO</td>
+  <td>
+    
+    <span class="rol-badge rol-ADC">ADC</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">79</td>
+  <td class="name-cell">Invictutus#EUW</td>
+  <td>
+    <span class="tier-badge tier-EMERALD">
+      <span class="tier-dot dot-EMERALD"></span>
+      Emerald IV · 46 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">249V</span> / <span style="color:#f87171;">251D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    500
+  </td>
+  <td>
+    
+    <span class="wr-ok">50%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB SORAIRO</td>
+  <td>
+    
+    <span class="rol-badge rol-SUPPORT">SUPPORT</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">80</td>
+  <td class="name-cell">CHOPIT0#EUW</td>
+  <td>
+    <span class="tier-badge tier-EMERALD">
+      <span class="tier-dot dot-EMERALD"></span>
+      Emerald IV · 40 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">8V</span> / <span style="color:#f87171;">8D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    16
+  </td>
+  <td>
+    
+    <span class="wr-ok">50%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB BUSHI</td>
+  <td>
+    
+    <span class="rol-badge rol-TOP">TOP</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">81</td>
+  <td class="name-cell">Agnеs Tachyon#POKKE</td>
+  <td>
+    <span class="tier-badge tier-EMERALD">
+      <span class="tier-dot dot-EMERALD"></span>
+      Emerald IV · 36 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">394V</span> / <span style="color:#f87171;">415D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    809
+  </td>
+  <td>
+    
+    <span class="wr-ok">49%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB CHIRU</td>
+  <td>
+    
+    <span class="rol-badge rol-MID">MID</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">82</td>
+  <td class="name-cell">Lord MargaKahn#EUW</td>
+  <td>
+    <span class="tier-badge tier-EMERALD">
+      <span class="tier-dot dot-EMERALD"></span>
+      Emerald IV · 28 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">18V</span> / <span style="color:#f87171;">14D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    32
+  </td>
+  <td>
+    
+    <span class="wr-good">56%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB TABU</td>
+  <td>
+    
+    <span class="rol-badge rol-TOP">TOP</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">83</td>
+  <td class="name-cell">Torrente#ESPÑA</td>
+  <td>
+    <span class="tier-badge tier-EMERALD">
+      <span class="tier-dot dot-EMERALD"></span>
+      Emerald IV · 25 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">218V</span> / <span style="color:#f87171;">226D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    444
+  </td>
+  <td>
+    
+    <span class="wr-ok">49%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB ARASHI</td>
+  <td>
+    
+    <span class="rol-badge rol-SUPPORT">SUPPORT</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">84</td>
+  <td class="name-cell">Marakaś #EUW</td>
+  <td>
+    <span class="tier-badge tier-EMERALD">
+      <span class="tier-dot dot-EMERALD"></span>
+      Emerald IV · 22 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">85V</span> / <span style="color:#f87171;">98D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    183
+  </td>
+  <td>
+    
+    <span class="wr-bad">46%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB SORAIRO</td>
+  <td>
+    
+    <span class="rol-badge rol-JUNGLE">JUNGLE</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">85</td>
+  <td class="name-cell">kurutta#ESP</td>
+  <td>
+    <span class="tier-badge tier-EMERALD">
+      <span class="tier-dot dot-EMERALD"></span>
+      Emerald IV · 0 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">482V</span> / <span style="color:#f87171;">484D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    966
+  </td>
+  <td>
+    
+    <span class="wr-ok">50%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB TABU</td>
+  <td>
+    
+    <span class="rol-badge rol-SUPPORT">SUPPORT</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">86</td>
+  <td class="name-cell">dr filtros#46180</td>
+  <td>
+    <span class="tier-badge tier-PLATINUM">
+      <span class="tier-dot dot-PLATINUM"></span>
+      Platinum I · 5 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">308V</span> / <span style="color:#f87171;">317D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    625
+  </td>
+  <td>
+    
+    <span class="wr-ok">49%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB KAMIKAZE</td>
+  <td>
+    
+    <span class="rol-badge rol-ADC">ADC</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">87</td>
+  <td class="name-cell">PoluciónNocturna#LECHE</td>
+  <td>
+    <span class="tier-badge tier-GOLD">
+      <span class="tier-dot dot-GOLD"></span>
+      Gold I · 21 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">103V</span> / <span style="color:#f87171;">110D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    213
+  </td>
+  <td>
+    
+    <span class="wr-ok">48%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB SORAIRO</td>
+  <td>
+    
+    <span class="rol-badge rol-JUNGLE">JUNGLE</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">88</td>
+  <td class="name-cell">RF caPs#FNC</td>
+  <td>
+    <span class="tier-badge tier-GOLD">
+      <span class="tier-dot dot-GOLD"></span>
+      Gold II · 88 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">28V</span> / <span style="color:#f87171;">36D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    64
+  </td>
+  <td>
+    
+    <span class="wr-bad">44%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB ATSUI</td>
+  <td>
+    
+    <span class="rol-badge rol-MID">MID</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">89</td>
+  <td class="name-cell">TG Fonkai#4005</td>
+  <td>
+    <span class="tier-badge tier-GOLD">
+      <span class="tier-dot dot-GOLD"></span>
+      Gold II · 74 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">34V</span> / <span style="color:#f87171;">23D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    57
+  </td>
+  <td>
+    
+    <span class="wr-good">60%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB TABU</td>
+  <td>
+    
+    <span class="rol-badge rol-ADC">ADC</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">90</td>
+  <td class="name-cell">TG Arxan#5091</td>
+  <td>
+    <span class="tier-badge tier-GOLD">
+      <span class="tier-dot dot-GOLD"></span>
+      Gold II · 21 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">52V</span> / <span style="color:#f87171;">55D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    107
+  </td>
+  <td>
+    
+    <span class="wr-ok">49%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB TABU</td>
+  <td>
+    
+    <span class="rol-badge rol-SUPPORT">SUPPORT</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">91</td>
+  <td class="name-cell">TG Hazard#Taboo</td>
+  <td>
+    <span class="tier-badge tier-GOLD">
+      <span class="tier-dot dot-GOLD"></span>
+      Gold III · 73 LP
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    
+    <span style="color:#4ade80;">52V</span> / <span style="color:#f87171;">62D</span>
+    
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    114
+  </td>
+  <td>
+    
+    <span class="wr-bad">46%</span>
+    
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB TABU</td>
+  <td>
+    
+    <span class="rol-badge rol-ADC">ADC</span>
+    
+  </td>
+</tr>
+
+
+
+<tr>
+  <td class="pos-cell ">92</td>
+  <td class="name-cell">OG BuZz#TPG</td>
+  <td>
+    <span class="tier-badge tier-none">
+      <span class="tier-dot dot-none"></span>
+      Sin clasificar
+    </span>
+  </td>
+  <td style="font-size:.75rem;font-variant-numeric:tabular-nums;">
+    —
+  </td>
+  <td style="font-size:.75rem;color:#9ca3af;font-variant-numeric:tabular-nums;">
+    —
+  </td>
+  <td>
+    —
+  </td>
+  <td style="font-size:.78rem;color:#9ca3af;">KB ARASHI</td>
+  <td>
+    
+    <span class="rol-badge rol-JUNGLE">JUNGLE</span>
+    
+  </td>
+</tr>
+
+
+
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+<script>
+(function () {
+  const PARTIAL_QS = '?sort=rank&dir=desc';
+
+  function setLabel(text, color) {
+    const el = document.getElementById('update-label');
+    if (el) { el.textContent = text; el.style.color = color; }
+  }
+  function setBar(pct, visible) {
+    const track = document.getElementById('upd-bar-track');
+    const bar   = document.getElementById('upd-bar');
+    if (track) track.style.display = visible ? '' : 'none';
+    if (bar)   bar.style.width = pct + '%';
+  }
+  async function refreshTable() {
+    try {
+      const r = await fetch('/ladder/partial/' + PARTIAL_QS);
+      if (r.ok) document.getElementById('ladder-tbody').innerHTML = await r.text();
+    } catch {}
+  }
+
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const ws = new WebSocket(proto + '//' + location.host + '/ws/ladder/');
+
+  ws.onmessage = async function (e) {
+    const d = JSON.parse(e.data);
+    if (d.done) {
+      await refreshTable();
+      setLabel('Actualizado ✓', '#4ade80');
+      setBar(100, false);
+      setTimeout(() => setLabel('Actualizado hace un momento', '#4b5563'), 3000);
+    } else {
+      setLabel(`Actualizando… ${d.progress}% — ${d.nombre}`, '#22d3ee');
+      setBar(d.progress, true);
+      await refreshTable();
+    }
+  };
+})();
+</script>
+</main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

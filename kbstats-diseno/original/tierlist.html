@@ -1,0 +1,1844 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KBStats</title>
+
+    
+
+    <!-- Favicon -->
+    <link
+      rel="icon"
+      type="image/png"
+      href="/static/images/team_kaiju.png"
+    />
+
+    <!-- CSS global de tu proyecto -->
+    <link rel="stylesheet" href="/static/css/kbstats.css" />
+
+    <!-- Bootstrap -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- CSS extra por página -->
+    
+<style>
+/* ── Tier grid ── */
+.tier-grid {
+  width: 100%; border-collapse: collapse;
+  border: 0.5px solid #1f2937; border-radius: 0.5rem;
+  overflow: hidden; font-size: 0.83rem;
+}
+.tier-grid th {
+  background: #060d1a; color: #6b7280;
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; padding: 0.5rem 0.75rem;
+  border-bottom: 0.5px solid #1f2937; border-right: 0.5px solid #1f2937;
+  text-align: center;
+}
+.tier-grid th:first-child { width: 3.2rem; }
+.tier-grid td {
+  vertical-align: top; padding: 0.5rem 0.6rem;
+  border-bottom: 0.5px solid #1f2937; border-right: 0.5px solid #1f2937;
+  background: #080f1d;
+}
+.tier-grid tr:last-child td { border-bottom: none; }
+.tier-grid td:last-child, .tier-grid th:last-child { border-right: none; }
+
+/* role column header accent */
+.th-TOP { color: #fb923c !important; }
+.th-JGL { color: #4ade80 !important; }
+.th-MID { color: #818cf8 !important; }
+.th-ADC { color: #f87171 !important; }
+.th-SUP { color: #c084fc !important; }
+
+.tier-badge {
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 1.05rem; height: 100%;
+  min-height: 2.8rem; padding: 0.4rem 0;
+}
+.tier-sp { background: #7c3aed; color: #fff; }
+.tier-s  { background: #dc2626; color: #fff; }
+.tier-a  { background: #d97706; color: #fff; }
+.tier-b  { background: #16a34a; color: #fff; }
+.tier-c  { background: #0891b2; color: #fff; }
+.tier-d  { background: #374151; color: #9ca3af; }
+
+/* ── Player chip ── */
+.player-chip {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 0.4rem; background: #0b1220; border: 0.5px solid #1f2937;
+  border-radius: 0.3rem; padding: 0.25rem 0.5rem;
+  margin-bottom: 0.3rem; font-size: 0.8rem;
+}
+.player-chip:last-child { margin-bottom: 0; }
+.chip-name { color: #e5e7eb; font-weight: 600; }
+.chip-score {
+  color: #22d3ee; font-variant-numeric: tabular-nums;
+  font-size: 0.72rem; flex-shrink: 0;
+}
+.chip-games {
+  color: #4b5563; font-size: 0.68rem; flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.tier-empty { color: #1f2937; font-size: 1rem; text-align: center; display: block; padding: 0.25rem 0; }
+
+/* ── Modal ── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(5,8,22,.93);
+  z-index: 1000; display: flex; align-items: flex-start; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .2s;
+  overflow-y: auto; padding: 2rem 1rem;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal-box {
+  background: #0b1220; border: 0.5px solid #1f2937; border-radius: 0.75rem;
+  width: min(1140px,100%); padding: 1.75rem 2rem; position: relative;
+}
+.modal-close {
+  position: absolute; top: 1rem; right: 1rem; background: transparent;
+  border: 0.5px solid #1f2937; color: #9ca3af; border-radius: 0.3rem;
+  padding: 0.2rem 0.7rem; cursor: pointer; font-size: 0.8rem;
+}
+.modal-close:hover { border-color: #6b7280; color: #e5e7eb; }
+
+/* roles grid */
+.roles-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 0.85rem; }
+@media(max-width:950px) { .roles-grid { grid-template-columns: repeat(3,1fr); } }
+@media(max-width:600px) { .roles-grid { grid-template-columns: repeat(2,1fr); } }
+.role-card { border-radius: 0.5rem; border: 0.5px solid #1f2937; overflow: hidden; }
+.role-card-header {
+  padding: 0.55rem 0.85rem; font-weight: 800; font-size: 0.85rem;
+  letter-spacing: 0.12em;
+}
+.role-card-body { padding: 0.6rem 0.85rem 0.85rem; }
+.rh-TOP { background: #1c1107; color: #fb923c; border-bottom: 0.5px solid #fb923c33; }
+.rh-JGL { background: #071a0e; color: #4ade80; border-bottom: 0.5px solid #4ade8033; }
+.rh-MID { background: #080d20; color: #818cf8; border-bottom: 0.5px solid #818cf833; }
+.rh-ADC { background: #1a0808; color: #f87171; border-bottom: 0.5px solid #f8717133; }
+.rh-SUP { background: #130c20; color: #c084fc; border-bottom: 0.5px solid #c084fc33; }
+
+.m-cat-title {
+  font-size: 0.75rem; text-transform: uppercase; letter-spacing: .1em;
+  margin: 0.65rem 0 0.3rem; display: flex; align-items: center; gap: 0.3rem;
+}
+.m-cat-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+.cat-Combate  { color: #f59e0b; } .dot-Combate  { background: #f59e0b; }
+.cat-Farmeo   { color: #10b981; } .dot-Farmeo   { background: #10b981; }
+.cat-Daño     { color: #ef4444; } .dot-Daño     { background: #ef4444; }
+.cat-Visión   { color: #6366f1; } .dot-Visión   { background: #6366f1; }
+.cat-Multi-kill { color: #8b5cf6; } .dot-Multi-kill { background: #8b5cf6; }
+.cat-Economía { color: #06b6d4; } .dot-Economía { background: #06b6d4; }
+
+.m-stat-row { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.22rem; }
+.m-stat-name { font-size: 0.82rem; color: #9ca3af; width: 5.5rem; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-bar-wrap { flex: 1; background: #0b1220; border-radius: 2px; height: 6px; }
+.mbar-TOP { height: 5px; border-radius: 2px; background: #fb923c; }
+.mbar-JGL { height: 5px; border-radius: 2px; background: #4ade80; }
+.mbar-MID { height: 5px; border-radius: 2px; background: #818cf8; }
+.mbar-ADC { height: 5px; border-radius: 2px; background: #f87171; }
+.mbar-SUP { height: 5px; border-radius: 2px; background: #c084fc; }
+.m-pct { font-size: 0.8rem; color: #e5e7eb; font-variant-numeric: tabular-nums; width: 2.5rem; text-align: right; flex-shrink: 0; }
+.m-inv { font-size: 0.6rem; color: #f87171; flex-shrink: 0; }
+</style>
+
+  </head>
+
+  <body class="wrapper">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+      <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center fs-3" href="/">KB Stats</a>
+        <div class="d-flex gap-3 ms-auto align-items-center">
+          <a class="nav-link text-secondary" href="/promedios_jugadores/?format=html" style="font-size:0.85rem;">Promedios</a>
+          <a class="nav-link text-secondary" href="/tierlist/" style="font-size:0.85rem;">Tier List</a>
+          <a class="nav-link text-secondary" href="/ladder/" style="font-size:0.85rem;">Ladder</a>
+          
+        </div>
+      </div>
+    </nav>
+
+    <main class="container">
+<div class="container py-4">
+
+  <!-- ── Header ── -->
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.25rem;">
+    <h1 class="page-title mb-0">Tier List</h1>
+    <button id="btnOpenModal"
+      style="background:transparent;border:0.5px solid #22d3ee44;color:#22d3ee;border-radius:0.35rem;padding:0.35rem 1rem;font-size:0.82rem;font-weight:600;cursor:pointer;">
+      ⚖ Ver ponderaciones
+    </button>
+  </div>
+
+  <!-- ── Filter card ── -->
+  <div class="filter-card">
+    <form method="get" class="row g-3 align-items-end">
+      <div class="col-md-2">
+        <label for="jornada" class="form-label mb-1">Jornada</label>
+        <select name="jornada" id="jornada" class="form-select">
+          <option value="">Todas</option>
+          
+            <option value="1" >1</option>
+          
+            <option value="2" >2</option>
+          
+            <option value="3" >3</option>
+          
+            <option value="4" >4</option>
+          
+            <option value="5" >5</option>
+          
+            <option value="6" >6</option>
+          
+            <option value="7" >7</option>
+          
+            <option value="FINAL" >FINAL</option>
+          
+        </select>
+      </div>
+      
+      <div class="col-md-2 d-grid">
+        <button class="btn btn-primary">Aplicar</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ── Tier grid ── -->
+  
+  <table class="tier-grid">
+    <thead>
+      <tr>
+        <th></th>
+        <th class="th-TOP">TOP</th>
+        <th class="th-JGL">JGL</th>
+        <th class="th-MID">MID</th>
+        <th class="th-ADC">ADC</th>
+        <th class="th-SUP">SUP</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr>
+        <td style="padding:0;">
+          <div class="tier-badge tier-sp">
+            S+
+          </div>
+        </td>
+        
+        <td>
+          
+            <span class="tier-empty">—</span>
+          
+        </td>
+        
+        <td>
+          
+            <span class="tier-empty">—</span>
+          
+        </td>
+        
+        <td>
+          
+            <span class="tier-empty">—</span>
+          
+        </td>
+        
+        <td>
+          
+            <span class="tier-empty">—</span>
+          
+        </td>
+        
+        <td>
+          
+            <span class="tier-empty">—</span>
+          
+        </td>
+        
+      </tr>
+      
+      <tr>
+        <td style="padding:0;">
+          <div class="tier-badge tier-s">
+            S
+          </div>
+        </td>
+        
+        <td>
+          
+            <span class="tier-empty">—</span>
+          
+        </td>
+        
+        <td>
+          
+            <span class="tier-empty">—</span>
+          
+        </td>
+        
+        <td>
+          
+            <span class="tier-empty">—</span>
+          
+        </td>
+        
+        <td>
+          
+            
+            <div class="player-chip">
+              <span class="chip-name">Lolex#Lolex</span>
+              <span class="chip-score">82.7</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+          
+        </td>
+        
+        <td>
+          
+            <span class="tier-empty">—</span>
+          
+        </td>
+        
+      </tr>
+      
+      <tr>
+        <td style="padding:0;">
+          <div class="tier-badge tier-a">
+            A
+          </div>
+        </td>
+        
+        <td>
+          
+            
+            <div class="player-chip">
+              <span class="chip-name">BopaMeister#BOMBA</span>
+              <span class="chip-score">74.9</span>
+              <span class="chip-games">2P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">Hikigaayaa#YUKNO</span>
+              <span class="chip-score">74.8</span>
+              <span class="chip-games">8P</span>
+            </div>
+            
+          
+        </td>
+        
+        <td>
+          
+            <span class="tier-empty">—</span>
+          
+        </td>
+        
+        <td>
+          
+            <span class="tier-empty">—</span>
+          
+        </td>
+        
+        <td>
+          
+            
+            <div class="player-chip">
+              <span class="chip-name">Narcïso#ADC</span>
+              <span class="chip-score">76.3</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">CarryDoctor#112</span>
+              <span class="chip-score">76.0</span>
+              <span class="chip-games">4P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">KB Davura#KAIJU</span>
+              <span class="chip-score">71.4</span>
+              <span class="chip-games">5P</span>
+            </div>
+            
+          
+        </td>
+        
+        <td>
+          
+            <span class="tier-empty">—</span>
+          
+        </td>
+        
+      </tr>
+      
+      <tr>
+        <td style="padding:0;">
+          <div class="tier-badge tier-b">
+            B
+          </div>
+        </td>
+        
+        <td>
+          
+            
+            <div class="player-chip">
+              <span class="chip-name">Farlopez87#0487</span>
+              <span class="chip-score">60.8</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+          
+        </td>
+        
+        <td>
+          
+            
+            <div class="player-chip">
+              <span class="chip-name">KB Xenius#KBK</span>
+              <span class="chip-score">70.0</span>
+              <span class="chip-games">5P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">J Lgend#0000</span>
+              <span class="chip-score">69.7</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">H1dont#KURU</span>
+              <span class="chip-score">67.9</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">Tusk0 Jones#PRYCA</span>
+              <span class="chip-score">67.3</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">Marakaś #EUW</span>
+              <span class="chip-score">60.3</span>
+              <span class="chip-games">1P</span>
+            </div>
+            
+          
+        </td>
+        
+        <td>
+          
+            
+            <div class="player-chip">
+              <span class="chip-name">Wesele16#0303</span>
+              <span class="chip-score">65.6</span>
+              <span class="chip-games">2P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">Makitah#EUW</span>
+              <span class="chip-score">61.9</span>
+              <span class="chip-games">8P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">Reiko#HRTCS</span>
+              <span class="chip-score">61.5</span>
+              <span class="chip-games">2P</span>
+            </div>
+            
+          
+        </td>
+        
+        <td>
+          
+            
+            <div class="player-chip">
+              <span class="chip-name">D4dtor#444</span>
+              <span class="chip-score">67.4</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">Tuff Pigeon Dr#Aura</span>
+              <span class="chip-score">64.8</span>
+              <span class="chip-games">2P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">LYTHIUMM#EUW</span>
+              <span class="chip-score">60.9</span>
+              <span class="chip-games">8P</span>
+            </div>
+            
+          
+        </td>
+        
+        <td>
+          
+            
+            <div class="player-chip">
+              <span class="chip-name">xNearK AG#EUW</span>
+              <span class="chip-score">68.0</span>
+              <span class="chip-games">2P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">Almo#ALMO</span>
+              <span class="chip-score">62.7</span>
+              <span class="chip-games">2P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">Rerocama#BBO</span>
+              <span class="chip-score">62.6</span>
+              <span class="chip-games">1P</span>
+            </div>
+            
+          
+        </td>
+        
+      </tr>
+      
+      <tr>
+        <td style="padding:0;">
+          <div class="tier-badge tier-c">
+            C
+          </div>
+        </td>
+        
+        <td>
+          
+            
+            <div class="player-chip">
+              <span class="chip-name">GoldShip#GLUE</span>
+              <span class="chip-score">58.4</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">KB Despo#KAIJU</span>
+              <span class="chip-score">57.1</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+          
+        </td>
+        
+        <td>
+          
+            
+            <div class="player-chip">
+              <span class="chip-name">ILP#LPG</span>
+              <span class="chip-score">59.6</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">Dakin#DAK</span>
+              <span class="chip-score">50.4</span>
+              <span class="chip-games">7P</span>
+            </div>
+            
+          
+        </td>
+        
+        <td>
+          
+            
+            <div class="player-chip">
+              <span class="chip-name">KB Cariatis#123</span>
+              <span class="chip-score">56.3</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">Wiki#109</span>
+              <span class="chip-score">54.9</span>
+              <span class="chip-games">1P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">AnPuuR#1710</span>
+              <span class="chip-score">52.5</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+          
+        </td>
+        
+        <td>
+          
+            
+            <div class="player-chip">
+              <span class="chip-name">Hyakko#219</span>
+              <span class="chip-score">57.2</span>
+              <span class="chip-games">1P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">LegendLegacyy#EUW</span>
+              <span class="chip-score">57.2</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">DjMatrixMini#EUW</span>
+              <span class="chip-score">55.4</span>
+              <span class="chip-games">1P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">KT Bdd#1EUW</span>
+              <span class="chip-score">54.9</span>
+              <span class="chip-games">5P</span>
+            </div>
+            
+          
+        </td>
+        
+        <td>
+          
+            
+            <div class="player-chip">
+              <span class="chip-name">ironfranman#ELX</span>
+              <span class="chip-score">59.5</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">DLT Ichigo#EUW</span>
+              <span class="chip-score">58.2</span>
+              <span class="chip-games">1P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">KB Sergi#KBK</span>
+              <span class="chip-score">57.9</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">angelgenius#EUW</span>
+              <span class="chip-score">55.3</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">xXSanscraftXx#EUW</span>
+              <span class="chip-score">54.2</span>
+              <span class="chip-games">1P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">Deiviaki#MVP</span>
+              <span class="chip-score">51.8</span>
+              <span class="chip-games">1P</span>
+            </div>
+            
+          
+        </td>
+        
+      </tr>
+      
+      <tr>
+        <td style="padding:0;">
+          <div class="tier-badge tier-d">
+            D
+          </div>
+        </td>
+        
+        <td>
+          
+            
+            <div class="player-chip">
+              <span class="chip-name">SτyłΣR#Pingu</span>
+              <span class="chip-score">49.9</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">MiKi#56428</span>
+              <span class="chip-score">48.0</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">CHOPIT0#EUW</span>
+              <span class="chip-score">47.2</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">Ragnarok#9167</span>
+              <span class="chip-score">40.8</span>
+              <span class="chip-games">4P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">ﾛくしÇ#ACLG</span>
+              <span class="chip-score">39.8</span>
+              <span class="chip-games">3P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">Dara#TOP</span>
+              <span class="chip-score">38.0</span>
+              <span class="chip-games">8P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">HugoSexy#XXX</span>
+              <span class="chip-score">35.5</span>
+              <span class="chip-games">3P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">Lord MargaKahn#EUW</span>
+              <span class="chip-score">35.2</span>
+              <span class="chip-games">2P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">LEA JUGKING#EUW</span>
+              <span class="chip-score">34.6</span>
+              <span class="chip-games">2P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">Knight Artorias#TPG</span>
+              <span class="chip-score">32.7</span>
+              <span class="chip-games">4P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">zInviicTusCL#X1LAS</span>
+              <span class="chip-score">27.1</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">LJX Cartabón#GULO</span>
+              <span class="chip-score">26.2</span>
+              <span class="chip-games">3P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">KingKai#EzTop</span>
+              <span class="chip-score">20.0</span>
+              <span class="chip-games">1P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">TG Patoal#PATO</span>
+              <span class="chip-score">18.0</span>
+              <span class="chip-games">1P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">PSF Phantom#Nashe</span>
+              <span class="chip-score">16.5</span>
+              <span class="chip-games">5P</span>
+            </div>
+            
+          
+        </td>
+        
+        <td>
+          
+            
+            <div class="player-chip">
+              <span class="chip-name">OG BuZz#TPG</span>
+              <span class="chip-score">47.7</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">Kaboshi#4087</span>
+              <span class="chip-score">47.2</span>
+              <span class="chip-games">8P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">TG Huais#EUW</span>
+              <span class="chip-score">41.3</span>
+              <span class="chip-games">1P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">LJX Escuadra#TRIÁN</span>
+              <span class="chip-score">37.5</span>
+              <span class="chip-games">5P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">FOX J4B4#J4B4</span>
+              <span class="chip-score">37.2</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">sustanon#EUW</span>
+              <span class="chip-score">33.8</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">ThaιGer#thaig</span>
+              <span class="chip-score">28.9</span>
+              <span class="chip-games">3P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">MaikyG#EUW2</span>
+              <span class="chip-score">25.9</span>
+              <span class="chip-games">2P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">PoluciónNocturna#LECHE</span>
+              <span class="chip-score">20.4</span>
+              <span class="chip-games">3P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">Mitsu#PRIME</span>
+              <span class="chip-score">19.3</span>
+              <span class="chip-games">1P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">PSF Dayx#1312</span>
+              <span class="chip-score">18.9</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">DAFenosa#ADC</span>
+              <span class="chip-score">16.0</span>
+              <span class="chip-games">1P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">ΘμΘ#goat</span>
+              <span class="chip-score">11.2</span>
+              <span class="chip-games">3P</span>
+            </div>
+            
+          
+        </td>
+        
+        <td>
+          
+            
+            <div class="player-chip">
+              <span class="chip-name">Lady#2002</span>
+              <span class="chip-score">46.4</span>
+              <span class="chip-games">4P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">sporfu#LPS</span>
+              <span class="chip-score">44.1</span>
+              <span class="chip-games">7P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">PSF Lucyfer#lord</span>
+              <span class="chip-score">38.9</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">Persian Prince#3961</span>
+              <span class="chip-score">37.7</span>
+              <span class="chip-games">1P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">MPT BASTIII#MPT</span>
+              <span class="chip-score">37.0</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">De Tora Si Soy#Kbron</span>
+              <span class="chip-score">36.9</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">angelowo#frost</span>
+              <span class="chip-score">36.6</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">Señor Gallego#EUW</span>
+              <span class="chip-score">32.0</span>
+              <span class="chip-games">2P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">Potayu#2117</span>
+              <span class="chip-score">31.2</span>
+              <span class="chip-games">2P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">AlejandroMag#963</span>
+              <span class="chip-score">29.9</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">xXBorjaocerinXx#EUW</span>
+              <span class="chip-score">26.8</span>
+              <span class="chip-games">1P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">DuncanRV#PUCHI</span>
+              <span class="chip-score">25.4</span>
+              <span class="chip-games">2P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">RF caPs#FNC</span>
+              <span class="chip-score">18.4</span>
+              <span class="chip-games">1P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">QYRRΔN#xxxx</span>
+              <span class="chip-score">17.0</span>
+              <span class="chip-games">2P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">Agnеs Tachyon#POKKE</span>
+              <span class="chip-score">13.9</span>
+              <span class="chip-games">3P</span>
+            </div>
+            
+          
+        </td>
+        
+        <td>
+          
+            
+            <div class="player-chip">
+              <span class="chip-name">dr filtros#46180</span>
+              <span class="chip-score">48.4</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">CHIRU Xharon#CHIRU</span>
+              <span class="chip-score">48.3</span>
+              <span class="chip-games">3P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">T1 Adryh#yaya</span>
+              <span class="chip-score">46.3</span>
+              <span class="chip-games">1P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">ARS Gyökeres#ARS</span>
+              <span class="chip-score">45.3</span>
+              <span class="chip-games">3P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">Cuco#ESPÑA</span>
+              <span class="chip-score">44.2</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">ChuketaFanAcc#Demon</span>
+              <span class="chip-score">44.1</span>
+              <span class="chip-games">4P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">PSF NdeNero#xdd</span>
+              <span class="chip-score">29.2</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">TG Fonkai#4005</span>
+              <span class="chip-score">28.0</span>
+              <span class="chip-games">1P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">TG Hazard#Taboo</span>
+              <span class="chip-score">22.3</span>
+              <span class="chip-games">3P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">EkoStolemybike#1460</span>
+              <span class="chip-score">11.1</span>
+              <span class="chip-games">1P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">MIBR Gitano#CAMEL</span>
+              <span class="chip-score">4.9</span>
+              <span class="chip-games">1P</span>
+            </div>
+            
+          
+        </td>
+        
+        <td>
+          
+            
+            <div class="player-chip">
+              <span class="chip-name">Kokü#95519</span>
+              <span class="chip-score">49.0</span>
+              <span class="chip-games">5P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">Dantesaurio Rex#EUW</span>
+              <span class="chip-score">45.4</span>
+              <span class="chip-games">4P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">limpiar enyoyer#DATO</span>
+              <span class="chip-score">44.5</span>
+              <span class="chip-games">5P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">SonsOfAston#EUW</span>
+              <span class="chip-score">42.1</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">coña malą#EUW</span>
+              <span class="chip-score">39.6</span>
+              <span class="chip-games">8P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">PSF Alatriste#123</span>
+              <span class="chip-score">37.8</span>
+              <span class="chip-games">1P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">Ranita Chikitita#RMU</span>
+              <span class="chip-score">36.1</span>
+              <span class="chip-games">2P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">FOX Castañitas#SPAIN</span>
+              <span class="chip-score">35.9</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">Invictutus#EUW</span>
+              <span class="chip-score">34.3</span>
+              <span class="chip-games">4P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">PSF JFet#PSF</span>
+              <span class="chip-score">33.7</span>
+              <span class="chip-games">2P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">kurutta#ESP</span>
+              <span class="chip-score">30.2</span>
+              <span class="chip-games">4P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">CHIRU Horizøn#CHIRU</span>
+              <span class="chip-score">24.7</span>
+              <span class="chip-games">6P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">Torrente#ESPÑA</span>
+              <span class="chip-score">24.4</span>
+              <span class="chip-games">4P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">TG Arxan#5091</span>
+              <span class="chip-score">14.7</span>
+              <span class="chip-games">2P</span>
+            </div>
+            
+            <div class="player-chip">
+              <span class="chip-name">PSF Zroly#AST</span>
+              <span class="chip-score">13.4</span>
+              <span class="chip-games">3P</span>
+            </div>
+            
+          
+        </td>
+        
+      </tr>
+      
+    </tbody>
+  </table>
+  
+
+</div>
+
+<!-- ══ MODAL ponderaciones ══ -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <button class="modal-close" id="modalClose">✕ Cerrar</button>
+    <div style="font-size:1.1rem;font-weight:700;color:#e5e7eb;margin-bottom:0.2rem;">Ponderaciones por rol</div>
+    <div style="color:#6b7280;font-size:0.8rem;margin-bottom:1.5rem;">
+      Las estadísticas marcadas con <span style="color:#f87171;">↓</span> se invierten (menos es mejor).
+    </div>
+
+    <div class="roles-grid">
+      
+      <div class="role-card">
+        <div class="role-card-header rh-TOP">TOP</div>
+        <div class="role-card-body">
+          
+          <div class="m-cat-title cat-Combate">
+            <span class="m-cat-dot dot-Combate"></span>
+            Combate
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="KDA">KDA</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-TOP" style="width:48%"></div>
+            </div>
+            <span class="m-pct">16%</span>
+            
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="KP %">KP %</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-TOP" style="width:30%"></div>
+            </div>
+            <span class="m-pct">10%</span>
+            
+          </div>
+          
+          
+          <div class="m-cat-title cat-Farmeo">
+            <span class="m-cat-dot dot-Farmeo"></span>
+            Farmeo
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="CS/min">CS/min</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-TOP" style="width:61%"></div>
+            </div>
+            <span class="m-pct">20%</span>
+            
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="Oro/min">Oro/min</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-TOP" style="width:36%"></div>
+            </div>
+            <span class="m-pct">12%</span>
+            
+          </div>
+          
+          
+          <div class="m-cat-title cat-Daño">
+            <span class="m-cat-dot dot-Daño"></span>
+            Daño
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="Dmg/min">Dmg/min</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-TOP" style="width:48%"></div>
+            </div>
+            <span class="m-pct">16%</span>
+            
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="Dmg/Oro">Dmg/Oro</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-TOP" style="width:24%"></div>
+            </div>
+            <span class="m-pct">8%</span>
+            
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="% Dmg">% Dmg</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-TOP" style="width:18%"></div>
+            </div>
+            <span class="m-pct">6%</span>
+            
+          </div>
+          
+          
+          <div class="m-cat-title cat-Visión">
+            <span class="m-cat-dot dot-Visión"></span>
+            Visión
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="Visión/min">Visión/min</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-TOP" style="width:24%"></div>
+            </div>
+            <span class="m-pct">8%</span>
+            
+          </div>
+          
+          
+          <div class="m-cat-title cat-Multi-kill">
+            <span class="m-cat-dot dot-Multi-kill"></span>
+            Multi-kill
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="2 kills">2 kills</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-TOP" style="width:6%"></div>
+            </div>
+            <span class="m-pct">2%</span>
+            
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="3 kills">3 kills</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-TOP" style="width:6%"></div>
+            </div>
+            <span class="m-pct">2%</span>
+            
+          </div>
+          
+          
+        </div>
+      </div>
+      
+      <div class="role-card">
+        <div class="role-card-header rh-JGL">JGL</div>
+        <div class="role-card-body">
+          
+          <div class="m-cat-title cat-Combate">
+            <span class="m-cat-dot dot-Combate"></span>
+            Combate
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="KDA">KDA</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-JGL" style="width:55%"></div>
+            </div>
+            <span class="m-pct">18%</span>
+            
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="KP %">KP %</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-JGL" style="width:61%"></div>
+            </div>
+            <span class="m-pct">20%</span>
+            
+          </div>
+          
+          
+          <div class="m-cat-title cat-Farmeo">
+            <span class="m-cat-dot dot-Farmeo"></span>
+            Farmeo
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="CS/min">CS/min</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-JGL" style="width:45%"></div>
+            </div>
+            <span class="m-pct">15%</span>
+            
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="Oro/min">Oro/min</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-JGL" style="width:30%"></div>
+            </div>
+            <span class="m-pct">10%</span>
+            
+          </div>
+          
+          
+          <div class="m-cat-title cat-Daño">
+            <span class="m-cat-dot dot-Daño"></span>
+            Daño
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="Dmg/min">Dmg/min</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-JGL" style="width:27%"></div>
+            </div>
+            <span class="m-pct">9%</span>
+            
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="Dmg/Oro">Dmg/Oro</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-JGL" style="width:18%"></div>
+            </div>
+            <span class="m-pct">6%</span>
+            
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="% Dmg">% Dmg</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-JGL" style="width:9%"></div>
+            </div>
+            <span class="m-pct">3%</span>
+            
+          </div>
+          
+          
+          <div class="m-cat-title cat-Visión">
+            <span class="m-cat-dot dot-Visión"></span>
+            Visión
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="Visión/min">Visión/min</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-JGL" style="width:24%"></div>
+            </div>
+            <span class="m-pct">8%</span>
+            
+          </div>
+          
+          
+          <div class="m-cat-title cat-Multi-kill">
+            <span class="m-cat-dot dot-Multi-kill"></span>
+            Multi-kill
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="2 kills">2 kills</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-JGL" style="width:12%"></div>
+            </div>
+            <span class="m-pct">4%</span>
+            
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="3 kills">3 kills</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-JGL" style="width:12%"></div>
+            </div>
+            <span class="m-pct">4%</span>
+            
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="4 kills">4 kills</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-JGL" style="width:6%"></div>
+            </div>
+            <span class="m-pct">2%</span>
+            
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="5 kills">5 kills</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-JGL" style="width:3%"></div>
+            </div>
+            <span class="m-pct">1%</span>
+            
+          </div>
+          
+          
+        </div>
+      </div>
+      
+      <div class="role-card">
+        <div class="role-card-header rh-MID">MID</div>
+        <div class="role-card-body">
+          
+          <div class="m-cat-title cat-Combate">
+            <span class="m-cat-dot dot-Combate"></span>
+            Combate
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="KDA">KDA</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-MID" style="width:52%"></div>
+            </div>
+            <span class="m-pct">17%</span>
+            
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="KP %">KP %</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-MID" style="width:42%"></div>
+            </div>
+            <span class="m-pct">14%</span>
+            
+          </div>
+          
+          
+          <div class="m-cat-title cat-Farmeo">
+            <span class="m-cat-dot dot-Farmeo"></span>
+            Farmeo
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="CS/min">CS/min</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-MID" style="width:42%"></div>
+            </div>
+            <span class="m-pct">14%</span>
+            
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="Oro/min">Oro/min</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-MID" style="width:30%"></div>
+            </div>
+            <span class="m-pct">10%</span>
+            
+          </div>
+          
+          
+          <div class="m-cat-title cat-Daño">
+            <span class="m-cat-dot dot-Daño"></span>
+            Daño
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="Dmg/min">Dmg/min</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-MID" style="width:52%"></div>
+            </div>
+            <span class="m-pct">17%</span>
+            
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="Dmg/Oro">Dmg/Oro</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-MID" style="width:27%"></div>
+            </div>
+            <span class="m-pct">9%</span>
+            
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="% Dmg">% Dmg</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-MID" style="width:21%"></div>
+            </div>
+            <span class="m-pct">7%</span>
+            
+          </div>
+          
+          
+          <div class="m-cat-title cat-Visión">
+            <span class="m-cat-dot dot-Visión"></span>
+            Visión
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="Visión/min">Visión/min</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-MID" style="width:15%"></div>
+            </div>
+            <span class="m-pct">5%</span>
+            
+          </div>
+          
+          
+          <div class="m-cat-title cat-Multi-kill">
+            <span class="m-cat-dot dot-Multi-kill"></span>
+            Multi-kill
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="2 kills">2 kills</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-MID" style="width:6%"></div>
+            </div>
+            <span class="m-pct">2%</span>
+            
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="3 kills">3 kills</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-MID" style="width:6%"></div>
+            </div>
+            <span class="m-pct">2%</span>
+            
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="4 kills">4 kills</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-MID" style="width:6%"></div>
+            </div>
+            <span class="m-pct">2%</span>
+            
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="5 kills">5 kills</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-MID" style="width:3%"></div>
+            </div>
+            <span class="m-pct">1%</span>
+            
+          </div>
+          
+          
+        </div>
+      </div>
+      
+      <div class="role-card">
+        <div class="role-card-header rh-ADC">ADC</div>
+        <div class="role-card-body">
+          
+          <div class="m-cat-title cat-Combate">
+            <span class="m-cat-dot dot-Combate"></span>
+            Combate
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="KDA">KDA</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-ADC" style="width:58%"></div>
+            </div>
+            <span class="m-pct">19%</span>
+            
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="KP %">KP %</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-ADC" style="width:27%"></div>
+            </div>
+            <span class="m-pct">9%</span>
+            
+          </div>
+          
+          
+          <div class="m-cat-title cat-Farmeo">
+            <span class="m-cat-dot dot-Farmeo"></span>
+            Farmeo
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="CS/min">CS/min</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-ADC" style="width:61%"></div>
+            </div>
+            <span class="m-pct">20%</span>
+            
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="Oro/min">Oro/min</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-ADC" style="width:27%"></div>
+            </div>
+            <span class="m-pct">9%</span>
+            
+          </div>
+          
+          
+          <div class="m-cat-title cat-Daño">
+            <span class="m-cat-dot dot-Daño"></span>
+            Daño
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="Dmg/min">Dmg/min</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-ADC" style="width:52%"></div>
+            </div>
+            <span class="m-pct">17%</span>
+            
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="Dmg/Oro">Dmg/Oro</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-ADC" style="width:30%"></div>
+            </div>
+            <span class="m-pct">10%</span>
+            
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="% Dmg">% Dmg</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-ADC" style="width:24%"></div>
+            </div>
+            <span class="m-pct">8%</span>
+            
+          </div>
+          
+          
+          <div class="m-cat-title cat-Visión">
+            <span class="m-cat-dot dot-Visión"></span>
+            Visión
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="Visión/min">Visión/min</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-ADC" style="width:9%"></div>
+            </div>
+            <span class="m-pct">3%</span>
+            
+          </div>
+          
+          
+          <div class="m-cat-title cat-Multi-kill">
+            <span class="m-cat-dot dot-Multi-kill"></span>
+            Multi-kill
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="2 kills">2 kills</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-ADC" style="width:6%"></div>
+            </div>
+            <span class="m-pct">2%</span>
+            
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="3 kills">3 kills</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-ADC" style="width:3%"></div>
+            </div>
+            <span class="m-pct">1%</span>
+            
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="4 kills">4 kills</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-ADC" style="width:3%"></div>
+            </div>
+            <span class="m-pct">1%</span>
+            
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="5 kills">5 kills</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-ADC" style="width:3%"></div>
+            </div>
+            <span class="m-pct">1%</span>
+            
+          </div>
+          
+          
+        </div>
+      </div>
+      
+      <div class="role-card">
+        <div class="role-card-header rh-SUP">SUP</div>
+        <div class="role-card-body">
+          
+          <div class="m-cat-title cat-Combate">
+            <span class="m-cat-dot dot-Combate"></span>
+            Combate
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="KDA">KDA</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-SUP" style="width:61%"></div>
+            </div>
+            <span class="m-pct">20%</span>
+            
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="KP %">KP %</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-SUP" style="width:100%"></div>
+            </div>
+            <span class="m-pct">33%</span>
+            
+          </div>
+          
+          
+          <div class="m-cat-title cat-Daño">
+            <span class="m-cat-dot dot-Daño"></span>
+            Daño
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="Dmg/min">Dmg/min</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-SUP" style="width:18%"></div>
+            </div>
+            <span class="m-pct">6%</span>
+            
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="% Dmg">% Dmg</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-SUP" style="width:12%"></div>
+            </div>
+            <span class="m-pct">4%</span>
+            
+          </div>
+          
+          
+          <div class="m-cat-title cat-Economía">
+            <span class="m-cat-dot dot-Economía"></span>
+            Economía
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="Oro/min">Oro/min</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-SUP" style="width:21%"></div>
+            </div>
+            <span class="m-pct">7%</span>
+            
+          </div>
+          
+          
+          <div class="m-cat-title cat-Visión">
+            <span class="m-cat-dot dot-Visión"></span>
+            Visión
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="Wards/min">Wards/min</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-SUP" style="width:24%"></div>
+            </div>
+            <span class="m-pct">8%</span>
+            
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="CW/min">CW/min</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-SUP" style="width:36%"></div>
+            </div>
+            <span class="m-pct">12%</span>
+            
+          </div>
+          
+          <div class="m-stat-row">
+            <span class="m-stat-name" title="WC/min">WC/min</span>
+            <div class="m-bar-wrap">
+              <div class="mbar-SUP" style="width:30%"></div>
+            </div>
+            <span class="m-pct">10%</span>
+            
+          </div>
+          
+          
+        </div>
+      </div>
+      
+    </div>
+
+    <!-- Bonus partidas -->
+    <div style="margin-top:1.5rem;border-top:0.5px solid #1f2937;padding-top:1.25rem;">
+      <div style="font-size:0.78rem;font-weight:700;color:#e5e7eb;text-transform:uppercase;letter-spacing:.1em;margin-bottom:0.75rem;display:flex;align-items:center;gap:0.5rem;">
+        <span style="background:#16a34a22;border:0.5px solid #16a34a55;color:#4ade80;border-radius:0.25rem;padding:0.1rem 0.5rem;font-size:0.7rem;">BONUS</span>
+        Ponderación por partidas jugadas
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:2rem;flex-wrap:wrap;">
+        <div style="flex:1;min-width:260px;">
+          <p style="color:#9ca3af;font-size:0.8rem;margin-bottom:0.75rem;">
+            Mantener un buen rendimiento a lo largo de muchas partidas tiene más mérito que hacerlo en pocas.
+            Se aplica un <strong style="color:#e5e7eb;">factor multiplicador</strong> escalonado según las partidas jugadas:
+          </p>
+          <div style="display:flex;flex-direction:column;gap:0.4rem;">
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+              <span style="color:#6b7280;font-size:0.78rem;width:10rem;flex-shrink:0;">Mínimas partidas</span>
+              <div style="flex:1;background:#0b1220;border-radius:2px;height:6px;"><div style="width:0%;height:6px;border-radius:2px;background:#4ade80;"></div></div>
+              <span style="color:#4ade80;font-size:0.78rem;width:3.5rem;text-align:right;">×0.90</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+              <span style="color:#6b7280;font-size:0.78rem;width:10rem;flex-shrink:0;">Partidas intermedias</span>
+              <div style="flex:1;background:#0b1220;border-radius:2px;height:6px;"><div style="width:50%;height:6px;border-radius:2px;background:#4ade80;"></div></div>
+              <span style="color:#4ade80;font-size:0.78rem;width:3.5rem;text-align:right;">×0.95</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+              <span style="color:#6b7280;font-size:0.78rem;width:10rem;flex-shrink:0;">Máximas partidas</span>
+              <div style="flex:1;background:#0b1220;border-radius:2px;height:6px;"><div style="width:100%;height:6px;border-radius:2px;background:#4ade80;"></div></div>
+              <span style="color:#4ade80;font-size:0.78rem;width:3.5rem;text-align:right;">×1.00</span>
+            </div>
+          </div>
+        </div>
+        <div style="background:#080f1d;border:0.5px solid #1f2937;border-radius:0.4rem;padding:0.75rem 1rem;min-width:220px;">
+          <div style="color:#6b7280;font-size:0.7rem;text-transform:uppercase;letter-spacing:.08em;margin-bottom:0.5rem;">Fórmula</div>
+          <code style="color:#22d3ee;font-size:0.82rem;display:block;margin-bottom:0.4rem;">
+            score = score_base × factor
+          </code>
+          <code style="color:#9ca3af;font-size:0.75rem;display:block;margin-bottom:0.4rem;">
+            factor = 0.90 + 0.10 × (P / P_max)
+          </code>
+          <div style="color:#4b5563;font-size:0.7rem;margin-top:0.5rem;">
+            P = partidas del jugador<br>
+            P_max = máximo de partidas jugadas en el grupo<br>
+            Score final limitado a 100.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const overlay = document.getElementById('modalOverlay');
+document.getElementById('btnOpenModal').addEventListener('click', () => overlay.classList.add('open'));
+document.getElementById('modalClose').addEventListener('click', () => overlay.classList.remove('open'));
+overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') overlay.classList.remove('open'); });
+</script>
+</main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>
