@@ -26,11 +26,33 @@ Cada parche de LoL: `npm run ddragon` (descarga los campeones nuevos de Data Dra
 
 1. En DraftCore crea el draft como siempre y copia el enlace de **espectador** (`lol.draftcore.net/XXXXXXX`).
 2. En el panel: pega el enlace y pulsa **Conectar**. Elige jornada, fase y formato (Bo1 / Bo3 fearless) y los dos clanes: sus jugadores se rellenan desde la plantilla. Pulsa **Poner en el overlay**.
-3. En OBS: fuente de navegador 1920×1080 con la dirección `/overlay/`, por encima de las cámaras (ver «Cámaras en OBS»).
+3. En OBS: una sola fuente de navegador de 1920×1080 con la dirección `/overlay/`, por encima de las cámaras y de la captura del juego (ver «Cámaras en OBS»).
 4. Cada pick y ban aparece solo. Al pickear sale una tarjeta con pick %, ban %, presencia, victorias e historial del jugador y del clan.
-5. Al acabar: **Gana el lado azul / rojo** (se guarda en el registro) y **Siguiente partida**. En Bo3 fearless los campeones usados quedan bloqueados y se muestran en el overlay. **Nueva serie** limpia los bloqueos.
+5. Con el draft completo, el overlay pasa solo al **postdraft**; cuando empieza la partida, al **marcador**; y cuando acaba, a la **pantalla final** (ver «Qué enseña el overlay»).
+6. Al acabar: **Gana el lado azul / rojo** (se guarda en el registro), las estadísticas del fantasy y **Siguiente partida**. En Bo3 fearless los campeones usados quedan bloqueados y se muestran en el overlay. **Nueva serie** limpia los bloqueos.
 
 Si DraftCore falla, cualquier hueco se puede corregir a mano desde el panel escribiendo el nombre del campeón.
+
+El panel va **por fases** (Antes del partido, Draft, Partida, Resultado, Liga y gachapon, o Todo): en cada una salen solo sus apartados, y con «Cambiar sola» la fase sigue a lo que enseña el overlay. `/panel/?fase=partida` lo abre en una fase concreta.
+
+## Qué enseña el overlay
+
+`/overlay/` es la única fuente que hace falta en OBS y enseña cuatro cosas (`server/vista.js`):
+
+- **Draft:** el draft en directo, con las cámaras.
+- **Postdraft:** el draft ya cerrado. Cada jugador con su carta, el campeón que juega y lo que lleva con él (partidas, victorias y KDA, o **FIRST PICK** si es la primera vez), sus números de toda la liga y sus puntos del fantasy; en el centro, los dos clanes frente a frente con su porcentaje de victorias, el cara a cara, las medias por partida, la racha y sus campeones más jugados. Los datos salen de `/api/previa` (`server/previa.js`): las partidas del registro cruzadas con las estadísticas del fantasy.
+- **Partida:** el marcador de `/ingame/`, transparente, encima del juego.
+- **Final:** la pantalla de fin de partida: resultado, duración, la tabla por líneas (KDA, farmeo, oro, visión, daño y puntos del fantasy), lo de cada clan (oro, torres, dragones, Barones…) y el MVP con su carta. Sale del marcador tal como acabó la partida; el ganador, el MVP, el daño y los puntos se añaden al marcarlos en el panel. Sin puente también hay pantalla final: con el draft y lo que apunte el staff.
+
+Cambia sola: el postdraft sale 10 s después del último pick; el marcador, en cuanto el puente encuentra la partida; la pantalla final, 10 s después del fin de la partida (o cuando el puente dice que el cliente ya la ha cerrado), y vuelve al draft con **Siguiente partida**, **Nueva serie** o al cargar otra partida del calendario. Si lo que falla es el puente o la red, el overlay se queda en la partida: no salta a la pantalla final a media partida.
+
+En la cabecera del panel, **En el overlay** fuerza cualquiera de las cuatro vistas por si algo falla (el punto verde marca la que se ve) y **Automático** la suelta. Forzar «Partida» pone además al puente a buscarla, haya draft o no. `/overlay/?vista=postdraft` (o `draft`, `partida`, `final`) deja una fuente fija en una vista, para quien prefiera una escena de OBS por cada una.
+
+## Si la web se reinicia en plena jornada
+
+- Lo que el panel tiene puesto (enfrentamiento, equipos, draft, cámaras, resultados, la vista del overlay, la búsqueda de la partida y la pantalla final) se guarda en la pestaña **Ajustes** de Google Sheets (`server/estado-guardado.js`) y vuelve al arrancar; si estaba conectado a DraftCore, se reconecta. La búsqueda de partida y la vista forzada solo vuelven si el reinicio pilla la jornada en marcha (menos de 6 horas).
+- Las páginas abiertas reciben la versión de la web al conectarse (en Render, el commit desplegado). Si cambia, los overlays de OBS **se recargan solos** y el panel avisa con un botón para recargar.
+- El puente no se cierra nunca por un corte: reintenta, dice en su ventana qué pasa (la web se reinicia, no hay internet, contraseña mal) y avisa cuando vuelve. El título de la ventana dice si está en espera, buscando o mandando la partida.
 
 ## Plantillas de los clanes
 
@@ -74,6 +96,10 @@ server/plantillas.js   lema, descripción y jugadores de cada clan
 server/stats.js        porcentajes por campeón y resumen de la liga
 server/clanes.js       clanes, colores y roles
 server/partida.js      marcador de partida con lo que manda el puente, y la partida de prueba
+server/vista.js        qué enseña el overlay (draft, postdraft, partida o final) y la pantalla final
+server/previa.js       estadísticas de jugadores y clanes para el postdraft y las fichas de la web
+server/estado-guardado.js   el estado del panel, guardado para que sobreviva a un reinicio
+server/ajustes.js      ajustes clave-valor que sobreviven a los reinicios (pestaña Ajustes)
 server/zip.js          zip mínimo para descargar el puente
 server/tierlist.js     tier list de jugadores y equipos
 server/gacha.js        sobres, cartas de Jugador y BOOST, arte, marcos y reverso, y el sorteo
@@ -82,6 +108,9 @@ server/twitch.js       API Helix y, si se configura, inicio de sesión con Twitc
 server/canal.js        recompensa de puntos del canal y recogida de canjes
 server/sesion.js       sesiones firmadas y cifrado de los tokens del canal
 server/fantasy.js      alineaciones, estadísticas de cada partida y clasificación
+server/jornada.js      cierre de cada jornada del fantasy: sobres para los tres primeros
+server/codigos.js      códigos de directo que se canjean por sobres
+server/discord.js      publicar imágenes en un canal de Discord con un webhook
 server/puntuacion.js   reglas de puntuación del fantasy
 server/datos.js        carpeta de datos locales (data/, o CARPETA_DATOS en las pruebas)
 scripts/twitch-falso.js   Twitch de mentira para las pruebas (npm run twitch-falso)
@@ -96,6 +125,8 @@ public/panel/          panel de producción
 public/overlay/        overlay para OBS
 public/ingame/         overlay de partida (marcador encima del juego)
 public/marca.css       colores y tipografías de marca compartidos
+public/carta.js, carta.css   la carta del gachapon, igual en el álbum, la portada y el overlay
+public/compartir.js    imágenes para Discord: colección, alineación, tier list y clasificación
 public/clanes/         arte vertical de cada samurái
 public/ddragon/        datos e imágenes de Data Dragon (npm run ddragon)
 public/logos/          logos de clan (copiados de logos-equipos)
@@ -129,6 +160,7 @@ Socket.IO en `https://ws.lol.draftcore.net` → `V3-joinDraft { draftId, url }`.
 - **Registro**: picks, bans, jugador, clan y resultado de cada partida (de aquí salen las estadísticas y la clasificación).
 - **Calendario**: el sorteo de la liguilla.
 - **Plantillas**: jugadores por rol, suplentes, lema y descripción de cada clan. Se puede editar a mano en la hoja; la web lo recoge en un minuto.
+- **Ajustes**: lo que tiene que sobrevivir a un reinicio: el estado del panel (`estado_panel`), si las alineaciones están cerradas, las jornadas ya terminadas con sus premios, el código de directo en marcha y la conexión del canal de Twitch. No la edites a mano con la web encendida.
 
 Las pestañas se crean solas la primera vez. Si Sheets no está configurado, todo se guarda en archivos locales, que en Render se borran al reiniciar.
 
@@ -189,7 +221,13 @@ Se edita en el panel, apartado **Tier list**: cada jugador (por su puesto en la 
 - **Jugador:** los jugadores de la liga, con la rareza de su tier en la tier list (S, A, B, C; la D sigue funcionando mientras exista en la tier list).
 - **BOOST:** personajes de fuera de los clanes, de tier **S+**, S, A o B (abajo). No tienen clan ni rol, así que no se alinean en el fantasy.
 
-En el sorteo cada carta pesa según su tier, sea de la clase que sea: S+ 0,5, S 1, A 3, B 6, C 10 y D 15 (una S sale 15 veces menos que una D; una S+, el doble de poco que una S). La página enseña las probabilidades reales, que dependen de cuántas cartas hay en cada tier. Los pesos se cambian en `PESOS` de `server/gacha.js`.
+En el sorteo cada carta pesa según su tier, sea de la clase que sea: S+ 0,5, S 1, A 3, B 6, C 10 y D 15 (una S sale 15 veces menos que una D; una S+, el doble de poco que una S). La página enseña las probabilidades reales, que dependen de cuántas cartas hay en cada tier. Los pesos se cambian en `PESOS` de `server/gacha.js`. Dentro de un mismo sobre no sale dos veces la misma carta.
+
+Más sobres, sin Twitch ni ser afiliado:
+
+- **Código de directo** (panel, apartado «Código de directo»): se crea un código de 6 letras, sale en el overlay con su cuenta atrás y quien lo escribe en el gachapon mientras vale se lleva los sobres, una vez por persona. Se elige cuántos sobres da (1 a 5), cuántos minutos vale y, si se quiere, un máximo de canjes. Solo hay uno a la vez; los canjes quedan en la pestaña Gachapon como `codigo`.
+- **Fundir repetidas** (en la colección): cada 5 copias que sobran se cambian por un sobre (`REPETIDAS_POR_SOBRE`). De cada carta se queda siempre una copia, y las BOOST puestas en la alineación no se tocan.
+- **Premios de la jornada** del fantasy (abajo) y **Regalar sobres** desde el panel.
 
 ### Cartas BOOST
 
@@ -235,7 +273,7 @@ La web pide a Discord solo el permiso **identify** (id, nombre y avatar). No gua
 La colección y la alineación (botones en el gachapon) y la tier list (panel, apartado Tier list) se publican como imagen en un canal con un **webhook**, que no necesita bot:
 
 1. En el servidor de Discord: **Ajustes del servidor › Integraciones › Webhooks › Nuevo webhook**, elige el canal y pulsa **Copiar URL del webhook**. No la pegues en ningún chat: quien la tenga puede publicar en ese canal.
-2. En Render, en Environment: `DISCORD_WEBHOOK_URL` con esa dirección. Si la tier list va en otro canal, crea otro webhook ahí y ponlo en `DISCORD_WEBHOOK_TIERLIST`.
+2. En Render, en Environment: `DISCORD_WEBHOOK_URL` con esa dirección. Si la tier list o la clasificación del fantasy van en otro canal, crea otro webhook ahí y ponlo en `DISCORD_WEBHOOK_TIERLIST` o `DISCORD_WEBHOOK_CLASIFICACION`.
 
 El texto lo pone la web (menciona a quien publica sin enviarle aviso y no deja colar menciones a todo el servidor), y cada persona puede publicar su colección y su alineación una vez cada 10 minutos. Sin webhook, el botón de publicar no sale y la imagen se puede descargar igual.
 
@@ -297,5 +335,6 @@ El reparto está pensado para que los cinco roles puntúen parecido: el apoyo co
 - **Estadísticas:** al acabar cada partida, en el panel (apartado Resultado, después de marcar el ganador) se apuntan las de los diez jugadores y el MVP, y se pulsa **Guardar estadísticas**. Si el puente ha seguido la partida, se rellenan solos el KDA, el farmeo y la visión, y cuentan la primera sangre, los multikills y las torres que salen de los sucesos (si el puente entró con la partida empezada, esas tres no se saben y no cuentan). El **daño a campeones** no lo da el cliente en directo: se apunta de la pantalla final (mejor apuntarlo siempre o nunca). La participación en asesinatos se calcula sola. Al guardar, pasando el ratón por un jugador se ve su desglose. Si hay un error, se corrige y se vuelve a guardar. Van a la pestaña **Estadisticas** de Google Sheets, con una columna de desglose.
 - **API de Riot:** `desdeMatchV5` de `server/puntuacion.js` ya traduce un participante de match-v5 a estas reglas. Riot no da las partidas personalizadas por la API salvo las creadas con códigos de torneo (clave de producción) o con el permiso de cada jugador (RSO), así que de momento no se usa.
 - **Alineaciones:** cada cambio se guarda en la pestaña **Alineaciones**. Una partida puntúa a la alineación que tenía cada uno cuando se guardaron sus estadísticas.
-- **Cerrar alineaciones:** en el panel, apartado Gachapon. Ciérralas al empezar la jornada y ábrelas al acabar, para que nadie cambie a un jugador sabiendo cómo le ha ido.
-- La página enseña la clasificación de coleccionistas (total y última jornada) y los puntos de cada jugador de la liga. Los premios (por ejemplo, sobres para los tres primeros de la jornada) se dan a mano con **Regalar sobres**.
+- **Cerrar alineaciones:** se cierran **solas** con el primer pick o ban del draft o cuando empieza la partida, para que nadie cambie a un jugador sabiendo cómo le va (panel, apartado «Jornada del fantasy»; se puede desmarcar y hacerlo a mano).
+- **Terminar la jornada** (mismo apartado): con las estadísticas de sus partidas ya guardadas, los tres primeros **de esa jornada** se llevan sobres (3, 2 y 1; se cambian ahí mismo), se vuelven a abrir las alineaciones y la clasificación se publica en Discord si hay webhook (también se puede descargar la imagen). Cada jornada se termina una sola vez; queda apuntada en Ajustes y los sobres, en la pestaña Gachapon como `premio`. Los empates se deshacen por los puntos de toda la liga.
+- La clasificación (general y de cada jornada, con quién se llevó los sobres) y los puntos de cada jugador están en `/gachapon/` y en la portada, sección **Fantasy**. En la tier list y en la plantilla de cada clan, **Ver carta** enseña la carta del jugador con sus partidas, su KDA, sus campeones y sus puntos (`/api/jugador?id=CLAN-ROL`).

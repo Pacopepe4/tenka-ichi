@@ -51,6 +51,7 @@ export function restaurarEstado(e, texto = ajuste(CLAVE), ahora = Date.now()) {
   if (g.jornadaAuto && typeof g.jornadaAuto === 'object') {
     if (typeof g.jornadaAuto.cerrar === 'boolean') e.jornadaAuto.cerrar = g.jornadaAuto.cerrar;
     if (esLista(g.jornadaAuto.premios, 3)) e.jornadaAuto.premios = g.jornadaAuto.premios.map(n => Math.max(0, Math.min(20, Math.round(Number(n) || 0))));
+    if (typeof g.jornadaAuto.cerradaPara === 'string') e.jornadaAuto.cerradaPara = g.jornadaAuto.cerradaPara;
   }
   if (g.final && typeof g.final === 'object' && Array.isArray(g.final.lineas)) e.final = g.final;
   if (reciente) {

@@ -7,13 +7,14 @@
 <meta name="description" content="Tenka Ichi, la liga de League of Legends de Koryu Budo: trece clanes samuráis expulsados del cielo luchan por el único trono que queda: el de quien reina bajo él.">
 <link rel="icon" href="/marca/koryu-budo.png">
 <link rel="stylesheet" href="/marca.css">
+<link rel="stylesheet" href="/carta.css">
 <link rel="stylesheet" href="/inicio.css">
 <link rel="stylesheet" href="/directo.css">
 </head>
 <body>
 <header class="barra">
   <a class="marca" href="#inicio"><img src="/marca/koryu-budo.png" alt=""><span>Koryu Budo League</span></a>
-  <nav><a href="#directo" class="enlace-directo">Directo</a><a href="#clanes">Clanes</a><a href="#formato">Formato</a><a href="#liga">Liga</a><a href="#tierlist">Tier list</a><a href="/gachapon/">Gachapon</a></nav>
+  <nav><a href="#directo" class="enlace-directo">Directo</a><a href="#clanes">Clanes</a><a href="#formato">Formato</a><a href="#liga">Liga</a><a href="#fantasy">Fantasy</a><a href="#tierlist">Tier list</a><a href="/gachapon/">Gachapon</a></nav>
 </header>
 
 <main>
@@ -128,6 +129,17 @@
       </div>
     </div>
   </section>
+  <section id="fantasy" class="fantasy-portada">
+    <div class="cabecera-seccion">
+      <h2>Fantasy</h2>
+      <p>Alinea las cartas de tus jugadores en el <a href="/gachapon/">gachapon</a> y suma los puntos que hagan en cada partida. <span class="premios-portada"></span></p>
+    </div>
+    <div class="fantasy-cuerpo">
+      <div class="tier-pestanas pestanas-fantasy" role="tablist" aria-label="Clasificación del fantasy"></div>
+      <ol class="ranking-fantasy"></ol>
+      <a class="boton-secundario" href="/gachapon/#fantasy">Ver mi alineación</a>
+    </div>
+  </section>
   <section id="tierlist" class="tierlist">
     <div class="cabecera-seccion">
       <h2>Tier list</h2>
@@ -138,6 +150,7 @@
       <button role="tab" aria-selected="false" data-tipo="equipos">Equipos</button>
     </div>
     <div class="tier-filas"></div>
+    <p class="tier-pista">Toca a un jugador para ver su carta.</p>
   </section>
 </main>
 
@@ -163,6 +176,20 @@
     <dl class="ficha-plantilla"></dl>
     <p class="ficha-suplentes"></p>
     <p class="ficha-record"></p>
+    <div class="ficha-campeones"></div>
+  </div>
+</dialog>
+
+<!-- La carta de un jugador, con sus números de la liga -->
+<dialog class="ficha-carta" aria-labelledby="carta-nombre">
+  <button class="cerrar" aria-label="Cerrar">×</button>
+  <div class="ficha-carta-carta"></div>
+  <div class="ficha-carta-texto">
+    <h3 id="carta-nombre"></h3>
+    <p class="ficha-carta-quien"></p>
+    <dl class="ficha-carta-datos"></dl>
+    <h4>Campeones</h4>
+    <ul class="ficha-carta-campeones"></ul>
   </div>
 </dialog>
 

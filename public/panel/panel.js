@@ -1,12 +1,13 @@
 // Panel de producción: conecta DraftCore, configura el enfrentamiento, corrige huecos y registra resultados
 import { cargarCampeones, cargarClanes, conectarDirecto, icono, logo, disposicionCamaras } from '/comun.js';
-import { imagenTierlist, descargar, publicar } from '/compartir.js';
+import { imagenTierlist, imagenClasificacion, descargar, publicar } from '/compartir.js';
 
 const $ = s => document.querySelector(s);
 const campeones = await cargarCampeones();
 const clanes = await cargarClanes();
 const ROLES = clanes.roles;
 const ROL_LEGIBLE = { TOP: 'Top', JUNGLA: 'Jungla', MEDIO: 'Medio', ADC: 'ADC', SUPPORT: 'Support' };
+const escapar = t => String(t ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
 let estado = null;
 
 // Contraseña guardada en este navegador
@@ -32,7 +33,9 @@ const directo = conectarDirecto({
     p.textContent = ok ? 'En directo' : 'Sin conexión, reintentando…';
     p.classList.toggle('vivo', ok);
   },
+  alVersion: () => { $('#versionNueva').hidden = false; },
 });
+$('#recargar').onclick = () => location.reload();
 
 // El botón que se acaba de pulsar se queda «trabajando» hasta la respuesta y hace un destello verde si ha ido bien
 let ultimoBoton = null, ultimoClic = 0;
@@ -245,8 +248,8 @@ $('#cargarProxima').onclick = async () => {
     const r = await enviar('equipo', { lado, clan, jugadores: clanes.clan(clan).jugadores || Array(5).fill('') });
     if (!r.ok) return;
   }
-  // En fearless, una serie nueva empieza sin bloqueos
-  if (p.config.formato === 'bo3f' && p.config.partida === 1) await enviar('nuevaSerie');
+  // Draft vacío para la partida que se carga; si es la primera de la serie, también sin resultados ni bloqueos fearless
+  await enviar(p.config.partida === 1 ? 'nuevaSerie' : 'limpiarDraft');
   rellenado = false;
   pintar();
   $('#notaProxima').textContent = p.nota || '';
@@ -419,6 +422,7 @@ $('#guardarKda').onclick = async () => {
   const mvp = document.querySelector('.kda input[name="mvp"]:checked')?.value || null;
   const r = await enviar('fantasyEstadisticas', { filas, mvp });
   if (!r.ok) return;
+  actualizarGacha();
   $('#estadoKda').className = 'estado ok';
   $('#estadoKda').textContent = `Guardado (${r.partida}): ` + r.puntos.filter(p => p.jugador).map(p => `${p.jugador} ${p.puntos.toLocaleString('es-ES')}`).join(', ') + ' puntos.';
   // El desglose de cada jugador, al pasar el ratón por su nombre
@@ -441,7 +445,7 @@ $('#alternarAlineaciones').onclick = async () => {
   if (r.ok) { pintarGacha(r.gacha); pintarAlineaciones(r.gacha.cerrado); }
 };
 const pintarGachaAntes = pintarGacha;
-pintarGacha = function (g) { pintarGachaAntes(g); pintarAlineaciones(g.cerrado); };
+pintarGacha = function (g) { pintarGachaAntes(g); pintarAlineaciones(g.cerrado); pintarJornada(g.jornadas); pintarCodigo(g.codigo); publicarEnDiscord = Boolean(g.publicarDiscord); };
 
 // ---------- Partida en directo (overlay /ingame/) ----------
 let ultimaPartida = null;
@@ -613,16 +617,6 @@ listo = true;
 if (estado) pintar();
 if (partidaPendiente) pintarPartidaPanel(partidaPendiente);
 
-// El índice de arriba marca el apartado que se está viendo
-const enlacesIndice = [...document.querySelectorAll('.indice a[href^="#"]')];
-const vigia = new IntersectionObserver(entradas => {
-  for (const e of entradas) {
-    if (!e.isIntersecting) continue;
-    enlacesIndice.forEach(a => a.setAttribute('aria-current', String(a.getAttribute('href') === `#${e.target.id}`)));
-  }
-}, { rootMargin: '-40% 0px -55% 0px' });
-enlacesIndice.forEach(a => { const seccion = document.getElementById(a.getAttribute('href').slice(1)); if (seccion) vigia.observe(seccion); });
-
 // ---------- Tier list: descargar la imagen o publicarla en Discord (con la contraseña del panel) ----------
 async function imagenTier() {
   const t = await fetch('/api/tierlist', { cache: 'no-store' }).then(r => r.json());
@@ -634,19 +628,161 @@ $('#publicarTier').onclick = async () => {
   aviso(r.ok ? 'Tier list publicada en Discord' : r.error);
 };
 
-// ---------- «Ir a la partida» (arriba, siempre a mano) ----------
-// El overlay del draft en OBS pasa al marcador de la partida y el puente se pone a buscarla, aunque no se haya hecho draft.
-// Al pulsar «Siguiente partida» vuelve solo al draft
-function pintarIrPartida() {
-  const boton = $('#irPartida'), enPartida = estado?.vistaOverlay === 'partida';
-  boton.textContent = enPartida ? 'Volver al draft' : 'Ir a la partida';
-  boton.classList.toggle('secundario', enPartida);
+// ---------- Qué enseña el overlay: automático o forzado ----------
+// El overlay cambia solo (draft, postdraft, partida y pantalla final). Aquí se fuerza una vista, por si algo falla,
+// y «Automático» lo suelta. El punto marca lo que se está viendo ahora
+const VISTA_LEGIBLE = { draft: 'el draft', postdraft: 'el postdraft', partida: 'el marcador de la partida', final: 'la pantalla final' };
+function pintarVistas() {
+  const forzada = estado?.vista?.forzada || null, actual = estado?.vistaOverlay;
+  document.querySelectorAll('.vistas button').forEach(b => {
+    const v = b.dataset.vista;
+    b.setAttribute('aria-pressed', String(v === 'auto' ? !forzada : v === forzada));
+    b.classList.toggle('actual', v === actual);
+  });
 }
-const pintarAntesIr = pintar;
-pintar = function () { pintarAntesIr(); pintarIrPartida(); };
-if (estado) pintarIrPartida();
-$('#irPartida').onclick = async () => {
-  const ir = estado?.vistaOverlay !== 'partida';
-  const r = await enviar('vistaOverlay', { vista: ir ? 'partida' : 'draft' });
-  if (r.ok) aviso(ir ? 'El overlay enseña la partida y el puente la está buscando' : 'El overlay vuelve al draft');
+document.querySelectorAll('.vistas button').forEach(b => b.addEventListener('click', async () => {
+  const vista = b.dataset.vista;
+  if (vista === 'final' && !estado?.final) return aviso('Todavía no hay pantalla final: sale al acabar la partida o al marcar el ganador');
+  const r = await enviar('vistaOverlay', { vista });
+  if (r.ok) aviso(vista === 'auto' ? 'El overlay vuelve a cambiar solo' : `El overlay se queda en ${VISTA_LEGIBLE[vista]} hasta que pulses «Automático»`);
+}));
+$('#quitarFinal').onclick = async () => { const r = await enviar('finalQuitar'); if (r.ok) aviso('Pantalla final quitada'); };
+
+// ---------- Fases: en cada momento, solo los apartados que tocan ----------
+const FASES = ['antes', 'draft', 'partida', 'resultado', 'liga', 'todo'];
+let fase = 'antes', seguirFase = true, faseAuto = null;
+try { fase = localStorage.getItem('tenka-fase') || 'antes'; seguirFase = localStorage.getItem('tenka-fase-sola') !== '0'; } catch {}
+// /panel/?fase=partida abre el panel en esa fase (y se queda en ella)
+const fasePedida = new URLSearchParams(location.search).get('fase');
+if (FASES.includes(fasePedida)) { fase = fasePedida; seguirFase = false; }
+// La fase que toca según lo que enseña el overlay
+function faseDelOverlay() {
+  const v = estado?.vistaOverlay;
+  if (v === 'final') return 'resultado';
+  if (v === 'partida' || v === 'postdraft') return 'partida';
+  const d = estado?.draft;
+  const empezado = Boolean(d) && ['picks', 'bans'].some(t => ['azul', 'rojo'].some(l => d[t][l].some(Boolean)));
+  return empezado || estado?.fuente?.conectado ? 'draft' : 'antes';
+}
+function ponerFase(nueva) {
+  fase = FASES.includes(nueva) ? nueva : 'todo';
+  document.querySelectorAll('.fases button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.fase === fase)));
+  document.querySelectorAll('main > section').forEach(seccion => {
+    seccion.hidden = fase !== 'todo' && !(seccion.dataset.fases || '').split(' ').includes(fase);
+  });
+  try { localStorage.setItem('tenka-fase', fase); } catch {}
+}
+function ponerSeguir(sola) {
+  seguirFase = sola;
+  $('#seguirFase').checked = sola;
+  try { localStorage.setItem('tenka-fase-sola', sola ? '1' : '0'); } catch {}
+}
+// Con «Cambiar sola», la fase sigue al overlay; solo salta cuando el overlay cambia, no con cada dato que llega
+function seguirOverlay() {
+  if (!estado) return;
+  const toca = faseDelOverlay();
+  if (seguirFase && toca !== faseAuto) ponerFase(toca);
+  faseAuto = toca;
+}
+document.querySelectorAll('.fases button').forEach(b => b.addEventListener('click', () => { ponerSeguir(false); ponerFase(b.dataset.fase); }));
+$('#seguirFase').onchange = e => { ponerSeguir(e.target.checked); if (e.target.checked) { faseAuto = null; seguirOverlay(); } };
+ponerSeguir(seguirFase);
+ponerFase(fase);
+
+// ---------- Jornada del fantasy: clasificación, sobres para los tres primeros y Discord ----------
+let jornada = null, publicarEnDiscord = false;
+function pintarJornada(j) {
+  if (!j) return;
+  jornada = j;
+  const sel = $('#jornadaElegida');
+  sel.innerHTML = j.jornadas.length
+    ? j.jornadas.map(x => `<option value="${escapar(x.nombre)}">${escapar(x.nombre)}${x.cerrada ? ' (terminada)' : ''}</option>`).join('')
+    : '<option value="">Sin partidas puntuadas</option>';
+  sel.value = j.jornada || '';
+  const premios = estado?.jornadaAuto?.premios || [];
+  const sobres = puesto => (j.cerrada ? j.cerrada.ganadores.find(g => g.puesto === puesto)?.sobres : premios[puesto - 1]) || 0;
+  $('.clasificacion-jornada').innerHTML = j.clasificacion.slice(0, 10).map(c => `<li><span class="puesto">${c.puesto}</span><b>${escapar(c.nombre)}</b>
+    <span>${c.puntos.toLocaleString('es-ES')} ${c.puntos === 1 ? 'punto' : 'puntos'}</span>${c.puesto <= 3 && sobres(c.puesto) ? `<em>+${sobres(c.puesto)} ${sobres(c.puesto) === 1 ? 'sobre' : 'sobres'}</em>` : ''}</li>`).join('')
+    || '<li class="vacio">Todavía no hay partidas con las estadísticas guardadas.</li>';
+  $('#terminarJornada').disabled = !j.jornada || Boolean(j.cerrada) || !j.clasificacion.length;
+  $('#terminarJornada').textContent = j.cerrada ? 'Jornada ya terminada' : 'Terminar la jornada y repartir sobres';
+  $('#descargarClasificacion').disabled = $('#publicarClasificacion').disabled = !j.clasificacion.length;
+  if (j.cerrada) {
+    $('#estadoJornada').className = 'estado ok';
+    $('#estadoJornada').textContent = `${j.jornada} se terminó el ${new Date(j.cerrada.fecha).toLocaleDateString('es-ES')} y sus sobres ya están repartidos.`;
+  } else if ($('#estadoJornada').dataset.jornada !== j.jornada) $('#estadoJornada').textContent = '';
+  $('#estadoJornada').dataset.jornada = j.jornada || '';
+}
+$('#jornadaElegida').onchange = async e => { const r = await enviar('jornadaEstado', { jornada: e.target.value }); if (r.ok) pintarJornada(r); };
+
+// En la imagen, los sobres solo salen si la jornada ya está terminada
+const imagenDeLaJornada = () => imagenClasificacion({ jornada: jornada.jornada, filas: jornada.clasificacion, ganadores: jornada.cerrada?.ganadores || [] });
+async function publicarClasificacion() {
+  const r = await publicar('clasificacion', await imagenDeLaJornada(), { clave: claveInput.value, jornada: jornada.jornada });
+  aviso(r.ok ? 'Clasificación publicada en Discord' : r.error);
+  return r.ok;
+}
+$('#descargarClasificacion').onclick = async () => descargar(await imagenDeLaJornada(), `tenka-ichi-${jornada.jornada.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.jpg`);
+$('#publicarClasificacion').onclick = publicarClasificacion;
+$('#terminarJornada').onclick = async () => {
+  const j = jornada?.jornada, [uno, dos, tres] = estado?.jornadaAuto?.premios || [];
+  if (!j) return;
+  const podio = jornada.clasificacion.slice(0, 3).map(c => `${c.puesto}.º ${c.nombre}`).join(', ');
+  if (!confirm(`¿Terminar ${j}?\n\n${podio}\n\nSe reparten ${uno}, ${dos} y ${tres} sobres, se abren las alineaciones y no se puede deshacer.`)) return;
+  const r = await enviar('jornadaTerminar', { jornada: j });
+  if (!r.ok) return;
+  pintarGacha(r.gacha);
+  const tras = await enviar('jornadaEstado', { jornada: j });
+  if (tras.ok) pintarJornada(tras);
+  aviso(`${j} terminada: sobres repartidos`);
+  // Y la clasificación, a Discord (si el canal está conectado)
+  if (publicarEnDiscord) await publicarClasificacion();
 };
+// Los sobres de cada puesto y si las alineaciones se cierran solas
+const camposPremio = ['#premio1', '#premio2', '#premio3'].map($);
+camposPremio.forEach(campo => campo.addEventListener('change', async () => {
+  const r = await enviar('jornadaAuto', { premios: camposPremio.map(c => Number(c.value) || 0) });
+  if (r.ok) { aviso('Sobres de la jornada cambiados'); if (jornada) pintarJornada(jornada); }
+}));
+$('#cerrarSolas').onchange = e => enviar('jornadaAuto', { cerrar: e.target.checked });
+function pintarJornadaAuto() {
+  const a = estado?.jornadaAuto;
+  if (!a) return;
+  camposPremio.forEach((campo, i) => { if (document.activeElement !== campo) campo.value = a.premios[i]; });
+  $('#cerrarSolas').checked = a.cerrar;
+  if (estado.fantasy) pintarAlineaciones(estado.fantasy.cerrado);
+}
+
+// ---------- Código de directo ----------
+let codigo = null;
+function pintarCodigo(c = codigo) {
+  codigo = c || null;
+  const est = $('#estadoCodigo');
+  const quedan = codigo ? Math.max(0, codigo.caduca - Date.now()) : 0;
+  const vivo = Boolean(codigo?.vivo) && quedan > 0;
+  if (!codigo) { est.className = 'estado'; est.textContent = 'No hay ningún código en marcha.'; }
+  else {
+    const canjes = `${codigo.canjes} ${codigo.canjes === 1 ? 'canje' : 'canjes'}${codigo.maximo ? ` de ${codigo.maximo}` : ''}`;
+    est.className = `estado ${vivo ? 'ok' : 'mal'}`;
+    est.innerHTML = vivo
+      ? `Código <b class="codigo">${escapar(codigo.texto)}</b>: ${codigo.sobres === 1 ? '1 sobre' : `${codigo.sobres} sobres`}, ${canjes}, quedan ${mmss(quedan / 1000)}. ${codigo.visible ? 'Se ve en el overlay.' : 'No se ve en el overlay.'}`
+      : `El código ${escapar(codigo.texto)} ya no vale (${canjes}).`;
+  }
+  $('#ocultarCodigo').hidden = !vivo;
+  $('#ocultarCodigo').textContent = codigo?.visible ? 'Quitarlo del overlay' : 'Enseñarlo en el overlay';
+  $('#cerrarCodigo').hidden = !codigo;
+}
+$('#crearCodigo').onclick = async () => {
+  if (codigo?.vivo && codigo.caduca > Date.now() && !confirm('Ya hay un código en marcha. ¿Crear otro? El anterior deja de valer.')) return;
+  const r = await enviar('codigoCrear', { sobres: $('#codigoSobres').value, minutos: $('#codigoMinutos').value, maximo: $('#codigoMaximo').value });
+  if (r.ok) { pintarGacha(r.gacha); aviso('Código creado: ya sale en el overlay'); }
+};
+$('#ocultarCodigo').onclick = async () => { const r = await enviar('codigoMostrar', { visible: !codigo?.visible }); if (r.ok) pintarGacha(r.gacha); };
+$('#cerrarCodigo').onclick = async () => { const r = await enviar('codigoCerrar'); if (r.ok) { pintarGacha(r.gacha); aviso('Código cerrado'); } };
+// La cuenta atrás va sola; mientras hay un código en marcha, los canjes se miran cada 10 s
+setInterval(() => { if (codigo) pintarCodigo(); }, 1000);
+setInterval(() => { if (codigo?.vivo && codigo.caduca > Date.now()) actualizarGacha(); }, 10000);
+
+const pintarAntesVistas = pintar;
+pintar = function () { pintarAntesVistas(); pintarVistas(); pintarJornadaAuto(); seguirOverlay(); };
+if (estado) pintar();

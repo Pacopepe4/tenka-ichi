@@ -8,7 +8,7 @@
 param(
   [string]$Servidor = 'https://tenka-ichi.onrender.com'
 )
-$Version = 3
+$Version = 4
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
@@ -46,15 +46,24 @@ if (-not $Clave) {
 
 function Hora { (Get-Date).ToString('HH:mm:ss') }
 
+# El título de la ventana dice en qué está el puente, para verlo de un vistazo en la barra de tareas
+function Titulo([string]$texto) { $Host.UI.RawUI.WindowTitle = "Puente de Tenka Ichi: $texto" }
+
 function LeerCliente([string]$ruta) {
   $r = Invoke-WebRequest -Uri "https://127.0.0.1:2999$ruta" -UseBasicParsing -TimeoutSec 2
   return [Text.Encoding]::UTF8.GetString($r.RawContentStream.ToArray())
 }
 
+$webCaida = $false  # la última vez no se pudo hablar con la web: al volver, se dice
 function Enviar([string]$json) {
   $bytes = [Text.Encoding]::UTF8.GetBytes($json)
   $r = Invoke-WebRequest -Uri "$Servidor/api/partida" -Method Post -Body $bytes -ContentType 'application/json; charset=utf-8' `
     -Headers @{ 'X-Clave' = $Clave } -UseBasicParsing -TimeoutSec 15
+  if ($script:webCaida) {
+    $script:webCaida = $false
+    $script:ultimoFallo = [DateTime]::MinValue
+    Write-Host "$(Hora)  Conexión con la web recuperada: sigo." -ForegroundColor Green
+  }
   return ($r.Content | ConvertFrom-Json)
 }
 
@@ -75,15 +84,24 @@ function MarcadorDelJuego([bool]$visible) {
   }
 }
 
-# Si la web no responde o la contraseña está mal, se dice una vez cada 20 s para no llenar la ventana
+# Si la web no responde o la contraseña está mal, se dice una vez cada 20 s para no llenar la ventana.
+# El puente no se cierra nunca por esto: sigue intentándolo y avisa cuando vuelve la conexión
 $ultimoFallo = [DateTime]::MinValue
 function FalloWeb($err) {
+  $script:webCaida = $true
+  Titulo 'sin conexión con la web, reintentando'
   if (((Get-Date) - $script:ultimoFallo).TotalSeconds -lt 20) { return }
   $script:ultimoFallo = Get-Date
-  if ($err.Exception.Response.StatusCode.value__ -eq 401) {
+  $codigo = 0
+  try { $codigo = [int]$err.Exception.Response.StatusCode.value__ } catch {}
+  if ($codigo -eq 401) {
     Write-Host "$(Hora)  Contraseña incorrecta. Borra clave.txt, vuelve a abrir el puente y escríbela bien." -ForegroundColor Red
+  } elseif ($codigo -ge 500) {
+    Write-Host "$(Hora)  La web se está reiniciando o actualizando (error $codigo). Sigo intentándolo: no cierres el puente." -ForegroundColor Yellow
+  } elseif ($codigo -gt 0) {
+    Write-Host "$(Hora)  La web ha contestado con un error ($codigo). Reintento…" -ForegroundColor Yellow
   } else {
-    Write-Host "$(Hora)  No llego a la web (si estaba dormida, tarda un minuto en despertar). Reintento…" -ForegroundColor Yellow
+    Write-Host "$(Hora)  No llego a la web: si estaba dormida tarda un minuto en despertar; si sigue así, revisa internet en este PC. Reintento…" -ForegroundColor Yellow
   }
 }
 
@@ -130,6 +148,7 @@ $avisadoEspera = $false
 
 while ($true) {
   $inicio = Get-Date
+  if (-not $webCaida) { Titulo $(if (-not $buscar) { 'en espera' } elseif ($enPartida) { 'mandando la partida' } else { 'buscando la partida' }) }
 
   # En espera: no se toca el cliente de LoL, solo se pregunta a la web cada 3 s si hay que buscar
   if (-not $buscar) {

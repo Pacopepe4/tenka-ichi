@@ -68,7 +68,8 @@ const estado = {
   // La última partida tal como acabó, para la pantalla final (vista.js)
   final: null,
   // Jornada automática: las alineaciones se cierran solas al empezar y, al terminarla, hay sobres para los tres primeros
-  jornadaAuto: { cerrar: true, premios: [3, 2, 1] },
+  // cerradaPara: la partida para la que ya se cerraron solas (una vez por partida: si el staff las abre, se quedan abiertas)
+  jornadaAuto: { cerrar: true, premios: [3, 2, 1], cerradaPara: null },
   fantasy: { cerrado: false },
   // Código de directo que se enseña en el overlay: { texto, sobres, quedan (ms) } o nada (server/codigos.js)
   codigo: null,
@@ -156,7 +157,11 @@ function seguirPartida(p) {
     fotoViva = p;
     if (p.terminada) {
       // El fin se enseña un momento con el marcador puesto y luego pasa a la pantalla final
-      if (terminada.numero !== p.numero) { terminada = { numero: p.numero, desde: Date.now() }; revisarEn(ESPERA_FINAL_MS); }
+      // (pasada la espera se vuelve a mirar la partida, por si el cliente ya no manda nada más)
+      if (terminada.numero !== p.numero) {
+        terminada = { numero: p.numero, desde: Date.now() };
+        setTimeout(() => emitirPartida(), ESPERA_FINAL_MS + 50).unref?.();
+      }
       if (p.numero !== numeroDespachado) ponerFinal(fotoFinal(p, estado, estado.final));
       if (Date.now() - terminada.desde >= ESPERA_FINAL_MS) estado.vista.enPartida = false;
     } else {
@@ -180,7 +185,10 @@ function cerrarPartida() {
 // Las alineaciones del fantasy se cierran solas cuando empieza el draft o la partida (si el panel lo tiene así)
 let cerrando = false;
 async function cerrarAlineacionesAlEmpezar() {
-  if (cerrando || !estado.jornadaAuto.cerrar || alineacionesCerradas()) return;
+  const clave = clavePartida(estado);
+  if (cerrando || !estado.jornadaAuto.cerrar || estado.jornadaAuto.cerradaPara === clave) return;
+  estado.jornadaAuto.cerradaPara = clave;
+  if (alineacionesCerradas()) return;
   cerrando = true;
   try { await cerrarAlineaciones(true); console.log('Alineaciones del fantasy cerradas: ha empezado la jornada'); emitir(); }
   catch (e) { console.error('No se pudieron cerrar las alineaciones:', e.message); }
@@ -203,7 +211,9 @@ function ponerGrafico(tipo, segundos) {
 }
 
 // ---------- avisos de pick/ban con estadísticas ----------
-let idAviso = 0;
+// Los avisos se numeran desde la hora de arranque: tras un reinicio, un overlay que siguiera abierto no confunde
+// el primer aviso nuevo con uno que ya enseñó
+let idAviso = Math.floor(Date.now() / 1000);
 function avisar(tipo, lado, indice, campeon) {
   const eq = estado.equipos[lado];
   const stats = statsCampeon(campeon, { clan: eq.clan, jugador: tipo === 'pick' ? eq.jugadores[indice] : null });

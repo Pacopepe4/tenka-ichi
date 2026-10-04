@@ -3,26 +3,44 @@ body { margin: 0; background: var(--grano), var(--sumi); color: var(--washi); fo
 :focus-visible { outline: 2px solid var(--shu-claro); outline-offset: 2px; }
 a { color: var(--washi); }
 
-.barra { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 16px; padding: 10px clamp(16px, 3vw, 32px);
+.barra { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 10px clamp(16px, 3vw, 32px) 8px;
   background: var(--sumi-alzado); border-bottom: 1px solid var(--sumi-linea); }
 .marca { display: flex; align-items: center; gap: 12px; text-decoration: none; font-family: var(--mincho); font-weight: 800; font-size: 20px; }
 .sello { width: 36px; height: 36px; font-size: 22px; }
 .pastilla { margin: 0; padding: 4px 12px; border-radius: 999px; background: var(--sumi); color: var(--hai); font-size: 13px; }
 .pastilla.vivo { color: #9CD9A6; }
-.indice { display: flex; gap: 2px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
-.indice a { padding: 6px 10px; border-radius: 4px; color: var(--hai); text-decoration: none; font-size: 14px; white-space: nowrap; }
-.indice a:hover { color: var(--washi); background: var(--sumi); }
-section { scroll-margin-top: 84px; }
-@media (max-width: 1100px) {
-  .barra { flex-wrap: wrap; row-gap: 6px; }
-  .indice { order: 3; width: 100%; }
-  section { scroll-margin-top: 124px; }
-}
-.clave { margin-left: auto; display: flex; gap: 8px; align-items: center; color: var(--hai); font-size: 13px; }
+section { scroll-margin-top: 130px; }
+section[hidden] { display: none; }
+.clave { order: 4; margin-left: auto; flex-direction: row; display: flex; gap: 8px; align-items: center; color: var(--hai); font-size: 13px; }
+
+/* Qué enseña el overlay: automático o una vista forzada. El punto marca la que se ve ahora */
+.vistas { order: 3; display: flex; align-items: center; gap: 0; border: 1px solid var(--sumi-linea); border-radius: 4px; overflow: hidden; }
+.vistas-titulo { padding: 0 12px; font-size: 13px; color: var(--hai); white-space: nowrap; }
+.vistas button { position: relative; padding: 7px 14px 7px 24px; background: transparent; color: var(--hai); border-radius: 0; border-left: 1px solid var(--sumi-linea); font-size: 14px; font-weight: 500; }
+.vistas button:hover { background: var(--sumi); color: var(--washi); }
+.vistas button::before { content: ''; position: absolute; left: 10px; top: 50%; width: 7px; height: 7px; margin-top: -3.5px; border-radius: 50%; background: var(--sumi-linea); }
+.vistas button.actual::before { background: #9CD9A6; box-shadow: 0 0 8px rgba(156, 217, 166, .8); }
+.vistas button[data-vista="auto"] { padding-left: 14px; }
+.vistas button[data-vista="auto"]::before { display: none; }
+.vistas button[aria-pressed="true"] { background: var(--washi); color: var(--sumi); font-weight: 700; }
+.vistas button[aria-pressed="true"]:not([data-vista="auto"]) { background: var(--shu); color: var(--washi); }
+
+/* Fases de la retransmisión: en cada una, solo sus apartados */
+.fases { order: 5; width: 100%; display: flex; align-items: center; gap: 4px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.fases button { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 8px; background: transparent; color: var(--hai); border-radius: 999px; font-size: 14px; font-weight: 500; white-space: nowrap; }
+.fases button b { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--sumi-linea); font-size: 12px; font-weight: 700; }
+.fases button:not(:has(b)) { padding-left: 14px; }
+.fases button:hover { background: var(--sumi); color: var(--washi); box-shadow: none; }
+.fases button[aria-pressed="true"] { background: #3a2224; color: var(--washi); box-shadow: inset 0 0 0 1px var(--shu); font-weight: 700; }
+.fases button[aria-pressed="true"] b { background: var(--shu); border-color: var(--shu); color: var(--washi); }
+.fases .seguir { margin-left: auto; flex: none; font-size: 13px; color: var(--hai); white-space: nowrap; }
+.version-nueva { margin: 0; padding: 10px clamp(16px, 3vw, 32px); background: #3a2224; color: var(--washi); font-size: 14px; }
+.version-nueva[hidden] { display: none; }
+.version-nueva button { margin-left: 10px; padding: 5px 12px; font-size: 13px; }
 .clave input { width: 150px; }
 
 .disposicion { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 44%); gap: 24px; max-width: 1500px; margin: 0 auto; padding: 24px clamp(16px, 3vw, 32px) 64px; }
-aside { position: sticky; top: 76px; align-self: start; }
+aside { position: sticky; top: 118px; align-self: start; }
 @media (max-width: 1100px) { .disposicion { grid-template-columns: 1fr; } aside { position: static; order: -1; } }
 main { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; min-width: 0; }
 
@@ -186,17 +204,33 @@ button.marca span { font-family: var(--mincho); font-weight: 800; font-size: 15p
 button.marca:hover { background: transparent; border-color: var(--color); }
 
 /* ---------- Más claro y más fluido ----------
-   El índice marca dónde estás, el botón pulsado espera la respuesta y hace un destello verde al hacerse,
-   y los avisos entran suaves */
-.indice a { transition: color .2s, background-color .2s; }
-.indice a[aria-current="true"] { color: var(--sumi); background: var(--washi); }
+   El botón pulsado espera la respuesta y hace un destello verde al hacerse, y los avisos entran suaves */
 button[aria-busy="true"] { cursor: progress; opacity: .7; }
 button.hecho { box-shadow: 0 0 0 2px #7FA36B, 0 0 16px rgba(127, 163, 107, .5); }
 button:not(:disabled):hover { box-shadow: 0 4px 12px rgba(0, 0, 0, .3); }
 #aviso:not([hidden]) { animation: aviso-entra .28s cubic-bezier(.2, .8, .2, 1); }
 @keyframes aviso-entra { from { opacity: 0; transform: translate(-50%, 12px); } }
-section[id] { scroll-margin-top: 90px; }
 @media (prefers-reduced-motion: reduce) { #aviso:not([hidden]) { animation: none; } }
 
-/* «Ir a la partida», siempre a mano en la barra de arriba */
-.ir-partida { white-space: nowrap; }
+/* Jornada del fantasy y código de directo */
+.premios label { flex: 0 0 auto; }
+.premios input[type="number"] { width: 92px; }
+#jornadaElegida { flex: 1 1 220px; align-self: flex-end; }
+.clasificacion-jornada { list-style: none; margin: 14px 0 0; padding: 0; }
+.clasificacion-jornada li { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto auto; gap: 12px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--sumi-linea); font-variant-numeric: tabular-nums; }
+.clasificacion-jornada .puesto { font-family: var(--mincho); font-weight: 800; font-size: 18px; color: var(--hai); }
+.clasificacion-jornada li:first-child .puesto { color: var(--shu-claro); }
+.clasificacion-jornada b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.clasificacion-jornada span { color: var(--hai); }
+.clasificacion-jornada em { font-style: normal; font-weight: 700; color: #9CD9A6; }
+.clasificacion-jornada li.vacio { display: block; color: var(--hai); border-bottom: 0; }
+#jornada h3, #codigo h3 { margin-top: 22px; color: var(--washi); font-size: 16px; font-weight: 700; }
+.estado .codigo { font-family: var(--mincho); font-size: 20px; letter-spacing: .14em; color: var(--washi); }
+button.enlace { padding: 0; background: none; color: var(--washi); font-weight: 500; text-decoration: underline; }
+button.enlace:hover { background: none; box-shadow: none; color: #fff6e8; }
+button:disabled { opacity: .45; cursor: default; }
+
+/* Las estadísticas del fantasy: un clan debajo del otro, que así caben todas las columnas */
+.kda.dos { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+details.ayuda summary { cursor: pointer; color: var(--washi); font-weight: 500; }
+details.ayuda[open] summary { margin-bottom: 6px; }

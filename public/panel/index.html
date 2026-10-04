@@ -12,16 +12,32 @@
 <header class="barra">
   <a class="marca" href="/"><span class="hanko sello">天</span><span>Panel de draft</span></a>
   <p id="estadoConexion" class="pastilla">Conectando…</p>
-  <button type="button" id="irPartida" class="ir-partida" title="El overlay del draft pasa al marcador de la partida y el puente se pone a buscarla, haya draft o no">Ir a la partida</button>
-  <nav class="indice" aria-label="Apartados del panel">
-    <a href="#competicion">Competición</a><a href="#draftcore">DraftCore</a><a href="#enfrentamiento">Enfrentamiento</a><a href="#equipos">Equipos</a><a href="#camaras">Cámaras</a><a href="#draft">Draft</a><a href="#en-partida">Partida</a><a href="#resultado">Resultado</a><a href="#tierlist">Tier list</a><a href="#gachapon">Gachapon</a>
-  </nav>
   <label class="clave">Contraseña <input id="clave" type="password" autocomplete="current-password"></label>
+  <!-- Qué enseña el overlay de OBS: cambia solo (draft, postdraft, partida y pantalla final) y aquí se puede forzar -->
+  <div class="vistas" role="group" aria-label="Qué enseña el overlay">
+    <span class="vistas-titulo">En el overlay</span>
+    <button type="button" data-vista="auto" title="El overlay cambia solo: del draft al postdraft al completarse, al marcador cuando empieza la partida y a la pantalla final cuando acaba">Automático</button>
+    <button type="button" data-vista="draft" title="El draft en directo">Draft</button>
+    <button type="button" data-vista="postdraft" title="El draft cerrado con las estadísticas de cada jugador y de los dos clanes">Postdraft</button>
+    <button type="button" data-vista="partida" title="El marcador de la partida; el puente se pone a buscarla, haya draft o no">Partida</button>
+    <button type="button" data-vista="final" title="La pantalla de fin de partida">Final</button>
+  </div>
+  <!-- Fases de la retransmisión: en cada una, solo los apartados que tocan -->
+  <nav class="fases" aria-label="Fase de la retransmisión">
+    <button type="button" data-fase="antes"><b>1</b> Antes del partido</button>
+    <button type="button" data-fase="draft"><b>2</b> Draft</button>
+    <button type="button" data-fase="partida"><b>3</b> Partida</button>
+    <button type="button" data-fase="resultado"><b>4</b> Resultado</button>
+    <button type="button" data-fase="liga">Liga y gachapon</button>
+    <button type="button" data-fase="todo">Todo</button>
+    <label class="casilla seguir" title="La fase cambia sola con lo que enseña el overlay"><input type="checkbox" id="seguirFase"> Cambiar sola</label>
+  </nav>
 </header>
+<p id="versionNueva" class="version-nueva" hidden>Hay una versión nueva de la web. <button type="button" id="recargar">Recargar el panel</button></p>
 
 <div class="disposicion">
   <main>
-    <section id="competicion">
+    <section id="competicion" data-fases="antes">
       <h2>Competición</h2>
       <div class="sin-calendario" hidden>
         <p class="ayuda">Aún no hay calendario. Marca los 10 clanes que juegan y sortea. La semilla es opcional: con el mismo número, el sorteo sale igual y cualquiera puede comprobarlo.</p>
@@ -38,7 +54,7 @@
       </div>
     </section>
 
-    <section id="draftcore">
+    <section id="draftcore" data-fases="antes draft">
       <h2>DraftCore</h2>
       <p class="ayuda">Pega el enlace de espectador del draft, el que acaba en el código del draft.</p>
       <div class="fila">
@@ -49,7 +65,7 @@
       <p id="fuente" class="estado"></p>
     </section>
 
-    <section id="enfrentamiento">
+    <section id="enfrentamiento" data-fases="antes">
       <h2>Enfrentamiento</h2>
       <div class="rejilla">
         <label>Jornada <input id="jornada"></label>
@@ -60,7 +76,7 @@
       <button id="guardarConfig">Guardar enfrentamiento</button>
     </section>
 
-    <section id="equipos">
+    <section id="equipos" data-fases="antes">
       <h2>Equipos</h2>
       <p class="ayuda">Al elegir un clan se rellena su plantilla. Si cambias algún jugador, guárdalo en la plantilla para la próxima vez.</p>
       <div class="dos">
@@ -78,7 +94,7 @@
       <div class="fila"><button id="guardarEquipos">Poner en el overlay</button><button id="invertir" class="secundario">Invertir lados</button></div>
     </section>
 
-    <section id="camaras">
+    <section id="camaras" data-fases="antes draft">
       <h2>Cámaras</h2>
       <p class="ayuda">Las cámaras salen en el centro del overlay. En OBS, pon cada fuente de cámara por debajo del overlay y encájala en su hueco: la medida y la posición están al lado de cada una.</p>
       <div class="cantidad" role="radiogroup" aria-label="Cámaras en el overlay">
@@ -92,7 +108,7 @@
       <div class="fila"><button id="guardarCamaras">Poner en el overlay</button></div>
     </section>
 
-    <section id="draft">
+    <section id="draft" data-fases="draft">
       <h2>Draft en directo</h2>
       <p class="ayuda">Se rellena solo desde DraftCore. Si algo falla, escribe el campeón en su hueco.</p>
       <div class="dos draft">
@@ -102,9 +118,9 @@
       <datalist id="listaCampeones"></datalist>
     </section>
 
-    <section id="en-partida">
+    <section id="en-partida" data-fases="partida">
       <h2>Partida en directo</h2>
-      <p class="ayuda">El marcador del overlay de partida sale del cliente de LoL del PC donde se mira la partida, a través del puente (se descarga en <a href="/guia/#ingame" target="_blank">la guía</a>). Ábrelo allí al empezar la jornada y déjalo abierto: busca la partida cuando se lo pides aquí o, solo, al acabar el draft, y el marcador sale en cuanto empieza. Los clanes y los jugadores son los del enfrentamiento.</p>
+      <p class="ayuda">El marcador sale del cliente de LoL del PC donde se mira la partida, a través del puente (se descarga en <a href="/guia/#ingame" target="_blank">la guía</a>). Ábrelo allí al empezar la jornada y déjalo abierto: busca la partida cuando se lo pides aquí o, solo, al acabar el draft. En cuanto empieza, el overlay pasa solo al marcador; al acabar, a la pantalla final. Los clanes y los jugadores son los del enfrentamiento.</p>
       <ol class="pasos-partida" aria-label="En qué punto está la partida">
         <li data-paso="puente">Puente abierto</li>
         <li data-paso="buscando">Buscando la partida</li>
@@ -139,7 +155,7 @@
       <p class="ayuda">La partida de prueba se inventa los datos (con los campeones del draft) y va seis veces más rápida: sirve para colocar el overlay en OBS sin jugar. Se para sola cuando llega una partida de verdad.</p>
     </section>
 
-    <section id="resultado">
+    <section id="resultado" data-fases="resultado">
       <h2>Resultado</h2>
       <p class="ayuda" id="ayudaHoja"></p>
       <div class="fila">
@@ -149,17 +165,61 @@
         <button id="nuevaSerie" class="secundario">Nueva serie</button>
         <button id="probarHoja" class="secundario" hidden>Reintentar Google Sheets</button>
       </div>
+      <p class="ayuda">Al marcar el ganador, el overlay pasa a la pantalla final; el MVP, el daño y los puntos del fantasy salen en ella al guardar las estadísticas. «Siguiente partida» y «Nueva serie» vuelven al draft. <button type="button" id="quitarFinal" class="enlace">Quitar la pantalla final</button></p>
       <ol id="resultados" class="resultados"></ol>
       <div class="fantasy-panel">
         <h3>Estadísticas para el fantasy</h3>
-        <p class="ayuda">Después de marcar el ganador y antes de pulsar «Siguiente partida»: las estadísticas de la pantalla final de cada jugador y el MVP. Si el puente ha seguido la partida, al terminar se rellenan solos el KDA, el farmeo y la visión, y cuentan la primera sangre, los multikills y las torres; el daño a campeones hay que apuntarlo (si lo dejáis vacío, esa partida nadie puntúa por daño: mejor apuntarlo siempre o nunca). El daño a torres no puntúa, pero la carta BOOST de «más daño a torres» (Igrid) lo necesita, igual que la de «más daño» necesita el daño de los diez: si a alguno le falta el dato, esa BOOST no da bonus en esa partida. Puntos: +1 por jugar, +3 si gana, +2 por asesinato, +1,5 por asistencia, −1 por muerte, +2 sin morir, +1 por cada 30 de farmeo, +1 por cada 10 de visión, +1 por cada 5000 de daño, +2 primera sangre, triple +2, cuádruple +5, pentakill +10, +2 si participa en el 70 % de los asesinatos de su equipo, +1 por torre y +3 al MVP. Al guardar, pasa el ratón por un jugador para ver su desglose. Si te equivocas, corrígelo y vuelve a guardar.</p>
+        <p class="ayuda">Después de marcar el ganador y antes de pulsar «Siguiente partida»: revisa los números, apunta el daño de la pantalla final, elige el MVP y guarda. Salen en la pantalla final del overlay.</p>
+        <details class="ayuda"><summary>Qué se rellena solo y cómo se puntúa</summary>Si el puente ha seguido la partida, al terminar se rellenan solos el KDA, el farmeo y la visión, y cuentan la primera sangre, los multikills y las torres; el daño a campeones hay que apuntarlo (si lo dejáis vacío, esa partida nadie puntúa por daño: mejor apuntarlo siempre o nunca). El daño a torres no puntúa, pero la carta BOOST de «más daño a torres» (Igrid) lo necesita, igual que la de «más daño» necesita el daño de los diez: si a alguno le falta el dato, esa BOOST no da bonus en esa partida. Puntos: +1 por jugar, +3 si gana, +2 por asesinato, +1,5 por asistencia, −1 por muerte, +2 sin morir, +1 por cada 30 de farmeo, +1 por cada 10 de visión, +1 por cada 5000 de daño, +2 primera sangre, triple +2, cuádruple +5, pentakill +10, +2 si participa en el 70 % de los asesinatos de su equipo, +1 por torre y +3 al MVP. Al guardar, pasa el ratón por un jugador para ver su desglose. Si te equivocas, corrígelo y vuelve a guardar.</details>
         <div class="kda dos"></div>
         <div class="fila"><button type="button" id="guardarKda">Guardar estadísticas</button><button type="button" id="rellenarKda" class="secundario">Rellenar con la partida</button></div>
         <p class="estado" id="estadoKda"></p>
       </div>
     </section>
 
-    <section id="tierlist">
+    <section id="jornada" data-fases="resultado liga">
+      <h2>Jornada del fantasy</h2>
+      <p class="estado" id="estadoAlineaciones"></p>
+      <div class="fila">
+        <button type="button" id="alternarAlineaciones" class="secundario">Cerrar alineaciones</button>
+        <label class="casilla"><input type="checkbox" id="cerrarSolas"> Cerrarlas solas al empezar el draft o la partida</label>
+      </div>
+      <p class="ayuda">Mientras están cerradas nadie puede cambiar a sus jugadores: así nadie alinea sabiendo cómo le ha ido a cada uno. Se vuelven a abrir al terminar la jornada.</p>
+
+      <h3>Terminar la jornada</h3>
+      <p class="ayuda">Cuando estén guardadas las estadísticas de todas sus partidas: los tres primeros de la jornada se llevan sobres, se abren las alineaciones y la clasificación se puede publicar en Discord. Cada jornada se termina una sola vez.</p>
+      <div class="fila premios">
+        <select id="jornadaElegida" aria-label="Jornada"><option value="">Escribe la contraseña para ver las jornadas</option></select>
+        <label>Sobres del 1.º <input id="premio1" type="number" min="0" max="20"></label>
+        <label>Del 2.º <input id="premio2" type="number" min="0" max="20"></label>
+        <label>Del 3.º <input id="premio3" type="number" min="0" max="20"></label>
+      </div>
+      <ol class="clasificacion-jornada"></ol>
+      <div class="fila">
+        <button type="button" id="terminarJornada">Terminar la jornada y repartir sobres</button>
+        <button type="button" id="descargarClasificacion" class="secundario">Descargar imagen</button>
+        <button type="button" id="publicarClasificacion" class="secundario">Publicar en Discord</button>
+      </div>
+      <p class="estado" id="estadoJornada"></p>
+    </section>
+
+    <section id="codigo" data-fases="draft partida resultado liga">
+      <h2>Código de directo</h2>
+      <p class="ayuda">Crea un código y sale en el overlay: quien lo escriba en el gachapon mientras vale se lleva los sobres, una vez por persona. No hace falta Twitch ni ser afiliado.</p>
+      <p class="estado" id="estadoCodigo">Escribe la contraseña arriba a la derecha para crear códigos.</p>
+      <div class="fila premios">
+        <label>Sobres <input id="codigoSobres" type="number" min="1" max="5" value="1"></label>
+        <label>Minutos que vale <input id="codigoMinutos" type="number" min="1" max="180" value="10"></label>
+        <label title="0: sin límite de personas">Máximo de canjes <input id="codigoMaximo" type="number" min="0" value="0"></label>
+      </div>
+      <div class="fila">
+        <button type="button" id="crearCodigo">Crear un código y enseñarlo</button>
+        <button type="button" id="ocultarCodigo" class="secundario" hidden>Quitarlo del overlay</button>
+        <button type="button" id="cerrarCodigo" class="secundario" hidden>Cerrar el código</button>
+      </div>
+    </section>
+
+    <section id="tierlist" data-fases="liga">
       <h2>Tier list</h2>
       <p class="ayuda">Se publica en la portada. La tier de cada jugador es también la rareza de su carta en el gachapon. Los jugadores sin nombre en la plantilla no salen ni en la web ni en los sobres.</p>
       <div class="pestanas-tier" role="tablist" aria-label="Qué tier list editar">
@@ -171,7 +231,7 @@
       <p class="ayuda">La imagen lleva las dos tier list, jugadores y equipos. Publicarla en Discord necesita el webhook del canal en Render.</p>
     </section>
 
-    <section id="gachapon">
+    <section id="gachapon" data-fases="liga">
       <h2>Gachapon</h2>
       <p class="ayuda" id="estadoLoginTwitch"></p>
       <div class="caja-gacha">
@@ -186,12 +246,6 @@
           <label class="coste">Puntos por sobre <input id="costeSobre" type="number" min="1" step="100"></label>
           <button type="button" id="guardarCoste" class="secundario">Cambiar el coste</button>
         </div>
-      </div>
-      <div class="caja-gacha">
-        <h3>Fantasy</h3>
-        <p class="estado" id="estadoAlineaciones"></p>
-        <div class="fila"><button type="button" id="alternarAlineaciones" class="secundario">Cerrar alineaciones</button></div>
-        <p class="ayuda">Ciérralas al empezar la jornada y ábrelas al acabar: así nadie cambia a un jugador sabiendo cómo le ha ido.</p>
       </div>
       <div class="caja-gacha">
         <h3>Regalar sobres</h3>

@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="/marca.css">
 <link rel="stylesheet" href="/inicio.css">
 <link rel="stylesheet" href="/directo.css">
+<link rel="stylesheet" href="/carta.css">
 <link rel="stylesheet" href="gachapon.css">
 </head>
 <body>
@@ -23,6 +24,14 @@
       <h1>Gachapon</h1>
       <p class="sub">Colecciona a los jugadores de Tenka Ichi. Cada sobre trae tres cartas, y cuanto mejor es la tier de un jugador, más difícil es que salga.</p>
       <div class="cuenta"></div>
+      <form class="canje" hidden>
+        <label for="codigo">¿Tienes un código del directo?</label>
+        <div class="canje-fila">
+          <input id="codigo" name="codigo" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="14" placeholder="Código">
+          <button type="submit" class="boton-secundario">Canjear</button>
+        </div>
+        <p class="canje-estado" role="status"></p>
+      </form>
       <p class="como-mas"></p>
     </div>
     <button class="sobre" type="button" aria-label="Abrir un sobre" disabled>
@@ -48,7 +57,9 @@
       </div>
       <div>
         <h3>Clasificación</h3>
+        <div class="filtros filtros-jornada" role="tablist" aria-label="Clasificación de"></div>
         <ol class="clasificacion-fantasy"></ol>
+        <p class="premios-fantasy"></p>
       </div>
     </div>
   </section>
@@ -58,7 +69,7 @@
       <div>
         <h2>Colección</h2>
         <p class="progreso"></p>
-        <div class="compartir" data-que="coleccion" hidden><button type="button" class="boton-secundario descargar">Descargar imagen</button><button type="button" class="boton-secundario publicar" hidden>Publicar en Discord</button><span class="estado-compartir" role="status"></span></div>
+        <div class="compartir" data-que="coleccion" hidden><button type="button" class="boton-secundario descargar">Descargar imagen</button><button type="button" class="boton-secundario publicar" hidden>Publicar en Discord</button><button type="button" class="boton-secundario fundir-abrir" hidden>Fundir repetidas</button><span class="estado-compartir" role="status"></span></div>
       </div>
       <div class="filtros" role="tablist" aria-label="Qué cartas ver">
         <button role="tab" aria-selected="true" data-filtro="todas">Todas</button>
@@ -123,6 +134,18 @@
   <div class="acciones-elegir">
     <button type="button" class="boton-secundario quitar">Dejar el hueco vacío</button>
     <button type="button" class="boton-claro cancelar">Cancelar</button>
+  </div>
+</dialog>
+
+<dialog class="fundir" aria-labelledby="titulo-fundir">
+  <h3 id="titulo-fundir">Fundir repetidas</h3>
+  <p class="nota-fundir"></p>
+  <div class="opciones"></div>
+  <div class="acciones-elegir">
+    <span class="cuenta-fundir" role="status"></span>
+    <button type="button" class="boton-secundario solas">Elegir por mí</button>
+    <button type="button" class="boton-secundario cancelar">Cancelar</button>
+    <button type="button" class="boton-claro confirmar" disabled>Fundir</button>
   </div>
 </dialog>
 

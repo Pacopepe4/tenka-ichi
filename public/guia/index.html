@@ -42,6 +42,16 @@
       <li>Para ver los huecos mientras colocas, cambia un momento la dirección del overlay por <span class="url en-linea" data-enlace="guia"></span>. Salen marcados con su medida. Al acabar, vuelve a la dirección normal.</li>
     </ol>
     <p class="nota">Si tu escena ya tiene su propio fondo y no quieres el de tinta del overlay, usa <span class="url en-linea" data-enlace="transparente"></span>.</p>
+
+    <h3>Una sola fuente para todo el partido</h3>
+    <p>Esa misma fuente cambia sola según lo que va pasando, así que no hace falta tocar OBS durante el partido:</p>
+    <ul class="pasos lista">
+      <li><b>Draft</b>, con las cámaras, mientras se elige.</li>
+      <li><b>Postdraft</b>, 10 segundos después del último pick: cada jugador con su carta, lo que lleva con el campeón que va a jugar (o «FIRST PICK» si es la primera vez) y sus puntos del fantasy, y los dos clanes frente a frente.</li>
+      <li><b>Marcador de la partida</b>, en cuanto empieza. Es transparente: la captura del juego tiene que estar <b>debajo</b> del overlay en la misma escena.</li>
+      <li><b>Pantalla final</b>, al acabar: resultado, la tabla de los diez jugadores y el MVP.</li>
+    </ul>
+    <p class="nota">Si algo no cambia cuando toca, en la cabecera del panel está <b>En el overlay</b>: pulsa la vista que quieras y se queda en ella hasta que pulses <b>Automático</b>. Si la web se actualiza, el overlay se recarga solo.</p>
   </section>
 
   <section>
@@ -135,10 +145,15 @@
       <li>En <b>Competición</b>, elige la partida del calendario y pulsa <b>Cargar en el panel</b>. Se rellenan la jornada, el formato, los clanes y los jugadores.</li>
       <li>En <b>DraftCore</b>, pega el enlace de espectador del draft y pulsa <b>Conectar</b>. Los picks y bans salen solos en el overlay.</li>
       <li>En <b>Cámaras</b>, elige cuántas salen y qué es cada una, y pulsa <b>Poner en el overlay</b>.</li>
-      <li>Al acabar la partida, pulsa <b>Gana el lado azul</b> o <b>Gana el lado rojo</b>. El resultado se guarda en la clasificación.</li>
+      <li>Al acabar la partida, pulsa <b>Gana el lado azul</b> o <b>Gana el lado rojo</b>. El resultado se guarda en la clasificación y sale en la pantalla final.</li>
       <li>Debajo, en <b>Estadísticas para el fantasy</b>, apunta las de cada jugador de la pantalla final de la partida (KDA, farmeo, visión y daño a campeones), marca al MVP y pulsa <b>Guardar estadísticas</b>. Si el puente ha seguido la partida, casi todo viene relleno: solo falta el daño. Hazlo antes de «Siguiente partida».</li>
       <li>Para la siguiente, vuelve al primer paso.</li>
     </ol>
+    <p>El panel va por <b>fases</b> (arriba): Antes del partido, Draft, Partida y Resultado. En cada una salen solo sus apartados y, con «Cambiar sola» marcado, la fase sigue a lo que enseña el overlay. «Todo» los enseña todos, como antes.</p>
+    <ul class="pasos lista">
+      <li><b>Código de directo</b>: crea un código y sale en el overlay con su cuenta atrás. Quien lo escriba en el gachapon mientras vale se lleva sobres.</li>
+      <li><b>Jornada del fantasy</b>: las alineaciones se cierran solas al empezar el draft. Cuando estén guardadas las estadísticas de todas las partidas, <b>Terminar la jornada</b> reparte los sobres a los tres primeros, abre las alineaciones y publica la clasificación en Discord.</li>
+    </ul>
   </section>
 
   <section id="ingame">
@@ -179,7 +194,8 @@
 
     <h3>En OBS</h3>
     <ol class="pasos">
-      <li>En la escena del juego, añade una <b>fuente de navegador</b> con la dirección del overlay de partida, <b>1920</b> de ancho y <b>1080</b> de alto, <b>por encima</b> de la captura del juego.</li>
+      <li>Lo más sencillo es no añadir nada: el overlay de siempre pasa solo al marcador cuando empieza la partida. Basta con que la captura del juego esté <b>debajo</b> de él.</li>
+      <li>Si prefieres una escena aparte para el juego, añade en ella una <b>fuente de navegador</b> con la dirección del overlay de partida, <b>1920</b> de ancho y <b>1080</b> de alto, <b>por encima</b> de la captura del juego.</li>
       <li>Aparece solo cuando hay una partida en marcha y se retira cuando termina. En el panel, en <b>Partida</b>, los botones <b>Ocultar el marcador</b> y <b>Mostrar el marcador</b> lo quitan y lo vuelven a poner.</li>
     </ol>
 
@@ -205,6 +221,10 @@
     <dl class="problemas">
       <dt>El overlay sale vacío o no se mueve</dt>
       <dd>La web se duerme si nadie la usa durante 15 minutos y tarda alrededor de un minuto en despertar. Abre el panel unos minutos antes de empezar. En OBS, haz clic derecho en la fuente del overlay y pulsa <b>Actualizar</b>.</dd>
+      <dt>El overlay enseña algo que no toca (el draft en plena partida, la pantalla final…)</dt>
+      <dd>En la cabecera del panel, en <b>En el overlay</b>, pulsa la vista que toca: se queda en ella. Cuando todo vuelva a ir bien, pulsa <b>Automático</b>.</dd>
+      <dt>La web se ha reiniciado en plena jornada</dt>
+      <dd>Vuelve sola con el enfrentamiento, los equipos, el draft y la vista que tenía, y el overlay se recarga solo. El puente sigue intentándolo y dice en su ventana cuándo vuelve la conexión: no hace falta cerrarlo.</dd>
       <dt>Los picks no aparecen</dt>
       <dd>En el panel, el apartado DraftCore debe decir «Conectado al draft». Si no, vuelve a pegar el enlace de espectador y pulsa Conectar.</dd>
       <dt>Las cámaras no encajan con los huecos</dt>

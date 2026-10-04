@@ -1,7 +1,9 @@
-// Imágenes para compartir en Discord: la colección y la alineación de cada coleccionista y la tier list,
+// Imágenes para compartir en Discord: la colección y la alineación de cada coleccionista, la tier list y la
+// clasificación de cada jornada del fantasy,
 // dibujadas en un lienzo con los mismos marcos, dibujos y textos que la web. Se descargan o se publican en el
 // canal de Discord (POST /api/discord/publicar, que pone el texto y comprueba quién publica).
 import { logo } from '/comun.js';
+import { emblemaDe } from '/carta.js';
 
 const MINCHO = "'Shippori Mincho B1', 'Yu Mincho', serif";
 const GOTHIC = "'Zen Kaku Gothic New', 'Yu Gothic', 'Segoe UI', sans-serif";
@@ -90,7 +92,7 @@ export async function dibujarCarta(ctx, c, x, y, w, { cantidad = 1, nombreClan =
   const h = Math.round(w * 1.4);
   const boost = c.tipo === 'boost';
   const quien = boost ? (c.subtitulo || 'Boost') : `${ROL[c.rol] || c.rol} de ${nombreClan(c.clan)}`;
-  const [arte, marco, emblema] = await Promise.all([imagen(c.arte), imagen(c.marco), imagen(c.clan ? logo(c.clan) : null)]);
+  const [arte, marco, emblema] = await Promise.all([imagen(c.arte), imagen(c.marco), imagen(emblemaDe(c))]);
   ctx.save();
   ctx.beginPath();
   ctx.roundRect(x, y, w, h, w * 0.04);
@@ -153,11 +155,13 @@ export async function imagenColeccion({ nombre, cartas, total, nombreClan }) {
 }
 
 // ---------- alineación ----------
-// alineacion: { TOP: carta|null, … } con las cartas enteras; puntos: { TOP: n, … }
-export async function imagenAlineacion({ nombre, alineacion, puntos = {}, total = 0, puesto = null, nombreClan }) {
+// alineacion: { TOP: carta|null, … } con las cartas enteras; puntos: { TOP: n, … };
+// boosts: { TOP: carta BOOST, … }, la BOOST que lleva el jugador de cada rol (si lleva)
+export async function imagenAlineacion({ nombre, alineacion, puntos = {}, boosts = {}, total = 0, puesto = null, nombreClan }) {
   await fuentes();
   const w = 264, hueco = (ANCHO - 2 * MARGEN - 5 * w) / 4, h = Math.round(w * 1.4);
-  const alto = ARRIBA + 58 + h + 72 + 100;
+  const hayBoost = ROLES.some(r => alineacion[r] && boosts[r]), altoBoost = 92;
+  const alto = ARRIBA + 58 + h + 72 + (hayBoost ? altoBoost + 16 : 0) + 100;
   const [c, ctx] = lienzo(alto);
   const n = x => Number(x || 0).toLocaleString('es-ES');
   await cabecera(ctx, `Alineación de ${nombre}`, `Fantasy de Tenka Ichi  ·  ${n(total)} ${total === 1 ? 'punto' : 'puntos'}${puesto ? `  ·  ${puesto}.º en la clasificación` : ''}`);
@@ -168,6 +172,18 @@ export async function imagenAlineacion({ nombre, alineacion, puntos = {}, total 
     if (carta) {
       await dibujarCarta(ctx, carta, x, y, w, { nombreClan });
       texto(ctx, `${n(puntos[rol])} ${puntos[rol] === 1 ? 'punto' : 'puntos'}`, x + w / 2, y + h + 44, { fuente: `700 28px ${GOTHIC}`, color: C.hai, alinear: 'center' });
+      // Su BOOST: una placa con la carta en pequeño, el nombre y lo que hace
+      const boost = boosts[rol];
+      if (boost) {
+        const by = y + h + 72, mini = 58;
+        ctx.fillStyle = C.alzado;
+        ctx.beginPath();
+        ctx.roundRect(x, by, w, altoBoost, 8);
+        ctx.fill();
+        await dibujarCarta(ctx, boost, x + 8, by + (altoBoost - mini * 1.4) / 2, mini, { nombreClan });
+        texto(ctx, boost.nombre, x + mini + 20, by + 40, { fuente: `800 26px ${MINCHO}`, ancho: w - mini - 30 });
+        texto(ctx, boost.bonus?.etiqueta || 'BOOST', x + mini + 20, by + 68, { fuente: `700 19px ${GOTHIC}`, color: C.hai, ancho: w - mini - 30 });
+      }
     } else {
       ctx.save();
       ctx.setLineDash([12, 10]);
@@ -248,9 +264,9 @@ export function descargar(imagenBlob, nombre) {
 }
 
 // El servidor comprueba quién publica y pone el texto; el staff manda la contraseña del panel para la tier list
-export async function publicar(tipo, imagenBlob, { clave = null } = {}) {
+export async function publicar(tipo, imagenBlob, { clave = null, ...extra } = {}) {
   try {
-    const r = await fetch(`/api/discord/publicar?tipo=${encodeURIComponent(tipo)}`, {
+    const r = await fetch(`/api/discord/publicar?${new URLSearchParams({ tipo, ...extra })}`, {
       method: 'POST', body: imagenBlob,
       headers: { 'Content-Type': imagenBlob.type || 'image/jpeg', ...(clave ? { 'X-Clave-Panel': clave } : {}) },
     });
@@ -258,4 +274,35 @@ export async function publicar(tipo, imagenBlob, { clave = null } = {}) {
   } catch {
     return { ok: false, error: 'No hay conexión con la web' };
   }
+}
+
+// ---------- clasificación de una jornada del fantasy ----------
+// filas: [{ puesto, nombre, puntos }] ya ordenadas; ganadores: [{ puesto, sobres }] si la jornada ya tiene premios
+export async function imagenClasificacion({ jornada, filas, ganadores = [] }) {
+  await fuentes();
+  const mostradas = filas.slice(0, 10), altoFila = 86, hueco = 10;
+  const alto = ARRIBA + Math.max(1, mostradas.length) * (altoFila + hueco) - hueco + 110;
+  const [c, ctx] = lienzo(alto);
+  const n = x => Number(x || 0).toLocaleString('es-ES');
+  await cabecera(ctx, 'Clasificación del fantasy', `${jornada}  ·  ${filas.length} ${filas.length === 1 ? 'coleccionista' : 'coleccionistas'}`);
+  if (!mostradas.length) texto(ctx, 'Nadie ha puntuado todavía', ANCHO / 2, ARRIBA + 50, { fuente: `800 40px ${MINCHO}`, color: C.hai, alinear: 'center' });
+  mostradas.forEach((f, i) => {
+    const y = ARRIBA + i * (altoFila + hueco), podio = f.puesto <= 3, sobres = ganadores.find(g => g.puesto === f.puesto)?.sobres || 0;
+    ctx.fillStyle = C.alzado;
+    ctx.beginPath();
+    ctx.roundRect(MARGEN, y, ANCHO - 2 * MARGEN, altoFila, 8);
+    ctx.fill();
+    // El sello con el puesto: bermellón para el primero, hueso para el segundo y el tercero
+    ctx.fillStyle = f.puesto === 1 ? C.shu : podio ? C.washi : C.linea;
+    ctx.beginPath();
+    ctx.roundRect(MARGEN + 14, y + 13, 60, 60, 6);
+    ctx.fill();
+    texto(ctx, String(f.puesto), MARGEN + 44, y + 45, { fuente: `800 36px ${MINCHO}`, color: f.puesto === 1 ? C.washi : podio ? C.sumi : C.hai, alinear: 'center', base: 'middle' });
+    texto(ctx, f.nombre, MARGEN + 100, y + 45, { fuente: `800 ${podio ? 40 : 34}px ${MINCHO}`, base: 'middle', ancho: ANCHO - 2 * MARGEN - 100 - 520 });
+    if (sobres) texto(ctx, `+${sobres} ${sobres === 1 ? 'sobre' : 'sobres'}`, ANCHO - MARGEN - 300, y + 45, { fuente: `700 28px ${GOTHIC}`, color: '#E0484D', alinear: 'right', base: 'middle' });
+    texto(ctx, n(f.puntos), ANCHO - MARGEN - 130, y + 45, { fuente: `800 44px ${MINCHO}`, alinear: 'right', base: 'middle' });
+    texto(ctx, f.puntos === 1 ? 'punto' : 'puntos', ANCHO - MARGEN - 24, y + 47, { fuente: `400 24px ${GOTHIC}`, color: C.hai, alinear: 'right', base: 'middle' });
+  });
+  pie(ctx, alto, '/gachapon/');
+  return aImagen(c);
 }

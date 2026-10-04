@@ -2,14 +2,9 @@
 import { cargarClanes, logo } from '/comun.js';
 import { iniciarDirecto } from '/directo.js';
 import { imagenColeccion, imagenAlineacion, descargar, publicar } from '/compartir.js';
+import { cartaHTML as carta, TIERS, claveTier, ROL, escapar } from '/carta.js';
 
 const $ = s => document.querySelector(s);
-// Dos clases de carta: Jugador (jugadores de la liga) y BOOST (personajes de fuera de los clanes, de S+ a B).
-// La S+ es SP en CSS y en los archivos
-const TIERS = ['S+', 'S', 'A', 'B', 'C', 'D'];
-const claveTier = t => (t === 'S+' ? 'SP' : t);
-const ROL = { TOP: 'Top', JUNGLA: 'Jungla', MEDIO: 'Medio', ADC: 'ADC', SUPPORT: 'Support' };
-const escapar = s => String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
 const pct = p => `${(p * 100).toLocaleString('es-ES', { maximumFractionDigits: 1 })} %`;
 
 const { clanes } = await cargarClanes();
@@ -28,19 +23,8 @@ async function cargar() {
   pintar();
 }
 
-// El arte es el dibujo de la carta si ya existe (si no, el del clan) y el marco, el de su clase y tier si ya está hecho
-function cartaHTML(c, cantidad = null) {
-  const falta = cantidad === 0, k = claveTier(c.tier), boost = c.tipo === 'boost';
-  const quien = boost ? escapar(c.subtitulo) : `${ROL[c.rol] || c.rol} de ${escapar(nombreClan(c.clan))}`;
-  // Las BOOST llevan su multiplicador bajo el apodo y la frase entera al pasar el ratón
-  return `<div class="carta-g${falta ? ' falta' : ''}${c.marco ? ' con-marco' : ''}${boost ? ' boost' : ''}" data-tier="${k}" style="--color-tier: var(--tier-${k})"${c.bonus ? ` title="${escapar(c.bonus.texto)}"` : ''}>
-    <img class="arte" src="${escapar(c.arte || `/clanes/${c.clan}.jpg`)}" alt="" loading="lazy"><span class="velo"></span>
-    ${c.marco ? `<img class="marco" src="${escapar(c.marco)}" alt="" loading="lazy">` : ''}
-    <span class="hanko rareza" title="Tier ${c.tier}">${c.tier}</span>${c.clan ? `<img class="logo" src="${logo(c.clan)}" alt="">` : ''}
-    <div class="pie"><b class="nick">${escapar(c.nombre)}</b><span class="rol">${quien}</span>${c.bonus ? `<b class="bonus">${escapar(c.bonus.etiqueta)}</b>` : ''}</div>
-    ${cantidad > 1 ? `<span class="cantidad" title="La tienes repetida">×${cantidad}</span>` : ''}
-  </div>`;
-}
+// La carta la pinta carta.js, igual que en la portada y en el overlay
+const cartaHTML = (c, cantidad = null) => carta(c, { cantidad, nombreClan });
 
 function avisar(texto) {
   const p = $('.como-mas');
@@ -163,11 +147,34 @@ function pintarFantasy() {
   }).join('');
   cajaBoost.querySelectorAll('.hueco-ali:not(:disabled)').forEach(b => b.addEventListener('click', () => elegirBoost(Number(b.dataset.i))));
 
-  const lista = $('.clasificacion-fantasy');
-  lista.innerHTML = fantasia.clasificacion.length
-    ? fantasia.clasificacion.map(c => `<li class="${c.yo ? 'yo' : ''}"><span class="puesto">${c.puesto}</span><span class="quien">${escapar(c.nombre)}</span>
-        <span class="cuanto">${c.puntos.toLocaleString('es-ES')}${fantasia.ultimaJornada ? `<small>${c.ultima.toLocaleString('es-ES')} en ${escapar(fantasia.ultimaJornada)}</small>` : ''}</span></li>`).join('')
+  pintarClasificacion();
+}
+
+// La clasificación general o la de una jornada. Los tres primeros de cada jornada se llevan sobres
+let jornadaVista = '';
+function pintarClasificacion() {
+  const jornadas = fantasia.jornadas || [];
+  if (jornadaVista && !jornadas.includes(jornadaVista)) jornadaVista = '';
+  const pestanas = $('.filtros-jornada');
+  pestanas.hidden = !jornadas.length;
+  pestanas.innerHTML = [['', 'General'], ...jornadas.map(j => [j, j])].map(([valor, texto]) =>
+    `<button role="tab" aria-selected="${valor === jornadaVista}" data-jornada="${escapar(valor)}">${escapar(texto)}</button>`).join('');
+  pestanas.querySelectorAll('button').forEach(b => b.addEventListener('click', () => { jornadaVista = b.dataset.jornada; pintarClasificacion(); }));
+
+  const filas = jornadaVista ? fantasia.clasificacionesJornada?.[jornadaVista] || [] : fantasia.clasificacion;
+  const premio = jornadaVista ? fantasia.premios?.find(p => p.jornada === jornadaVista) : null;
+  const sobresDe = puesto => premio?.ganadores.find(g => g.puesto === puesto)?.sobres || 0;
+  $('.clasificacion-fantasy').innerHTML = filas.length
+    ? filas.map(c => `<li class="${c.yo ? 'yo' : ''}"><span class="puesto">${c.puesto}</span><span class="quien">${escapar(c.nombre)}</span>
+        <span class="cuanto">${c.puntos.toLocaleString('es-ES')}${jornadaVista
+          ? (sobresDe(c.puesto) ? `<small>+${sobresDe(c.puesto)} ${sobresDe(c.puesto) === 1 ? 'sobre' : 'sobres'}</small>` : '')
+          : fantasia.ultimaJornada ? `<small>${c.ultima.toLocaleString('es-ES')} en ${escapar(fantasia.ultimaJornada)}</small>` : ''}</span></li>`).join('')
     : '<li class="vacio">La clasificación empieza con la primera jornada.</li>';
+  const [uno, dos, tres] = fantasia.sobresPremio || [];
+  $('.premios-fantasy').textContent = uno || dos || tres
+    ? `Al terminar cada jornada, sus tres primeros se llevan sobres: ${uno} el 1.º, ${dos} el 2.º y ${tres} el 3.º.`
+      + (jornadaVista ? (premio ? ' Los de esta jornada ya están repartidos.' : ' Los de esta jornada se reparten cuando termine.') : '')
+    : '';
 }
 
 // Elegir la carta de un hueco entre las que tienes de ese rol
@@ -261,6 +268,8 @@ document.querySelectorAll('.filtros-rol button').forEach(b => b.addEventListener
 
 function pintar() {
   pintarCompartir();
+  pintarFundir();
+  $('.canje').hidden = !info.usuario;
   pintarCuenta();
   pintarFantasy();
   pintarAlbum();
@@ -356,6 +365,7 @@ async function imagenDe(que) {
   const ali = fantasia.yo?.alineacion || {};
   return imagenAlineacion({ nombre: info.usuario.nombre, nombreClan, total: fantasia.yo?.puntos || 0, puesto: fantasia.yo?.puesto || null,
     alineacion: Object.fromEntries(ROLES.map(r => [r, ali[r] ? cartaPorId(ali[r]) : null])),
+    boosts: Object.fromEntries(boostsDe().filter(Boolean).map(b => [b.rol, cartaPorId(b.carta)])),
     puntos: Object.fromEntries(ROLES.map(r => [r, ali[r] ? puntosDe(ali[r]) : 0])) });
 }
 document.querySelectorAll('.compartir').forEach(caja => {
@@ -371,3 +381,86 @@ document.querySelectorAll('.compartir').forEach(caja => {
   caja.querySelector('.descargar').onclick = e => hacer(e.currentTarget, async img => { descargar(img, `tenka-ichi-${que}.jpg`); return 'Imagen descargada'; });
   caja.querySelector('.publicar').onclick = e => hacer(e.currentTarget, async img => { const r = await publicar(que, img); return r.ok ? '¡Publicada en Discord!' : r.error; });
 });
+
+// ---------- código del directo: el que sale en pantalla durante la retransmisión ----------
+$('.canje').addEventListener('submit', async e => {
+  e.preventDefault();
+  const campo = $('#codigo'), estado = $('.canje-estado'), boton = e.target.querySelector('button');
+  if (!campo.value.trim()) return campo.focus();
+  boton.disabled = true;
+  const r = await fetch('/api/gacha/canjear', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ codigo: campo.value }) })
+    .then(x => x.json()).catch(() => ({ ok: false, error: 'No hay conexión con la web' }));
+  boton.disabled = false;
+  estado.classList.toggle('mal', !r.ok);
+  if (!r.ok) { estado.textContent = r.error; return; }
+  campo.value = '';
+  estado.textContent = r.sobres === 1 ? '¡Código canjeado! Tienes un sobre más.' : `¡Código canjeado! Tienes ${r.sobres} sobres más.`;
+  info.usuario = r.usuario;
+  pintarCuenta();
+});
+
+// ---------- fundir repetidas: cada 5 copias que sobran, un sobre ----------
+// De cada carta se queda al menos una copia; de las BOOST, también las que estén puestas en la alineación
+const dialogoFundir = $('.fundir');
+let aFundir = new Map();
+function sobrantes() {
+  const enUso = boostsDe().filter(Boolean).map(b => b.carta);
+  return (info.usuario?.cartas || []).map(c => ({ carta: cartaPorId(c.id), cantidad: c.cantidad,
+    sobran: c.cantidad - Math.max(1, enUso.filter(id => id === c.id).length) })).filter(x => x.carta && x.sobran > 0)
+    .sort((a, b) => TIERS.indexOf(b.carta.tier) - TIERS.indexOf(a.carta.tier) || (a.carta.tipo === 'boost') - (b.carta.tipo === 'boost') || a.carta.nombre.localeCompare(b.carta.nombre));
+}
+function pintarFundir() {
+  const boton = $('.fundir-abrir');
+  boton.hidden = !info.usuario || !sobrantes().length;
+}
+function pintarCuentaFundir() {
+  const n = info.repetidasPorSobre, total = [...aFundir.values()].reduce((s, x) => s + x, 0), sobres = Math.floor(total / n), faltan = (n - total % n) % n;
+  $('.cuenta-fundir').textContent = !total ? `Elige ${n} cartas` : faltan ? `${total} ${total === 1 ? 'elegida' : 'elegidas'}: ${faltan === 1 ? 'falta 1' : `faltan ${faltan}`} para ${sobres + 1} ${sobres + 1 === 1 ? 'sobre' : 'sobres'}`
+    : `${total} cartas por ${sobres} ${sobres === 1 ? 'sobre' : 'sobres'}`;
+  const confirmar = dialogoFundir.querySelector('.confirmar');
+  confirmar.disabled = !total || Boolean(faltan);
+  confirmar.textContent = total && !faltan ? `Fundir por ${sobres} ${sobres === 1 ? 'sobre' : 'sobres'}` : 'Fundir';
+  dialogoFundir.querySelectorAll('.opcion-fundir').forEach(o => {
+    const elegidas = aFundir.get(o.dataset.id) || 0;
+    o.querySelector('output').textContent = elegidas;
+    o.classList.toggle('elegida', elegidas > 0);
+    o.querySelector('.menos').disabled = !elegidas;
+    o.querySelector('.mas').disabled = elegidas >= Number(o.dataset.sobran);
+  });
+}
+function abrirFundir() {
+  const lista = sobrantes(), n = info.repetidasPorSobre;
+  aFundir = new Map();
+  $('.nota-fundir').textContent = `Cada ${n} cartas repetidas que fundas se convierten en un sobre nuevo. De cada carta te quedas siempre una copia, y las BOOST que tienes en la alineación no se tocan.`;
+  dialogoFundir.querySelector('.opciones').innerHTML = lista.map(x => `<div class="opcion-fundir" data-id="${escapar(x.carta.id)}" data-sobran="${x.sobran}">
+    ${cartaHTML(x.carta, x.cantidad)}
+    <div class="contador"><button type="button" class="menos" aria-label="Fundir una menos de ${escapar(x.carta.nombre)}">−</button><output>0</output><button type="button" class="mas" aria-label="Fundir una más de ${escapar(x.carta.nombre)}">+</button></div>
+    <small>${x.sobran === 1 ? 'Te sobra 1' : `Te sobran ${x.sobran}`}</small></div>`).join('');
+  dialogoFundir.querySelectorAll('.opcion-fundir').forEach(o => {
+    const cambiar = d => { aFundir.set(o.dataset.id, Math.max(0, Math.min(Number(o.dataset.sobran), (aFundir.get(o.dataset.id) || 0) + d))); pintarCuentaFundir(); };
+    o.querySelector('.menos').onclick = () => cambiar(-1);
+    o.querySelector('.mas').onclick = () => cambiar(1);
+  });
+  // «Elegir por mí»: las de peor tier primero, hasta el múltiplo de 5 más alto que se pueda
+  dialogoFundir.querySelector('.solas').onclick = () => {
+    const total = lista.reduce((s, x) => s + x.sobran, 0);
+    let quedan = total - total % n;
+    aFundir = new Map();
+    for (const x of lista) { const tomar = Math.min(x.sobran, quedan); if (tomar) aFundir.set(x.carta.id, tomar); quedan -= tomar; }
+    pintarCuentaFundir();
+  };
+  pintarCuentaFundir();
+  dialogoFundir.showModal();
+}
+$('.fundir-abrir').onclick = abrirFundir;
+dialogoFundir.querySelector('.cancelar').onclick = () => dialogoFundir.close();
+dialogoFundir.querySelector('.confirmar').onclick = async e => {
+  e.currentTarget.disabled = true;
+  const r = await fetch('/api/gacha/fundir', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cartas: Object.fromEntries([...aFundir].filter(([, x]) => x > 0)) }) }).then(x => x.json()).catch(() => ({ ok: false, error: 'No hay conexión con la web' }));
+  if (!r.ok) { $('.cuenta-fundir').textContent = r.error; e.currentTarget.disabled = false; return; }
+  info.usuario = r.usuario;
+  dialogoFundir.close();
+  pintar();
+  avisar(r.sobres === 1 ? `Has fundido ${r.cartas} cartas: tienes un sobre más.` : `Has fundido ${r.cartas} cartas: tienes ${r.sobres} sobres más.`);
+};

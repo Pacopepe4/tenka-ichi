@@ -237,6 +237,9 @@ export function infoFantasy(u) {
       .sort((a, b) => b.puntos - a.puntos || a.nombre.localeCompare(b.nombre)),
     clasificacion: clasificacion.slice(0, 50).map((c, i) => ({ puesto: i + 1, nombre: c.nombre, puntos: c.puntos, ultima: ultima ? c.porJornada[ultima] || 0 : 0,
       porJornada: c.porJornada, yo: u ? c.id === u.id : false })),
+    // Los 20 primeros de cada jornada (los premios de la jornada salen de aquí)
+    clasificacionesJornada: Object.fromEntries(jornadas.map(j => [j, clasificacionJornada(j).slice(0, 20)
+      .map(c => ({ puesto: c.puesto, nombre: c.nombre, puntos: c.puntos, yo: u ? c.id === u.id : false }))])),
     yo: u ? { alineacion: alineacionEn(u.id) || { ...Object.fromEntries(ROLES.map(r => [r, null])), boosts: sinBoosts() },
       puntos: puesto >= 0 ? clasificacion[puesto].puntos : 0, puntosBoost: puesto >= 0 ? clasificacion[puesto].puntosBoost : 0, puesto: puesto >= 0 ? puesto + 1 : null } : null,
   };

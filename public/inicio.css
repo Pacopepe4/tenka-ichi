@@ -253,3 +253,73 @@ html[data-directo="si"] .directo-estado { color: var(--shu-claro); }
   .campeon { max-width: 240px; }
 }
 @media (max-width: 560px) { .cuadro { grid-template-columns: 1fr; } }
+
+/* ---------- Cabecera en el móvil: la marca en una línea y el menú debajo, que se desliza ---------- */
+.marca span { white-space: nowrap; }
+@media (max-width: 760px) {
+  .barra { flex-wrap: wrap; row-gap: 4px; padding-top: 8px; padding-bottom: 0; }
+  .marca img { width: 32px; height: 30px; }
+  .marca span { font-size: 15px; }
+  .barra nav { order: 2; width: calc(100% + 2 * clamp(16px, 4vw, 48px)); margin: 0 calc(-1 * clamp(16px, 4vw, 48px)); padding: 6px clamp(16px, 4vw, 48px) 10px; gap: 20px;
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent); }
+  .barra nav a { font-size: 15px; }
+}
+
+/* ---------- «Ver carta» en la plantilla del clan y en la tier list ---------- */
+.ficha-plantilla dd { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ver-carta { flex: none; padding: 3px 12px; border: 1px solid var(--sumi-linea); border-radius: 999px; background: transparent; color: var(--washi); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+.ver-carta:hover { border-color: var(--color-texto, var(--washi)); color: var(--color-texto, var(--washi)); }
+.ficha-campeones { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 14px; }
+.ficha-campeones:empty { display: none; }
+.ficha-campeones h4 { width: 100%; margin: 0; font-size: 15px; font-family: var(--gothic); font-weight: 500; color: var(--hai); }
+.campeon-ficha { position: relative; }
+.campeon-ficha img { width: 44px; height: 44px; border-radius: 3px; }
+.campeon-ficha b { position: absolute; right: -4px; bottom: -4px; min-width: 18px; padding: 0 4px; border-radius: 9px; background: var(--sumi); font-size: 12px; line-height: 18px; text-align: center; }
+button.ficha-tier { color: inherit; font: inherit; font-size: 15px; cursor: pointer; }
+button.ficha-tier:hover { border-color: var(--hai); transform: translateY(-1px); }
+.tier-pista { max-width: 1180px; margin: 14px auto 0; padding: 0 clamp(16px, 5vw, 64px); color: var(--hai); font-size: 14px; }
+.tier-pista[hidden] { display: none; }
+
+.ficha-carta { width: min(760px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 0; border: 0; border-radius: 8px; background: var(--sumi-alzado); color: var(--washi);
+  display: none; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); overflow: hidden; border-top: 5px solid var(--color, var(--shu)); }
+.ficha-carta[open] { display: grid; animation: abrir .3s cubic-bezier(.2, .8, .2, 1); }
+.ficha-carta::backdrop { background: rgba(10, 9, 8, .82); }
+.ficha-carta-carta { padding: 26px 0 26px 26px; align-self: center; }
+.ficha-carta-carta .carta-g { width: 100%; }
+.ficha-carta-carta .sin-carta { width: 100%; aspect-ratio: 5 / 7; object-fit: cover; border-radius: 8px; }
+.ficha-carta-texto { padding: 26px 28px 28px; overflow-y: auto; }
+.ficha-carta h3 { margin: 0 38px 0 0; font-family: var(--mincho); font-weight: 800; font-size: 38px; line-height: 1.1; overflow-wrap: anywhere; }
+.ficha-carta-quien { margin: 4px 0 18px; color: var(--hai); }
+.ficha-carta-datos { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin: 0 0 20px; }
+.ficha-carta-datos div { padding: 10px 12px; background: var(--sumi); border-radius: 4px; }
+.ficha-carta-datos dt { order: 2; color: var(--hai); font-size: 13px; }
+.ficha-carta-datos dd { margin: 0; font-family: var(--mincho); font-weight: 800; font-size: 24px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.ficha-carta-datos div { display: flex; flex-direction: column; }
+.ficha-carta h4 { margin: 0 0 8px; font-family: var(--mincho); font-size: 20px; }
+.ficha-carta-campeones { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ficha-carta-campeones li { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 10px; align-items: center; }
+.ficha-carta-campeones img { width: 40px; height: 40px; border-radius: 3px; }
+.ficha-carta-campeones span { display: flex; flex-direction: column; line-height: 1.25; }
+.ficha-carta-campeones small { color: var(--hai); font-size: 13px; }
+.ficha-carta-campeones li.vacio { display: block; color: var(--hai); }
+@media (max-width: 640px) {
+  .ficha-carta[open] { grid-template-columns: 1fr; overflow-y: auto; }
+  .ficha-carta-carta { padding: 22px 22px 0; max-width: 240px; justify-self: center; }
+  .ficha-carta-texto { overflow: visible; }
+}
+
+/* ---------- Fantasy en la portada ---------- */
+.fantasy-portada { padding: clamp(56px, 8vw, 110px) 0; border-top: 1px solid var(--sumi-linea); }
+.fantasy-portada .cabecera-seccion p a { color: var(--washi); }
+.fantasy-cuerpo { max-width: 1180px; margin: 0 auto; padding: 0 clamp(16px, 5vw, 64px); }
+.pestanas-fantasy { max-width: none; margin: 28px 0 14px; padding: 0; flex-wrap: wrap; }
+.pestanas-fantasy[hidden] { display: none; }
+.ranking-fantasy { list-style: none; max-width: 720px; margin: 0 0 24px; padding: 0; }
+.ranking-fantasy li { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto auto; gap: 14px; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--sumi-linea); }
+.ranking-fantasy .puesto { font-family: var(--mincho); font-weight: 800; font-size: 24px; color: var(--hai); }
+.ranking-fantasy li:first-child .puesto { color: var(--shu-claro); }
+.ranking-fantasy b { font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ranking-fantasy em { font-style: normal; font-size: 14px; font-weight: 700; color: var(--shu-claro); white-space: nowrap; }
+.ranking-fantasy .puntos { grid-column: 4; display: flex; align-items: baseline; gap: 6px; font-family: var(--mincho); font-weight: 800; font-size: 24px; font-variant-numeric: tabular-nums; }
+.ranking-fantasy .puntos small { font-family: var(--gothic); font-weight: 400; font-size: 13px; color: var(--hai); }
+.ranking-fantasy li.vacio { display: block; color: var(--hai); border-bottom: 0; }

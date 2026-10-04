@@ -21,6 +21,10 @@ PONERLO EN MARCHA
    pide el panel (botón «Buscar la partida») o, solo, al acabar el draft. Cuando la
    partida termina, deja de buscar hasta la siguiente. Ciérralo al acabar la jornada.
 
+Si se corta la conexión con la web (se está actualizando, o falla internet), no hace
+falta cerrarlo: sigue intentándolo solo y avisa en la ventana cuando vuelve. El título
+de la ventana dice en qué está: en espera, buscando la partida o mandando la partida.
+
 
 OCULTAR EL MARCADOR DEL PROPIO JUEGO
 ------------------------------------

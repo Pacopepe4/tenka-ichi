@@ -230,6 +230,11 @@ test('el overlay pasa solo de draft a postdraft, partida y final, y el panel pue
   assert.equal(e.final.lineas[2].azul.campeon, 'Ahri');
   assert.equal(e.final.lineas[2].azul.nombre, 'A3');
 
+  // Las alineaciones se cierran solas una vez por partida: si el staff las abre, otro pick no las vuelve a cerrar
+  await c.accion('fantasyCerrar', { cerrado: false });
+  await c.accion('corregir', { tipo: 'bans', lado: 'rojo', indice: 4, campeon: 'Teemo' });
+  assert.equal(c.estado.fantasy.cerrado, false);
+
   // El panel fuerza una vista y la suelta
   await c.accion('vistaOverlay', { vista: 'draft' });
   assert.equal(c.estado.vistaOverlay, 'draft');
@@ -285,7 +290,7 @@ test('si la web se reinicia, vuelve con lo que el panel tenía puesto', async ()
   assert.equal(d.estado.vista.forzada, 'partida');
   assert.equal(d.estado.vistaOverlay, 'partida');
   assert.equal(d.estado.buscarPartida.activa, true);
-  assert.deepEqual(d.estado.jornadaAuto, { cerrar: false, premios: [3, 2, 3] });
+  assert.deepEqual([d.estado.jornadaAuto.cerrar, d.estado.jornadaAuto.premios], [false, [3, 2, 3]]);
   // Sin la vista forzada, un draft que ya estaba completo va directo al postdraft
   await d.accion('vistaOverlay', { vista: 'auto' });
   assert.equal(d.estado.vistaOverlay, 'postdraft');
@@ -302,4 +307,76 @@ test('los archivos se validan con su huella: si no han cambiado, no se vuelven a
   const logo = await fetch(`${urlWeb}/logos/KAIJU.png`);
   assert.match(logo.headers.get('cache-control'), /max-age=86400/);
   await logo.arrayBuffer();
+});
+
+// ---------- la partida que manda el puente ----------
+// Paquetes como los del puente (Live Client Data API), con la contraseña del panel
+const puente = cuerpo => fetch(`${urlWeb}/api/partida`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Clave': CLAVE },
+  body: JSON.stringify({ version: 4, ...cuerpo }) }).then(r => r.json());
+const POSICIONES = ['TOP', 'JUNGLE', 'MIDDLE', 'BOTTOM', 'UTILITY'];
+const jugadoresDelCliente = () => ['azul', 'rojo'].flatMap(lado => POSICIONES.map((position, i) => ({
+  riotIdGameName: `${lado}${i}`, summonerName: `${lado}${i}`, team: lado === 'azul' ? 'ORDER' : 'CHAOS', position, level: 14, items: [],
+  championName: PICKS[lado][i], rawChampionName: `game_character_displayname_${PICKS[lado][i]}`,
+  scores: { kills: lado === 'azul' ? 3 : 1, deaths: 2, assists: 4, creepScore: 150, wardScore: 20 } })));
+const paquete = (gameTime, eventos) => puente({ juego: { gameTime }, jugadores: jugadoresDelCliente(), eventosData: { Events: eventos }, desde: 0 });
+const inicio = { EventID: 0, EventName: 'GameStart', EventTime: 0 };
+
+test('con el puente: la partida pone el marcador, su fin deja la pantalla final y «Siguiente partida» pasa página', async () => {
+  const c = await conectar();
+  await c.accion('vistaOverlay', { vista: 'auto' });
+  await puente({ sinPartida: true, espera: true });
+  assert.equal(c.estado.vistaOverlay, 'postdraft');
+
+  // Empieza la partida: el marcador
+  await paquete(100, [inicio]);
+  await c.hasta(e => e.vistaOverlay === 'partida', 'el marcador al empezar la partida');
+  assert.equal(c.estado.vista.enPartida, true);
+
+  // Termina: la pantalla final queda guardada al momento y sale tras la espera, aunque el cliente siga abierto
+  await paquete(1500, [inicio, { EventID: 1, EventName: 'GameEnd', EventTime: 1499, Result: 'Win' }]);
+  const e = await c.hasta(x => x.vistaOverlay === 'final', 'la pantalla final tras el fin de la partida');
+  assert.equal(e.final.conMarcador, true);
+  assert.equal(e.final.prueba, false);
+  assert.equal(e.final.duracion, 1500);
+  assert.deepEqual([e.final.equipos.azul.kills, e.final.equipos.rojo.kills], [15, 5]);
+  assert.equal(e.final.lineas[0].azul.campeon, 'Aatrox');
+  assert.equal(e.final.lineas[0].azul.nombre, 'A1', 'el nombre del panel, no el de la cuenta');
+  await paquete(1501, [inicio, { EventID: 1, EventName: 'GameEnd', EventTime: 1499, Result: 'Win' }]);
+  assert.equal(c.estado.vistaOverlay, 'final', 'los paquetes de después del fin no la quitan');
+
+  // Siguiente partida: vuelta al draft, y la partida vieja (el cliente sigue abierto) no vuelve a dejar su final
+  await c.accion('siguiente');
+  assert.equal(c.estado.vistaOverlay, 'draft');
+  await paquete(1502, [inicio, { EventID: 1, EventName: 'GameEnd', EventTime: 1499, Result: 'Win' }]);
+  await esperar(400);
+  assert.equal(c.estado.final, null);
+  assert.equal(c.estado.vistaOverlay, 'draft');
+
+  // Otra partida (el reloj vuelve atrás). El cliente no da el fin a los espectadores: cuando el puente dice que ya no
+  // hay partida, también sale la pantalla final
+  await paquete(60, [inicio]);
+  await c.hasta(x => x.vistaOverlay === 'partida', 'el marcador de la segunda partida');
+  await paquete(900, [inicio]);
+  await puente({ sinPartida: true, espera: true });
+  const f = await c.hasta(x => x.vistaOverlay === 'final', 'la pantalla final al cerrarse el cliente');
+  assert.equal(f.final.duracion, 900);
+  assert.equal(f.vista.enPartida, false);
+  c.ws.close();
+});
+
+test('si el puente se cae en plena partida, el overlay sigue en la partida y no salta a la pantalla final', async () => {
+  const c = await conectar();
+  await c.accion('siguiente');
+  await paquete(30, [inicio]);
+  await c.hasta(e => e.vistaOverlay === 'partida', 'el marcador');
+  // Más de 20 s sin saber nada del puente: la partida se da por parada, pero no por terminada
+  await esperar(24000);
+  assert.equal(c.partida.activo, false);
+  assert.equal(c.partida.puente.conectado, false);
+  assert.equal(c.estado.vistaOverlay, 'partida');
+  assert.equal(c.estado.final, null);
+  // Vuelve el puente y sigue la partida: no ha pasado nada
+  await paquete(52, [inicio]);
+  assert.equal(c.estado.vistaOverlay, 'partida');
+  c.ws.close();
 });

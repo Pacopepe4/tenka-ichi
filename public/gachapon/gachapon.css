@@ -51,27 +51,6 @@ button.boton-secundario { background: transparent; font: inherit; font-weight: 7
 .album { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 16px; }
 .album .vacio { grid-column: 1 / -1; color: var(--hai); }
 
-/* Carta de jugador */
-.carta-g { position: relative; aspect-ratio: 5 / 7; border-radius: 8px; overflow: hidden; background: var(--sumi-alzado);
-  box-shadow: inset 0 0 0 3px var(--color-tier), 0 10px 22px rgba(0, 0, 0, .45); }
-.carta-g .arte { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.carta-g .velo { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(22,20,18,0) 40%, rgba(22,20,18,.94) 84%); }
-.carta-g .rareza { position: absolute; top: 10px; left: 10px; width: 40px; height: 40px; font-size: 24px; background: var(--color-tier); color: var(--sumi); transform: rotate(-4deg); box-shadow: 0 4px 10px rgba(0,0,0,.5); }
-.carta-g[data-tier="S"] .rareza { color: var(--washi); }
-.carta-g .logo { position: absolute; top: 10px; right: 10px; width: 38px; height: 36px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,.7)); }
-.carta-g .pie { position: absolute; left: 12px; right: 12px; bottom: 10px; display: flex; flex-direction: column; }
-.carta-g .nick { font-family: var(--mincho); font-weight: 800; font-size: 24px; line-height: 1.1; overflow-wrap: anywhere; }
-.carta-g .rol { font-size: 13px; color: #CFC6B6; }
-.carta-g .bonus { font-size: 13px; font-weight: 800; color: var(--washi); }
-.carta-g .cantidad { position: absolute; right: 10px; bottom: 12px; font-family: var(--mincho); font-weight: 800; font-size: 18px; color: var(--washi); }
-.carta-g.falta { box-shadow: inset 0 0 0 2px var(--sumi-linea); }
-.carta-g.falta .arte, .carta-g.falta .logo, .carta-g.falta .rareza { filter: grayscale(1) brightness(.45); }
-.carta-g.falta .nick, .carta-g.falta .rol, .carta-g.falta .bonus { color: var(--hai); }
-/* Las S brillan un poco más, y las S+ (especiales) más todavía */
-.carta-g[data-tier="S"]:not(.falta) { box-shadow: inset 0 0 0 3px var(--tier-S), 0 0 26px rgba(190, 42, 47, .45), 0 10px 22px rgba(0, 0, 0, .45); }
-.carta-g[data-tier="SP"]:not(.falta) { box-shadow: inset 0 0 0 3px var(--tier-SP), 0 0 34px rgba(154, 106, 208, .55), 0 10px 22px rgba(0, 0, 0, .45); }
-.carta-g[data-tier="SP"] .rareza { color: var(--washi); font-size: 19px; letter-spacing: -.02em; }
-
 /* ---------- Probabilidades ---------- */
 .probabilidades { padding: clamp(40px, 6vw, 72px) 0 clamp(56px, 8vw, 96px); border-top: 1px solid var(--sumi-linea); }
 .probabilidades .nota { color: var(--hai); max-width: 40em; margin: 8px 0 20px; }
@@ -130,7 +109,7 @@ button.boton-secundario { background: transparent; font: inherit; font-weight: 7
   .cabeza-gacha { grid-template-columns: 1fr; }
   .sobre { width: min(220px, 60vw); }
   .album { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
-  .carta-g .nick { font-size: 19px; }
+  .carta-g:not(.con-marco) .nick { font-size: 19px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .sobre, .volteable, .volteable .giro { transition: none; }
@@ -151,9 +130,10 @@ button.boton-secundario { background: transparent; font: inherit; font-weight: 7
 .hueco-ali .rol-ali { font-size: 13px; color: var(--hai); }
 .hueco-ali .vacio-ali { display: grid; place-items: center; aspect-ratio: 5 / 7; border: 2px dashed var(--sumi-linea); border-radius: 8px; color: var(--hai); font-size: 14px; }
 .hueco-ali:not(:disabled):hover .vacio-ali { border-color: var(--hai); color: var(--washi); }
-.hueco-ali .carta-g .nick { font-size: 18px; }
-.hueco-ali .carta-g .rareza { width: 32px; height: 32px; font-size: 19px; }
-.hueco-ali .carta-g .logo { width: 30px; height: 28px; }
+/* Tamaños para la carta sin marco; con marco, todo va en proporción a su ancho (carta.css) */
+.hueco-ali .carta-g:not(.con-marco) .nick { font-size: 18px; }
+.hueco-ali .carta-g:not(.con-marco) .rareza { width: 32px; height: 32px; font-size: 19px; }
+.hueco-ali .carta-g:not(.con-marco) .logo { width: 30px; height: 28px; }
 .hueco-ali .puntos-ali { font-size: 13px; color: var(--hai); }
 .hueco-ali .boost-ali { font-size: 12px; font-weight: 700; color: var(--washi); overflow-wrap: anywhere; }
 .titulo-boost { margin: 26px 0 10px; font-family: var(--mincho); font-weight: 800; font-size: 20px; }
@@ -194,7 +174,7 @@ button.boton-secundario { background: transparent; font: inherit; font-weight: 7
 .elegir .opciones { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
 .elegir .opcion { padding: 0; border: 0; background: none; cursor: pointer; border-radius: 8px; }
 .elegir .opcion[aria-pressed="true"] .carta-g { outline: 3px solid var(--washi); outline-offset: 3px; }
-.elegir .opcion .carta-g .nick { font-size: 19px; }
+.elegir .opcion .carta-g:not(.con-marco) .nick { font-size: 19px; }
 .elegir .sin-cartas { color: var(--hai); }
 .elegir .condicion-boost { grid-column: 1 / -1; margin: 0 0 4px; color: var(--hai); }
 .elegir .opcion-rol { display: flex; flex-direction: column; gap: 2px; padding: 14px 16px; border: 1px solid var(--sumi-linea); border-radius: 8px; background: var(--sumi); color: inherit; font: inherit; text-align: left; cursor: pointer; }
@@ -211,33 +191,7 @@ button.boton-secundario { background: transparent; font: inherit; font-weight: 7
   .tabla-puntos th:nth-child(3), .tabla-puntos td:nth-child(3) { display: none; }
 }
 .probabilidades .titulo-reglas { margin-top: 56px; }
-.hueco-ali .carta-g .rol { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
-
-/* ---------- Carta con marco ----------
-   Los marcos (public/cartas/marcos/jugador/ y boost/, 1000×1400 a escala; salen de diseno/marcos/) ponen el
-   arte en su ventana de 750×750 (x 125, y 282), el nombre en la barra de arriba, el emblema en el círculo de la
-   derecha, y rol y clan (o lo que hace la BOOST) en la primera línea de la caja de abajo. Las estrellas y el sello
-   con la letra ya los dibuja el marco, así que se esconde el sello de la carta sin marco. */
-.carta-g.con-marco { container-type: inline-size; background: var(--sumi); box-shadow: 0 10px 22px rgba(0, 0, 0, .45);
-  --ventana-x: 12.5%; --ventana-y: 20.14%; --ventana-ancho: 75%; --ventana-alto: 53.57%;
-  --barra-y: 4.6%; --barra-alto: 8.4%; --caja-y: 76.4%; --tinta-marco: #1D1A17; }
-/* Con marco, las S y S+ siguen brillando, sin la línea de color por dentro */
-.carta-g.con-marco[data-tier="S"]:not(.falta) { box-shadow: 0 0 26px rgba(190, 42, 47, .45), 0 10px 22px rgba(0, 0, 0, .45); }
-.carta-g.con-marco[data-tier="SP"]:not(.falta) { box-shadow: 0 0 34px rgba(214, 170, 72, .55), 0 10px 22px rgba(0, 0, 0, .45); }
-.carta-g.con-marco .arte { inset: auto; left: var(--ventana-x); top: var(--ventana-y); width: var(--ventana-ancho); height: var(--ventana-alto); }
-.carta-g.con-marco .marco { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-.carta-g.con-marco .velo, .carta-g.con-marco .rareza { display: none; }
-.carta-g.con-marco .logo { top: var(--barra-y); right: 8%; width: 9%; height: var(--barra-alto); filter: none; }
-.carta-g.con-marco .pie { position: static; }
-.carta-g.con-marco .pie .nick { position: absolute; left: 8%; right: 20%; top: var(--barra-y); height: var(--barra-alto); display: flex; align-items: center;
-  font-size: 7.2cqw; color: var(--tinta-marco); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.carta-g.con-marco .pie .rol { position: absolute; left: 10%; right: 10%; top: var(--caja-y); font-size: 5cqw; font-weight: 700; color: var(--tinta-marco);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.carta-g.con-marco .pie .bonus { position: absolute; left: 10%; right: 10%; top: calc(var(--caja-y) + 8cqw); font-size: 5cqw; color: var(--tinta-marco);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.carta-g.con-marco .cantidad { right: 9%; bottom: 7%; font-size: 6cqw; color: var(--tinta-marco); }
-.carta-g.con-marco.falta .marco { filter: grayscale(1) brightness(.55); }
-.carta-g.con-marco.falta .pie .nick, .carta-g.con-marco.falta .pie .rol, .carta-g.con-marco.falta .bonus { color: #4A443C; }
+.hueco-ali .carta-g:not(.con-marco) .rol { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
 
 /* ---------- Animaciones más fluidas ----------
    Las cartas salen del sobre en abanico, se levantan al girarlas, las boca abajo se asoman al pasar el ratón,
@@ -283,3 +237,40 @@ button.boton-secundario { background: transparent; font: inherit; font-weight: 7
 .compartir .publicar { border-color: #5865F2; }
 .compartir button:disabled { opacity: .5; cursor: progress; }
 .estado-compartir { font-size: 13px; color: var(--hai); }
+
+/* ---------- Código del directo ---------- */
+.canje { margin: 22px 0 0; max-width: 26em; }
+.canje[hidden] { display: none; }
+.canje label { display: block; margin-bottom: 6px; color: var(--hai); font-size: 15px; }
+.canje-fila { display: flex; gap: 8px; }
+.canje input { flex: 1; min-width: 0; padding: 10px 12px; border: 1px solid var(--sumi-linea); border-radius: 3px; background: var(--sumi-alzado); color: var(--washi);
+  font: inherit; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.canje input::placeholder { letter-spacing: 0; font-weight: 400; text-transform: none; color: var(--hai); }
+.canje button { padding: 10px 18px; border: 1px solid var(--sumi-linea); border-radius: 3px; color: var(--washi); }
+.canje button:not(:disabled):hover { border-color: var(--hai); }
+.canje-estado { margin: 8px 0 0; min-height: 1.4em; font-size: 14px; color: #9CD9A6; }
+.canje-estado.mal { color: var(--shu-claro); }
+
+/* ---------- Clasificación por jornada y premios ---------- */
+.filtros-jornada { margin-bottom: 10px; }
+.filtros-jornada[hidden] { display: none; }
+.premios-fantasy { margin: 14px 0 0; color: var(--hai); font-size: 14px; }
+.premios-fantasy:empty { display: none; }
+.clasificacion-fantasy .cuanto small { white-space: nowrap; }
+
+/* ---------- Fundir repetidas ---------- */
+.fundir { width: min(860px, calc(100vw - 24px)); max-height: calc(100vh - 32px); padding: 22px; border: 0; border-radius: 8px; background: var(--sumi-alzado); color: var(--washi); }
+.fundir::backdrop { background: rgba(10, 9, 8, .8); }
+.fundir h3 { margin: 0 0 6px; font-family: var(--mincho); font-weight: 800; font-size: 26px; }
+.nota-fundir { margin: 0 0 16px; color: var(--hai); font-size: 15px; max-width: 46em; }
+.fundir .opciones { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 14px 12px; }
+.opcion-fundir { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+.opcion-fundir .carta-g { width: 100%; transition: outline-color .2s, transform .2s; outline: 3px solid transparent; outline-offset: 3px; }
+.opcion-fundir.elegida .carta-g { outline-color: var(--shu-claro); }
+.opcion-fundir .contador { display: flex; align-items: center; gap: 10px; }
+.opcion-fundir .contador button { width: 34px; height: 34px; border: 1px solid var(--sumi-linea); border-radius: 50%; background: var(--sumi); color: var(--washi); font: inherit; font-size: 20px; line-height: 1; cursor: pointer; }
+.opcion-fundir .contador button:disabled { opacity: .35; cursor: default; }
+.opcion-fundir .contador button:not(:disabled):hover { border-color: var(--washi); }
+.opcion-fundir output { min-width: 1.4em; text-align: center; font-family: var(--mincho); font-weight: 800; font-size: 22px; font-variant-numeric: tabular-nums; }
+.opcion-fundir small { color: var(--hai); font-size: 12.5px; }
+.cuenta-fundir { margin-right: auto; align-self: center; color: var(--hai); font-size: 14px; }

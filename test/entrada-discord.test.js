@@ -20,7 +20,7 @@ const esperar = ms => new Promise(r => setTimeout(r, ms));
 
 // Arranca la web con datos temporales; `extra` añade o cambia variables de entorno
 async function lanzar(extra = {}) {
-  const puerto = 3900 + Math.floor(Math.random() * 90);
+  const puerto = 3700 + Math.floor(Math.random() * 90);   // otro tramo que el de twitch.test.js, que corre a la vez
   const url = `http://127.0.0.1:${puerto}`;
   const entorno = { ...process.env };
   for (const k of Object.keys(entorno)) if (/^(GOOGLE_|TWITCH_|DISCORD_|RENDER)/.test(k)) delete entorno[k];

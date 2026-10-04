@@ -4,11 +4,16 @@
 <meta charset="utf-8">
 <title>Overlay de draft · Tenka Ichi</title>
 <link rel="stylesheet" href="/marca.css">
+<link rel="stylesheet" href="/carta.css">
 <link rel="stylesheet" href="overlay.css">
 </head>
-<body>
-<!-- Con «Ir a la partida» del panel, esta misma fuente de OBS enseña el marcador de la partida -->
-<iframe class="vista-partida" title="Marcador de la partida" hidden></iframe>
+<body data-vista="draft" class="cargando">
+<!-- Esta es la única fuente de OBS: enseña el draft, el postdraft, el marcador de la partida o la pantalla final.
+     Cambia sola según lo que va pasando y el panel puede forzar cualquiera de las cuatro -->
+<iframe class="vista-partida" title="Marcador de la partida"></iframe>
+
+<!-- Draft y postdraft: el mismo lienzo; en el postdraft los picks se ensanchan con las estadísticas de cada jugador
+     y el centro enseña a los dos clanes frente a frente -->
 <div id="lienzo">
   <!-- Fondo de tinta con los huecos de las cámaras recortados -->
   <div class="fondo"></div>
@@ -39,6 +44,14 @@
       <figcaption>El que reina bajo el cielo</figcaption>
     </figure>
     <div class="camaras"></div>
+    <section class="versus">
+      <div class="versus-arte">
+        <figure class="clan azul"><img alt=""><figcaption><b class="wr"></b><span class="record"></span></figcaption></figure>
+        <figure class="clan rojo"><img alt=""><figcaption><b class="wr"></b><span class="record"></span></figcaption></figure>
+        <span class="hanko vs" aria-hidden="true">対</span>
+      </div>
+      <div class="versus-datos"></div>
+    </section>
   </div>
 
   <div class="bans azul"></div>
@@ -52,6 +65,32 @@
     <div class="tarjeta" hidden></div>
   </div>
 </div>
+
+<!-- Pantalla de fin de partida -->
+<section id="final">
+  <div class="fondo"></div>
+  <header class="final-cabeza">
+    <div class="final-clan azul"><img class="logo" alt=""><div class="quien"><b class="nombre"></b><span class="resultado"></span></div><b class="asesinatos"></b></div>
+    <div class="final-centro"><span class="arriba"></span><b class="duracion"></b><span class="abajo"></span></div>
+    <div class="final-clan rojo"><b class="asesinatos"></b><div class="quien"><b class="nombre"></b><span class="resultado"></span></div><img class="logo" alt=""></div>
+  </header>
+  <div class="final-columnas">
+    <div class="titulos azul"></div><span></span><div class="titulos rojo"></div>
+  </div>
+  <div class="final-filas"></div>
+  <footer class="final-pie">
+    <div class="final-equipo azul"></div>
+    <div class="final-mvp"></div>
+    <div class="final-equipo rojo"></div>
+  </footer>
+</section>
+
+<!-- Código de directo: quien lo canjea en el gachapon se lleva sobres. Lo saca el panel -->
+<aside class="codigo-directo" hidden>
+  <span class="hanko" aria-hidden="true">札</span>
+  <div class="codigo-texto"><small></small><b></b></div>
+  <span class="codigo-cuenta"></span>
+</aside>
 <script type="module" src="overlay.js"></script>
 </body>
 </html>

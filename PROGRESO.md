@@ -129,3 +129,18 @@ Todo está en commits locales en master; no se ha hecho push para no cambiar la 
 4. Panel: índice que marca el apartado al bajar (no se pudo comprobar esta noche con la ventana en segundo plano), destello verde al guardar, tier list descargada.
 5. Discord: crear el webhook del canal (Ajustes del servidor › Integraciones › Webhooks), ponerlo en Render como DISCORD_WEBHOOK_URL (y DISCORD_WEBHOOK_TIERLIST si la tier list va en otro canal) y, para entrar con Discord, DISCORD_CLIENT_ID y DISCORD_CLIENT_SECRET (README). Probar a publicar colección, alineación y tier list.
 6. `git push` cuando todo esté bien y comprobar la web publicada.
+
+## 04/10: directo a prueba de reinicios, overlay automático, postdraft, pantalla final y jornada del fantasy
+
+- **Estado guardado:** lo que el panel tiene puesto (enfrentamiento, equipos, draft, cámaras, resultados, vista del overlay, búsqueda de partida y pantalla final) se guarda en Ajustes y vuelve tras un reinicio; DraftCore se reconecta solo. Probado parando y arrancando la web de prueba: volvió con el draft, los equipos, la pantalla final y el código de directo en marcha.
+- **Overlays que se recargan solos** cuando la web cambia de versión (el panel avisa con un botón). Estáticos con ETag y caché de un día para las imágenes. Puente versión 4: mismos datos, mensajes más claros y aviso cuando vuelve la conexión.
+- **Overlay automático** (`server/vista.js`): draft → postdraft → partida → final, y el panel puede forzar cualquiera («En el overlay», arriba). Ya no hace falta la fuente de `/ingame/` aparte.
+- **Postdraft:** cada jugador con su carta, su campeón y lo que lleva con él («FIRST PICK» si lo estrena), sus números de la liga y sus puntos del fantasy; en el centro, los dos clanes con su porcentaje de victorias, cara a cara, medias, racha y campeones más jugados (`server/previa.js`, `/api/previa`).
+- **Pantalla final:** resultado, duración, tabla por líneas, totales de cada clan y MVP con su carta. Sale del marcador o, sin puente, del draft y de lo que apunte el staff.
+- **Panel por fases** (Antes del partido, Draft, Partida, Resultado, Liga y gachapon, Todo), que sigue sola al overlay. Las estadísticas del fantasy van un clan debajo del otro (antes se montaban las columnas).
+- **Gachapon:** sin repetidas dentro de un sobre; fundir 5 repetidas por un sobre; códigos de directo que salen en el overlay y se canjean en la web; emblema de Koryu Budo en el círculo de las BOOST; la imagen de la alineación lleva las BOOST. La carta es ahora un componente común (`public/carta.js` y `carta.css`).
+- **Jornada del fantasy:** las alineaciones se cierran solas al empezar el draft o la partida; «Terminar la jornada» da 3, 2 y 1 sobres a los tres primeros de la jornada (se cambia en el panel), abre las alineaciones y publica la clasificación en Discord. Clasificación general y por jornada en el gachapon y en la portada (sección Fantasy).
+- **Portada:** cabecera arreglada en el móvil; «Ver carta» en cada jugador (plantilla del clan y tier list) con su carta y sus números; campeones más jugados de cada clan.
+- Pruebas: 72 (`test/vista.test.js` y `test/jornada.test.js` nuevas). Probado en pantalla con datos de prueba (`tenka-prueba-directo` en launch.json, puerto 3060).
+- Descartado por el usuario: marcar dragones con teclas o Stream Deck, la carta del jugador al hacer pick y una web de pruebas aparte.
+- **Pendiente:** probarlo con una partida real como espectador (¿llega `GameEnd`? Si no llega, la pantalla final sale cuando el cliente se cierra); el usuario escribió «el tercero 3 sobres» y se ha dejado 3, 2 y 1: confirmar; las cámaras no salen en el postdraft (el centro es para los clanes); webhook y login de Discord en Render.

@@ -26,6 +26,8 @@ services:
         sync: false
       - key: DISCORD_WEBHOOK_TIERLIST   # opcional: la tier list en otro canal
         sync: false
+      - key: DISCORD_WEBHOOK_CLASIFICACION   # opcional: la clasificación del fantasy en otro canal
+        sync: false
       # Opcional: puntos del canal de Twitch (app gratis en dev.twitch.tv)
       - key: TWITCH_CLIENT_ID
         sync: false
