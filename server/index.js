@@ -15,18 +15,24 @@ import { cargarPlantillas, plantilla, guardarPlantilla, refrescarPlantillas } fr
 import { estadoHoja } from './sheets.js';
 import { cargarTierlist, vistaTierlist, ponerTier } from './tierlist.js';
 import { cargarAjustes } from './ajustes.js';
-import { cargarGacha, catalogo, probabilidades, abrirSobre, darAlta, darSobres, estadoUsuario, buscarUsuario, resumenGacha,
-  PESOS, CARTAS_POR_SOBRE, SOBRES_INICIALES, CARPETA_ARTE, reversoCarta } from './gacha.js';
+import { cargarGacha, catalogo, probabilidades, abrirSobre, darAlta, darSobres, estadoUsuario, buscarUsuario, resumenGacha, fundirRepetidas,
+  PESOS, CARTAS_POR_SOBRE, SOBRES_INICIALES, REPETIDAS_POR_SOBRE, CARPETA_ARTE, reversoCarta } from './gacha.js';
+import { crearCodigo, cerrarCodigo, mostrarCodigo, estadoCodigo, codigoEnPantalla, canjearCodigo as canjearCodigoDirecto } from './codigos.js';
+import { estadoJornadas, terminarJornada, jornadasCerradas, premiosPublicos } from './jornada.js';
+import { clasificacionJornada } from './fantasy.js';
+import { previa, fichaJugador, fichaClan } from './previa.js';
 import { cargarCanal, conectarCanal, cambiarCoste, sondear, sondearSiHaceFalta, estadoCanal, SCOPE_CANAL } from './canal.js';
 import { firmar, verificar, leerCookies, ponerCookie } from './sesion.js';
 import { twitchActivo, urlAutorizar, canjearCodigo, usuarioDeToken, usuarioPorNombre, CANAL } from './twitch.js';
 import { loginDiscordActivo, urlAutorizarDiscord, sesionDeDiscord } from './entrada-discord.js';
 import crypto from 'node:crypto';
-import { cargarFantasy, infoFantasy, cambiarAlineacion, guardarEstadisticas, cerrarAlineaciones } from './fantasy.js';
+import { cargarFantasy, infoFantasy, cambiarAlineacion, guardarEstadisticas, cerrarAlineaciones, alineacionesCerradas } from './fantasy.js';
 import { atenderPublicacion, discordActivo } from './discord.js';
 import { cargarPartida, recibir as recibirPartida, resumen as resumenPartida, empezarPrueba, pararPrueba, enPrueba, olvidarPartida,
   ponerContexto, marcarObjetivo, deshacerMarca } from './partida.js';
 import { crearZip } from './zip.js';
+import { fotoEstado, restaurarEstado, guardarEstadoSiCambia, guardarEstadoYa, estadoYaGuardado } from './estado-guardado.js';
+import { VISTAS, clavePartida, vistaAutomatica, fotoFinal, fotoFinalDelDraft, completarFinal } from './vista.js';
 
 // Clanes con su plantilla actual (lema, descripción, jugadores) para las páginas
 const clanesConPlantilla = () => CLANES.map(c => ({ ...c, ...plantilla(c.id) }));
@@ -55,8 +61,17 @@ const estado = {
   camaras: { cantidad: 0, lista: Array.from({ length: 4 }, () => ({ tipo: 'caster', nombre: '', detalle: '' })) },
   // Overlay de partida (/ingame/): el panel puede ocultarlo aunque llegue la partida del puente
   partidaVisible: true,
-  // Qué enseña el overlay del draft (/overlay/): el draft o, con «Ir a la partida» del panel, el marcador de la partida
+  // Qué enseña el overlay (/overlay/): 'draft', 'postdraft', 'partida' o 'final'. Lo decide vista.js según lo que va
+  // pasando, salvo que el panel fuerce una (vista.forzada). vista.enPartida: hay una partida en marcha
   vistaOverlay: 'draft',
+  vista: { forzada: null, enPartida: false },
+  // La última partida tal como acabó, para la pantalla final (vista.js)
+  final: null,
+  // Jornada automática: las alineaciones se cierran solas al empezar y, al terminarla, hay sobres para los tres primeros
+  jornadaAuto: { cerrar: true, premios: [3, 2, 1] },
+  fantasy: { cerrado: false },
+  // Código de directo que se enseña en el overlay: { texto, sobres, quedan (ms) } o nada (server/codigos.js)
+  codigo: null,
   // El puente del PC del espectador solo busca la partida cuando se lo pide el panel (o al acabar el draft)
   buscarPartida: { activa: false, alAcabarDraft: true },
   // Grafismo que el panel saca encima de la partida: { tipo: 'lineas', id } o nada
@@ -69,9 +84,16 @@ const estado = {
 
 // ---------- reparto en directo ----------
 const clientes = new Set();
+let quiereDraftCore = false;  // el panel ha pedido estar conectado a DraftCore: tras un reinicio se vuelve a conectar
+const fotoActual = () => fotoEstado(estado, { draftcore: quiereDraftCore });
 function emitir() {
   // La partida necesita los jugadores y los picks del panel para saber quién juega cada línea
   ponerContexto({ nombres: { azul: estado.equipos.azul.jugadores, rojo: estado.equipos.rojo.jugadores }, picks: estado.draft.picks });
+  actualizarVista();
+  estado.fantasy.cerrado = alineacionesCerradas();
+  const codigo = codigoEnPantalla();
+  estado.codigo = codigo ? { texto: codigo.texto, sobres: codigo.sobres, quedan: codigo.caduca - Date.now() } : null;
+  guardarEstadoSiCambia(fotoActual);
   const msg = JSON.stringify({ tipo: 'estado', estado });
   for (const ws of clientes) if (ws.readyState === 1) ws.send(msg);
 }
@@ -83,12 +105,17 @@ let numeroDesarmado = 0;  // última partida terminada que ya apagó la búsqued
 // (una actualización, Render), sigue con ella en lugar de quedarse en espera, salvo que el panel haya
 // tocado la búsqueda desde el arranque
 const SESION = crypto.randomUUID();
+// La versión cambia con cada actualización de la web (en Render, el commit desplegado): las páginas abiertas
+// la reciben al conectarse y, si no es la que cargaron, se recargan solas (el panel avisa)
+const VERSION = process.env.RENDER_GIT_COMMIT || SESION;
 let busquedaTocada = false;
 function emitirPartida(partida = resumenPartida()) {
   partidaActiva = partida.activo;
   puenteConectado = partida.puente.conectado;
+  const cambia = seguirPartida(partida);
   const msg = JSON.stringify({ tipo: 'partida', partida });
   for (const ws of clientes) if (ws.readyState === 1) ws.send(msg);
+  if (cambia) emitir();
 }
 // Si el puente deja de mandar datos, avisa al overlay para que se retire y al panel de que se ha cerrado
 setInterval(() => {
@@ -96,8 +123,71 @@ setInterval(() => {
   if ((partidaActiva && !p.activo) || puenteConectado !== p.puente.conectado) emitirPartida(p);
 }, 3000);
 
-// Al completarse el draft, el puente se pone a buscar la partida (si el panel lo tiene así)
+// ---------- qué enseña el overlay ----------
 const draftCompleto = d => ['azul', 'rojo'].every(l => d.picks[l].every(Boolean));
+const ESPERA_POSTDRAFT_MS = Number(process.env.ESPERA_VISTA_MS) || 10000;  // el último pick se queda un momento antes del postdraft
+const ESPERA_FINAL_MS = Number(process.env.ESPERA_VISTA_MS) || 10000;      // y el final de la partida, antes de la pantalla final
+let draftCompletoDesde = 0;
+let fotoViva = null;                         // último resumen de la partida mientras estaba en marcha
+let terminada = { numero: null, desde: 0 };  // la partida que ya ha dado su fin
+let numeroDespachado = null;                 // la partida de la que el panel ya ha pasado página: no vuelve a dejar su final
+const revisarEn = ms => { setTimeout(emitir, ms + 50).unref?.(); };
+
+function actualizarVista() {
+  const completo = draftCompleto(estado.draft);
+  if (!completo) draftCompletoDesde = 0;
+  else if (!draftCompletoDesde) { draftCompletoDesde = Date.now(); revisarEn(ESPERA_POSTDRAFT_MS); }
+  const draftListo = completo && Date.now() - draftCompletoDesde >= ESPERA_POSTDRAFT_MS;
+  const hayFinal = Boolean(estado.final && estado.final.clave === clavePartida(estado));
+  estado.vistaOverlay = estado.vista.forzada || vistaAutomatica({ enPartida: estado.vista.enPartida, hayFinal, draftListo });
+}
+
+// La pantalla final solo se cambia si la partida ha cambiado (después del fin siguen llegando paquetes iguales)
+function ponerFinal(nueva) {
+  const igual = estado.final && JSON.stringify({ ...estado.final, cuando: 0 }) === JSON.stringify({ ...nueva, cuando: 0 });
+  if (!igual) estado.final = nueva;
+}
+
+// Sigue la partida que manda el puente: mientras está en marcha, el overlay enseña el marcador; al acabar, guarda
+// cómo ha quedado para la pantalla final. Devuelve si ha cambiado algo que haya que repartir
+function seguirPartida(p) {
+  const antes = JSON.stringify([estado.vista, estado.final]);
+  if (p.activo) {
+    fotoViva = p;
+    if (p.terminada) {
+      // El fin se enseña un momento con el marcador puesto y luego pasa a la pantalla final
+      if (terminada.numero !== p.numero) { terminada = { numero: p.numero, desde: Date.now() }; revisarEn(ESPERA_FINAL_MS); }
+      if (p.numero !== numeroDespachado) ponerFinal(fotoFinal(p, estado, estado.final));
+      if (Date.now() - terminada.desde >= ESPERA_FINAL_MS) estado.vista.enPartida = false;
+    } else {
+      estado.vista.enPartida = true;
+      if (!p.prueba) cerrarAlineacionesAlEmpezar();
+    }
+  } else if (estado.vista.enPartida && p.puente.conectado && p.puente.estado !== 'partida') {
+    // El puente sigue abierto y dice que el cliente ya no tiene la partida: se ha acabado (o el panel ha dejado
+    // de buscarla). Si lo que falla es el puente o la red, no se sabe y el overlay sigue en la partida
+    cerrarPartida();
+  }
+  return antes !== JSON.stringify([estado.vista, estado.final]);
+}
+
+function cerrarPartida() {
+  if (fotoViva) ponerFinal(fotoFinal(fotoViva, estado, estado.final));
+  estado.vista.enPartida = false;
+  fotoViva = null;
+}
+
+// Las alineaciones del fantasy se cierran solas cuando empieza el draft o la partida (si el panel lo tiene así)
+let cerrando = false;
+async function cerrarAlineacionesAlEmpezar() {
+  if (cerrando || !estado.jornadaAuto.cerrar || alineacionesCerradas()) return;
+  cerrando = true;
+  try { await cerrarAlineaciones(true); console.log('Alineaciones del fantasy cerradas: ha empezado la jornada'); emitir(); }
+  catch (e) { console.error('No se pudieron cerrar las alineaciones:', e.message); }
+  cerrando = false;
+}
+
+// Al completarse el draft, el puente se pone a buscar la partida (si el panel lo tiene así)
 function buscarSiAcabaElDraft(completoAntes) {
   if (!completoAntes && draftCompleto(estado.draft) && estado.buscarPartida.alAcabarDraft) estado.buscarPartida.activa = true;
 }
@@ -124,9 +214,20 @@ function avisar(tipo, lado, indice, campeon) {
 function detectarNuevos(antes, despues) {
   for (const tipo of ['picks', 'bans']) for (const lado of ['azul', 'rojo']) {
     despues[tipo][lado].forEach((c, i) => {
-      if (c && c !== antes[tipo][lado][i]) avisar(tipo === 'picks' ? 'pick' : 'ban', lado, i, c);
+      if (c && c !== antes[tipo][lado][i]) { avisar(tipo === 'picks' ? 'pick' : 'ban', lado, i, c); cerrarAlineacionesAlEmpezar(); }
     });
   }
+}
+
+const draftVacio = () => ({ turno: 0, activo: null, hover: null, tiempo: null, bans: vacio(), picks: vacio() });
+// Partida nueva en el panel: draft vacío y el overlay vuelve a decidir solo qué enseña
+function partidaNueva() {
+  estado.draft = draftVacio();
+  estado.aviso = null;
+  estado.vista = { forzada: null, enPartida: false };
+  estado.final = null;
+  numeroDespachado = fotoViva?.numero ?? terminada.numero;
+  fotoViva = null;
 }
 
 // ---------- DraftCore ----------
@@ -165,8 +266,10 @@ async function accion(nombre, d = {}) {
     }
     case 'conectar':
       conectarDraftCore(d.enlace);
+      quiereDraftCore = Boolean(estado.fuente.codigo);
       break;
     case 'desconectar':
+      quiereDraftCore = false;
       if (conexion) conexion.cerrar();
       conexion = null;
       estado.fuente = { ...estado.fuente, conectado: false, error: null };
@@ -178,7 +281,7 @@ async function accion(nombre, d = {}) {
       const antes = lista[d.indice];
       const completoAntes = draftCompleto(estado.draft);
       lista[d.indice] = d.campeon || null;
-      if (d.campeon && d.campeon !== antes) avisar(d.tipo === 'picks' ? 'pick' : 'ban', d.lado, d.indice, d.campeon);
+      if (d.campeon && d.campeon !== antes) { avisar(d.tipo === 'picks' ? 'pick' : 'ban', d.lado, d.indice, d.campeon); cerrarAlineacionesAlEmpezar(); }
       buscarSiAcabaElDraft(completoAntes);
       break;
     }
@@ -206,26 +309,39 @@ async function accion(nombre, d = {}) {
       if (estado.config.formato === 'bo3f') {
         for (const lado of ['azul', 'rojo']) estado.fearless.push(...p.picks[lado].filter(Boolean));
       }
+      // La pantalla final: la del marcador si la hay y, si no, la que sale del draft
+      estado.final = { ...(estado.final?.clave === clavePartida(estado) ? estado.final : fotoFinalDelDraft(estado)), ganador: d.lado };
       return { ok: true, enHoja: r.enHoja };
     }
     case 'vistaOverlay':
-      // «Ir a la partida»: el overlay del draft pasa al marcador de la partida (haya draft o no) y el puente se pone a buscarla
-      estado.vistaOverlay = d.vista === 'partida' ? 'partida' : 'draft';
-      if (estado.vistaOverlay === 'partida') { estado.buscarPartida.activa = true; busquedaTocada = true; }
+      // El panel fuerza lo que enseña el overlay ('draft', 'postdraft', 'partida' o 'final') o lo deja en automático.
+      // Forzar la partida también pone al puente a buscarla, haya draft o no
+      estado.vista.forzada = VISTAS.includes(d.vista) ? d.vista : null;
+      if (estado.vista.forzada === 'partida') { estado.buscarPartida.activa = true; busquedaTocada = true; }
+      break;
+    case 'finalQuitar':
+      estado.final = null;
+      numeroDespachado = fotoViva?.numero ?? terminada.numero;
+      if (estado.vista.forzada === 'final') estado.vista.forzada = null;
       break;
     case 'siguiente':
-      estado.vistaOverlay = 'draft';
       estado.config.partida += 1;
-      estado.draft = { turno: 0, activo: null, hover: null, tiempo: null, bans: vacio(), picks: vacio() };
-      estado.aviso = null;
+      partidaNueva();
       break;
     case 'nuevaSerie':
-      estado.vistaOverlay = 'draft';
       estado.config.partida = 1;
       estado.fearless = [];
       estado.resultados = [];
-      estado.draft = { turno: 0, activo: null, hover: null, tiempo: null, bans: vacio(), picks: vacio() };
-      estado.aviso = null;
+      partidaNueva();
+      break;
+    case 'limpiarDraft':
+      partidaNueva();
+      break;
+    case 'jornadaAuto':
+      if (typeof d.cerrar === 'boolean') estado.jornadaAuto.cerrar = d.cerrar;
+      if (Array.isArray(d.premios) && d.premios.length === 3) {
+        estado.jornadaAuto.premios = d.premios.map(n => Math.max(0, Math.min(20, Math.round(Number(n) || 0))));
+      }
       break;
     case 'camaras': {
       const n = Number(d.cantidad);
@@ -260,13 +376,35 @@ async function accion(nombre, d = {}) {
             pentas: s.pentas, torres: s.torres, fuente: s.fuente });
         });
       }
-      return { ok: true, partida, puntos: await guardarEstadisticas(partida, filas) };
+      const puntos = await guardarEstadisticas(partida, filas);
+      const final = estado.final?.clave === clavePartida(estado) ? estado.final : fotoFinalDelDraft(estado);
+      estado.final = completarFinal(final, estado, { filas: d.filas, mvp: d.mvp, puntos });
+      return { ok: true, partida, puntos };
     }
     case 'fantasyCerrar':
       await cerrarAlineaciones(Boolean(d.cerrado));
       return { ok: true, gacha: estadoGachaPanel() };
     case 'gachaEstado':
       return { ok: true, gacha: estadoGachaPanel() };
+    // Código de directo: sale en el overlay y quien lo canjea en el gachapon se lleva sobres
+    case 'codigoCrear': {
+      const c = await crearCodigo(d);
+      revisarEn(c.caduca - Date.now());   // al caducar se retira del overlay
+      return { ok: true, gacha: estadoGachaPanel() };
+    }
+    case 'codigoCerrar':
+      await cerrarCodigo();
+      return { ok: true, gacha: estadoGachaPanel() };
+    case 'codigoMostrar':
+      await mostrarCodigo(d.visible);
+      return { ok: true, gacha: estadoGachaPanel() };
+    // Jornada del fantasy: su clasificación y, al terminarla, los sobres de los tres primeros
+    case 'jornadaEstado':
+      return { ok: true, ...estadoJornadas(d.jornada) };
+    case 'jornadaTerminar': {
+      const r = await terminarJornada(d.jornada, estado.jornadaAuto.premios);
+      return { ok: true, ...r, gacha: estadoGachaPanel() };
+    }
     case 'twitchCanal': {
       if (!twitchActivo()) return { ok: false, error: 'Falta configurar la app de Twitch en Render (TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET y SESION_SECRETO)' };
       return { ok: true, url: `/auth/canal?t=${encodeURIComponent(firmar({ canal: true }, 300))}` };
@@ -304,6 +442,8 @@ async function accion(nombre, d = {}) {
       if (d.activa) {
         empezarPrueba({ picks: estado.draft.picks, jugadores: { azul: estado.equipos.azul.jugadores, rojo: estado.equipos.rojo.jugadores } }, emitirPartida);
       } else {
+        // Al pararla queda su pantalla final, para verla en el overlay
+        if (fotoViva?.prueba) cerrarPartida();
         pararPrueba();
         emitirPartida();
       }
@@ -337,6 +477,8 @@ async function accion(nombre, d = {}) {
       break;
     case 'partidaOlvidar':
       pararPrueba();
+      fotoViva = null;
+      estado.vista.enPartida = false;
       emitirPartida(olvidarPartida());
       break;
     default:
@@ -354,14 +496,15 @@ const usuarioDeSesion = req => verificar(leerCookies(req).tk_sesion);
 const volverSeguro = v => (/^\/(?![/\\])/.test(v || '') ? v : '/gachapon/');
 
 function estadoGachaPanel() {
-  return { login: loginDiscordActivo(), canal: estadoCanal(), resumen: resumenGacha(), probabilidades: probabilidades(), cerrado: infoFantasy(null).cerrado };
+  return { login: loginDiscordActivo(), canal: estadoCanal(), resumen: resumenGacha(), probabilidades: probabilidades(), cerrado: infoFantasy(null).cerrado,
+    codigo: estadoCodigo(), jornadas: estadoJornadas(), publicarDiscord: discordActivo('clasificacion') };
 }
 
 function infoGacha(u) {
   const c = estadoCanal();
   return {
     activo: loginActivo(), discord: loginDiscordActivo(), twitch: twitchActivo(), canal: CANAL,
-    cartasPorSobre: CARTAS_POR_SOBRE, sobresIniciales: SOBRES_INICIALES, pesos: PESOS,
+    cartasPorSobre: CARTAS_POR_SOBRE, sobresIniciales: SOBRES_INICIALES, repetidasPorSobre: REPETIDAS_POR_SOBRE, pesos: PESOS,
     probabilidades: probabilidades(),
     catalogo: catalogo().map(({ peso, ...carta }) => carta),
     publicarDiscord: discordActivo('coleccion'),
@@ -509,18 +652,52 @@ async function rutasSesion(req, res, url) {
     }
   }
 
+  const estadoDe = u => ({ nombre: u.nombre, avatar: u.avatar || null, ...estadoUsuario(u.id) });
+
+  // Código de directo: el que sale en el overlay durante el directo
+  if (p === '/api/gacha/canjear' && req.method === 'POST') {
+    const u = usuarioDeSesion(req);
+    if (!u) return json(res, { ok: false, error: 'Entra con tu cuenta de Discord para canjear el código' }, 401);
+    try {
+      const { codigo } = await leerCuerpo(req);
+      const r = await canjearCodigoDirecto(u, codigo);
+      emitir();   // si el código se ha agotado, se retira del overlay
+      return json(res, { ok: true, sobres: r.sobres, usuario: estadoDe(u) });
+    } catch (e) {
+      return json(res, { ok: false, error: e.message }, 400);
+    }
+  }
+
+  // Fundir repetidas: cada 5 copias que sobran se cambian por un sobre. Las BOOST que están en la alineación no se tocan
+  if (p === '/api/gacha/fundir' && req.method === 'POST') {
+    const u = usuarioDeSesion(req);
+    if (!u) return json(res, { ok: false, error: 'Entra con tu cuenta de Discord para fundir cartas' }, 401);
+    try {
+      const { cartas } = await leerCuerpo(req);
+      const enUso = (infoFantasy(u).yo?.alineacion?.boosts || []).filter(Boolean).map(b => b.carta);
+      const r = await fundirRepetidas(u, cartas, id => enUso.filter(x => x === id).length);
+      return json(res, { ok: true, ...r, usuario: estadoDe(u) });
+    } catch (e) {
+      return json(res, { ok: false, error: e.message }, 400);
+    }
+  }
+
   if (p === '/api/tierlist') return json(res, vistaTierlist());
 
-  if (p === '/api/fantasy') return json(res, infoFantasy(usuarioDeSesion(req)));
+  if (p === '/api/fantasy') return json(res, { ...infoFantasy(usuarioDeSesion(req)), premios: premiosPublicos(), sobresPremio: estado.jornadaAuto.premios });
 
   // Publicar en el canal de Discord la imagen que dibuja la página: la colección o la alineación del que ha
   // entrado, o la tier list (el staff, con la contraseña del panel). El texto lo pone discord.js con estos datos
   if (p === '/api/discord/publicar' && req.method === 'POST') {
     const tipo = url.searchParams.get('tipo'), u = usuarioDeSesion(req);
     const yo = tipo === 'alineacion' && u ? infoFantasy(u).yo : null;
+    // La clasificación de una jornada: sus tres primeros, con los sobres si ya está cerrada
+    const jornada = url.searchParams.get('jornada') || '';
+    const ganadores = tipo === 'clasificacion' ? jornadasCerradas()[jornada]?.ganadores || clasificacionJornada(jornada).slice(0, 3) : [];
     const r = await atenderPublicacion({
       tipo, req, usuario: u, staff: req.headers['x-clave-panel'] === CLAVE,
-      datos: tipo === 'coleccion' && u ? { tiene: estadoUsuario(u.id).cartas.length, total: catalogo().length } : yo ? { puntos: yo.puntos, puesto: yo.puesto } : {},
+      datos: tipo === 'clasificacion' ? { jornada, ganadores }
+        : tipo === 'coleccion' && u ? { tiene: estadoUsuario(u.id).cartas.length, total: catalogo().length } : yo ? { puntos: yo.puntos, puesto: yo.puesto } : {},
       avatar: `${origen(req)}/marca/tenka-ichi-cuadro.png`, enlace: `${origen(req)}/gachapon/`,
     });
     return json(res, r.cuerpo, r.estado);
@@ -544,11 +721,29 @@ const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; ch
   '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
   '.svg': 'image/svg+xml', '.webp': 'image/webp', '.woff2': 'font/woff2', '.mp4': 'video/mp4', '.webm': 'video/webm' };
 
+// Huella de cada archivo (por su contenido, así no cambia con cada despliegue): el navegador pregunta con ella y,
+// si el archivo es el mismo, no se vuelve a mandar. Se calcula una vez y se rehace si el archivo cambia
+const huellas = new Map();
+async function huella(archivo, s) {
+  const h = huellas.get(archivo);
+  if (h && h.mtimeMs === s.mtimeMs && h.size === s.size) return { etag: h.etag, datos: null };
+  const datos = await readFile(archivo);
+  const etag = `"${crypto.createHash('sha1').update(datos).digest('base64url').slice(0, 20)}"`;
+  huellas.set(archivo, { mtimeMs: s.mtimeMs, size: s.size, etag });
+  return { etag, datos };
+}
+
 const servidor = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   const rutaSesion = url.pathname.startsWith('/auth/') || url.pathname.startsWith('/api/gacha') || url.pathname.startsWith('/api/fantasy') || url.pathname === '/api/tierlist'
     || url.pathname.startsWith('/api/discord');
-  if (rutaSesion && await rutasSesion(req, res, url)) return;
+  try {
+    if (rutaSesion && await rutasSesion(req, res, url)) return;
+  } catch (e) {
+    console.error(url.pathname, e);
+    if (!res.headersSent) return json(res, { ok: false, error: 'Algo ha fallado en la web: prueba otra vez' }, 500);
+    return;
+  }
   if (url.pathname === '/api/clanes') {
     await refrescarPlantillas();
     res.writeHead(200, { 'Content-Type': TIPOS['.json'], 'Cache-Control': 'no-cache' });
@@ -563,6 +758,13 @@ const servidor = http.createServer(async (req, res) => {
     res.writeHead(200, { 'Content-Type': TIPOS['.json'], 'Cache-Control': 'no-cache' });
     const datos = sim ? competicion(sim.calendario, sim.partidas) : competicion(calendarioActual(), todas());
     return res.end(JSON.stringify({ ...datos, simulacion: Boolean(sim) }));
+  }
+  // El postdraft del overlay: lo que lleva cada jugador con su campeón y en general, su carta y los dos clanes
+  if (url.pathname === '/api/previa') return json(res, previa(estado, sim ? { partidas: sim.partidas, filas: [] } : undefined));
+  // Fichas de la web: un jugador (por su puesto, CLAN-ROL) con su carta y sus números, y un clan
+  if (url.pathname === '/api/jugador' || url.pathname === '/api/clan') {
+    const ficha = (url.pathname === '/api/jugador' ? fichaJugador : fichaClan)(url.searchParams.get('id') || '');
+    return ficha ? json(res, ficha) : json(res, { error: 'No existe' }, 404);
   }
   if (url.pathname === '/api/diagnostico') {
     res.writeHead(200, { 'Content-Type': TIPOS['.json'], 'Cache-Control': 'no-cache' });
@@ -625,11 +827,15 @@ const servidor = http.createServer(async (req, res) => {
   try {
     const s = await stat(archivo);
     if (s.isDirectory()) { res.writeHead(302, { Location: `${url.pathname}/` }); return res.end(); }
-    // El arte de las cartas se pide con ?v=fecha del archivo: si cambia el dibujo, cambia la dirección
-    const cacheable = /\/(ddragon|logos|marca)\//.test(ruta) || (ruta.startsWith('/cartas/') && url.searchParams.has('v'));
-    res.writeHead(200, { 'Content-Type': TIPOS[path.extname(archivo)] || 'application/octet-stream',
-      'Cache-Control': cacheable ? 'public, max-age=86400' : 'no-cache' });
-    res.end(await readFile(archivo));
+    const { etag, datos } = await huella(archivo, s);
+    // Las imágenes se guardan un día (y después se sirven de la caché mientras se comprueba si han cambiado). El arte
+    // de las cartas se pide con ?v=fecha del archivo: si cambia el dibujo, cambia la dirección. Las páginas, los
+    // estilos y el código se comprueban siempre, pero solo se vuelven a bajar si han cambiado (ETag)
+    const cache = ruta.startsWith('/cartas/') && url.searchParams.has('v') ? 'public, max-age=31536000, immutable'
+      : /\/(ddragon|logos|marca|clanes|cartas)\//.test(ruta) ? 'public, max-age=86400, stale-while-revalidate=604800' : 'no-cache';
+    if (req.headers['if-none-match'] === etag) { res.writeHead(304, { ETag: etag, 'Cache-Control': cache }); return res.end(); }
+    res.writeHead(200, { 'Content-Type': TIPOS[path.extname(archivo)] || 'application/octet-stream', 'Cache-Control': cache, ETag: etag });
+    res.end(datos || await readFile(archivo));
   } catch {
     res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('No encontrado');
@@ -639,6 +845,7 @@ const servidor = http.createServer(async (req, res) => {
 const wss = new WebSocketServer({ server: servidor, path: '/ws' });
 wss.on('connection', ws => {
   clientes.add(ws);
+  ws.send(JSON.stringify({ tipo: 'hola', version: VERSION }));
   ws.send(JSON.stringify({ tipo: 'estado', estado }));
   ws.send(JSON.stringify({ tipo: 'partida', partida: resumenPartida() }));
   ws.on('close', () => clientes.delete(ws));
@@ -667,6 +874,24 @@ await cargarFantasy();
 await cargarPartida();
 await cargarCanal().catch(e => console.error('Canal de Twitch:', e.message));
 estado.hoja = estadoHoja();
+estado.fantasy.cerrado = alineacionesCerradas();
+// Lo que el panel tenía puesto antes del reinicio (y, si estaba conectado a DraftCore, se vuelve a conectar)
+const guardado = restaurarEstado(estado);
+if (guardado.restaurado) {
+  if (draftCompleto(estado.draft)) draftCompletoDesde = 1;
+  busquedaTocada = Boolean(guardado.reciente);
+  estadoYaGuardado(fotoActual);
+  if (guardado.enlace) { conectarDraftCore(guardado.enlace); quiereDraftCore = Boolean(estado.fuente.codigo); }
+  actualizarVista();
+  console.log(`Estado del panel recuperado: ${estado.config.jornada}, ${estado.equipos.azul.clan} vs ${estado.equipos.rojo.clan}`);
+}
+// Al apagarse (una actualización en Render), se guarda lo que estuviera pendiente
+for (const senal of ['SIGTERM', 'SIGINT']) {
+  process.once(senal, async () => {
+    await Promise.race([guardarEstadoYa(), new Promise(r => setTimeout(r, 4000))]).catch(() => {});
+    process.exit(0);
+  });
+}
 servidor.listen(PUERTO, () => {
   console.log(`TENKA ICHI Draft en http://localhost:${PUERTO}`);
   console.log(`  Panel:   http://localhost:${PUERTO}/panel/`);

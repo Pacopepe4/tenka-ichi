@@ -16,16 +16,28 @@ export const icono = id => `/ddragon/icono/${id}.png`;
 export const splash = id => `/ddragon/splash/${id}.jpg`;
 export const logo = clan => `/logos/${clan}.png`;
 
-// Conexión en directo con reconexión automática
-export function conectarDirecto({ alEstado, alRespuesta, alConexion, alPartida }) {
-  let ws, pendientes = new Map(), id = 0;
+// Conexión en directo con reconexión automática.
+// Si la web se actualiza mientras la página está abierta (una fuente de OBS puede pasar así toda la jornada), al
+// volver a conectarse llega una versión distinta y la página se recarga sola; con alVersion, se avisa en su lugar
+export function conectarDirecto({ alEstado, alRespuesta, alConexion, alPartida, alVersion }) {
+  let ws, pendientes = new Map(), id = 0, version = null;
   function abrir() {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     ws = new WebSocket(`${proto}://${location.host}/ws`);
     ws.onopen = () => alConexion?.(true);
-    ws.onclose = () => { alConexion?.(false); setTimeout(abrir, 1500); };
+    ws.onclose = () => {
+      alConexion?.(false);
+      // Lo que estuviera esperando respuesta se da por perdido, para que ningún botón se quede esperando
+      for (const [, resolver] of pendientes) resolver({ ok: false, sinConexion: true, error: 'Se ha cortado la conexión con la web: prueba otra vez' });
+      pendientes.clear();
+      setTimeout(abrir, 1500);
+    };
     ws.onmessage = e => {
       const m = JSON.parse(e.data);
+      if (m.tipo === 'hola') {
+        if (version && m.version !== version) { if (alVersion) alVersion(m.version); else location.reload(); }
+        version ??= m.version;
+      }
       if (m.tipo === 'estado') alEstado(m.estado);
       if (m.tipo === 'partida') alPartida?.(m.partida);
       if (m.tipo === 'respuesta') {
@@ -39,6 +51,7 @@ export function conectarDirecto({ alEstado, alRespuesta, alConexion, alPartida }
   return {
     enviar(accion, datos, clave) {
       return new Promise(resolve => {
+        if (ws.readyState !== 1) return resolve({ ok: false, sinConexion: true, error: 'Sin conexión con la web: espera un momento y prueba otra vez' });
         const miId = ++id;
         pendientes.set(miId, resolve);
         ws.send(JSON.stringify({ tipo: 'accion', id: miId, accion, datos, clave }));

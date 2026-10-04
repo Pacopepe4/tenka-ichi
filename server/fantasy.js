@@ -33,6 +33,9 @@ let alineaciones = [];   // cambios de alineación
 let calculo = null;      // resultados cacheados
 
 export const puntosDeFila = f => puntuar(f).total;
+// Las filas de estadísticas (una por jugador y partida) y los puntos de cada jugador, para las fichas y el postdraft
+export const estadisticasFantasy = () => estadisticas;
+export const puntosDeJugadores = () => calcular().jugadores;
 
 // Números de una fila: vacío es «no se sabe» (null), salvo el KDA, que siempre se apunta
 const numero = (v, maximo = 99) => Math.max(0, Math.min(maximo, Math.round(Number(v) || 0)));
@@ -213,16 +216,27 @@ function calcular() {
   return calculo;
 }
 
+// Clasificación de una jornada: lo que ha sumado en ella cada coleccionista que tenía alineación. Los empates se
+// deshacen por los puntos de toda la liga y, si siguen, por orden alfabético
+export function clasificacionJornada(jornada) {
+  return calcular().clasificacion.filter(c => jornada in c.porJornada)
+    .map(c => ({ id: c.id, nombre: c.nombre, puntos: c.porJornada[jornada], total: c.puntos }))
+    .sort((a, b) => b.puntos - a.puntos || b.total - a.total || a.nombre.localeCompare(b.nombre))
+    .map((c, i) => ({ puesto: i + 1, ...c }));
+}
+export const jornadasFantasy = () => calcular().jornadas;
+
 export function infoFantasy(u) {
   const { jugadores, clasificacion, jornadas } = calcular();
   const ultima = jornadas.at(-1) || null;
   const puesto = u ? clasificacion.findIndex(c => c.id === u.id) : -1;
   return {
-    reglas: reglasLegibles(), cerrado: alineacionesCerradas(), ultimaJornada: ultima, boostsMaximos: BOOSTS_POR_ALINEACION,
+    reglas: reglasLegibles(), cerrado: alineacionesCerradas(), ultimaJornada: ultima, jornadas, boostsMaximos: BOOSTS_POR_ALINEACION,
     jugadores: vistaTierlist().jugadores.filter(j => j.nombre)
       .map(j => ({ id: j.id, clan: j.clan, rol: j.rol, nombre: j.nombre, tier: j.tier, puntos: jugadores.get(j.id)?.puntos || 0, partidas: jugadores.get(j.id)?.partidas || 0 }))
       .sort((a, b) => b.puntos - a.puntos || a.nombre.localeCompare(b.nombre)),
-    clasificacion: clasificacion.slice(0, 50).map((c, i) => ({ puesto: i + 1, nombre: c.nombre, puntos: c.puntos, ultima: ultima ? c.porJornada[ultima] || 0 : 0, yo: u ? c.id === u.id : false })),
+    clasificacion: clasificacion.slice(0, 50).map((c, i) => ({ puesto: i + 1, nombre: c.nombre, puntos: c.puntos, ultima: ultima ? c.porJornada[ultima] || 0 : 0,
+      porJornada: c.porJornada, yo: u ? c.id === u.id : false })),
     yo: u ? { alineacion: alineacionEn(u.id) || { ...Object.fromEntries(ROLES.map(r => [r, null])), boosts: sinBoosts() },
       puntos: puesto >= 0 ? clasificacion[puesto].puntos : 0, puntosBoost: puesto >= 0 ? clasificacion[puesto].puntosBoost : 0, puesto: puesto >= 0 ? puesto + 1 : null } : null,
   };

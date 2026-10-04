@@ -58,12 +58,17 @@ function explicar(e) {
   return msg;
 }
 
+// Pestañas que ya se sabe que existen: así no se le pregunta a Google antes de cada escritura. Si una petición
+// falla (por ejemplo, porque alguien ha borrado la pestaña a mano), se olvidan y se vuelve a comprobar
+const pestanasVistas = new Set();
+
 async function peticion(opciones) {
   try {
     const r = await jwt().request(opciones);
     ultimoError = null;
     return r;
   } catch (e) {
+    pestanasVistas.clear();
     ultimoError = explicar(e);
     throw new Error(ultimoError);
   }
@@ -83,12 +88,14 @@ const rango = (pestana, r) => encodeURIComponent(`${pestana}!${r}`);
 
 // Crea la pestaña si no existe
 export async function asegurarPestana(pestana, cabecera) {
+  if (pestanasVistas.has(pestana)) return;
   const meta = await peticion({ url: `${base()}?fields=sheets.properties.title` });
   const existe = meta.data.sheets.some(s => s.properties.title === pestana);
   if (!existe) {
     await peticion({ url: `${base()}:batchUpdate`, method: 'POST', data: { requests: [{ addSheet: { properties: { title: pestana } } }] } });
     await escribir(pestana, [cabecera]);
   }
+  pestanasVistas.add(pestana);
 }
 
 export async function leer(pestana) {
@@ -107,4 +114,12 @@ export async function anadir(pestana, filas) {
 export async function escribir(pestana, filas) {
   await peticion({ url: `${base()}/values/${rango(pestana, 'A:Z')}:clear`, method: 'POST' });
   await peticion({ url: `${base()}/values/${rango(pestana, 'A1')}?valueInputOption=USER_ENTERED`, method: 'PUT', data: { values: filas } });
+}
+
+// Escribe encima sin borrar antes, en una sola petición: la pestaña nunca se queda vacía a medias. Las filas que
+// sobran de la vez anterior (filasAntes) se dejan en blanco
+export async function escribirEncima(pestana, filas, filasAntes = 0) {
+  const ancho = Math.max(1, ...filas.map(f => f.length));
+  const relleno = Array.from({ length: Math.max(0, filasAntes - filas.length) }, () => Array(ancho).fill(''));
+  await peticion({ url: `${base()}/values/${rango(pestana, 'A1')}?valueInputOption=USER_ENTERED`, method: 'PUT', data: { values: [...filas, ...relleno] } });
 }

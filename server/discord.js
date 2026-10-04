@@ -1,18 +1,22 @@
-// Publicar en Discord con el webhook de un canal: la colección y la alineación de los coleccionistas y la
-// tier list del staff, como imagen (la dibuja la página, public/compartir.js) con un texto que pone el servidor.
+// Publicar en Discord con el webhook de un canal: la colección y la alineación de los coleccionistas, y la tier
+// list y la clasificación de cada jornada del fantasy (el staff), como imagen (la dibuja la página, public/compartir.js) con un texto que pone el servidor.
 // El webhook se crea en Discord (Ajustes del servidor › Integraciones › Webhooks › Nuevo webhook) y su
-// dirección va en Render: DISCORD_WEBHOOK_URL. Si la tier list va en otro canal, DISCORD_WEBHOOK_TIERLIST.
+// dirección va en Render: DISCORD_WEBHOOK_URL. Si la tier list o la clasificación van en otro canal,
+// DISCORD_WEBHOOK_TIERLIST y DISCORD_WEBHOOK_CLASIFICACION.
 const WEBHOOKS = {
   coleccion: process.env.DISCORD_WEBHOOK_URL,
   alineacion: process.env.DISCORD_WEBHOOK_URL,
   tierlist: process.env.DISCORD_WEBHOOK_TIERLIST || process.env.DISCORD_WEBHOOK_URL,
+  clasificacion: process.env.DISCORD_WEBHOOK_CLASIFICACION || process.env.DISCORD_WEBHOOK_URL,
 };
+// Lo que solo publica el staff, con la contraseña del panel
+const DEL_STAFF = new Set(['tierlist', 'clasificacion']);
 export const TIPOS_DISCORD = Object.keys(WEBHOOKS);
 export const discordActivo = (tipo = 'coleccion') => Boolean(WEBHOOKS[tipo]);
 
 // Cada coleccionista puede publicar su colección y su alineación una vez cada 10 minutos, y el staff la tier
 // list una vez por minuto: así nadie llena el canal
-const ESPERA_MS = { coleccion: 10 * 60000, alineacion: 10 * 60000, tierlist: 60000 };
+const ESPERA_MS = { coleccion: 10 * 60000, alineacion: 10 * 60000, tierlist: 60000, clasificacion: 60000 };
 export const MAXIMO_IMAGEN = 8 * 1024 * 1024;
 const ultimas = new Map();
 
@@ -81,9 +85,15 @@ export async function publicarEnDiscord({ tipo, imagen, texto, quien, avatar = n
 export const autorDiscord = u => (/^discord-\d+$/.test(String(u?.id)) ? `<@${u.id.slice('discord-'.length)}>` : `**${escaparMarkdown(u?.nombre || 'Alguien')}**`);
 
 // El texto lo pone el servidor con sus propios datos: la página solo manda la imagen
-export function textoDiscord(tipo, { usuario, tiene = 0, total = 0, puntos = 0, puesto = null, enlace = null } = {}) {
+export function textoDiscord(tipo, { usuario, tiene = 0, total = 0, puntos = 0, puesto = null, enlace = null, jornada = null, ganadores = [] } = {}) {
   const numero = n => Number(n || 0).toLocaleString('es-ES');
   const pie = enlace ? `\n<${enlace}>` : '';
+  if (tipo === 'clasificacion') {
+    // Los tres primeros de la jornada, con los sobres que se lleva cada uno
+    const lineas = ganadores.map(g => `${g.puesto}.º ${autorDiscord(g)}: ${numero(g.puntos)} ${g.puntos === 1 ? 'punto' : 'puntos'}`
+      + (g.sobres ? ` (+${g.sobres} ${g.sobres === 1 ? 'sobre' : 'sobres'})` : ''));
+    return `**Clasificación del fantasy de Tenka Ichi${jornada ? `: ${escaparMarkdown(jornada)}` : ''}**${lineas.length ? `\n${lineas.join('\n')}` : ''}${pie}`;
+  }
   if (tipo === 'coleccion') return `${autorDiscord(usuario)} enseña su colección de Tenka Ichi: ${numero(tiene)} de ${numero(total)} cartas.${pie}`;
   if (tipo === 'alineacion') {
     return `${autorDiscord(usuario)} presenta su alineación del fantasy de Tenka Ichi: ${numero(puntos)} ${puntos === 1 ? 'punto' : 'puntos'}`
@@ -97,11 +107,11 @@ export function textoDiscord(tipo, { usuario, tiene = 0, total = 0, puntos = 0, 
 export async function atenderPublicacion({ tipo, req, usuario = null, staff = false, datos = {}, avatar = null, enlace = null }) {
   try {
     if (!TIPOS_DISCORD.includes(tipo)) throw new ErrorDiscord('No se puede publicar eso en Discord', 400);
-    if (tipo === 'tierlist' && !staff) throw new ErrorDiscord('La tier list solo la publica el staff', 401);
-    if (tipo !== 'tierlist' && !usuario) throw new ErrorDiscord('Entra con tu cuenta para publicar en Discord', 401);
+    if (DEL_STAFF.has(tipo) && !staff) throw new ErrorDiscord(`La ${tipo === 'tierlist' ? 'tier list' : 'clasificación'} solo la publica el staff`, 401);
+    if (!DEL_STAFF.has(tipo) && !usuario) throw new ErrorDiscord('Entra con tu cuenta para publicar en Discord', 401);
     const imagen = await leerImagen(req);
     const texto = textoDiscord(tipo, { ...datos, usuario, enlace });
-    await publicarEnDiscord({ tipo, imagen, texto, quien: tipo === 'tierlist' ? 'staff' : usuario.id, avatar });
+    await publicarEnDiscord({ tipo, imagen, texto, quien: DEL_STAFF.has(tipo) ? 'staff' : usuario.id, avatar });
     return { estado: 200, cuerpo: { ok: true } };
   } catch (e) {
     return { estado: e.estado || 500, cuerpo: { ok: false, error: e.message } };

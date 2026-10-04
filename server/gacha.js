@@ -18,6 +18,7 @@ export const TIERS_BOOST = ['S+', 'S', 'A', 'B'];
 export const PESOS = { 'S+': 0.5, S: 1, A: 3, B: 6, C: 10, D: 15 };
 export const CARTAS_POR_SOBRE = 3;
 export const SOBRES_INICIALES = 2;
+export const REPETIDAS_POR_SOBRE = 5;   // cartas repetidas que hay que fundir para llevarse un sobre
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ARCHIVO_BOOSTS = process.env.ARCHIVO_BOOSTS
@@ -29,21 +30,31 @@ const ARCHIVO = archivoDatos('gacha.json');
 const PESTANA = 'Gachapon';
 const CABECERA = ['Fecha', 'ID de usuario', 'Usuario', 'Tipo', 'Detalle', 'Cantidad', 'Rareza'];
 
+const TIPOS_CON_SOBRES = new Set(['alta', 'regalo', 'canje', 'premio', 'codigo', 'fundido']);
 let registro = [];
 const usuarios = new Map();
 const canjes = new Set();
+const usosCodigo = new Map();   // código de directo → cuántas personas lo han canjeado
 let sinGuardar = [];
 
 function aplicar(e) {
   let u = usuarios.get(e.id);
-  if (!u) { u = { id: e.id, nombre: e.usuario, sobres: 0, abiertos: 0, cartas: new Map() }; usuarios.set(e.id, u); }
+  if (!u) { u = { id: e.id, nombre: e.usuario, sobres: 0, abiertos: 0, cartas: new Map(), codigos: new Set() }; usuarios.set(e.id, u); }
   if (e.usuario) u.nombre = e.usuario;
   const n = Number(e.cantidad) || 0;
   if (e.tipo === 'alta') u.alta = true;
-  if (e.tipo === 'alta' || e.tipo === 'regalo' || e.tipo === 'canje') u.sobres += n;
+  // Sobres que entran: de bienvenida, regalados, canjeados con puntos del canal, premios de jornada, códigos de
+  // directo y los que salen de fundir repetidas
+  if (TIPOS_CON_SOBRES.has(e.tipo)) u.sobres += n;
   if (e.tipo === 'canje') canjes.add(e.detalle);
+  if (e.tipo === 'codigo') { u.codigos.add(e.detalle); usosCodigo.set(e.detalle, (usosCodigo.get(e.detalle) || 0) + 1); }
   if (e.tipo === 'apertura') { u.sobres -= 1; u.abiertos += 1; }
   if (e.tipo === 'carta') u.cartas.set(e.detalle, (u.cartas.get(e.detalle) || 0) + 1);
+  // Una carta fundida: la cantidad va en negativo. La última copia nunca se funde, pero por si acaso se quita del mapa
+  if (e.tipo === 'fusion') {
+    const quedan = (u.cartas.get(e.detalle) || 0) + n;
+    if (quedan > 0) u.cartas.set(e.detalle, quedan); else u.cartas.delete(e.detalle);
+  }
 }
 
 const aFila = e => [e.fecha, e.id, e.usuario, e.tipo, e.detalle || '', e.cantidad, e.rareza || ''];
@@ -61,7 +72,7 @@ export async function cargarGacha() {
     if (hojaActiva()) console.error('No se pudo leer el gachapon:', e.message);
     registro = [];
   }
-  usuarios.clear(); canjes.clear();
+  usuarios.clear(); canjes.clear(); usosCodigo.clear();
   registro.forEach(aplicar);
   await cargarCartas();
 }
@@ -211,6 +222,18 @@ export function sacarCarta(cat) {
   return cat[cat.length - 1];
 }
 
+// Las cartas de un sobre: ninguna se repite dentro del mismo sobre (salvo que haya menos cartas distintas que huecos)
+export function sacarSobre(cat, cuantas = CARTAS_POR_SOBRE) {
+  const quedan = [...cat], cartas = [];
+  while (cartas.length < cuantas && cat.length) {
+    const c = sacarCarta(quedan.length ? quedan : cat);
+    cartas.push(c);
+    const i = quedan.indexOf(c);
+    if (i >= 0) quedan.splice(i, 1);
+  }
+  return cartas;
+}
+
 // ---------- operaciones ----------
 // Los sobres de bienvenida se dan una vez, aunque antes le hayan regalado sobres o haya canjeado puntos
 export const darAlta = u => enCola(async () => {
@@ -229,7 +252,7 @@ export const abrirSobre = u => enCola(async () => {
   if (!yo || yo.sobres < 1) throw new Error('No te quedan sobres');
   const cat = catalogo();
   if (!cat.length) throw new Error('Todavía no hay cartas: el staff tiene que poner la tier de los jugadores');
-  const cartas = Array.from({ length: CARTAS_POR_SOBRE }, () => sacarCarta(cat));
+  const cartas = sacarSobre(cat);
   const fecha = ahora(), sobre = crypto.randomUUID().slice(0, 8);
   await registrar([
     { fecha, id: u.id, usuario: u.nombre, tipo: 'apertura', detalle: sobre, cantidad: -1 },
@@ -239,6 +262,39 @@ export const abrirSobre = u => enCola(async () => {
 });
 
 export const canjeProcesado = id => canjes.has(id);
+
+// ---------- códigos de directo ----------
+// Cada persona canjea un código una sola vez; cuántas lo han canjeado sale del registro
+export const usosDeCodigo = codigo => usosCodigo.get(codigo) || 0;
+export const canjeoCodigo = (id, codigo) => Boolean(usuarios.get(id)?.codigos.has(codigo));
+export const darSobresDeCodigo = (u, codigo, cantidad, maximo = 0) => enCola(async () => {
+  if (usuarios.get(u.id)?.codigos.has(codigo)) throw new Error('Ya has canjeado este código');
+  if (maximo && usosDeCodigo(codigo) >= maximo) throw new Error('Este código ya se ha agotado');
+  await registrar([{ fecha: ahora(), id: u.id, usuario: u.nombre, tipo: 'codigo', detalle: codigo, cantidad }]);
+});
+
+// ---------- fundir repetidas ----------
+// Cada REPETIDAS_POR_SOBRE cartas repetidas se cambian por un sobre. pedidas: { idDeCarta: cuántas copias }.
+// De cada carta se queda al menos una copia, o las que diga minimo(id) (las BOOST que estén en la alineación)
+export const fundirRepetidas = (u, pedidas, minimo = () => 1) => enCola(async () => {
+  const yo = usuarios.get(u.id);
+  if (!yo) throw new Error('No tienes cartas que fundir');
+  const lista = Object.entries(pedidas || {}).map(([id, n]) => [id, Math.round(Number(n))]).filter(([, n]) => n > 0);
+  const total = lista.reduce((s, [, n]) => s + n, 0);
+  if (!total) throw new Error('Elige las cartas repetidas que quieres fundir');
+  if (total % REPETIDAS_POR_SOBRE) throw new Error(`Hay que fundir las cartas de ${REPETIDAS_POR_SOBRE} en ${REPETIDAS_POR_SOBRE}: llevas ${total}`);
+  const tiers = new Map(catalogo().map(c => [c.id, c.tier]));
+  for (const [id, n] of lista) {
+    const tengo = yo.cartas.get(id) || 0;
+    if (tengo - n < Math.max(1, minimo(id))) throw new Error('Solo se pueden fundir las copias que te sobran de cada carta');
+  }
+  const fecha = ahora(), sobres = total / REPETIDAS_POR_SOBRE;
+  await registrar([
+    ...lista.map(([id, n]) => ({ fecha, id: u.id, usuario: u.nombre, tipo: 'fusion', detalle: id, cantidad: -n, rareza: tiers.get(id) || '' })),
+    { fecha, id: u.id, usuario: u.nombre, tipo: 'fundido', detalle: `${total} cartas`, cantidad: sobres },
+  ]);
+  return { sobres, cartas: total };
+});
 
 export function estadoUsuario(id) {
   const u = usuarios.get(id);

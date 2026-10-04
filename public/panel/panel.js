@@ -361,9 +361,8 @@ function pintarGacha(g) {
     + [...(p['S+'] ? ['S+'] : []), ...TIERS].map(t => `${t} ${porcentaje(p[t] || 0)}`).join(', ') + '.';
 }
 async function actualizarGacha() {
-  let r;
-  try { r = await directo.enviar('gachaEstado', {}, claveInput.value); }
-  catch { setTimeout(actualizarGacha, 1500); return; } // la conexión aún no está abierta
+  const r = await directo.enviar('gachaEstado', {}, claveInput.value);
+  if (r.sinConexion) { setTimeout(actualizarGacha, 1500); return; } // la conexión aún no está abierta
   if (r.ok) pintarGacha(r.gacha);
   else $('#estadoLoginTwitch').textContent = 'Escribe la contraseña arriba a la derecha para ver el estado del gachapon.';
 }
