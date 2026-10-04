@@ -116,6 +116,16 @@ Decisión del usuario: camino «lo permitido». Los objetivos se siguen marcando
 - Interruptores, en el apartado Partida y guardados con el estado del panel: puntos de fantasy en el línea por línea, resumen de pelea, y oro estimado por ingresos (apagado vuelve al valor de los objetos).
 - La ficha y la gráfica no llevan interruptor: se sacan con su botón.
 
+### R10. Acabado y animaciones (lo más importante para el usuario)
+
+El usuario lo pidió expresamente: tiene que salir **muy refinado**, en el diseño y en que las animaciones se vean fluidas. Vale para las dos versiones y pesa más que añadir cosas: antes una pieza menos que una pieza a medias.
+
+- **Diseño:** una rejilla y un ritmo de espacios coherentes en todas las piezas, jerarquía tipográfica clara (qué se lee primero), alineaciones exactas entre el lado azul y el rojo, bordes y radios iguales en todo el marcador, y contraste suficiente sobre la imagen del juego, que es clara y cambia mucho.
+- **Animaciones:** toda pieza entra y sale con animación propia; nada aparece ni desaparece de golpe. Las cifras cambian con transición. Las filas del línea por línea y las barras de la gráfica entran escalonadas. Las curvas de aceleración y las duraciones se definen una vez (variables CSS) y se usan en todo.
+- **Fluidez:** animar solo `transform` y `opacity`; nada de animar tamaños, márgenes, sombras ni filtros. Sin desenfoques grandes ni bucles de animación cuando no pasa nada: el overlay corre en la fuente de navegador de OBS, en el mismo PC que el juego.
+- **Estados raros:** nombres largos, cifras de cinco dígitos, jugadores sin carta, partida recién empezada (todo a cero) y partida larga (seis objetos, alma, Barón y ancestral a la vez) tienen que verse bien.
+- **Repaso:** antes de dar una pieza por terminada, mirarla en pantalla a 1920×1080 en las dos versiones, con sus animaciones de entrada, cambio y salida, y corregir lo que no esté fino. Si se pueden sacar capturas, sacar también varias a mitad de animación.
+
 ## Restricciones
 
 - **Rama:** todo en `ingame-mejoras`. No tocar `master` ni hacer push a `master`: Render despliega desde ahí. Otra sesión trabaja a la vez en `master` (web, stream y gachapon), así que conviene tocar lo justo fuera del ingame y del apartado Partida del panel.
