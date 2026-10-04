@@ -116,6 +116,7 @@ server/datos.js        carpeta de datos locales (data/, o CARPETA_DATOS en las p
 scripts/twitch-falso.js   Twitch de mentira para las pruebas (npm run twitch-falso)
 scripts/entrada-discord-falso.js   Discord de mentira para las pruebas del inicio de sesión (npm run entrada-discord-falso)
 scripts/vista-previa.js   la web con jugadores y cartas inventados (npm run vista-previa)
+scripts/prueba-directo.js   la web con una liga de prueba ya empezada, para ver el postdraft, la pantalla final y el ranking (npm run prueba-directo)
 test/                  pruebas (npm test)
 diseno/marcos/         marcos de las cartas: generador SVG, exportador a PNG y WebP, y los diseños guardados
 puente/                puente del PC del espectador (PowerShell) y su LEEME

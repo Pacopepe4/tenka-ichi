@@ -278,7 +278,7 @@ function pintarPostdraft() {
       }
       const g = j.general;
       slot.querySelector('.general').textContent = !j.nombre ? '' : !g.partidas ? 'Debuta en Tenka Ichi'
-        : `En la liga: ${plural(g.partidas, 'partida', 'partidas')} · ${g.wr} % de victorias${g.kda ? ` · ${numero(g.kda.k)}/${numero(g.kda.d)}/${numero(g.kda.a)}` : ''}`;
+        : `Liga: ${plural(g.partidas, 'partida', 'partidas')} · ${g.wr} % victorias${g.kda ? ` · KDA ${numero(g.kda.ratio)}` : ''}`;
       const caja = slot.querySelector('.fantasy-slot');
       caja.hidden = !j.fantasy;
       caja.querySelector('b').textContent = j.fantasy ? numero(j.fantasy.puntos) : '';
