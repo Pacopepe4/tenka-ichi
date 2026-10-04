@@ -161,3 +161,10 @@ Todo está en commits locales en master; no se ha hecho push para no cambiar la 
 - En `public/gachapon/gachapon.css`, los tamaños fijos de la carta sin marco van con `:not(.con-marco):not(.fullart)`.
 - Comprobado en local a 84, 142, 170, 300 y 380 px, y apagada (cuando no se tiene). 75 pruebas.
 - Pendiente: las imágenes para Discord (`public/compartir.js`) siguen pintando estas cuatro con marco y el dibujo cuadrado.
+
+## 04/10 (noche): Amateratsu pasa a equipo Legacy
+
+- Amateratsu conserva logo, arte, lema, descripción y plantilla, pero queda apartada de la competición: `legacy: true` en `server/clanes.js`. No entra en el sorteo ni en la tier list (sin cartas ni fantasy) y en la portada sale debajo de la baraja con la etiqueta «Legacy». Se sigue pudiendo poner en el overlay desde el panel.
+- La portada habla ahora de doce clanes («Los doce clanes», «Doce clanes, un solo reino», «Diez de los doce clanes juegan la temporada» y la descripción para buscadores).
+- Imágenes de Discord: las cartas full art salen a carta completa, como en la web. Norma del usuario: lo que esté en la web y en Discord se cambia en los dos sitios en el mismo cambio.
+- Pruebas: 78 (`test/clanes.test.js` nueva).

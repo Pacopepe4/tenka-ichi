@@ -12,6 +12,9 @@ export async function cargarClanes() {
   return { clanes, roles, clan: id => clanes.find(c => c.id === id) || clanes[clanes.length - 1] };
 }
 
+// Los clanes que compiten en Tenka Ichi: ni los invitados ni los equipos Legacy (de la organización, pero fuera de la competición)
+export const compite = c => !c.invitado && !c.legacy;
+
 export const icono = id => `/ddragon/icono/${id}.png`;
 export const splash = id => `/ddragon/splash/${id}.jpg`;
 export const logo = clan => `/logos/${clan}.png`;

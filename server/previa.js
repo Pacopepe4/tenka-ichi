@@ -9,7 +9,8 @@ import { catalogo } from './gacha.js';
 import { vistaTierlist } from './tierlist.js';
 import { calendarioActual } from './calendario.js';
 import { clasificacion } from './competicion.js';
-import { ROLES } from './clanes.js';
+import { CLANES, ROLES } from './clanes.js';
+import { plantilla } from './plantillas.js';
 
 const normal = s => String(s || '').trim().toLowerCase();
 const decimal = x => Math.round(x * 10) / 10;
@@ -162,8 +163,11 @@ export function fichaJugador(id, datos) {
 
 export function fichaClan(id, datos) {
   const clan = String(id).toUpperCase();
-  const jugadores = vistaTierlist().jugadores.filter(j => j.clan === clan);
-  if (!jugadores.length) return null;
+  if (!CLANES.some(c => c.id === clan && !c.invitado)) return null;
+  // Los equipos Legacy no están en la tier list: sus jugadores salen de la plantilla, sin tier
+  const conTier = vistaTierlist().jugadores.filter(j => j.clan === clan);
+  const jugadores = conTier.length ? conTier
+    : ROLES.map((rol, i) => ({ id: `${clan}-${rol}`, clan, rol, nombre: plantilla(clan)?.jugadores?.[i] || '', tier: null }));
   const { partidas, indice, puestos } = fuentes(datos);
   const fantasy = puntosDeJugadores();
   return { clan, ...resumenClan(clan, partidas, indice, puestos),

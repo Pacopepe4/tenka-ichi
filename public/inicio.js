@@ -1,5 +1,5 @@
 // Portada pública: baraja de clanes, ficha de cada clan y resumen de la liga
-import { cargarCampeones, cargarClanes, icono, logo } from '/comun.js';
+import { cargarCampeones, cargarClanes, icono, logo, compite } from '/comun.js';
 import { cartaHTML, escapar } from '/carta.js';
 
 const $ = s => document.querySelector(s);
@@ -9,7 +9,9 @@ const [{ clanes, roles }, campeones, liga, comp, tierlist, fantasy] = await Prom
   cargarClanes(), cargarCampeones(), fetch('/api/liga' + q).then(r => r.json()), fetch('/api/competicion' + q).then(r => r.json()),
   fetch('/api/tierlist').then(r => r.json()).catch(() => ({ jugadores: [], equipos: [] })), fetch('/api/fantasy').then(r => r.json()).catch(() => null),
 ]);
-const competidores = clanes.filter(c => !c.invitado);
+// En la baraja, los clanes que compiten; los equipos Legacy (de la organización, pero fuera de la competición) van aparte
+const competidores = clanes.filter(compite);
+const legado = clanes.filter(c => c.legacy);
 const ROLES_LEGIBLES = { TOP: 'Top', JUNGLA: 'Jungla', MEDIO: 'Medio', ADC: 'ADC', SUPPORT: 'Support' };
 
 // ---------- Baraja ----------
@@ -60,6 +62,26 @@ cartas.forEach((carta, i) => {
   carta.addEventListener('blur', () => colocar());
   carta.addEventListener('click', () => abrirFicha(competidores[i]));
 });
+// Los equipos Legacy, debajo de la baraja: su carta y por qué están aparte
+const cajaLegado = $('.legado');
+cajaLegado.hidden = !legado.length;
+cajaLegado.innerHTML = legado.map(c => `<article class="equipo-legado" style="--color:${c.color}; --color-texto:${c.texto}">
+    <button class="carta suelta" data-clan="${c.id}" aria-label="${c.nombre}, ${c.lema}: ver su plantilla">
+      <img class="arte" src="/clanes/${c.id}.jpg" alt="" loading="lazy">
+      <span class="velo"></span>
+      <img class="logo-carta" src="${logo(c.id)}" alt="">
+      <span class="kanji" aria-hidden="true">${c.kanji}</span>
+      <span class="pie-carta"><span class="nombre">${c.nombre}</span><span class="lema">${c.lema}</span></span>
+    </button>
+    <div class="legado-texto">
+      <span class="etiqueta-legacy">Legacy</span>
+      <h3>${c.nombre}</h3>
+      <p>${c.descripcion}</p>
+      <p class="legado-nota">Equipo de Koryu Budo, apartado de la nueva competición de Tenka Ichi: conserva su estandarte y su plantilla, pero no lucha por el trono.</p>
+    </div>
+  </article>`).join('');
+cajaLegado.querySelectorAll('.carta').forEach(b => b.addEventListener('click', () => abrirFicha(legado.find(c => c.id === b.dataset.clan))));
+
 addEventListener('resize', () => colocar());
 movil.addEventListener('change', () => colocar());
 colocar();
@@ -81,6 +103,7 @@ function abrirFicha(c) {
   ficha.querySelector('.ficha-logo').src = logo(c.id);
   ficha.querySelector('#ficha-nombre').textContent = c.nombre;
   ficha.querySelector('.ficha-lema').textContent = c.lema;
+  ficha.querySelector('.etiqueta-legacy').hidden = !c.legacy;
   ficha.querySelector('.ficha-kanji').textContent = c.kanji;
   ficha.querySelector('.ficha-descripcion').textContent = c.descripcion;
   ficha.querySelector('.ficha-plantilla').innerHTML = roles.map((r, i) => {
@@ -105,7 +128,8 @@ function abrirFicha(c) {
     }).catch(() => {});
   }
   ficha.querySelector('.ficha-suplentes').textContent = c.suplentes ? `Suplentes: ${c.suplentes}` : '';
-  ficha.querySelector('.ficha-record').textContent = !participa ? 'No participa en esta temporada.'
+  ficha.querySelector('.ficha-record').textContent = c.legacy ? 'Equipo Legacy de Koryu Budo: está apartado de la competición de Tenka Ichi.'
+    : !participa ? 'No participa en esta temporada.'
     : fila?.jugadas ? `${fila.puesto}.º en la liguilla, con ${fila.victorias} victorias y ${fila.derrotas} derrotas.` : 'Aún no ha jugado en Tenka Ichi.';
   ficha.showModal();
 }

@@ -1,5 +1,5 @@
 // Panel de producción: conecta DraftCore, configura el enfrentamiento, corrige huecos y registra resultados
-import { cargarCampeones, cargarClanes, conectarDirecto, icono, logo, disposicionCamaras } from '/comun.js';
+import { cargarCampeones, cargarClanes, conectarDirecto, icono, logo, disposicionCamaras, compite } from '/comun.js';
 import { imagenTierlist, imagenClasificacion, descargar, publicar } from '/compartir.js';
 
 const $ = s => document.querySelector(s);
@@ -57,7 +57,8 @@ async function enviar(accion, datos) {
 }
 
 // ---------- Equipos ----------
-const opcionesClan = clanes.clanes.map(c => `<option value="${c.id}">${c.nombre}${c.kanji ? ` ${c.kanji}` : ''}</option>`).join('');
+// Los equipos Legacy se pueden poner en el overlay (un amistoso, una exhibición), pero no entran en el sorteo
+const opcionesClan = clanes.clanes.map(c => `<option value="${c.id}">${c.nombre}${c.kanji ? ` ${c.kanji}` : ''}${c.legacy ? ' · Legacy' : ''}</option>`).join('');
 const cajaEquipo = lado => $(`.equipo.${lado}`);
 const jugadoresDe = lado => [...cajaEquipo(lado).querySelectorAll('.jugadores input')].map(i => i.value.trim());
 
@@ -196,7 +197,7 @@ async function cargarCompeticion() {
   $('.sin-calendario').hidden = Boolean(comp.calendario);
   $('.con-calendario').hidden = !comp.calendario;
   if (!comp.calendario) {
-    $('.participantes').innerHTML = clanes.clanes.filter(c => !c.invitado).map(c =>
+    $('.participantes').innerHTML = clanes.clanes.filter(compite).map(c =>
       `<label><input type="checkbox" value="${c.id}"><img src="${logo(c.id)}" alt="">${c.nombre}</label>`).join('');
     return;
   }

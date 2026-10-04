@@ -7,7 +7,7 @@ import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CLANES, ROLES } from '../server/clanes.js';
+import { CLANES, ROLES, enCompeticion } from '../server/clanes.js';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const puerto = process.argv.slice(2).find(a => /^\d+$/.test(a)) || '3055';
@@ -22,7 +22,7 @@ const nick = () => { const n = Array.from({ length: 2 + azar(2) }, () => SILABAS
 // Plantillas con jugadores inventados y una tier para cada uno (repartidas para que haya de todas)
 const plantillas = JSON.parse(await readFile(path.join(RAIZ, 'data-proyecto', 'plantillas.json'), 'utf8'));
 const tiers = {}, orden = ['C', 'B', 'D', 'A', 'C', 'B', 'D', 'S', 'C', 'B', 'A', 'D', 'C'];
-CLANES.filter(c => !c.invitado).forEach((c, i) => {
+CLANES.filter(enCompeticion).forEach((c, i) => {
   plantillas[c.id].jugadores = ROLES.map(() => nick());
   ROLES.forEach((r, j) => { tiers[`${c.id}-${r}`] = orden[(i * 5 + j) % orden.length]; });
 });

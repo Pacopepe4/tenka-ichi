@@ -2,7 +2,7 @@
 
 Web de la liga TENKA ICHI de Koryu Budo. Refleja en directo un draft de **DraftCore** (lol.draftcore.net) en un overlay para OBS y lleva el registro de picks y bans con porcentajes.
 
-- **Portada pública:** `/` (los trece clanes en baraja, su plantilla, clasificación y campeones más presentes)
+- **Portada pública:** `/` (los doce clanes que compiten en baraja, Amateratsu aparte como equipo Legacy, su plantilla, clasificación y campeones más presentes)
 - **Panel de producción:** `/panel/` (con contraseña)
 - **Guía de retransmisión:** `/guia/` (enlaces, montaje en OBS, dónde va cada cámara, la carpeta de Drive con los vídeos y la música, y el marcador de partida; es lo que se le pasa a quien lleva OBS)
 - **Overlay para OBS:** `/overlay/` (1920×1080, con fondo de tinta y de 0 a 4 cámaras; `?transparente=1` quita el fondo y `?guia=1` marca los huecos de las cámaras)
@@ -57,6 +57,16 @@ En la cabecera del panel, **En el overlay** fuerza cualquiera de las cuatro vist
 ## Plantillas de los clanes
 
 Lema, descripción y jugadores de cada clan están en `data-proyecto/plantillas.json` y se ven en la portada. Se pueden editar desde el panel (**Guardar en la plantilla del clan**). En la web publicada, lo que se edite desde el panel dura hasta que Render reinicie; para dejarlo fijo, edita el archivo y súbelo a GitHub.
+
+### Equipos Legacy
+
+Un equipo **Legacy** es de la organización y lo conserva todo (logo, arte, lema, descripción y plantilla), pero está apartado de la competición de Tenka Ichi. Ahora mismo lo es **Amateratsu** (`legacy: true` en `server/clanes.js`; `enCompeticion` dice quién compite). En la práctica:
+
+- En la portada sale debajo de la baraja, con la etiqueta «Legacy», y su ficha dice que está fuera de la competición.
+- No entra en el sorteo del calendario (ni en el panel ni en el servidor) ni en la tier list, así que sus jugadores no tienen carta en el gachapon ni puntúan en el fantasy, y tampoco sale en la imagen de la tier list de Discord.
+- En el panel se puede seguir eligiendo para el overlay (un amistoso o una exhibición) y se puede guardar su plantilla.
+
+Para que otro clan pase a Legacy (o vuelva a competir) basta con poner o quitar `legacy: true` en su línea de `server/clanes.js`; los textos de la portada que cuentan los clanes («Los doce clanes», «Doce clanes, un solo reino» y «Diez de los doce clanes») están escritos a mano en `public/index.html`.
 
 ## Publicarlo en internet (Render, gratis)
 

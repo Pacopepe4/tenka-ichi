@@ -323,3 +323,27 @@ button.ficha-tier:hover { border-color: var(--hai); transform: translateY(-1px);
 .ranking-fantasy .puntos { grid-column: 4; display: flex; align-items: baseline; gap: 6px; font-family: var(--mincho); font-weight: 800; font-size: 24px; font-variant-numeric: tabular-nums; }
 .ranking-fantasy .puntos small { font-family: var(--gothic); font-weight: 400; font-size: 13px; color: var(--hai); }
 .ranking-fantasy li.vacio { display: block; color: var(--hai); border-bottom: 0; }
+
+/* ---------- Equipos Legacy: de la organización, pero apartados de la competición ---------- */
+.etiqueta-legacy { display: inline-block; padding: 2px 10px 3px; border: 1px solid var(--hai); border-radius: 2px; color: var(--washi);
+  font-size: 12px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; }
+.etiqueta-legacy[hidden] { display: none; }
+.ficha .etiqueta-legacy { margin-top: 8px; }
+.legado { max-width: 1180px; margin: clamp(48px, 6vw, 72px) auto 0; padding: clamp(28px, 3.5vw, 44px) clamp(16px, 5vw, 64px) 0; border-top: 1px solid var(--sumi-linea); }
+.legado[hidden] { display: none; }
+.equipo-legado { display: flex; align-items: center; gap: clamp(20px, 4vw, 48px); }
+.equipo-legado + .equipo-legado { margin-top: 28px; }
+.carta.suelta { position: relative; left: auto; bottom: auto; flex: none; width: 168px; height: 252px; margin: 0; transform: rotate(-3deg); transform-origin: 50% 50%; }
+.carta.suelta:hover, .carta.suelta:focus-visible { transform: rotate(-1deg) translateY(-6px); box-shadow: 0 20px 40px rgba(0, 0, 0, .65), 0 0 0 2px var(--color); }
+.carta.suelta .nombre { font-size: 23px; }
+.carta.suelta .lema { font-size: 12.5px; }
+.legado-texto { min-width: 0; max-width: 34em; }
+.legado-texto h3 { margin: 10px 0 6px; font-family: var(--mincho); font-weight: 800; font-size: clamp(28px, 3.5vw, 40px); line-height: 1.1; }
+.legado-texto p { margin: 0 0 8px; color: var(--washi); }
+.legado-texto .legado-nota { color: var(--hai); font-size: 15px; }
+@media (max-width: 760px) {
+  .equipo-legado { align-items: flex-start; gap: 18px; }
+  .carta.suelta { flex: 0 0 132px; width: 132px; height: 198px; transform: rotate(-3deg) !important; }
+  .carta.suelta .nombre { font-size: 19px; }
+}
+@media (prefers-reduced-motion: reduce) { .carta.suelta { transform: none; } }

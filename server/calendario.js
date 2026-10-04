@@ -5,6 +5,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sortear } from './competicion.js';
+import { CLANES, enCompeticion } from './clanes.js';
 import { hojaActiva, asegurarPestana, leer, escribir } from './sheets.js';
 
 const carpeta = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'data-proyecto');
@@ -60,6 +61,9 @@ export const temporadaSimulada = () => simulacion;
 
 export async function sortearCalendario(participantes, semilla) {
   const clanes = [...new Set(participantes)];
+  // Solo los clanes que compiten: ni invitados ni equipos Legacy
+  const fuera = clanes.filter(id => !CLANES.some(c => c.id === id && enCompeticion(c)));
+  if (fuera.length) throw new Error(`No compiten en Tenka Ichi: ${fuera.join(', ')}`);
   if (clanes.length !== 10) throw new Error(`Hacen falta 10 clanes y hay ${clanes.length}`);
   calendario = sortear(clanes, Number(semilla) || Math.floor(Math.random() * 1e6));
   await writeFile(ARCHIVO, JSON.stringify(calendario, null, 1)).catch(() => {});

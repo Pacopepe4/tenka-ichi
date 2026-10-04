@@ -3,7 +3,7 @@
 // Se guarda en la pestaña «Tierlist» de Google Sheets; en local, en data/tierlist.json.
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
-import { CLANES, ROLES } from './clanes.js';
+import { CLANES, ROLES, enCompeticion } from './clanes.js';
 import { plantilla } from './plantillas.js';
 import { hojaActiva, asegurarPestana, leer, escribir } from './sheets.js';
 import { archivoDatos } from './datos.js';
@@ -16,7 +16,8 @@ const CABECERA = ['Tipo', 'Id', 'Nombre', 'Clan', 'Rol', 'Tier'];
 // Mapas id → tier. Los jugadores se identifican por su puesto: CLAN-ROL (p. ej. KAIJU-TOP)
 let jugadores = {}, equipos = {};
 
-const clanesLiga = () => CLANES.filter(c => !c.invitado);
+// Solo los clanes que compiten: los equipos Legacy y los invitados no tienen tier, ni cartas, ni fantasy
+const clanesLiga = () => CLANES.filter(enCompeticion);
 
 export async function cargarTierlist() {
   try {

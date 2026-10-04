@@ -5,7 +5,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CLANES } from '../server/clanes.js';
+import { CLANES, enCompeticion } from '../server/clanes.js';
 import { azar, barajar, sortear, clasificacion, cuadro, FASE_LIGA, FASE_DESEMPATE, FASE_FINAL } from '../server/competicion.js';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -13,8 +13,8 @@ const semilla = Number(process.argv[2]) || 1509;
 const rnd = azar(semilla);
 const { campeones } = JSON.parse(await readFile(path.join(raiz, 'public', 'ddragon', 'campeones.json'), 'utf8'));
 
-// 10 de los 13 clanes, con una fuerza oculta cada uno
-const liga = CLANES.filter(c => !c.invitado).map(c => c.id);
+// 10 de los clanes que compiten (sin invitados ni equipos Legacy), con una fuerza oculta cada uno
+const liga = CLANES.filter(enCompeticion).map(c => c.id);
 const participantes = barajar(liga, rnd).slice(0, 10);
 const fuerza = Object.fromEntries(participantes.map(c => [c, 0.35 + rnd() * 0.5]));
 

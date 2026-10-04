@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tenka Ichi · Koryu Budo League</title>
-<meta name="description" content="Tenka Ichi, la liga de League of Legends de Koryu Budo: trece clanes samuráis expulsados del cielo luchan por el único trono que queda: el de quien reina bajo él.">
+<meta name="description" content="Tenka Ichi, la liga de League of Legends de Koryu Budo: doce clanes samuráis expulsados del cielo luchan por el único trono que queda: el de quien reina bajo él.">
 <link rel="icon" href="/marca/koryu-budo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -30,7 +30,7 @@
           <p class="traduccion">El que reina bajo el cielo</p>
         </div>
       </div>
-      <p class="lore">Tras la cuarta Pelea de Cinturones, el cielo expulsó a los samuráis y cerró sus puertas. Arriba ya no hay sitio para ellos; abajo hay un trono vacío. Trece clanes, un solo reino. Quien gane, reinará bajo el cielo.</p>
+      <p class="lore">Tras la cuarta Pelea de Cinturones, el cielo expulsó a los samuráis y cerró sus puertas. Arriba ya no hay sitio para ellos; abajo hay un trono vacío. Doce clanes, un solo reino. Quien gane, reinará bajo el cielo.</p>
       <a class="boton" href="#clanes">Conoce a los clanes</a>
     </div>
   </section>
@@ -52,17 +52,19 @@
 
   <section id="clanes" class="clanes">
     <div class="cabecera-seccion">
-      <h2>Los trece clanes</h2>
+      <h2>Los doce clanes</h2>
       <p class="solo-raton">Pasa el ratón por la baraja para sacar una carta. Haz clic para ver su plantilla.</p>
       <p class="solo-tactil">Desliza para ver las cartas y toca una para ver su plantilla.</p>
     </div>
     <div class="baraja" role="list"></div>
+    <!-- Equipos Legacy: de la organización, pero apartados de la competición -->
+    <div class="legado" hidden></div>
   </section>
 
   <section id="formato" class="formato">
     <div class="cabecera-seccion">
       <h2>El camino al trono</h2>
-      <p>Diez de los trece clanes juegan la temporada. Así se decide quién reina.</p>
+      <p>Diez de los doce clanes juegan la temporada. Así se decide quién reina.</p>
     </div>
     <ol class="camino">
       <li>
@@ -170,6 +172,7 @@
       <div>
         <h3 id="ficha-nombre"></h3>
         <p class="ficha-lema"></p>
+        <span class="etiqueta-legacy" hidden>Legacy</span>
       </div>
       <span class="ficha-kanji" aria-hidden="true"></span>
     </div>
