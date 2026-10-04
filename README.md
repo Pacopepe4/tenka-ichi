@@ -262,7 +262,7 @@ Van en `data-proyecto/cartas-legacy.json`:
 
 ```json
 [
-  { "id": "LEGACY-GATTSU", "nombre": "GATTSU", "subtitulo": "DEMON", "clan": "AMATERATSU" }
+  { "id": "LEGACY-GAATSU", "nombre": "GAATSU", "subtitulo": "DEMON", "clan": "AMATERATSU" }
 ]
 ```
 
