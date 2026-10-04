@@ -8,9 +8,9 @@
 [data-estilo="a"] .azul .placa { padding: 0 34px 0 26px; clip-path: polygon(0 0, 100% 0, calc(100% - 26px) 100%, 0 100%); box-shadow: inset 8px 0 0 var(--clan, var(--azul-lado)); }
 [data-estilo="a"] .rojo .placa { padding: 0 26px 0 34px; clip-path: polygon(0 0, 100% 0, 100% 100%, 26px 100%); box-shadow: inset -8px 0 0 var(--clan, var(--rojo-lado)); }
 /* El lavado del color del clan, desde su borde hacia el centro, y su kanji grande de fondo */
-[data-estilo="a"] .placa::before { content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--clan, var(--azul-lado)) 34%, transparent) 0%, color-mix(in srgb, var(--clan, var(--azul-lado)) 10%, transparent) 45%, transparent 80%); }
-[data-estilo="a"] .rojo .placa::before { background: linear-gradient(270deg, color-mix(in srgb, var(--clan, var(--rojo-lado)) 34%, transparent) 0%, color-mix(in srgb, var(--clan, var(--rojo-lado)) 10%, transparent) 45%, transparent 80%); }
+[data-estilo="a"] .placa::before { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .34;
+  background: linear-gradient(90deg, var(--clan, var(--azul-lado)) 0%, transparent 80%); }
+[data-estilo="a"] .rojo .placa::before { background: linear-gradient(270deg, var(--clan, var(--rojo-lado)) 0%, transparent 80%); }
 [data-estilo="a"] .placa .kanji-fondo { top: -14px; font-size: 96px; color: var(--clan, var(--hai)); opacity: .14; }
 [data-estilo="a"] .azul .placa .kanji-fondo { left: 96px; }
 [data-estilo="a"] .rojo .placa .kanji-fondo { right: 96px; }
