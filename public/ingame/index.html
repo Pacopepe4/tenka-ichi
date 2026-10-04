@@ -4,9 +4,14 @@
 <meta charset="utf-8">
 <title>Overlay de partida · Tenka Ichi</title>
 <link rel="stylesheet" href="/marca.css">
+<link rel="stylesheet" href="/carta.css">
+<!-- ingame.css es lo común (estructura, animaciones, mecánica de entrada y salida); cada versión del aspecto va en su
+     archivo, acotada a [data-estilo]: A «retoque» y B «full art». Cuando se elija una, se borra el archivo de la otra -->
 <link rel="stylesheet" href="ingame.css">
+<link rel="stylesheet" href="estilo-a.css">
+<link rel="stylesheet" href="estilo-b.css">
 </head>
-<body class="oculto">
+<body class="oculto" data-estilo="a">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <!-- Trazo de pincel para los ensō de los temporizadores -->
@@ -14,9 +19,20 @@
       <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="7" result="ruido"/>
       <feDisplacementMap in="SourceGraphic" in2="ruido" scale="2.4" xChannelSelector="R" yChannelSelector="G"/>
     </filter>
+    <!-- Seigaiha (olas): el patrón de fondo de las cartas full art, en el color que le toque (currentColor) -->
+    <pattern id="seigaiha" width="40" height="20" patternUnits="userSpaceOnUse">
+      <g fill="none" stroke="currentColor" stroke-width="1.2">
+        <circle cx="20" cy="20" r="18"/><circle cx="20" cy="20" r="13"/><circle cx="20" cy="20" r="8"/><circle cx="20" cy="20" r="3"/>
+        <circle cx="0" cy="10" r="18"/><circle cx="0" cy="10" r="13"/><circle cx="0" cy="10" r="8"/><circle cx="0" cy="10" r="3"/>
+        <circle cx="40" cy="10" r="18"/><circle cx="40" cy="10" r="13"/><circle cx="40" cy="10" r="8"/><circle cx="40" cy="10" r="3"/>
+        <circle cx="20" cy="0" r="18"/><circle cx="20" cy="0" r="13"/><circle cx="20" cy="0" r="8"/><circle cx="20" cy="0" r="3"/>
+      </g>
+    </pattern>
     <symbol id="i-oro" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.2"/><circle cx="12" cy="12" r="4.2" fill="currentColor"/></symbol>
     <symbol id="i-torre" viewBox="0 0 24 24"><path d="M6 21h12l-1.6-11H7.6zM6.5 9h11V4h-2.4v2.4h-2V4h-2.2v2.4h-2V4H6.5z" fill="currentColor"/></symbol>
     <symbol id="i-larva" viewBox="0 0 24 24"><circle cx="7" cy="14" r="3.4" fill="currentColor"/><circle cx="13" cy="10" r="3.8" fill="currentColor"/><circle cx="18" cy="15" r="3" fill="currentColor"/></symbol>
+    <symbol id="i-ojo" viewBox="0 0 24 24"><path d="M12 5C6.5 5 2.6 9.3 1.5 12c1.1 2.7 5 7 10.5 7s9.4-4.3 10.5-7C21.4 9.3 17.5 5 12 5z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3.2" fill="currentColor"/></symbol>
+    <symbol id="i-espada" viewBox="0 0 24 24"><path d="M4 20l3-1 10-10 2-5-5 2L4 16z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M14 14l5 5M5 16l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
   </defs>
 </svg>
 
@@ -26,6 +42,7 @@
   <div class="marcador">
     <section class="lado azul">
       <div class="placa">
+        <span class="kanji-fondo" aria-hidden="true"></span>
         <img class="logo" alt="">
         <div class="equipo"><span class="nombre"></span><span class="kanji"></span></div>
         <span class="kills">0</span>
@@ -34,6 +51,8 @@
         <span class="dato oro"><svg><use href="#i-oro"/></svg><b></b></span>
         <span class="dato torres"><svg><use href="#i-torre"/></svg><b></b></span>
         <span class="dato larvas"><svg><use href="#i-larva"/></svg><b></b></span>
+        <!-- Los dragones del clan, como sellos: 4 huecos hasta el alma y, detrás, los ancestrales -->
+        <span class="dragones"></span>
       </div>
     </section>
 
@@ -44,11 +63,13 @@
 
     <section class="lado rojo">
       <div class="placa">
+        <span class="kanji-fondo" aria-hidden="true"></span>
         <span class="kills">0</span>
         <div class="equipo"><span class="nombre"></span><span class="kanji"></span></div>
         <img class="logo" alt="">
       </div>
       <div class="datos">
+        <span class="dragones"></span>
         <span class="dato larvas"><svg><use href="#i-larva"/></svg><b></b></span>
         <span class="dato torres"><svg><use href="#i-torre"/></svg><b></b></span>
         <span class="dato oro"><svg><use href="#i-oro"/></svg><b></b></span>
@@ -57,27 +78,60 @@
   </div>
 
   <!-- Temporizadores de los objetivos neutrales: cuelgan del centro del marcador -->
-  <div class="temporizadores">
-    <div class="dragones-equipos"><span class="dragones azul"></span><i class="separador"></i><span class="dragones rojo"></span></div>
-    <div class="relojes"></div>
-  </div>
+  <div class="temporizadores"><div class="relojes"></div></div>
 
   <!-- Debajo de cada clan: buffs, alma o punto de alma e inhibidores caídos -->
   <div class="modulos azul"></div>
   <div class="modulos rojo"></div>
 
-  <!-- Aviso de objetivo -->
+  <!-- Aviso de objetivo, torre, primera sangre, multikill o ace -->
   <div class="aviso" hidden><img class="aviso-logo" alt=""><div class="aviso-texto"><b class="aviso-quien"></b><span class="aviso-que"></span></div></div>
+
+  <!-- Resumen de pelea: el marcador de la pelea por clan y, si lo hay, quien hizo dos asesinatos o más -->
+  <div class="pelea" hidden>
+    <small class="pelea-titulo">Resumen de pelea</small>
+    <div class="pelea-marcador">
+      <img class="pelea-logo azul" alt=""><b class="pelea-cifra azul">0</b><span class="pelea-raya">–</span><b class="pelea-cifra rojo">0</b><img class="pelea-logo rojo" alt="">
+    </div>
+    <span class="pelea-destacado"></span>
+  </div>
   </div>
 
   <!-- Línea por línea: lo saca el panel -->
   <section class="lineas" hidden>
     <header class="lineas-cabeza">
       <div class="equipo azul"><img class="logo" alt=""><b class="nombre"></b></div>
-      <img class="sol" src="/marca/tenka-ichi-cuadro.png" alt="Tenka Ichi">
+      <!-- En medio: el rótulo de los puntos provisionales a cada lado del logo de Tenka Ichi -->
+      <div class="lineas-centro"><small class="rotulo-pts">pts ≈</small><img class="sol" src="/marca/tenka-ichi-cuadro.png" alt="Tenka Ichi"><small class="rotulo-pts">pts ≈</small></div>
       <div class="equipo rojo"><b class="nombre"></b><img class="logo" alt=""></div>
     </header>
     <div class="filas"></div>
+  </section>
+
+  <!-- Ficha de un jugador: su carta del gachapon (o el retrato de su campeón) y sus números. La saca el panel -->
+  <section class="ficha" hidden>
+    <div class="ficha-carta"></div>
+    <div class="ficha-datos">
+      <div class="ficha-cabeza">
+        <img class="ficha-logo" alt="">
+        <div class="ficha-quien"><b class="ficha-nombre"></b><span class="ficha-rol"></span></div>
+        <img class="ficha-campeon" alt="">
+      </div>
+      <div class="ficha-cifras"></div>
+      <div class="ficha-objetos"></div>
+      <div class="ficha-puntos"><small>Puntos del fantasy ≈</small><b></b></div>
+    </div>
+  </section>
+
+  <!-- Gráfica de oro: la diferencia estimada (azul menos rojo) desde el principio. La saca el panel -->
+  <section class="grafica" hidden>
+    <header class="grafica-cabeza">
+      <div class="equipo azul"><img class="logo" alt=""><b class="nombre"></b></div>
+      <div class="grafica-titulo"><b>Diferencia de oro</b><small>oro estimado ≈</small></div>
+      <div class="equipo rojo"><b class="nombre"></b><img class="logo" alt=""></div>
+    </header>
+    <svg class="grafica-svg" viewBox="0 0 1000 300" preserveAspectRatio="none" aria-hidden="true"></svg>
+    <div class="grafica-eje"></div>
   </section>
 </div>
 <script type="module" src="ingame.js"></script>
