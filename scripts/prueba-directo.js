@@ -65,7 +65,8 @@ const alta = (id, usuario, sobres) => ({ fecha: '2026-10-01T09:00:00.000Z', id, 
 const equipo = lista => ROLES.map((r, i) => `${lista[i]}-${r}`);
 const coleccionistas = [['prueba-koryu', 'Koryu', equipo([A, A, B, B, C])], ['prueba-izakaya', 'Izakaya', equipo([C, C, C, A, B])], ['prueba-budoka', 'Budoka', equipo([B, B, A, C, A])]];
 const gacha = coleccionistas.flatMap(([id, nombre, cartas]) => [alta(id, nombre, id === 'prueba-koryu' ? 6 : 2), ...cartas.flatMap(c => carta(id, nombre, c))]);
-gacha.push(...carta('prueba-koryu', 'Koryu', `${A}-TOP`, 3), ...carta('prueba-koryu', 'Koryu', `${B}-ADC`, 2), ...carta('prueba-koryu', 'Koryu', `${C}-TOP`, 3));
+// Koryu tiene además una LEGACY (si están en el proyecto), para verla en el álbum sin esperar a que toque
+gacha.push(...carta('prueba-koryu', 'Koryu', 'LEGACY-GAATSU'), ...carta('prueba-koryu', 'Koryu', `${A}-TOP`, 3), ...carta('prueba-koryu', 'Koryu', `${B}-ADC`, 2), ...carta('prueba-koryu', 'Koryu', `${C}-TOP`, 3));
 const alineaciones = coleccionistas.map(([id, usuario, cartas]) => ({ fecha: '2026-10-02T10:00:00.000Z', id, usuario,
   slots: { ...Object.fromEntries(ROLES.map((r, i) => [r, cartas[i]])), boosts: [null, null] } }));
 
@@ -82,8 +83,12 @@ await Promise.all([escribir('plantillas.json', plantillas), escribir('tierlist.j
 
 // Nada de la hoja de Google, de Discord ni del canal de Twitch reales
 for (const k of Object.keys(process.env)) if (/^(GOOGLE_|TWITCH_|DISCORD_|RENDER)/.test(k)) delete process.env[k];
-Object.assign(process.env, { PORT: puerto, CARPETA_DATOS: carpeta, ARCHIVO_PLANTILLAS: path.join(carpeta, 'plantillas.json'), ESPERA_VISTA_MS: process.env.ESPERA_VISTA_MS || '3000' });
+// En la demo, la carta extra LEGACY sale en la mitad de los sobres para poder verla (en la web de verdad, en un 3 %),
+// y salen todas aunque aún no tengan su dibujo (en la web de verdad, una LEGACY sin dibujo no existe)
+Object.assign(process.env, { PORT: puerto, CARPETA_DATOS: carpeta, ARCHIVO_PLANTILLAS: path.join(carpeta, 'plantillas.json'), ESPERA_VISTA_MS: process.env.ESPERA_VISTA_MS || '3000',
+  PROBABILIDAD_LEGACY: process.env.PROBABILIDAD_LEGACY || '0.5', LEGACY_SIN_DIBUJO: process.env.LEGACY_SIN_DIBUJO || '1' });
 
 console.log(`Liga de prueba en ${carpeta}: ${clanes.join(', ')}, ${registro.length} partidas`);
 console.log(`Entra en el gachapon sin Discord: http://localhost:${puerto}/auth/prueba?nombre=Koryu`);
+console.log('En esta demo, la carta extra LEGACY sale en la mitad de los sobres (en la web de verdad, en un 3 %) y aunque no tenga dibujo.');
 await import('../server/index.js');

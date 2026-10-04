@@ -73,3 +73,10 @@
 .carta-g.fullart .cantidad { right: 8cqw; bottom: 8cqw; font-size: 6cqw; }
 .carta-g.fullart.falta::after { border-color: #6B665E; }
 .carta-g.fullart.falta .pie::before, .carta-g.fullart.falta .nick, .carta-g.fullart.falta .rol, .carta-g.fullart.falta .bonus { color: var(--hai); }
+
+/* ---------- Cartas LEGACY ----------
+   Los jugadores del equipo Legacy: de colección, salen de vez en cuando como carta extra de un sobre. Mismo trato que
+   las S+ a carta completa, con «LEGACY» en una placa de oro en lugar del sello de la tier y, debajo del nombre, solo
+   su título: ni estrellas ni multiplicador. Mientras no tengan su dibujo vertical, llevan el que haya, recortado. */
+.carta-g.fullart[data-tier="LEGACY"] .rareza { width: auto; height: 9cqw; padding: 0 3.2cqw 0 3.8cqw; font-size: 4.4cqw; letter-spacing: .6cqw; color: var(--sumi); transform: rotate(-3deg); }
+.carta-g.fullart.legacy .arte { object-position: 50% 30%; }

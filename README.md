@@ -63,7 +63,7 @@ Lema, descripción y jugadores de cada clan están en `data-proyecto/plantillas.
 Un equipo **Legacy** es de la organización y lo conserva todo (logo, arte, lema, descripción y plantilla), pero está apartado de la competición de Tenka Ichi. Ahora mismo lo es **Amateratsu** (`legacy: true` en `server/clanes.js`; `enCompeticion` dice quién compite). En la práctica:
 
 - En la portada sale debajo de la baraja, con la etiqueta «Legacy», y su ficha dice que está fuera de la competición.
-- No entra en el sorteo del calendario (ni en el panel ni en el servidor) ni en la tier list, así que sus jugadores no tienen carta en el gachapon ni puntúan en el fantasy, y tampoco sale en la imagen de la tier list de Discord.
+- No entra en el sorteo del calendario (ni en el panel ni en el servidor) ni en la tier list, así que sus jugadores no tienen carta de Jugador ni puntúan en el fantasy, y tampoco sale en la imagen de la tier list de Discord. Lo que tienen son las **cartas LEGACY**, de colección (apartado «Cartas LEGACY» del gachapon), que se ven también en su ficha.
 - En el panel se puede seguir eligiendo para el overlay (un amistoso o una exhibición) y se puede guardar su plantilla.
 
 Para que otro clan pase a Legacy (o vuelva a competir) basta con poner o quitar `legacy: true` en su línea de `server/clanes.js`; los textos de la portada que cuentan los clanes («Los doce clanes», «Doce clanes, un solo reino» y «Diez de los doce clanes») están escritos a mano en `public/index.html`.
@@ -130,7 +130,7 @@ scripts/prueba-directo.js   la web con una liga de prueba ya empezada, para ver 
 test/                  pruebas (npm test)
 diseno/marcos/         marcos de las cartas: generador SVG, exportador a PNG y WebP, y los diseños guardados
 puente/                puente del PC del espectador (PowerShell) y su LEEME
-data-proyecto/         plantillas.json y cartas-boost.json (van en el repositorio)
+data-proyecto/         plantillas.json, cartas-boost.json, cartas-legacy.json y campeones-cartas.json (van en el repositorio)
 public/index.html      portada pública (inicio.css, inicio.js)
 public/panel/          panel de producción
 public/overlay/        overlay para OBS
@@ -232,6 +232,8 @@ Se edita en el panel, apartado **Tier list**: cada jugador (por su puesto en la 
 - **Jugador:** los jugadores de la liga, con la rareza de su tier en la tier list (S, A, B, C; la D sigue funcionando mientras exista en la tier list).
 - **BOOST:** personajes de fuera de los clanes, de tier **S+**, S, A o B (abajo). No tienen clan ni rol, así que no se alinean en el fantasy.
 
+Aparte están las **LEGACY** (abajo): no salen entre las tres cartas; de vez en cuando un sobre trae una de regalo, como carta extra.
+
 En el sorteo cada carta pesa según su tier, sea de la clase que sea: S+ 0,5, S 1, A 3, B 6, C 10 y D 15 (una S sale 15 veces menos que una D; una S+, el doble de poco que una S). La página enseña las probabilidades reales, que dependen de cuántas cartas hay en cada tier. Los pesos se cambian en `PESOS` de `server/gacha.js`. Dentro de un mismo sobre no sale dos veces la misma carta.
 
 Más sobres, sin Twitch ni ser afiliado:
@@ -251,6 +253,22 @@ Van en `data-proyecto/cartas-boost.json` (de momento vacío):
 ```
 
 El `id` es el nombre del dibujo (mayúsculas, números y guiones) y `tier` es `S+`, `S`, `A` o `B`. El `subtitulo` sale en la caja de texto de la carta, donde las de Jugador llevan el rol y el clan. Con `"activa": false` deja de salir en los sobres y en el álbum (lo que ya se abrió sigue en el registro de la hoja). Qué hace cada BOOST en el fantasy está por decidir.
+
+### Cartas LEGACY
+
+Los jugadores del equipo Legacy (Amateratsu). Son **de colección**: no se alinean en el fantasy ni sirven de BOOST, y no están entre las tres cartas del sobre. De vez en cuando (un **3 %** de los sobres; `PROBABILIDAD_LEGACY`, de 0 a 1) un sobre trae, además de sus tres cartas, una LEGACY de regalo: sale la última, con el aviso «Carta extra». Se pintan como las S+ a carta completa, con «LEGACY» en una placa de oro en lugar del sello de la tier y, debajo del nombre, solo su título (ni estrellas ni multiplicador); igual en la web que en las imágenes de Discord. Van las primeras en el álbum y las repetidas se funden como las demás.
+
+Van en `data-proyecto/cartas-legacy.json`:
+
+```json
+[
+  { "id": "LEGACY-GAATSU", "nombre": "GAATSU", "subtitulo": "DEMON", "clan": "AMATERATSU" }
+]
+```
+
+`subtitulo` es el título de la carta y `clan` tiene que ser un equipo Legacy (pone su emblema y la carta sale en su ficha de la portada). Con `"activa": false` la carta queda guardada sin salir: así está la de Dextyle, a la espera de su campeón.
+
+**Una LEGACY no existe hasta que tiene su dibujo**, el vertical de 1000×1400 en `public/cartas/fullart/<ID>.webp`. Mientras falte no sale en los sobres, en el álbum ni en la ficha del equipo, así nunca se ve con el splash de Riot; en cuanto se sube, entra sola. Para verlas antes de tener los dibujos, `npm run prueba-directo` las enseña con el splash de su campeón (`LEGACY_SIN_DIBUJO=1`) y saca la carta extra en la mitad de los sobres.
 
 ### Dibujos, marcos y reverso
 

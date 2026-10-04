@@ -1,6 +1,8 @@
-// Gachapon de Tenka Ichi. Dos clases de carta:
+// Gachapon de Tenka Ichi. Tres clases de carta:
 // - Jugador: los jugadores de la liga, con la rareza de su tier en la tier list (S, A, B, C y D).
 // - BOOST: personajes de fuera de los clanes, de tier S+, S, A o B (data-proyecto/cartas-boost.json).
+// - LEGACY: los jugadores del equipo Legacy (data-proyecto/cartas-legacy.json). No están entre las tres cartas del
+//   sobre: de vez en cuando un sobre trae, además, una LEGACY de regalo. Son de colección: no sirven en el fantasy.
 // Cuanto mejor es la tier, menos peso tiene en el sorteo y más difícil es que salga.
 // Todo se guarda como un registro de movimientos (altas, canjes, regalos, aperturas y cartas) en la
 // pestaña «Gachapon» de Google Sheets; el estado de cada coleccionista se reconstruye leyéndolo.
@@ -9,6 +11,7 @@ import { readFile, writeFile, mkdir, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { vistaTierlist } from './tierlist.js';
+import { CLANES } from './clanes.js';
 import { hojaActiva, asegurarPestana, leer, anadir } from './sheets.js';
 import { archivoDatos } from './datos.js';
 
@@ -121,6 +124,34 @@ function bonusBoost(e) {
     : null;
 }
 
+// ---------- cartas LEGACY ----------
+// Los jugadores del equipo Legacy (el que está apartado de la competición, server/clanes.js). No son de las que salen
+// normalmente: quedan fuera del sorteo de las tres cartas y, en una parte muy pequeña de los sobres (PROBABILIDAD_LEGACY),
+// sale una de regalo como carta extra. No sirven en el fantasy (ni se alinean ni dan bonus): son de colección. Se pintan
+// como las S+ «full art», con «LEGACY» en el sello y solo su título debajo del nombre.
+// data-proyecto/cartas-legacy.json: [{ "id": "LEGACY-NOMBRE", "nombre": "…", "subtitulo": "…", "clan": "AMATERATSU", "activa": true }]
+// Una LEGACY no existe hasta que tiene su dibujo vertical (public/cartas/fullart/ID.webp): nunca sale con el splash de
+// Riot. En cuanto se sube el dibujo, entra sola. LEGACY_SIN_DIBUJO=1 las deja salir sin él (lo usa la demo).
+export const TIER_LEGACY = 'LEGACY';
+const LEGACY_SIN_DIBUJO = /^(1|si|sí|true)$/i.test(process.env.LEGACY_SIN_DIBUJO || '');
+const probabilidadDe = v => (v == null || v === '' || !Number.isFinite(Number(v)) ? 0.03 : Math.max(0, Math.min(1, Number(v))));
+export const PROBABILIDAD_LEGACY = probabilidadDe(process.env.PROBABILIDAD_LEGACY);   // parte de los sobres que traen una LEGACY de regalo
+const ARCHIVO_LEGACY = process.env.ARCHIVO_LEGACY
+  ? path.resolve(process.env.ARCHIVO_LEGACY) : path.join(RAIZ, 'data-proyecto', 'cartas-legacy.json');
+let legacy = [];
+async function cargarLegacy() {
+  let lista = [];
+  try { lista = JSON.parse(await readFile(ARCHIVO_LEGACY, 'utf8')); }
+  catch (e) { if (e.code !== 'ENOENT') console.error('No se pudieron leer las cartas LEGACY:', e.message); }
+  const ocupados = new Set([...vistaTierlist().jugadores.map(j => j.id), ...boosts.map(b => b.id)]);
+  legacy = (Array.isArray(lista) ? lista : [])
+    .filter(e => e?.id && e?.nombre && e.activa !== false)
+    .map(e => ({ id: String(e.id).trim().toUpperCase().replace(/[^A-Z0-9-]+/g, '-'), nombre: String(e.nombre), tier: TIER_LEGACY,
+      subtitulo: e.subtitulo ? String(e.subtitulo) : 'Legacy', clan: CLANES.some(c => c.id === e.clan && c.legacy) ? e.clan : null,
+      rol: null, tipo: 'legacy', bonus: null }))
+    .filter((e, i, todas) => !ocupados.has(e.id) && todas.findIndex(x => x.id === e.id) === i);
+}
+
 let boosts = [];
 async function cargarBoosts() {
   let lista = [];
@@ -184,6 +215,7 @@ async function indiceImagenes(carpeta, prefijo) {
 
 async function cargarCartas() {
   await Promise.all([cargarBoosts(), cargarCampeones()]);
+  await cargarLegacy();
   const carpeta = path.join(CARPETA_ARTE, 'marcos');
   const [a, full, jugador, boost, sueltos] = await Promise.all([indiceImagenes(CARPETA_ARTE, '/cartas/'),
     indiceImagenes(path.join(CARPETA_ARTE, 'fullart'), '/cartas/fullart/'),
@@ -208,8 +240,9 @@ export const reversoCarta = () => reverso;
 // ---------- cartas y probabilidades ----------
 export function catalogo() {
   const jugadores = vistaTierlist().jugadores.filter(j => j.nombre && j.tier).map(j => ({ ...j, tipo: 'jugador' }));
-  return [...boosts, ...jugadores].map(c => ({ ...c, campeon: campeones.get(c.id) || null }))
-    .map(c => ({ ...c, arte: arteDe(c), fullart: completas.get(c.id) || null, marco: marcoDe(c), peso: PESOS[c.tier] }));
+  // Las LEGACY pesan 0: no entran en el sorteo de las tres cartas del sobre. Y solo cuentan las que ya tienen su dibujo
+  return [...legacy.filter(c => LEGACY_SIN_DIBUJO || completas.has(c.id)), ...boosts, ...jugadores].map(c => ({ ...c, campeon: campeones.get(c.id) || null }))
+    .map(c => ({ ...c, arte: arteDe(c), fullart: completas.get(c.id) || null, marco: marcoDe(c), peso: c.tipo === 'legacy' ? 0 : PESOS[c.tier] }));
 }
 
 // Probabilidad de que una carta cualquiera del sobre sea de cada tier
@@ -239,6 +272,13 @@ export function sacarSobre(cat, cuantas = CARTAS_POR_SOBRE) {
   return cartas;
 }
 
+// La carta extra: en una parte muy pequeña de los sobres sale, además de las tres, una LEGACY al azar
+const azarSeguro = () => crypto.randomInt(MAXIMO_AZAR) / MAXIMO_AZAR;
+export function sacarLegacy(especiales, probabilidad = PROBABILIDAD_LEGACY, azar = azarSeguro) {
+  if (!especiales.length || !(azar() < probabilidad)) return null;
+  return especiales[Math.min(especiales.length - 1, Math.floor(azar() * especiales.length))];
+}
+
 // ---------- operaciones ----------
 // Los sobres de bienvenida se dan una vez, aunque antes le hayan regalado sobres o haya canjeado puntos
 export const darAlta = u => enCola(async () => {
@@ -255,9 +295,11 @@ export const darSobres = (u, cantidad, tipo, detalle = '') => enCola(async () =>
 export const abrirSobre = u => enCola(async () => {
   const yo = usuarios.get(u.id);
   if (!yo || yo.sobres < 1) throw new Error('No te quedan sobres');
-  const cat = catalogo();
-  if (!cat.length) throw new Error('Todavía no hay cartas: el staff tiene que poner la tier de los jugadores');
-  const cartas = sacarSobre(cat);
+  const cat = catalogo(), normales = cat.filter(c => c.tipo !== 'legacy');
+  if (!normales.length) throw new Error('Todavía no hay cartas: el staff tiene que poner la tier de los jugadores');
+  const cartas = sacarSobre(normales);
+  const regalo = sacarLegacy(cat.filter(c => c.tipo === 'legacy'));
+  if (regalo) cartas.push({ ...regalo, extra: true });
   const fecha = ahora(), sobre = crypto.randomUUID().slice(0, 8);
   await registrar([
     { fecha, id: u.id, usuario: u.nombre, tipo: 'apertura', detalle: sobre, cantidad: -1 },
@@ -315,5 +357,7 @@ export function buscarUsuario(nombre) {
 export function resumenGacha() {
   let abiertos = 0, sobres = 0;
   for (const u of usuarios.values()) { abiertos += u.abiertos; sobres += u.sobres; }
-  return { coleccionistas: usuarios.size, sobresAbiertos: abiertos, sobresSinAbrir: sobres, cartas: catalogo().length };
+  const cat = catalogo();
+  return { coleccionistas: usuarios.size, sobresAbiertos: abiertos, sobresSinAbrir: sobres,
+    cartas: cat.filter(c => c.tipo !== 'legacy').length, legacy: cat.filter(c => c.tipo === 'legacy').length };
 }

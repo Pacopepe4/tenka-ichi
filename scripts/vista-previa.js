@@ -38,7 +38,7 @@ await writeFile(path.join(carpeta, 'boosts.json'), JSON.stringify([
 // Nada de la hoja de Google ni del canal de Twitch reales
 for (const k of Object.keys(process.env)) if (/^(GOOGLE_|TWITCH_|RENDER)/.test(k)) delete process.env[k];
 Object.assign(process.env, { PORT: puerto, CARPETA_DATOS: carpeta, ARCHIVO_PLANTILLAS: path.join(carpeta, 'plantillas.json'),
-  ARCHIVO_BOOSTS: path.join(carpeta, 'boosts.json'), ...(cartas ? { CARPETA_CARTAS: path.resolve(cartas) } : {}) });
+  ARCHIVO_BOOSTS: path.join(carpeta, 'boosts.json'), ARCHIVO_LEGACY: path.join(carpeta, 'legacy.json'), ...(cartas ? { CARPETA_CARTAS: path.resolve(cartas) } : {}) });
 
 console.log(`Vista previa con datos inventados en ${carpeta}`);
 console.log(`Entra sin Twitch: http://localhost:${puerto}/auth/prueba?nombre=Ana`);

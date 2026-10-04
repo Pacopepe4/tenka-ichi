@@ -113,11 +113,19 @@ function abrirFicha(c) {
   }).join('');
   ficha.querySelectorAll('.ver-carta').forEach(b => b.addEventListener('click', () => abrirCarta(b.dataset.id)));
   // Los campeones que más juega el clan, cuando ya ha jugado
-  const cajaCampeones = ficha.querySelector('.ficha-campeones');
-  cajaCampeones.innerHTML = '';
+  const cajaCampeones = ficha.querySelector('.ficha-campeones'), cajaLegacy = ficha.querySelector('.ficha-legacy');
+  cajaCampeones.innerHTML = cajaLegacy.innerHTML = '';
   if (!simulacion) {
     fetch(`/api/clan?id=${c.id}`).then(r => (r.ok ? r.json() : null)).then(d => {
-      if (!d?.partidas || ficha.querySelector('#ficha-nombre').textContent !== c.nombre) return;
+      if (!d || ficha.querySelector('#ficha-nombre').textContent !== c.nombre) return;
+      // Las cartas LEGACY del equipo: de colección, salen de vez en cuando como carta extra de un sobre
+      if (d.cartas?.length) {
+        cajaLegacy.innerHTML = '<h4>Cartas Legacy</h4>' + d.cartas.map((x, i) =>
+          `<button type="button" class="carta-legacy" data-i="${i}" aria-label="Ver la carta de ${escapar(x.nombre)}">${cartaHTML(x, { nombreClan: nombre })}</button>`).join('')
+          + '<p>De colección: salen de vez en cuando como carta extra de un sobre del gachapon.</p>';
+        cajaLegacy.querySelectorAll('.carta-legacy').forEach(b => b.addEventListener('click', () => abrirCartaLegacy(d.cartas[Number(b.dataset.i)])));
+      }
+      if (!d.partidas) return;
       // Sin calendario sorteado no hay puesto en la liguilla, pero sí su balance
       if (!fila?.jugadas) {
         ficha.querySelector('.ficha-record').textContent = `${d.victorias} ${d.victorias === 1 ? 'victoria' : 'victorias'} y ${d.derrotas} ${d.derrotas === 1 ? 'derrota' : 'derrotas'} en Tenka Ichi.`;
@@ -291,6 +299,18 @@ async function abrirCarta(id) {
     ? j.campeones.map(x => `<li><img src="${icono(x.id)}" alt=""><span><b>${escapar(campeones.nombre(x.id))}</b>
         <small>${x.partidas} ${x.partidas === 1 ? 'partida' : 'partidas'}, ${x.victorias}–${x.derrotas}${x.kda ? ` · KDA ${cifra(x.kda.ratio)}` : ''}</small></span></li>`).join('')
     : '<li class="vacio">Aún no ha jugado en Tenka Ichi.</li>';
+  if (!fichaCarta.open) fichaCarta.showModal();
+}
+
+// Una carta LEGACY: no tiene números de la liga, es de colección
+function abrirCartaLegacy(x) {
+  fichaCarta.style.setProperty('--color', clan(x.clan).color);
+  fichaCarta.querySelector('.ficha-carta-carta').innerHTML = cartaHTML(x, { nombreClan: nombre });
+  fichaCarta.querySelector('#carta-nombre').textContent = x.nombre;
+  fichaCarta.querySelector('.ficha-carta-quien').textContent = `Carta Legacy · ${x.subtitulo}`;
+  fichaCarta.querySelector('.ficha-carta-datos').innerHTML = '';
+  fichaCarta.querySelector('h4').hidden = true;
+  fichaCarta.querySelector('.ficha-carta-campeones').innerHTML = `<li class="vacio">Carta de colección de ${escapar(nombre(x.clan))}, el equipo Legacy de Koryu Budo. No está entre las cartas normales de los sobres: de vez en cuando sale una de regalo, como carta extra. No se alinea en el fantasy.</li>`;
   if (!fichaCarta.open) fichaCarta.showModal();
 }
 

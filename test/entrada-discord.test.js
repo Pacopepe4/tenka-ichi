@@ -29,7 +29,8 @@ async function lanzar(extra = {}) {
     env: { ...entorno, PORT: String(puerto), PANEL_CLAVE: CLAVE, SESION_SECRETO: 'secreto-de-las-pruebas',
       CARPETA_DATOS: carpeta, ARCHIVO_PLANTILLAS: path.join(carpeta, 'plantillas.json'),
       // Sin las BOOST ni los campeones del proyecto: las cartas que salen son de jugador
-      ARCHIVO_BOOSTS: path.join(carpeta, 'boosts.json'), ARCHIVO_CAMPEONES: path.join(carpeta, 'campeones.json'), ...extra },
+      ARCHIVO_BOOSTS: path.join(carpeta, 'boosts.json'), ARCHIVO_CAMPEONES: path.join(carpeta, 'campeones.json'),
+      ARCHIVO_LEGACY: path.join(carpeta, 'legacy.json'), ...extra },   // sin las LEGACY del proyecto: los sobres traen siempre tres cartas
   });
   proceso.stderr.on('data', d => { if (process.env.VER_WEB) process.stderr.write(d); });
   for (let i = 0; i < 60; i++) {

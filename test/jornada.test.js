@@ -93,7 +93,8 @@ before(async () => {
   web = spawn(process.execPath, ['server/index.js'], { cwd: RAIZ, stdio: ['ignore', 'pipe', 'pipe'],
     env: { ...entorno, PORT: String(puerto), PANEL_CLAVE: CLAVE, SESION_SECRETO: 'secreto-de-las-pruebas', ESPERA_VISTA_MS: '200',
       CARPETA_DATOS: carpeta, ARCHIVO_PLANTILLAS: path.join(carpeta, 'plantillas.json'),
-      ARCHIVO_BOOSTS: path.join(carpeta, 'boosts.json'), ARCHIVO_CAMPEONES: path.join(carpeta, 'campeones.json') } });
+      ARCHIVO_BOOSTS: path.join(carpeta, 'boosts.json'), ARCHIVO_CAMPEONES: path.join(carpeta, 'campeones.json'),
+      ARCHIVO_LEGACY: path.join(carpeta, 'legacy.json') } });
   web.stderr.on('data', d => { if (process.env.VER_WEB) process.stderr.write(d); });
   for (let i = 0; i < 60; i++) {
     try { if ((await fetch(`${urlWeb}/salud`)).ok) break; } catch {}

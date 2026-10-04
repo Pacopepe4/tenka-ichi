@@ -1,0 +1,33 @@
+[
+ {
+  "id": "LEGACY-GAATSU",
+  "nombre": "GAATSU",
+  "subtitulo": "DEMON",
+  "clan": "AMATERATSU"
+ },
+ {
+  "id": "LEGACY-DEXTYLE",
+  "nombre": "DEXTYLE",
+  "subtitulo": "JUNGAP",
+  "clan": "AMATERATSU",
+  "activa": false
+ },
+ {
+  "id": "LEGACY-MAKITAH",
+  "nombre": "MAKITAH",
+  "subtitulo": "EL TITIRITERO",
+  "clan": "AMATERATSU"
+ },
+ {
+  "id": "LEGACY-D4DT0R",
+  "nombre": "D4DT0R",
+  "subtitulo": "THEBEAST",
+  "clan": "AMATERATSU"
+ },
+ {
+  "id": "LEGACY-SERGI",
+  "nombre": "SERGI",
+  "subtitulo": "THE ENGAGE",
+  "clan": "AMATERATSU"
+ }
+]

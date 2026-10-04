@@ -16,7 +16,7 @@ import { estadoHoja } from './sheets.js';
 import { cargarTierlist, vistaTierlist, ponerTier } from './tierlist.js';
 import { cargarAjustes } from './ajustes.js';
 import { cargarGacha, catalogo, probabilidades, abrirSobre, darAlta, darSobres, estadoUsuario, buscarUsuario, resumenGacha, fundirRepetidas,
-  PESOS, CARTAS_POR_SOBRE, SOBRES_INICIALES, REPETIDAS_POR_SOBRE, CARPETA_ARTE, reversoCarta } from './gacha.js';
+  PESOS, CARTAS_POR_SOBRE, SOBRES_INICIALES, REPETIDAS_POR_SOBRE, PROBABILIDAD_LEGACY, CARPETA_ARTE, reversoCarta } from './gacha.js';
 import { crearCodigo, cerrarCodigo, mostrarCodigo, estadoCodigo, codigoEnPantalla, canjearCodigo as canjearCodigoDirecto } from './codigos.js';
 import { estadoJornadas, terminarJornada, jornadasCerradas, premiosPublicos } from './jornada.js';
 import { clasificacionJornada } from './fantasy.js';
@@ -515,7 +515,7 @@ function infoGacha(u) {
   return {
     activo: loginActivo(), discord: loginDiscordActivo(), twitch: twitchActivo(), canal: CANAL,
     cartasPorSobre: CARTAS_POR_SOBRE, sobresIniciales: SOBRES_INICIALES, repetidasPorSobre: REPETIDAS_POR_SOBRE, pesos: PESOS,
-    probabilidades: probabilidades(),
+    probabilidades: probabilidades(), probabilidadLegacy: PROBABILIDAD_LEGACY,
     catalogo: catalogo().map(({ peso, ...carta }) => carta),
     publicarDiscord: discordActivo('coleccion'),
     reverso: reversoCarta(),

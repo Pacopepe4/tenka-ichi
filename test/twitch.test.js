@@ -29,7 +29,8 @@ async function arrancarWeb() {
       TWITCH_URL_ID: urlTwitch, TWITCH_URL_API: `${urlTwitch}/helix`,
       CARPETA_DATOS: carpeta, ARCHIVO_PLANTILLAS: path.join(carpeta, 'plantillas.json'),
       // Sin las BOOST ni los campeones del proyecto: la prueba alinea la primera carta que le sale y tiene que ser de jugador
-      ARCHIVO_BOOSTS: path.join(carpeta, 'boosts.json'), ARCHIVO_CAMPEONES: path.join(carpeta, 'campeones.json') },
+      ARCHIVO_BOOSTS: path.join(carpeta, 'boosts.json'), ARCHIVO_CAMPEONES: path.join(carpeta, 'campeones.json'),
+      ARCHIVO_LEGACY: path.join(carpeta, 'legacy.json') },   // sin las LEGACY del proyecto: los sobres traen siempre tres cartas
   });
   web.stderr.on('data', d => { if (process.env.VER_WEB) process.stderr.write(d); });
   for (let i = 0; i < 60; i++) {

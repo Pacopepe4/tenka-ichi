@@ -8,8 +8,8 @@ import { emblemaDe } from '/carta.js';
 const MINCHO = "'Shippori Mincho B1', 'Yu Mincho', serif";
 const GOTHIC = "'Zen Kaku Gothic New', 'Yu Gothic', 'Segoe UI', sans-serif";
 const C = { sumi: '#161412', alzado: '#221E1A', linea: '#353029', washi: '#E7DFD2', hai: '#8E8676', shu: '#BE2A2F', tinta: '#1D1A17' };
-const COLOR_TIER = { 'S+': '#9A6AD0', S: '#BE2A2F', A: '#D9A441', B: '#A9B3BC', C: '#7FA36B', D: '#8A8175' };
-const TIERS = ['S+', 'S', 'A', 'B', 'C', 'D'];
+const COLOR_TIER = { LEGACY: '#EBD28A', 'S+': '#9A6AD0', S: '#BE2A2F', A: '#D9A441', B: '#A9B3BC', C: '#7FA36B', D: '#8A8175' };
+const TIERS = ['LEGACY', 'S+', 'S', 'A', 'B', 'C', 'D'];
 const ROLES = ['TOP', 'JUNGLA', 'MEDIO', 'ADC', 'SUPPORT'];
 const ROL = { TOP: 'Top', JUNGLA: 'Jungla', MEDIO: 'Medio', ADC: 'ADC', SUPPORT: 'Support' };
 const ANCHO = 1600, MARGEN = 64, ARRIBA = 236;
@@ -92,10 +92,12 @@ const aImagen = (c, tipo = 'image/jpeg') => new Promise(ok => c.toBlob(ok, tipo,
 // Lo que cambie en un sitio se cambia en el otro en el mismo cambio: tienen que verse igual
 export async function dibujarCarta(ctx, c, x, y, w, { cantidad = 1, nombreClan = id => id } = {}) {
   const h = Math.round(w * 1.4);
-  const boost = c.tipo === 'boost';
-  const quien = boost ? (c.subtitulo || 'Boost') : `${ROL[c.rol] || c.rol} de ${nombreClan(c.clan)}`;
-  // Las «full art» van a carta completa, como en la web; si su dibujo no carga, salen con su marco de siempre
-  const [arte, marco, emblema, completa] = await Promise.all([imagen(c.arte), imagen(c.marco), imagen(emblemaDe(c)), imagen(c.fullart)]);
+  const boost = c.tipo === 'boost', legado = c.tipo === 'legacy';
+  const quien = boost || legado ? (c.subtitulo || (legado ? 'Legacy' : 'Boost')) : `${ROL[c.rol] || c.rol} de ${nombreClan(c.clan)}`;
+  // Las «full art» van a carta completa, como en la web; si su dibujo no carga, salen con su marco de siempre.
+  // Las LEGACY van siempre a carta completa: con su dibujo vertical o, mientras no lo tengan, con el que haya
+  const [arte, marco, emblema, vertical] = await Promise.all([imagen(c.arte), imagen(c.marco), imagen(emblemaDe(c)), imagen(c.fullart)]);
+  const completa = vertical || (legado ? arte : null);
   ctx.save();
   ctx.beginPath();
   ctx.roundRect(x, y, w, h, w * 0.04);
@@ -103,7 +105,7 @@ export async function dibujarCarta(ctx, c, x, y, w, { cantidad = 1, nombreClan =
   ctx.fillStyle = C.sumi;
   ctx.fillRect(x, y, w, h);
   if (completa) {
-    dibujarCompleta(ctx, c, { x, y, w, h, completa, emblema, quien, cantidad });
+    dibujarCompleta(ctx, c, { x, y, w, h, completa, emblema, quien, cantidad, alto: vertical ? 0.5 : 0.3 });
   } else if (marco) {
     // Con marco: el dibujo en su ventana y los textos en tinta sobre las placas de papel
     if (arte) cubrir(ctx, arte, x + w * 0.125, y + h * 0.2014, w * 0.75, h * 0.5357);
@@ -138,11 +140,13 @@ export async function dibujarCarta(ctx, c, x, y, w, { cantidad = 1, nombreClan =
 // las estrellas, el nombre, lo que hace y el multiplicador abajo, en claro sobre el dibujo
 const ORO_CARTA = '#EBD28A', CLARO_CARTA = '#F5EFE2';
 const ESTRELLAS = { 'S+': 6, S: 5, A: 4, B: 3 };
-function dibujarCompleta(ctx, c, { x, y, w, h, completa, emblema, quien, cantidad }) {
+function dibujarCompleta(ctx, c, { x, y, w, h, completa, emblema, quien, cantidad, alto = 0.5 }) {
   const u = w / 100;
   const sombra = (desenfoque, opacidad) => { ctx.shadowColor = `rgba(0, 0, 0, ${opacidad})`; ctx.shadowBlur = desenfoque * u; ctx.shadowOffsetY = desenfoque * u / 3; };
   const sinSombra = () => { ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0; };
-  cubrir(ctx, completa, x, y, w, h);
+  // Como object-fit: cover con object-position: 50% alto (las LEGACY sin dibujo vertical miran algo más arriba)
+  const escala = Math.max(w / completa.naturalWidth, h / completa.naturalHeight), sw = w / escala, sh = h / escala;
+  ctx.drawImage(completa, (completa.naturalWidth - sw) / 2, (completa.naturalHeight - sh) * alto, sw, sh, x, y, w, h);
   const velo = ctx.createLinearGradient(0, y, 0, y + h);
   velo.addColorStop(0, 'rgba(22,20,18,0.62)');
   velo.addColorStop(0.18, 'rgba(22,20,18,0)');
@@ -162,17 +166,34 @@ function dibujarCompleta(ctx, c, { x, y, w, h, completa, emblema, quien, cantida
   filo(2.8, 0.8, 2.2, ORO_CARTA);
   filo(3.4, 0.4, 1.6, 'rgba(29, 26, 23, 0.55)');
 
-  // Arriba: el sello de la tier, algo girado, y el emblema
+  // Arriba: el sello de la tier, algo girado (en las LEGACY, una placa de oro con la palabra), y el emblema
   ctx.save();
-  ctx.translate(x + 12.5 * u, y + 12.5 * u);
-  ctx.rotate(-4 * Math.PI / 180);
-  sombra(2.4, 0.5);
-  ctx.fillStyle = COLOR_TIER[c.tier] || C.hai;
-  ctx.beginPath();
-  ctx.roundRect(-6.5 * u, -6.5 * u, 13 * u, 13 * u, 0.9 * u);
-  ctx.fill();
-  sinSombra();
-  texto(ctx, c.tier, 0, 0.3 * u, { fuente: `800 ${6.2 * u}px ${MINCHO}`, color: ['S', 'S+'].includes(c.tier) ? C.washi : C.sumi, alinear: 'center', base: 'middle' });
+  if (c.tier === 'LEGACY') {
+    // Las letras van espaciadas, así que se pintan una a una
+    ctx.font = `800 ${4.4 * u}px ${MINCHO}`;
+    const letras = [...'LEGACY'], espacio = 0.6 * u;
+    const largo = letras.reduce((s, l) => s + ctx.measureText(l).width + espacio, 0), ancho = largo + 7 * u, altoPlaca = 9 * u;
+    ctx.translate(x + 6 * u + ancho / 2, y + 6 * u + altoPlaca / 2);
+    ctx.rotate(-3 * Math.PI / 180);
+    sombra(2.4, 0.5);
+    ctx.fillStyle = COLOR_TIER.LEGACY;
+    ctx.beginPath();
+    ctx.roundRect(-ancho / 2, -altoPlaca / 2, ancho, altoPlaca, 0.9 * u);
+    ctx.fill();
+    sinSombra();
+    let px = -largo / 2 + espacio / 2;
+    for (const l of letras) { texto(ctx, l, px, 0.3 * u, { fuente: ctx.font, color: C.sumi, base: 'middle' }); px += ctx.measureText(l).width + espacio; }
+  } else {
+    ctx.translate(x + 12.5 * u, y + 12.5 * u);
+    ctx.rotate(-4 * Math.PI / 180);
+    sombra(2.4, 0.5);
+    ctx.fillStyle = COLOR_TIER[c.tier] || C.hai;
+    ctx.beginPath();
+    ctx.roundRect(-6.5 * u, -6.5 * u, 13 * u, 13 * u, 0.9 * u);
+    ctx.fill();
+    sinSombra();
+    texto(ctx, c.tier, 0, 0.3 * u, { fuente: `800 ${6.2 * u}px ${MINCHO}`, color: ['S', 'S+'].includes(c.tier) ? C.washi : C.sumi, alinear: 'center', base: 'middle' });
+  }
   ctx.restore();
   if (emblema) { sombra(1.2, 0.7); contener(ctx, emblema, x + w - 18.5 * u, y + 6 * u, 12.5 * u, 12.5 * u); sinSombra(); }
 
@@ -186,10 +207,10 @@ function dibujarCompleta(ctx, c, { x, y, w, h, completa, emblema, quien, cantida
   sombra(1.4, 0.95);
   renglon(11, medio => texto(ctx, c.nombre, izquierda, medio, { fuente: `800 ${10 * u}px ${MINCHO}`, color: CLARO_CARTA, base: 'middle', ancho }));
   sombra(0.8, 0.9);
-  renglon(6.4, medio => {
+  if (ESTRELLAS[c.tier]) renglon(6.4, medio => {
     ctx.font = `400 ${4 * u}px ${GOTHIC}`;
     const paso = ctx.measureText('★').width + 0.9 * u;
-    for (let i = 0; i < (ESTRELLAS[c.tier] || 0); i++) texto(ctx, '★', izquierda + i * paso, medio, { fuente: ctx.font, color: ORO_CARTA, base: 'middle' });
+    for (let i = 0; i < ESTRELLAS[c.tier]; i++) texto(ctx, '★', izquierda + i * paso, medio, { fuente: ctx.font, color: ORO_CARTA, base: 'middle' });
   });
   if (cantidad > 1) texto(ctx, `×${cantidad}`, x + w - 8 * u, y + h - 9.6 * u, { fuente: `800 ${6 * u}px ${MINCHO}`, color: CLARO_CARTA, alinear: 'right' });
   sinSombra();

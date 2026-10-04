@@ -347,3 +347,13 @@ button.ficha-tier:hover { border-color: var(--hai); transform: translateY(-1px);
   .carta.suelta .nombre { font-size: 19px; }
 }
 @media (prefers-reduced-motion: reduce) { .carta.suelta { transform: none; } }
+
+/* Las cartas LEGACY, en la ficha del equipo Legacy */
+.ficha-legacy { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px; margin-top: 16px; }
+.ficha-legacy:empty { display: none; }
+.ficha-legacy h4, .ficha-legacy p { width: 100%; margin: 0; }
+.ficha-legacy h4 { font-family: var(--gothic); font-size: 15px; font-weight: 500; color: var(--hai); }
+.ficha-legacy p { color: var(--hai); font-size: 14px; }
+.carta-legacy { flex: 0 0 88px; padding: 0; border: 0; border-radius: 8px; background: none; cursor: pointer; }
+.carta-legacy .carta-g { width: 100%; }
+.carta-legacy:hover { transform: translateY(-3px); }

@@ -50,7 +50,8 @@ before(async () => {
 
   for (const k of Object.keys(process.env)) if (/^(GOOGLE_)/.test(k)) delete process.env[k];
   Object.assign(process.env, { CARPETA_DATOS: carpeta, ARCHIVO_PLANTILLAS: path.join(carpeta, 'plantillas.json'),
-    ARCHIVO_BOOSTS: path.join(carpeta, 'boosts.json'), ARCHIVO_CAMPEONES: path.join(carpeta, 'campeones.json'), CARPETA_CARTAS: cartas });
+    ARCHIVO_BOOSTS: path.join(carpeta, 'boosts.json'), ARCHIVO_CAMPEONES: path.join(carpeta, 'campeones.json'), CARPETA_CARTAS: cartas,
+    ARCHIVO_LEGACY: path.join(carpeta, 'legacy.json') });   // sin las LEGACY del proyecto (tienen su prueba en legacy.test.js)
 
   const { cargarPlantillas } = await import('../server/plantillas.js');
   const { cargarTierlist } = await import('../server/tierlist.js');

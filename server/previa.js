@@ -171,6 +171,7 @@ export function fichaClan(id, datos) {
   const { partidas, indice, puestos } = fuentes(datos);
   const fantasy = puntosDeJugadores();
   return { clan, ...resumenClan(clan, partidas, indice, puestos),
+    cartas: catalogo().filter(c => c.tipo === 'legacy' && c.clan === clan).map(({ peso, ...c }) => c),
     jugadores: jugadores.map(j => ({ id: j.id, rol: j.rol, nombre: j.nombre, tier: j.tier, general: resumir(actuaciones(j, partidas, indice)),
       fantasy: fantasy.get(j.id) || { puntos: 0, partidas: 0 } })) };
 }

@@ -274,3 +274,15 @@ button.boton-secundario { background: transparent; font: inherit; font-weight: 7
 .opcion-fundir output { min-width: 1.4em; text-align: center; font-family: var(--mincho); font-weight: 800; font-size: 22px; font-variant-numeric: tabular-nums; }
 .opcion-fundir small { color: var(--hai); font-size: 12.5px; }
 .cuenta-fundir { margin-right: auto; align-self: center; color: var(--hai); font-size: 14px; }
+
+/* ---------- Cartas LEGACY: la carta extra del sobre ---------- */
+.volteable.extra { position: relative; }
+.aviso-extra { position: absolute; left: 50%; top: -34px; transform: translateX(-50%); padding: 3px 12px 4px; border-radius: 2px; background: var(--tier-LEGACY); color: var(--sumi);
+  font-size: 12px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; white-space: nowrap; box-shadow: 0 6px 16px rgba(0, 0, 0, .5); }
+.volteable.girada[data-tier="LEGACY"] .frente .carta-g { animation: destello-legacy 1.8s ease-out; }
+@keyframes destello-legacy { 0% { box-shadow: 0 0 0 0 rgba(235, 210, 138, .95); } 35% { box-shadow: 0 0 44px 20px rgba(235, 210, 138, .6); } 100% { box-shadow: 0 0 84px 42px rgba(235, 210, 138, 0); } }
+.volteable.girada[data-tier="LEGACY"] .frente::after { content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: 8px;
+  background: linear-gradient(115deg, transparent 28%, rgba(255, 246, 214, .85) 46%, rgba(235, 210, 138, .6) 56%, transparent 72%);
+  transform: translateX(-130%); animation: barrido 1.5s .5s ease-out forwards; }
+.prob-legacy b { color: var(--tier-LEGACY); letter-spacing: .12em; }
+@media (prefers-reduced-motion: reduce) { .volteable.girada[data-tier="LEGACY"] .frente::after, .volteable.girada[data-tier="LEGACY"] .frente .carta-g { animation: none; } }

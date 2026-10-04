@@ -92,14 +92,17 @@ function pintarProbabilidades() {
   const hayS = cuantos('S+', 'boost') > 0;
   const pS = (info.probabilidades.S || 0) + (info.probabilidades['S+'] || 0);
   // La fila de la S+ sale cuando hay cartas BOOST S+; cada fila cuenta jugadores y BOOST
-  $('.tabla-prob').innerHTML = TIERS.filter(t => t !== 'S+' || hayS).map(t => {
+  const legado = info.catalogo.filter(c => c.tipo === 'legacy').length;
+  $('.tabla-prob').innerHTML = TIERS.filter(t => t !== 'LEGACY' && (t !== 'S+' || hayS)).map(t => {
     const p = info.probabilidades[t] || 0, k = claveTier(t), j = cuantos(t, 'jugador'), b = cuantos(t, 'boost');
     const quienes = [j && plural(j, 'jugador', 'jugadores'), b && plural(b, 'BOOST', 'BOOST')].filter(Boolean).join(' y ') || '0 cartas';
     return `<div class="fila-prob" data-tier="${k}" style="--color-tier: var(--tier-${k})"><span class="letra">${t}</span>
       <span class="barra-prob"><span style="width:${(p * 100).toFixed(1)}%"></span></span>
       <span class="cifra">${pct(p)}<small>${quienes}</small></span></div>`;
   }).join('') + (info.catalogo.length
-    ? `<p class="resumen-prob">En cada sobre, la probabilidad de que salga al menos una S${hayS ? ' o una S+' : ''} es del ${pct(1 - (1 - pS) ** info.cartasPorSobre)}.</p>` : '');
+    ? `<p class="resumen-prob">En cada sobre, la probabilidad de que salga al menos una S${hayS ? ' o una S+' : ''} es del ${pct(1 - (1 - pS) ** info.cartasPorSobre)}.</p>` : '')
+    // Las LEGACY no están entre las tres del sobre: de vez en cuando sale una de regalo, como carta extra
+    + (legado && info.probabilidadLegacy ? `<p class="resumen-prob prob-legacy"><b>LEGACY.</b> Aparte de sus ${info.cartasPorSobre} cartas, el ${pct(info.probabilidadLegacy)} de los sobres trae una carta extra del equipo Legacy (hay ${legado}). Son de colección: no se alinean en el fantasy.</p>` : '');
 }
 
 // ---------- fantasy ----------
@@ -300,8 +303,9 @@ const dorso = () => (info.reverso
 function mostrarApertura(cartas) {
   const reducido = matchMedia('(prefers-reduced-motion: reduce)').matches;
   dialogo.classList.remove('cortando', 'abierto');
-  $('.reparto').innerHTML = cartas.map((c, i) => `<div class="volteable" style="--giro: ${(i - (cartas.length - 1) / 2) * 7}deg" data-tier="${claveTier(c.tier)}" tabindex="0" role="button" aria-label="Carta ${i + 1}: dale la vuelta">
-    <div class="giro">${dorso()}<div class="cara frente">${cartaHTML(c)}</div></div></div>`).join('');
+  // La carta extra (una LEGACY de regalo, muy de vez en cuando) sale la última, con su aviso encima
+  $('.reparto').innerHTML = cartas.map((c, i) => `<div class="volteable${c.extra ? ' extra' : ''}" style="--giro: ${(i - (cartas.length - 1) / 2) * 7}deg" data-tier="${claveTier(c.tier)}" tabindex="0" role="button" aria-label="${c.extra ? 'Carta extra' : `Carta ${i + 1}`}: dale la vuelta">
+    ${c.extra ? '<span class="aviso-extra">Carta extra</span>' : ''}<div class="giro">${dorso()}<div class="cara frente">${cartaHTML(c)}</div></div></div>`).join('');
   $('.descubrir').hidden = false;
   $('.otro').hidden = true;
   $('.cerrar-apertura').hidden = true;

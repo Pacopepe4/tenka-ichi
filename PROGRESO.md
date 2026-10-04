@@ -168,3 +168,14 @@ Todo está en commits locales en master; no se ha hecho push para no cambiar la 
 - La portada habla ahora de doce clanes («Los doce clanes», «Doce clanes, un solo reino», «Diez de los doce clanes juegan la temporada» y la descripción para buscadores).
 - Imágenes de Discord: las cartas full art salen a carta completa, como en la web. Norma del usuario: lo que esté en la web y en Discord se cambia en los dos sitios en el mismo cambio.
 - Pruebas: 78 (`test/clanes.test.js` nueva).
+
+## 04/10 (noche): cartas LEGACY
+
+- **Plantilla de Amateratsu:** GAATSU, DEXTYLE, MAKITAH, D4DT0R y SERGI (algunos compiten además con otro clan). En la web publicada la plantilla vive en la pestaña Plantillas de Google Sheets: hay que guardarla desde el panel.
+- **Clase nueva de carta, LEGACY** (`data-proyecto/cartas-legacy.json`, `tipo: 'legacy'`): de colección, no se alinean ni sirven de BOOST. No entran en el sorteo de las tres cartas del sobre (peso 0): en el 3 % de los sobres (`PROBABILIDAD_LEGACY`) sale una, además, como carta extra (`sacarLegacy` en `server/gacha.js`; la apertura la enseña la última, con el aviso «Carta extra»). Van primero en el álbum y sus repetidas se funden como las demás.
+- **Estética:** como las S+ a carta completa, con «LEGACY» en una placa de oro en lugar del sello y solo el título debajo del nombre (sin estrellas ni multiplicador). Igual en la web (`public/carta.js`, `carta.css`) y en las imágenes de Discord (`dibujarCompleta` en `public/compartir.js`).
+- **Cartas:** GAATSU «DEMON» (Aatrox), MAKITAH «EL TITIRITERO» (Tristana), D4DT0R «THEBEAST» (Aphelios) y SERGI «THE ENGAGE» (Rell). DEXTYLE «JUNGAP» está guardada sin activar: el usuario dará su campeón más adelante (hay que pedírselo).
+- **Sin dibujo no salen:** una LEGACY no existe hasta que tiene su vertical en `public/cartas/fullart/<ID>.webp`. El usuario no las quiere con el splash de Riot («ese es el splashart original, no el nuestro»): los dibujos los hace la sesión de las cartas (encargo enviado el 04/10) y, al subirlos, las cartas aparecen solas. `LEGACY_SIN_DIBUJO=1` (lo pone `npm run prueba-directo`) las deja salir con el splash para probar.
+- **Portada:** la ficha de Amateratsu enseña sus cartas LEGACY (`cartas` en `/api/clan`) y cada una se abre en grande. El gachapon explica la carta extra debajo de la tabla de probabilidades.
+- Comprobado en local con la demo (álbum, sobre con carta extra, ficha de Amateratsu y la carta de la web junto a la de las imágenes de Discord). Pruebas: 82 (`test/legacy.test.js` nueva).
+- **Pendiente:** los cuatro dibujos (hasta entonces en la web publicada no se ve ninguna LEGACY); la carta de Dextyle; guardar la plantilla de Amateratsu desde el panel.
