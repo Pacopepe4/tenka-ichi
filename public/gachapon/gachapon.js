@@ -3,12 +3,14 @@ import { cargarClanes, logo } from '/comun.js';
 import { iniciarDirecto } from '/directo.js';
 import { imagenColeccion, imagenAlineacion, descargar, publicar } from '/compartir.js';
 import { cartaHTML as carta, TIERS, claveTier, ROL, escapar } from '/carta.js';
+import { revelarAlAsomar, cierreSuave } from '/efectos.js';
 
 const $ = s => document.querySelector(s);
 const pct = p => `${(p * 100).toLocaleString('es-ES', { maximumFractionDigits: 1 })} %`;
 
 const { clanes } = await cargarClanes();
 const nombreClan = id => clanes.find(c => c.id === id)?.nombre || id;
+const colorClan = id => clanes.find(c => c.id === id)?.color || 'var(--sumi-linea)';
 let info = null, filtro = 'todas', abriendo = false;
 
 iniciarDirecto();
@@ -78,6 +80,8 @@ function pintarAlbum(animar = !albumPintado) {
   const lista = orden.filter(c => filtro === 'todas' || (filtro === 'tengo' ? mias.get(c.id) : !mias.get(c.id)));
   const tengo = info.catalogo.filter(c => mias.get(c.id)).length;
   $('.progreso').textContent = conSesion ? `Tienes ${tengo} de ${info.catalogo.length} cartas.` : `${info.catalogo.length} cartas en total. Entra con Discord para empezar tu colección.`;
+  $('.progreso').classList.toggle('con-barra', conSesion && info.catalogo.length > 0);
+  $('.progreso').style.setProperty('--avance', info.catalogo.length ? tengo / info.catalogo.length : 0);
   let vacio = 'Todavía no hay cartas.';
   if (info.catalogo.length && filtro !== 'todas') vacio = !conSesion ? 'Entra con Discord para ver tu colección.' : filtro === 'tengo' ? 'Aún no tienes ninguna carta: abre un sobre.' : '¡Las tienes todas!';
   $('.album').innerHTML = lista.length ? lista.map(c => cartaHTML(c, conSesion ? (mias.get(c.id) || 0) : null)).join('') : `<p class="vacio">${vacio}</p>`;
@@ -251,7 +255,7 @@ async function enviarAlineacion(slots) {
 
 function pintarPuntos() {
   const lista = fantasia.jugadores.filter(j => !filtroRol || j.rol === filtroRol);
-  $('.tabla-puntos tbody').innerHTML = lista.length ? lista.map(j => `<tr>
+  $('.tabla-puntos tbody').innerHTML = lista.length ? lista.map(j => `<tr style="--color:${colorClan(j.clan)}">
       <td><span class="jugador-celda"><img src="${logo(j.clan)}" alt=""><span><b>${escapar(j.nombre)}</b><small>${ROL[j.rol]} de ${escapar(nombreClan(j.clan))}</small></span></span></td>
       <td>${j.tier ? `<span class="letra-tier" data-tier="${j.tier}" style="--color-tier: var(--tier-${j.tier})">${j.tier}</span>` : '–'}</td>
       <td>${j.partidas}</td><td class="total">${j.puntos.toLocaleString('es-ES')}</td></tr>`).join('')
@@ -300,9 +304,32 @@ const dorso = () => (info.reverso
   ? `<div class="cara dorso con-reverso"><img src="${escapar(info.reverso)}" alt=""></div>`
   : '<div class="cara dorso"><img src="/marca/sol-partido-sin-fondo.png" alt=""></div>');
 
+// Las cartas grandes se celebran al descubrirlas: chispas alrededor de la carta y un fogonazo de su color en la
+// escena, con centro en la carta. Cuántas chispas, según la tier; las demás cartas se descubren sin más
+const CHISPAS = { SP: 24, LEGACY: 24, S: 12 };
+function celebrar(v) {
+  const n = CHISPAS[v.dataset.tier];
+  if (!n) return;
+  const caja = document.createElement('span');
+  caja.className = 'chispas';
+  caja.setAttribute('aria-hidden', 'true');
+  caja.innerHTML = Array.from({ length: n }, (_, i) =>
+    `<i style="--a:${Math.round(360 / n * i + Math.random() * 14)}deg; --d:${Math.round(70 + Math.random() * 130)}px; --t:${Math.round(Math.random() * 180)}ms"></i>`).join('');
+  v.appendChild(caja);
+  setTimeout(() => caja.remove(), 2400);
+  const escena = $('.escena'), r = v.getBoundingClientRect(), e = escena.getBoundingClientRect();
+  escena.style.setProperty('--fx', `${((r.left + r.width / 2 - e.left) / e.width * 100).toFixed(1)}%`);
+  escena.style.setProperty('--fy', `${((r.top + r.height / 2 - e.top) / e.height * 100).toFixed(1)}%`);
+  escena.dataset.fogonazo = v.dataset.tier;
+  escena.classList.remove('fogonazo');
+  void escena.offsetWidth;   // para que el fogonazo vuelva a empezar si ya había uno
+  escena.classList.add('fogonazo');
+}
+
 function mostrarApertura(cartas) {
   const reducido = matchMedia('(prefers-reduced-motion: reduce)').matches;
   dialogo.classList.remove('cortando', 'abierto');
+  $('.escena').classList.remove('fogonazo');
   // La carta extra (una LEGACY de regalo, muy de vez en cuando) sale la última, con su aviso encima
   $('.reparto').innerHTML = cartas.map((c, i) => `<div class="volteable${c.extra ? ' extra' : ''}" style="--giro: ${(i - (cartas.length - 1) / 2) * 7}deg" data-tier="${claveTier(c.tier)}" tabindex="0" role="button" aria-label="${c.extra ? 'Carta extra' : `Carta ${i + 1}`}: dale la vuelta">
     ${c.extra ? '<span class="aviso-extra">Carta extra</span>' : ''}<div class="giro">${dorso()}<div class="cara frente">${cartaHTML(c)}</div></div></div>`).join('');
@@ -320,19 +347,21 @@ function mostrarApertura(cartas) {
     $('.cerrar-apertura').focus();
   };
   const girar = v => {
+    if (v.classList.contains('girada')) return;
     v.classList.add('girada');
     const c = cartas[volteables.indexOf(v)];
     v.setAttribute('aria-label', `${c.nombre}, tier ${c.tier}`);
+    if (!reducido) celebrar(v);
     comprobar();
   };
   volteables.forEach(v => {
     v.onclick = () => girar(v);
     v.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); girar(v); } };
   });
-  $('.descubrir').onclick = () => volteables.forEach((v, i) => setTimeout(() => girar(v), reducido ? 0 : i * 260));
+  $('.descubrir').onclick = () => volteables.filter(v => !v.classList.contains('girada')).forEach((v, i) => setTimeout(() => girar(v), reducido ? 0 : i * 420));
 
-  // El trazo corta el sobre en diagonal, las mitades se van y salen las cartas boca abajo
-  const t = reducido ? { corte: 0, mitades: 0, cartas: 0 } : { corte: 350, mitades: 650, cartas: 160 };
+  // El sobre llega, el trazo lo corta en diagonal, las mitades se van y salen las cartas boca abajo
+  const t = reducido ? { corte: 0, mitades: 0, cartas: 0 } : { corte: 700, mitades: 620, cartas: 170 };
   setTimeout(() => dialogo.classList.add('cortando'), t.corte);
   setTimeout(() => dialogo.classList.add('abierto'), t.corte + 280);
   setTimeout(() => volteables.forEach((v, i) => setTimeout(() => v.classList.add('fuera'), i * t.cartas)), t.corte + t.mitades);
@@ -343,13 +372,15 @@ $('.otro').onclick = () => { dialogo.close(); abrir(); };
 dialogo.addEventListener('close', pintar);
 $('.sobre').addEventListener('click', abrir);
 
-document.querySelectorAll('.filtros button').forEach(b => b.addEventListener('click', () => {
+document.querySelectorAll('.coleccion .filtros button').forEach(b => b.addEventListener('click', () => {
   filtro = b.dataset.filtro;
-  document.querySelectorAll('.filtros button').forEach(x => x.setAttribute('aria-selected', String(x === b)));
+  document.querySelectorAll('.coleccion .filtros button').forEach(x => x.setAttribute('aria-selected', String(x === b)));
   pintarAlbum(true);
 }));
 
 await cargar();
+revelarAlAsomar('.titulo-seccion, .fantasy-rejilla, .tabla-puntos, .tabla-prob, .reglas');
+cierreSuave([dialogoElegir, document.querySelector('.fundir')]);
 // Los sobres canjeados con puntos del canal aparecen solos: se vuelve a mirar cada 45 s
 setInterval(() => { if (info?.usuario && !dialogo.open && !document.hidden) cargar(); }, 45000);
 

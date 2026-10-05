@@ -40,6 +40,8 @@ html[data-directo="si"] .enlace-directo::before { content: ''; width: 8px; heigh
 .barra nav .enlace-gachapon { isolation: isolate; min-height: 0; padding: 7px 20px; color: var(--washi); font-weight: 700; }
 .barra nav .enlace-gachapon::after { inset: 0; z-index: -1; height: auto; background: var(--shu); border-radius: 2px; transform: skewX(-12deg); transition: background-color .2s; }
 .barra nav .enlace-gachapon:hover::after { background: var(--shu-claro); }
+/* En el propio gachapon, el botón lleva el trazo de oro de la sección en la que se está */
+.barra nav .enlace-gachapon[aria-current]::after { transform: skewX(-12deg); box-shadow: inset 0 -3px 0 var(--oro); }
 
 /* ---------- Portada: una carta a carta completa. El papel con el sol partido, el título sobre la tinta y el filo de oro ---------- */
 .portada { position: relative; min-height: clamp(560px, calc(100vh - 64px), 920px); min-height: clamp(560px, calc(100svh - 64px), 920px);

@@ -110,3 +110,13 @@ El usuario pidió el 5/10 «dos nuevas versiones del frontend de la web, mismo e
 - **B, «Full art»:** refina añadiendo, con el lenguaje de las cartas a carta completa: filo de oro, secciones cortadas en diagonal (el formato va sobre papel y el cierre sobre laca), sello con el kanji de cada sección y el color del clan en placas, filas y en la sección de la baraja, que se tiñe del clan que sale.
 - **`inicio.css` lo carga también el gachapon** (cabecera, botones y fichas): cada versión cambia un poco su cabecera. Comprobado que no rompe nada; el acabado del gachapon queda para la versión elegida.
 - **Capturas:** `docs/capturas/web/` en cada rama (1440 y 390 px) y `koryu-budo/comparativa-web/index.html`, que las pone lado a lado.
+
+## Añadido el 5/10/2026 (noche): la elegida es la B
+
+El usuario vio las dos y eligió la B («La b, va finísima, usa esa»). Desde aquí `web-frontend-b` es la rama de entrega: lleva la portada B y, con el mismo lenguaje, el gachapon (W3), la guía (W4) y las imágenes de Discord (W7). `web-frontend-a` se queda como estaba, sin tocar.
+
+- **Gachapon:** cabecera enmarcada en oro, sello y kanji en cada sección (札 fantasy, 集 colección, 点 puntos, 運 probabilidades), fantasy y puntos en bandas cortadas en diagonal, podio en oro, plata y bronce, barra de progreso de la colección, repetidas con pastilla de oro y pestañas y botones cortados en diagonal.
+- **Apertura de sobres (W3):** el sobre llega, un trazo de oro lo corta con un fogonazo y las cartas salen en abanico. Al descubrirlas, las S, las S+ y las LEGACY se celebran (destello, barrido, chispas y fogonazo de su color en la escena); detrás de las S+ y las LEGACY se queda girando un halo. La cuarta carta (LEGACY extra) y su aviso siguen igual.
+- **Guía (W4):** misma barra y pie, sello en el título, índice (fijo a la izquierda en pantallas anchas), pasos numerados y unidos por una línea, notas como apartes y enlaces en placas.
+- **Web y Discord a la vez (W7):** `public/compartir.js` dibuja ahora la tier list (placa teñida de cada tier, letra cortada en diagonal, filo de oro en la S y color del clan en cada ficha), la clasificación del fantasy (podio en oro, plata y bronce), la raya de oro de la cabecera y la pastilla de las repetidas, igual que la web.
+- **Común:** `public/efectos.js` (piezas que entran al asomar y diálogos que se cierran con transición), que usan la portada y el gachapon.

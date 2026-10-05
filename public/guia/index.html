@@ -6,17 +6,23 @@
 <meta name="robots" content="noindex">
 <title>Guía de retransmisión · Tenka Ichi</title>
 <link rel="icon" href="/marca/koryu-budo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="/marca.css">
+<link rel="stylesheet" href="/inicio.css">
 <link rel="stylesheet" href="guia.css">
 </head>
 <body>
 <header class="barra">
-  <a class="marca" href="/"><img src="/marca/koryu-budo.png" alt=""><span>Tenka Ichi</span></a>
+  <a class="marca" href="/"><img src="/marca/koryu-budo.png" alt=""><span>Koryu Budo League</span></a>
+  <nav><a href="/">Portada</a><a href="/gachapon/">Gachapon</a><a href="/panel/">Panel</a><a href="/guia/" aria-current="page">Guía</a></nav>
 </header>
 
 <main>
-  <h1>Guía de retransmisión</h1>
+  <div class="titulo-guia"><span class="marca-seccion" aria-hidden="true">導</span><h1>Guía de retransmisión</h1></div>
   <p class="entrada">Lo que necesita quien lleva OBS en las partidas de Tenka Ichi. El overlay se actualiza solo desde el panel: en OBS se monta una vez y ya está.</p>
+  <!-- El índice lo escribe guia.js con los títulos de las secciones -->
+  <nav class="indice" aria-label="En esta guía"></nav>
 
   <section>
     <h2>Enlaces</h2>
@@ -238,6 +244,12 @@
     </dl>
   </section>
 </main>
+
+<footer>
+  <img src="/marca/koryu-budo.png" alt="">
+  <p>Guía para el staff de Tenka Ichi, la liga de League of Legends de Koryu Budo.</p>
+  <nav aria-label="Más de Tenka Ichi"><a href="/">Portada</a><a href="/panel/">Panel</a></nav>
+</footer>
 
 <script type="module" src="guia.js"></script>
 </body>

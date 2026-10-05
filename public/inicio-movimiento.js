@@ -1,9 +1,10 @@
 // Lo que se mueve en la portada: la entrada de cada sección al llegar con el desplazamiento, la sección activa en el
 // menú, la barra que se aparta al bajar en el móvil y la baraja, que se abre en abanico la primera vez que se ve.
 // Lo carga inicio.js cuando ya ha pintado la página. Sin este archivo la portada se ve entera, solo que quieta:
-// los estilos de entrada cuelgan de html.con-movimiento, que se pone aquí.
+// los estilos de entrada cuelgan de html.con-movimiento, que pone efectos.js.
+import { quieto, revelarAlAsomar, cierreSuave } from '/efectos.js';
+
 const raiz = document.documentElement;
-const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const movil = matchMedia('(max-width: 760px)');
 
 // ---------- Sección activa en el menú ----------
@@ -32,39 +33,11 @@ addEventListener('scroll', () => {
   ultima = y;
 }, { passive: true });
 
-// ---------- Entrada de las secciones ----------
-// Cada pieza entra una vez, cuando asoma; las que comparten padre entran escalonadas (--orden)
-const PIEZAS = '.directo-rejilla, .cabecera-seccion, .baraja, .legado, .camino > li, .liga .bloque, .cuadro, .fantasy-cuerpo, .tier-pestanas:not(.pestanas-fantasy), .tier-filas, .cierre';
+// ---------- Entrada de las secciones y cierre de las fichas ----------
+revelarAlAsomar('.directo-rejilla, .cabecera-seccion, .baraja, .legado, .camino > li, .liga .bloque, .cuadro, .fantasy-cuerpo, .tier-pestanas:not(.pestanas-fantasy), .tier-filas, .cierre');
+cierreSuave(document.querySelectorAll('dialog.ficha, dialog.ficha-carta'));
+
 if (!quieto && 'IntersectionObserver' in window) {
-  const piezas = [...document.querySelectorAll(PIEZAS)];
-  const vigia = new IntersectionObserver(entradas => {
-    for (const e of entradas) {
-      if (!e.isIntersecting) continue;
-      e.target.classList.add('visto');
-      vigia.unobserve(e.target);
-    }
-  }, { rootMargin: '0px 0px -12% 0px' });
-  for (const p of piezas) {
-    p.classList.add('revelar');
-    p.style.setProperty('--orden', [...p.parentElement.children].filter(x => x.matches(PIEZAS)).indexOf(p));
-    vigia.observe(p);
-  }
-  raiz.classList.add('con-movimiento');
-
-  // Las fichas (la del clan y la de la carta) también se van con transición, no de golpe
-  for (const d of document.querySelectorAll('dialog.ficha, dialog.ficha-carta')) {
-    const cerrar = d.close.bind(d);
-    d.close = () => {
-      if (!d.open || d.classList.contains('cerrando')) return;
-      const fin = () => { clearTimeout(espera); d.removeEventListener('animationend', alAcabar); d.classList.remove('cerrando'); cerrar(); };
-      const alAcabar = e => { if (e.target === d) fin(); };
-      const espera = setTimeout(fin, 400);
-      d.addEventListener('animationend', alAcabar);
-      d.classList.add('cerrando');
-    };
-    d.addEventListener('cancel', e => { e.preventDefault(); d.close(); });
-  }
-
   // La baraja espera recogida y se abre en abanico al verla
   const baraja = document.querySelector('.baraja');
   if (baraja && !movil.matches) {

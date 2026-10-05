@@ -39,3 +39,18 @@ document.querySelector('.disposiciones').innerHTML = [1, 2, 3, 4].map(n => {
     </table>
   </figure>`;
 }).join('');
+
+// Índice: un enlace a cada sección, con la que se está leyendo marcada
+const secciones = [...document.querySelectorAll('main > section')];
+const indice = document.querySelector('.indice');
+secciones.forEach((s, i) => { s.id ||= `seccion-${i + 1}`; });
+indice.innerHTML = `<b>En esta guía</b><ol>${secciones.map(s => `<li><a href="#${s.id}">${s.querySelector('h2').textContent}</a></li>`).join('')}</ol>`;
+const vigia = new IntersectionObserver(entradas => {
+  for (const e of entradas) {
+    if (!e.isIntersecting) continue;
+    for (const a of indice.querySelectorAll('a')) {
+      if (a.getAttribute('href') === `#${e.target.id}`) a.setAttribute('aria-current', 'location'); else a.removeAttribute('aria-current');
+    }
+  }
+}, { rootMargin: '-30% 0px -60% 0px' });
+secciones.forEach(s => vigia.observe(s));
