@@ -44,3 +44,25 @@
 :where(button, a, input, select, textarea, [tabindex]):focus-visible { outline: 2px solid var(--washi); outline-offset: 3px; }
 @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
 @media (prefers-reduced-motion: reduce) { :where(button, [role="button"], .boton-claro, .boton-twitch, .boton-discord) { transition: none; } }
+
+/* ---------- Añadido por la reforma de la web pública: solo variables nuevas, las de arriba no cambian ---------- */
+:root {
+  --oro: #EBD28A;        /* el filo de las cartas a carta completa */
+  --oro-viejo: #B39A5E;  /* el mismo oro, apagado: líneas y remates */
+
+  /* Medidas de la página */
+  --ancho: 1180px;
+  --margen: clamp(16px, 5vw, 64px);
+  --aire-seccion: clamp(72px, 10vw, 136px);
+
+  /* Escala tipográfica */
+  --t-nota: 13px; --t-menor: 15px; --t-texto: 17px; --t-entrada: 20px;
+  --t-h3: clamp(24px, 2.4vw, 30px); --t-h2: clamp(38px, 5vw, 64px); --t-h1: clamp(58px, 8.4vw, 140px);
+
+  --radio-fino: 2px; --radio: 4px; --radio-carta: 8px;
+
+  /* Movimiento: duraciones y curvas de toda la web */
+  --mov-corto: .18s; --mov: .4s; --mov-largo: .9s;
+  --curva: cubic-bezier(.2, .8, .2, 1);        /* sale rápido y frena: lo que entra o responde */
+  --curva-tinta: cubic-bezier(.7, 0, .2, 1);   /* arranca despacio, como un trazo: lo que se descubre */
+}

@@ -16,7 +16,7 @@
 <body>
 <header class="barra">
   <a class="marca" href="#inicio"><img src="/marca/koryu-budo.png" alt=""><span>Koryu Budo League</span></a>
-  <nav><a href="#directo" class="enlace-directo">Directo</a><a href="#clanes">Clanes</a><a href="#formato">Formato</a><a href="#liga">Liga</a><a href="#fantasy">Fantasy</a><a href="#tierlist">Tier list</a><a href="/gachapon/">Gachapon</a></nav>
+  <nav><a href="#directo" class="enlace-directo">Directo</a><a href="#clanes">Clanes</a><a href="#formato">Formato</a><a href="#liga">Liga</a><a href="#fantasy">Fantasy</a><a href="#tierlist">Tier list</a><a href="/gachapon/" class="enlace-gachapon">Gachapon</a></nav>
 </header>
 
 <main>
@@ -31,7 +31,10 @@
         </div>
       </div>
       <p class="lore">Tras la cuarta Pelea de Cinturones, el cielo expulsó a los samuráis y cerró sus puertas. Arriba ya no hay sitio para ellos; abajo hay un trono vacío. Doce clanes, un solo reino. Quien gane, reinará bajo el cielo.</p>
-      <a class="boton" href="#clanes">Conoce a los clanes</a>
+      <div class="portada-acciones">
+        <a class="boton" href="#clanes">Conoce a los clanes</a>
+        <a class="enlace-texto" href="#liga">Ver la liga</a>
+      </div>
     </div>
   </section>
 
@@ -39,6 +42,7 @@
     <div class="directo-rejilla">
       <div class="directo-marco"></div>
       <div class="directo-texto">
+        <span class="marca-seccion" aria-hidden="true">生</span>
         <h2>Directo</h2>
         <p class="directo-estado">Sin directo ahora mismo.</p>
         <p>Las jornadas de Tenka Ichi se emiten en el canal de Twitch de Koryu Budo, con el draft en directo y los casters.</p>
@@ -52,6 +56,7 @@
 
   <section id="clanes" class="clanes">
     <div class="cabecera-seccion">
+      <span class="marca-seccion" aria-hidden="true">族</span>
       <h2>Los doce clanes</h2>
       <p class="solo-raton">Pasa el ratón por la baraja para sacar una carta. Haz clic para ver su plantilla.</p>
       <p class="solo-tactil">Desliza para ver las cartas y toca una para ver su plantilla.</p>
@@ -63,6 +68,7 @@
 
   <section id="formato" class="formato">
     <div class="cabecera-seccion">
+      <span class="marca-seccion" aria-hidden="true">道</span>
       <h2>El camino al trono</h2>
       <p>Diez de los doce clanes juegan la temporada. Así se decide quién reina.</p>
     </div>
@@ -100,6 +106,7 @@
       <p><b>Temporada simulada.</b> Resultados, jugadores y picks inventados para ver cómo quedará la web. <a href="/#liga">Ver la liga real</a></p>
     </div>
     <div class="cabecera-seccion">
+      <span class="marca-seccion" aria-hidden="true">戦</span>
       <h2>La liga</h2>
       <p class="resumen-liga"></p>
     </div>
@@ -135,6 +142,7 @@
   </section>
   <section id="fantasy" class="fantasy-portada">
     <div class="cabecera-seccion">
+      <span class="marca-seccion" aria-hidden="true">札</span>
       <h2>Fantasy</h2>
       <p>Alinea las cartas de tus jugadores en el <a href="/gachapon/">gachapon</a> y suma los puntos que hagan en cada partida. <span class="premios-portada"></span></p>
     </div>
@@ -146,6 +154,7 @@
   </section>
   <section id="tierlist" class="tierlist">
     <div class="cabecera-seccion">
+      <span class="marca-seccion" aria-hidden="true">位</span>
       <h2>Tier list</h2>
       <p>La clasificación del staff. La tier de cada jugador es también la rareza de su carta en el <a href="/gachapon/">gachapon</a>.</p>
     </div>
@@ -156,11 +165,16 @@
     <div class="tier-filas"></div>
     <p class="tier-pista">Toca a un jugador para ver su carta.</p>
   </section>
+  <section class="cierre" aria-label="El lema de Tenka Ichi">
+    <span class="cierre-kanji" aria-hidden="true">天下一</span>
+    <p>El cielo nos cerró sus puertas.<br>Reinaremos bajo él.</p>
+  </section>
 </main>
 
 <footer>
   <img src="/marca/koryu-budo.png" alt="">
   <p>Tenka Ichi es la liga de League of Legends de Koryu Budo.</p>
+  <nav aria-label="Más de Tenka Ichi"><a href="/gachapon/">Gachapon</a><a href="https://twitch.tv/koryubudo" target="_blank" rel="noopener">Twitch</a></nav>
 </footer>
 
 <dialog class="ficha" aria-labelledby="ficha-nombre">
