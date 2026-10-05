@@ -182,3 +182,12 @@ Todo está en commits locales en master; no se ha hecho push para no cambiar la 
 - **El nombre es GAATSU:** el usuario lo revisó el 04/10 («Gattsu» fue una errata suya y estuvo puesto unos minutos).
 - **Dextyle (04/10, noche):** el usuario dio su campeón en la sesión de las cartas («haz la Qyana de Dextyle, el mote dejale JUNGAP»). Carta activada (`LEGACY-DEXTYLE`, Qiyana, «JUNGAP») y dibujo subido: ya son las cinco LEGACY.
 - **Pendiente:** guardar la plantilla de Amateratsu desde el panel.
+
+## 05/10: portada, versión B «Full art» (rama `web-frontend-b`)
+
+- El usuario pidió dos versiones más refinadas de la web con el mismo estilo y eligió empezar por la portada. Esta es la B; la A («Tinta») está en `web-frontend-a`. El diseño, en `docs/superpowers/specs/2026-10-04-web-frontend-design.md` (añadido del 5/10). Ninguna toca `master`.
+- **Estructura común a las dos:** kanji de cada sección, enlace «Ver la liga», cierre con el lema y enlaces en el pie (`index.html`); color del clan en filas, cruces, series y fichas de tier y aviso `clan-activo` de la baraja (`inicio.js`); `public/inicio-movimiento.js` (entrada de las secciones, sección activa en el menú, barra que se aparta al bajar en el móvil, baraja que se reparte y fichas que se cierran con transición); variables nuevas en `marca.css` (no cambia ninguna de las que había).
+- **Versión B:** `inicio.css` rehecho con el lenguaje de las cartas a carta completa: portada enmarcada en oro, secciones cortadas en diagonal con el oro en el corte (formato sobre papel, fantasy alzado, cierre sobre laca), sello y kanji grande en cada cabecera, clasificación y cuadro en placas con el color del clan, podio del fantasy en oro, plata y bronce, y tier list teñida de cada tier. La sección de los clanes se tiñe del clan que sale de la baraja y su carta se inclina hacia el puntero (final de `inicio-movimiento.js`; `data-kanji` en las cabeceras).
+- Comprobado en local con `tenka-web-b` (puerto 3062), a 1440 y 390 px, con la liga de prueba y con `?simulacion`: portada entera, ficha de clan, «Ver carta» y el gachapon (que carga `inicio.css`). Sin desplazamiento horizontal en el móvil. 82 pruebas. Capturas en `docs/capturas/web/`.
+- No comprobado: el directo de Twitch encendido (ventanita flotante) y un navegador que no sea Edge/Chrome.
+- Pendiente: que el usuario elija versión; después, gachapon y guía con la elegida.

@@ -99,3 +99,14 @@ Es trabajo de aspecto. Lo que la web hace y los datos que enseña no cambian. Es
 - Commits pequeños y claros en `web-frontend`, subidos a GitHub.
 - Entrada nueva en `PROGRESO.md` con lo hecho, lo comprobado y lo que no se ha podido comprobar.
 - Pull request **en borrador** hacia `master`, con resumen y capturas. No unirlo: lo decide el usuario.
+
+## Añadido el 5/10/2026: la portada, en dos versiones para elegir
+
+El usuario pidió el 5/10 «dos nuevas versiones del frontend de la web, mismo estilo pero más refinada» y eligió empezar solo por la portada: cuando escoja una, esa se lleva al gachapon y a la guía. Cambia, por tanto, lo de «una sola versión» del objetivo; el resto de requisitos (W1 a W7), lo que no entra y las restricciones siguen igual.
+
+- **Ramas:** `web-frontend-a` y `web-frontend-b`, las dos desde `web-frontend`. Carpetas `koryu-budo/draft-app-web-a` y `draft-app-web-b`. En local: `tenka-web-a` (puerto 3061) y `tenka-web-b` (puerto 3062).
+- **Común a las dos** (el mismo commit en ambas): el kanji de cada sección en `index.html` (生 directo, 族 clanes, 道 formato, 戦 liga, 札 fantasy, 位 tier list), el cierre con el lema, el color del clan en filas, cruces, series y fichas de tier (`tinte` en `inicio.js`), `public/inicio-movimiento.js` y las variables nuevas de `marca.css`.
+- **A, «Tinta»:** refina quitando. Página de libro: el kanji de la sección en el margen, una línea fina que abre cada capítulo, pestañas de texto con trazo bermellón y tier list sin bloques de color. El color del clan solo aparece al tocar algo suyo.
+- **B, «Full art»:** refina añadiendo, con el lenguaje de las cartas a carta completa: filo de oro, secciones cortadas en diagonal (el formato va sobre papel y el cierre sobre laca), sello con el kanji de cada sección y el color del clan en placas, filas y en la sección de la baraja, que se tiñe del clan que sale.
+- **`inicio.css` lo carga también el gachapon** (cabecera, botones y fichas): cada versión cambia un poco su cabecera. Comprobado que no rompe nada; el acabado del gachapon queda para la versión elegida.
+- **Capturas:** `docs/capturas/web/` en cada rama (1440 y 390 px) y `koryu-budo/comparativa-web/index.html`, que las pone lado a lado.

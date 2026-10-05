@@ -15,7 +15,7 @@ const marcar = id => enlaces.forEach(a => {
   a.toggleAttribute('aria-current', activo);
   if (activo) a.setAttribute('aria-current', 'location');
   // En el móvil el menú se desliza: el enlace activo queda a la vista
-  if (activo && nav.scrollWidth > nav.clientWidth) nav.scrollLeft = a.offsetLeft - nav.offsetLeft - (nav.clientWidth - a.offsetWidth) / 2;
+  if (activo && nav.scrollWidth - nav.clientWidth > 24) nav.scrollLeft = a.offsetLeft - nav.offsetLeft - (nav.clientWidth - a.offsetWidth) / 2;
 });
 // Manda la sección que cruza la franja central de la pantalla
 const vigiaMenu = new IntersectionObserver(entradas => {
@@ -77,4 +77,27 @@ if (!quieto && 'IntersectionObserver' in window) {
       setTimeout(() => baraja.classList.remove('abriendo'), 1400);
     }, { threshold: 0.3 }).observe(baraja);
   }
+}
+
+// ---------- La sección de los clanes se tiñe del clan que sale de la baraja ----------
+// inicio.js avisa con «clan-activo»; aquí cambian el color del fondo y el kanji grande de la cabecera, y la carta
+// que está fuera se inclina hacia el puntero
+const seccionClanes = document.querySelector('.clanes'), mazo = document.querySelector('.baraja');
+const cabeceraClanes = seccionClanes?.querySelector('.cabecera-seccion');
+if (mazo && cabeceraClanes) {
+  const kanjiSeccion = cabeceraClanes.dataset.kanji;
+  mazo.addEventListener('clan-activo', ({ detail: clan }) => {
+    seccionClanes.classList.toggle('con-activo', Boolean(clan));
+    if (clan) seccionClanes.style.setProperty('--color-activo', clan.color); else seccionClanes.style.removeProperty('--color-activo');
+    cabeceraClanes.dataset.kanji = clan?.kanji || kanjiSeccion;
+    cabeceraClanes.toggleAttribute('data-kanji-largo', (clan?.kanji.length || 1) > 1);
+    for (const c of mazo.children) { c.style.removeProperty('--tx'); c.style.removeProperty('--ty'); }
+  });
+  if (!quieto) mazo.addEventListener('pointermove', e => {
+    const carta = mazo.querySelector('.carta.activa');
+    if (!carta || e.pointerType === 'touch') return;
+    const r = carta.getBoundingClientRect(), limitar = n => Math.max(-1, Math.min(1, n));
+    carta.style.setProperty('--tx', `${(limitar((e.clientX - r.left - r.width / 2) / (r.width / 2)) * 7).toFixed(1)}deg`);
+    carta.style.setProperty('--ty', `${(limitar((e.clientY - r.top - r.height / 2) / (r.height / 2)) * -5).toFixed(1)}deg`);
+  });
 }
