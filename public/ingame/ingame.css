@@ -1,202 +1,274 @@
-/* Overlay de partida (1920×1080, fondo transparente). Va encima de la partida en OBS y tapa
-   la barra de marcador del cliente, que el puente oculta con la Replay API si está activada. */
+/* Overlay de partida (1920×1080, fondo transparente). Va encima de la partida en OBS y tapa la barra de marcador
+   del cliente, que el puente oculta con la Replay API si está activada.
+
+   Esta hoja es lo común a las dos versiones del aspecto: la estructura (dónde va cada pieza), las variables de
+   animación y la mecánica de entrada y salida. El color, las formas y la tipografía de cada versión van en
+   estilo-a.css («retoque») y estilo-b.css («full art»), acotadas a [data-estilo]. Solo se anima transform y
+   opacity: el overlay corre en la fuente de navegador de OBS, en el mismo PC que el juego. */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
-body { font-family: var(--gothic); color: var(--washi); }
-#lienzo { position: relative; width: 1920px; height: 1080px; transition: opacity .5s ease, transform .5s ease; }
+body { font-family: var(--gothic); color: var(--washi); font-variant-numeric: tabular-nums; }
+[hidden] { display: none !important; }
+
+:root {
+  /* Duraciones y curvas, definidas una vez para todo el marcador */
+  --t-rapido: .22s; --t-medio: .45s; --t-lento: .7s;
+  --curva: cubic-bezier(.2, .8, .2, 1);          /* entradas: arranca rápido y frena suave */
+  --curva-salida: cubic-bezier(.5, 0, .75, 0);   /* salidas: se va acelerando */
+  --oro: #D9A441;         /* el oro de las cifras */
+  --oro-viejo: #EBD28A;   /* el filo de oro de las cartas full art */
+  --tinta: rgba(22, 20, 18, .92);
+}
+
+#lienzo { position: relative; width: 1920px; height: 1080px; transition: opacity var(--t-medio) ease, transform var(--t-medio) var(--curva); }
 body.oculto #lienzo { opacity: 0; transform: translateY(-24px); }
 
 /* Todo lo de arriba, un poco más pequeño y pegado al borde de arriba en el centro */
 .arriba { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; transform: scale(.86); transform-origin: 50% 0; }
 
-/* ---------- Marcador ---------- */
-.marcador { position: absolute; top: 0; left: 50%; transform: translateX(-50%); display: grid; grid-template-columns: 440px 164px 440px; }
-.lado { display: grid; grid-template-rows: 72px 34px; }
-.placa { position: relative; display: flex; align-items: center; gap: 14px; background: var(--grano), var(--sumi-alzado); overflow: hidden; }
-.azul .placa { padding: 0 34px 0 26px; clip-path: polygon(0 0, 100% 0, calc(100% - 26px) 100%, 0 100%); box-shadow: inset 8px 0 0 var(--azul-lado); }
-.rojo .placa { padding: 0 26px 0 34px; clip-path: polygon(0 0, 100% 0, 100% 100%, 26px 100%); box-shadow: inset -8px 0 0 var(--rojo-lado); }
-.placa .logo { width: 52px; height: 50px; object-fit: contain; flex: none; }
-.placa .equipo { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+/* ---------- Estructura del marcador ---------- */
+.marcador { position: absolute; top: 0; left: 50%; transform: translateX(-50%); display: grid; grid-template-columns: 460px 170px 460px; }
+.lado { display: grid; grid-template-rows: 74px 36px; }
+.placa { position: relative; display: flex; align-items: center; gap: 14px; overflow: hidden; }
+.placa .kanji-fondo { position: absolute; pointer-events: none; user-select: none; font-family: var(--mincho); font-weight: 800; line-height: 1; }
+.placa .logo { width: 54px; height: 52px; object-fit: contain; flex: none; position: relative; }
+.placa .equipo { display: flex; flex-direction: column; min-width: 0; flex: 1; position: relative; }
 .rojo .placa .equipo { text-align: right; }
-.placa .nombre { font-family: var(--mincho); font-weight: 800; font-size: 27px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.placa .kanji { font-family: var(--mincho); font-weight: 700; font-size: 15px; line-height: 1.2; color: var(--color-clan, var(--hai)); letter-spacing: .12em; }
-.placa .kills { font-family: var(--mincho); font-weight: 800; font-size: 40px; line-height: 1; font-variant-numeric: tabular-nums; min-width: 1.4em; }
+.placa .nombre { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.placa .kills { position: relative; min-width: 1.4em; }
 .azul .placa .kills { text-align: right; }
 .rojo .placa .kills { text-align: left; }
-
-/* Segunda fila: oro, torres y larvas (los dragones van debajo del reloj) */
-.datos { display: flex; align-items: center; gap: 16px; padding: 0 18px; background: rgba(22, 20, 18, .9);
-  font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.azul .datos { justify-content: flex-end; padding-right: 46px; clip-path: polygon(0 0, calc(100% - 26px) 0, calc(100% - 38px) 100%, 0 100%); }
-.rojo .datos { justify-content: flex-start; padding-left: 46px; clip-path: polygon(26px 0, 100% 0, 100% 100%, 38px 100%); }
+.datos { display: flex; align-items: center; gap: 16px; }
+.azul .datos { justify-content: flex-end; }
+.rojo .datos { justify-content: flex-start; }
 .dato { display: inline-flex; align-items: center; gap: 6px; }
-.dato svg { width: 17px; height: 17px; color: var(--hai); }
-.dato.oro svg { color: #D9A441; }
-.dato.larvas svg { color: #9B6BD4; }
+.dato svg { width: 18px; height: 18px; }
 .dato.larvas.cero { display: none; }
-.dragones { display: inline-flex; gap: 5px; align-items: center; }
-.dragones i { width: 13px; height: 13px; transform: rotate(45deg); border-radius: 2px; box-shadow: 0 0 0 1.5px rgba(22, 20, 18, .9); }
-.dragones.alma i { box-shadow: 0 0 0 1.5px rgba(22, 20, 18, .9), 0 0 10px currentColor; }
-.d-infernal { background: #E0592A; color: #E0592A; } .d-oceano { background: #3A8FD9; color: #3A8FD9; }
-.d-montana { background: #A07D4F; color: #A07D4F; } .d-nube { background: #C8DFE4; color: #C8DFE4; }
-.d-hextech { background: #2BC6C0; color: #2BC6C0; } .d-quimtech { background: #8DBF3F; color: #8DBF3F; }
-.d-ancestral { background: #C3A3EA; color: #C3A3EA; } .d-dragon { background: var(--hai); color: var(--hai); }
+.centro { display: grid; grid-template-rows: 74px 36px; text-align: center; }
+.reloj { display: grid; place-items: center; }
+.diferencia { display: flex; align-items: center; justify-content: center; gap: 6px; }
 
-/* Centro: reloj y diferencia de oro */
-.centro { display: grid; grid-template-rows: 72px 34px; text-align: center; }
-.reloj { display: grid; place-items: center; background: var(--sumi); font-weight: 700; font-size: 26px; letter-spacing: .02em;
-  font-variant-numeric: tabular-nums; box-shadow: inset 0 -3px 0 var(--shu); }
-.diferencia { display: flex; align-items: center; justify-content: center; gap: 6px; background: rgba(22, 20, 18, .9);
-  font-weight: 700; font-size: 18px; font-variant-numeric: tabular-nums; color: var(--hai); }
-.diferencia.azul { color: var(--azul-lado); }
-.diferencia.rojo { color: #E4474C; }
-.diferencia .flecha { font-size: 13px; }
+/* Dragones de cada clan: sellos, 4 huecos hasta el alma y detrás los ancestrales. Entran uno a uno */
+.dragones { display: inline-flex; align-items: center; gap: 6px; }
+.dragones i { display: grid; place-items: center; width: 16px; height: 16px; animation: selloEntra var(--t-medio) var(--curva) both; }
+.dragones i span { font-family: var(--mincho); font-weight: 800; line-height: 1; }
+.d-infernal { --d: #E0592A; } .d-oceano { --d: #3A8FD9; } .d-montana { --d: #A07D4F; } .d-nube { --d: #C8DFE4; }
+.d-hextech { --d: #2BC6C0; } .d-quimtech { --d: #8DBF3F; } .d-ancestral { --d: #C3A3EA; } .d-dragon { --d: var(--hai); }
+@keyframes selloEntra { from { opacity: 0; transform: scale(.4) rotate(-20deg); } }
 
 /* ---------- Ensō: el círculo de pincel de los temporizadores ---------- */
-.sello { position: relative; display: grid; place-items: center; width: 36px; height: 36px; flex: none; }
+.sello { position: relative; display: grid; place-items: center; width: 38px; height: 38px; flex: none; }
 .enso { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
 .enso circle { fill: none; }
-.enso .pista { stroke: rgba(231, 223, 210, .13); stroke-width: 2.6; }
-.enso .trazo { stroke: var(--color, var(--washi)); stroke-width: 3.6; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100;
-  transition: stroke-dashoffset .3s linear; }
-.sello .kanji { position: relative; font-family: var(--mincho); font-weight: 800; font-size: 16px; line-height: 1; color: var(--washi); }
-/* Sello lleno (alma): cuadrado de tinta del color del elemento */
-.sello.lleno { width: 32px; height: 32px; border-radius: 3px; background: var(--color); transform: rotate(-4deg);
-  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, .18); }
-.sello.lleno .kanji { color: var(--tinta, var(--sumi)); font-size: 18px; }
-@keyframes latido { 50% { filter: drop-shadow(0 0 7px var(--color)); } }
+.enso .trazo { stroke-dasharray: 100; stroke-dashoffset: 100; transition: stroke-dashoffset .3s linear; }
+.sello .kanji { position: relative; font-family: var(--mincho); font-weight: 800; line-height: 1; }
+/* El resplandor de un objetivo vivo o un punto de alma: un halo detrás del sello cuya opacidad late (nada de filtros) */
+.sello::before { content: ''; position: absolute; inset: -4px; border-radius: 50%; opacity: 0; pointer-events: none; box-shadow: 0 0 14px 3px var(--color, var(--washi)); }
+.vivo .sello::before, .punto .sello::before { animation: latido 1.6s ease-in-out infinite; }
+@keyframes latido { 0%, 100% { opacity: .25; } 50% { opacity: .9; } }
 
-/* ---------- Temporizadores de objetivos (debajo del reloj) ---------- */
-.temporizadores { position: absolute; top: 106px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center;
-  gap: 7px; min-width: 200px; padding: 8px 26px 9px;
-  background: var(--grano), rgba(22, 20, 18, .94); clip-path: polygon(0 0, 100% 0, calc(100% - 16px) 100%, 16px 100%); }
-.relojes { display: flex; gap: 16px; }
+/* ---------- Temporizadores (debajo del reloj) y módulos de cada clan ---------- */
+.temporizadores { position: absolute; top: 112px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; min-width: 220px; }
+.relojes { display: flex; gap: 18px; }
 .relojes:empty { display: none; }
-/* Dragones de cada clan: azul a la izquierda y rojo a la derecha, 4 huecos hasta el alma */
-.dragones-equipos { display: flex; align-items: center; gap: 12px; }
-.dragones-equipos .dragones { gap: 7px; }
-.dragones-equipos .dragones i { width: 12px; height: 12px; }
-.dragones i.vacio { background: transparent; box-shadow: inset 0 0 0 1.5px rgba(231, 223, 210, .32); }
-.dragones-equipos .separador { width: 1px; height: 14px; background: var(--hai); opacity: .5; }
-.temporizador { display: flex; align-items: center; gap: 8px; }
-.temporizador .texto { display: flex; flex-direction: column; line-height: 1.1; min-width: 50px; }
-.temporizador small, .modulo small { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--hai); }
-.temporizador b { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.temporizador.vivo b { color: var(--shu-claro); }
-.temporizador.vivo .sello { animation: latido 1.6s ease-in-out infinite; }
-.temporizador.dragon { --color: var(--washi); }
-.temporizador.larvas, .temporizador.heraldo { --color: #8F7AE8; }
-.temporizador.baron { --color: #9B59D0; }
-
-/* ---------- Módulos de cada clan: buffs, alma e inhibidores ---------- */
-.modulos { position: absolute; top: 112px; display: flex; flex-direction: column; gap: 6px; }
-.modulos.azul { left: calc(50% - 522px); align-items: flex-start; }
-.modulos.rojo { right: calc(50% - 522px); align-items: flex-end; }
-.modulo { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 22px 0 8px; background: var(--grano), rgba(22, 20, 18, .93);
-  box-shadow: inset 3px 0 0 var(--color); clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
-  animation: moduloEntra .4s cubic-bezier(.2, .8, .2, 1) both; }
-.rojo .modulo { flex-direction: row-reverse; padding: 0 8px 0 22px; box-shadow: inset -3px 0 0 var(--color);
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 12px 100%); }
+.temporizador { display: flex; align-items: center; gap: 9px; animation: piezaEntra var(--t-medio) var(--curva) both; }
+.temporizador.sale { animation: piezaSale var(--t-rapido) var(--curva-salida) both; }
+.temporizador .texto { display: flex; flex-direction: column; line-height: 1.1; min-width: 54px; }
+.modulos { position: absolute; top: 118px; display: flex; flex-direction: column; gap: 6px; }
+.modulos.azul { left: calc(50% - 545px); align-items: flex-start; }
+.modulos.rojo { right: calc(50% - 545px); align-items: flex-end; }
+.modulo { display: flex; align-items: center; gap: 10px; height: 46px; animation: moduloEntra var(--t-medio) var(--curva) both; }
+.rojo .modulo { flex-direction: row-reverse; }
+.modulo.sale { animation: moduloSale var(--t-rapido) var(--curva-salida) both; }
 .modulo .texto { display: flex; flex-direction: column; line-height: 1.12; }
 .rojo .modulo .texto { text-align: right; }
-.modulo b { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.modulo.punto .sello { animation: latido 1.6s ease-in-out infinite; }
-.modulo.punto b { color: var(--shu-claro); }
-@keyframes moduloEntra { from { opacity: 0; transform: translateY(-8px); } }
+.modulo b { white-space: nowrap; }
+@keyframes piezaEntra { from { opacity: 0; transform: translateY(-8px); } }
+@keyframes piezaSale { to { opacity: 0; transform: translateY(-8px); } }
+@keyframes moduloEntra { from { opacity: 0; transform: translateX(var(--desde, -14px)); } }
+@keyframes moduloSale { to { opacity: 0; transform: translateX(var(--desde, -14px)); } }
+.modulos.rojo .modulo { --desde: 14px; }
 
-/* ---------- Aviso de objetivo (debajo de los temporizadores) ---------- */
-.aviso { position: absolute; top: 166px; left: 50%; display: flex; align-items: center; gap: 14px; width: 400px; padding: 11px 22px 11px 12px;
-  background: var(--grano), var(--sumi-alzado); box-shadow: inset 0 4px 0 var(--aviso, var(--shu)), 0 10px 26px rgba(0, 0, 0, .45);
-  transform: translateX(-50%); animation: avisoEntra .45s cubic-bezier(.2, .8, .2, 1) both; }
-.aviso[hidden] { display: none; }
-.aviso.sale { animation: avisoSale .4s ease-in both; }
-/* El logo del clan que se lleva el objetivo; el color de la raya de arriba dice qué ha sido */
+/* ---------- Avisos y resumen de pelea (debajo de los temporizadores) ---------- */
+.aviso { position: absolute; top: 172px; left: 50%; display: flex; align-items: center; gap: 14px; width: 420px;
+  transform: translateX(-50%); animation: avisoEntra var(--t-medio) var(--curva) both; }
+.aviso.sale { animation: avisoSale var(--t-medio) var(--curva-salida) both; }
 .aviso-logo { width: 52px; height: 50px; object-fit: contain; flex: none; }
 .aviso .aviso-texto { display: flex; flex-direction: column; min-width: 0; }
-.aviso-quien { font-family: var(--mincho); font-weight: 800; font-size: 25px; line-height: 1.22; }
-.aviso-que { font-size: 16px; color: #CFC6B6; }
-@keyframes avisoEntra { from { opacity: 0; transform: translate(-50%, -14px); } }
-@keyframes avisoSale { to { opacity: 0; transform: translate(-50%, -10px); } }
+.aviso-quien { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@keyframes avisoEntra { from { opacity: 0; transform: translate(-50%, -16px) scale(.96); } }
+@keyframes avisoSale { to { opacity: 0; transform: translate(-50%, -12px) scale(.98); } }
+.pelea { position: absolute; top: 172px; left: 50%; display: flex; flex-direction: column; align-items: center; width: 460px;
+  transform: translateX(-50%); animation: avisoEntra var(--t-medio) var(--curva) both; }
+.pelea.sale { animation: avisoSale var(--t-medio) var(--curva-salida) both; }
+.pelea-marcador { display: flex; align-items: center; gap: 14px; }
+.pelea-cifra { min-width: 1.2em; }
+.pelea-logo { width: 56px; height: 54px; object-fit: contain; }
+.pelea-cifra { text-align: center; animation: cifraEntra var(--t-lento) var(--curva) both .12s; }
+.pelea-destacado { display: flex; gap: 8px; align-items: baseline; white-space: nowrap; animation: piezaEntra var(--t-medio) var(--curva) both .25s; }
+@keyframes cifraEntra { from { opacity: 0; transform: translateY(10px) scale(.8); } }
 
-/* ---------- Línea por línea ---------- */
-/* Abajo en el centro, tocando el borde, y más pequeño (al 72 %); sube desde abajo al salir */
-.lineas { position: absolute; bottom: 0; left: 50%; width: 1180px; transform: translateX(-50%) scale(.72); transform-origin: 50% 100%;
-  background: var(--grano), rgba(34, 30, 26, .97); box-shadow: inset 0 4px 0 var(--shu), 0 -12px 32px rgba(0, 0, 0, .45);
-  animation: subir .55s cubic-bezier(.2, .8, .2, 1) both; }
-.lineas[hidden] { display: none; }
-.lineas.sale { animation: bajar .4s ease-in both; }
-@keyframes subir { from { clip-path: inset(100% 0 0 0); } to { clip-path: inset(0 0 0 0); } }
-@keyframes bajar { from { clip-path: inset(0 0 0 0); } to { clip-path: inset(100% 0 0 0); } }
-.lineas-cabeza { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; padding: 14px 20px 12px;
-  border-bottom: 1px solid var(--sumi-linea); }
+/* ---------- Cifras que cambian: un latido corto al cambiar (solo transform) ---------- */
+.cambia { animation: cambia var(--t-medio) var(--curva); }
+@keyframes cambia { 30% { transform: scale(1.14); } }
+.kills, .dato b, .diferencia b, .jugador .oro, .dif, .puntos b, .ficha-puntos b { display: inline-block; transform-origin: 50% 60%; }
+
+/* ---------- Línea por línea (abajo, en el centro) ---------- */
+/* El panel va dentro de su zona, que ocupa el lienzo entero y es la que se encoge, hacia abajo y al centro, cuando
+   lleva las cámaras de los casters a los lados (la escala la pone el marcador: ESCALA_LINEAS_CON_CAMARAS) */
+.zona-lineas { position: absolute; inset: 0; pointer-events: none; transform-origin: 50% 100%; transition: transform var(--t-medio) var(--curva); }
+.zona-lineas.con-camaras { transform: scale(var(--escala-lineas, .78)); }
+/* Entra subiendo desde el borde, con las filas escalonadas; se va bajando */
+.lineas { position: absolute; bottom: 0; left: 50%; width: 1560px; transform: translateX(-50%); transform-origin: 50% 100%;
+  animation: subir var(--t-lento) var(--curva) both; }
+.lineas.sale { animation: bajar var(--t-medio) var(--curva-salida) both; }
+.lineas.sale .fila { animation: none; }
+@keyframes subir { from { opacity: 0; transform: translate(-50%, 40px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes bajar { to { opacity: 0; transform: translate(-50%, 36px); } }
+.lineas-cabeza { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; height: 64px; padding: 0 24px; }
 .lineas-cabeza .equipo { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.lineas-cabeza .equipo.azul { padding-left: 12px; box-shadow: inset 4px 0 0 var(--azul-lado); }
-.lineas-cabeza .equipo.rojo { justify-content: flex-end; padding-right: 12px; box-shadow: inset -4px 0 0 var(--rojo-lado); }
-.lineas-cabeza .logo { width: 40px; height: 40px; object-fit: contain; }
-.lineas-cabeza .nombre { font-family: var(--mincho); font-weight: 800; font-size: 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lineas-cabeza .equipo.rojo { justify-content: flex-end; }
+.lineas-cabeza .logo { width: 42px; height: 42px; object-fit: contain; }
+.lineas-cabeza .nombre { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* El logo de Tenka Ichi, pequeño y tal cual, con su papel */
-.lineas-cabeza .sol { width: 44px; height: 44px; border-radius: 4px; box-shadow: 0 0 0 1px rgba(0, 0, 0, .45), 0 4px 12px rgba(0, 0, 0, .35); }
-
+.lineas-cabeza .sol { width: 46px; height: 46px; border-radius: 4px; }
+.lineas-centro { display: grid; grid-template-columns: 88px 1fr 88px; align-items: center; gap: 6px; width: 300px; justify-items: center; }
+.lineas.sin-puntos .rotulo-pts { visibility: hidden; }
 .filas { padding: 4px 0 8px; }
-.fila { display: grid; grid-template-columns: 1fr 136px 1fr; align-items: center; height: 62px; padding: 0 20px; }
-.fila + .fila { border-top: 1px solid rgba(53, 48, 41, .7); }
-.jugador { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.jugador.azul { --lado: var(--azul-lado); }
-.jugador.rojo { --lado: var(--rojo-lado); }
+.fila { display: grid; grid-template-columns: 1fr 300px 1fr; align-items: center; height: 72px; padding: 0 24px;
+  animation: filaEntra var(--t-medio) var(--curva) both; animation-delay: calc(.08s + var(--i) * .06s); }
+@keyframes filaEntra { from { opacity: 0; transform: translateY(14px); } }
+.jugador { display: grid; align-items: center; gap: 12px; min-width: 0; }
+.jugador.azul { grid-template-columns: 56px minmax(0, 1fr) auto 66px; }
+.jugador.rojo { grid-template-columns: 66px auto minmax(0, 1fr) 56px; }
+.jugador.azul { --lado: var(--clan-azul, var(--azul-lado)); --lado-texto: var(--clan-azul-texto, var(--azul-lado)); }
+.jugador.rojo { --lado: var(--clan-rojo, var(--rojo-lado)); --lado-texto: var(--clan-rojo-texto, var(--rojo-lado)); }
 
 /* Retrato del campeón con el nivel; gris con la cuenta atrás si está muerto; iluminado si va en racha */
-.retrato { position: relative; width: 46px; height: 46px; flex: none; --marco: var(--lado); --brillo: transparent; }
-.retrato img { width: 100%; height: 100%; object-fit: cover; border-radius: 3px; display: block; box-shadow: 0 0 0 2px var(--marco), 0 0 0 0 var(--brillo); }
-.retrato .nivel { position: absolute; bottom: -4px; font-style: normal; font-size: 11px; font-weight: 700; line-height: 16px; min-width: 18px;
-  padding: 0 3px; text-align: center; background: var(--sumi); color: var(--washi); border-radius: 2px; }
-.azul .retrato .nivel { right: -6px; }
-.rojo .retrato .nivel { left: -6px; }
-.retrato .muerte { position: absolute; inset: 0; display: none; place-items: center; font-style: normal; font-size: 17px; font-weight: 700;
-  color: var(--shu-claro); background: rgba(22, 20, 18, .55); border-radius: 3px; }
-.retrato.muerto img { filter: grayscale(1) brightness(.6); }
+.retrato { position: relative; width: 56px; height: 56px; flex: none; }
+.retrato img { width: 100%; height: 100%; object-fit: cover; display: block; position: relative; }
+.retrato .nivel { position: absolute; bottom: -5px; z-index: 1; font-style: normal; line-height: 18px; min-width: 22px; padding: 0 4px; text-align: center; }
+.azul .retrato .nivel { right: -7px; }
+.rojo .retrato .nivel { left: -7px; }
+.retrato .muerte { position: absolute; inset: 0; z-index: 1; display: none; place-items: center; font-style: normal; }
+.retrato.muerto img { filter: grayscale(1) brightness(.55); }
 .retrato.muerto .muerte { display: grid; }
-.retrato.racha { --marco: #E3AE52; --brillo: rgba(236, 178, 74, .7); }
-.retrato.racha-alta { --marco: #F09A3E; --brillo: rgba(245, 140, 60, .85); }
-.retrato.racha img { animation: racha 1.8s ease-in-out infinite; }
-@keyframes racha {
-  0%, 100% { box-shadow: 0 0 0 2px var(--marco), 0 0 16px 4px var(--brillo); }
-  50% { box-shadow: 0 0 0 2px var(--marco), 0 0 8px 1px var(--brillo); }
-}
+/* El brillo de la racha es un halo detrás del retrato que late en opacidad */
+.retrato::before { content: ''; position: absolute; inset: -3px; opacity: 0; pointer-events: none; }
+.retrato.racha::before { animation: latido 1.8s ease-in-out infinite; }
 
-.quien { display: flex; flex-direction: column; flex: 1; min-width: 0; line-height: 1.22; }
+.quien { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; gap: 2px; }
 .rojo .quien { text-align: right; }
-.linea-nombre { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.linea-nombre { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .rojo .linea-nombre { flex-direction: row-reverse; }
-.quien .nombre { min-width: 0; font-family: var(--mincho); font-weight: 800; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* Shutdown aproximado: moneda y cantidad, del color del oro */
-.recompensa { display: inline-flex; align-items: center; gap: 3px; flex: none; padding: 1px 6px 1px 4px; border-radius: 999px;
-  background: rgba(217, 164, 65, .16); box-shadow: inset 0 0 0 1px rgba(217, 164, 65, .45); color: #E8B85A; }
-.recompensa[hidden] { display: none; }
-.recompensa svg { width: 12px; height: 12px; color: #D9A441; }
-.recompensa b { font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.3; }
-.quien .kda { font-size: 16px; font-weight: 600; color: #DDD4C6; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.quien .nombre { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.recompensa { display: inline-flex; align-items: center; gap: 4px; flex: none; }
+.recompensa svg { width: 14px; height: 14px; }
+.quien .kda { display: flex; gap: 10px; white-space: nowrap; }
+.rojo .quien .kda { flex-direction: row-reverse; }
 
-/* Objetos en sus huecos (0-5) y el abalorio aparte; el lado rojo va en espejo */
-.objetos { display: flex; gap: 3px; flex: none; }
-.rojo .objetos { flex-direction: row-reverse; }
-.hueco { width: 24px; height: 24px; border-radius: 3px; overflow: hidden; background: rgba(12, 11, 10, .6);
-  box-shadow: inset 0 0 0 1px rgba(231, 223, 210, .08); }
+/* Objetos: solo los que se tienen, sin huecos vacíos; el abalorio aparte. El lado rojo va en espejo */
+.objetos { display: flex; align-items: center; gap: 8px; flex: none; min-width: 238px; }
+.azul .objetos { justify-content: flex-end; }
+.rojo .objetos { flex-direction: row-reverse; justify-content: flex-end; }
+.huecos { display: flex; gap: 4px; }
+.rojo .huecos { flex-direction: row-reverse; }
+.hueco { width: 30px; height: 30px; overflow: hidden; flex: none; animation: selloEntra var(--t-medio) var(--curva) both; }
 .hueco img { width: 100%; height: 100%; display: block; }
-.hueco img[hidden] { display: none; }
-.hueco.abalorio { border-radius: 50%; margin-left: 5px; }
-.rojo .hueco.abalorio { margin-left: 0; margin-right: 5px; }
-.jugador .oro { flex: none; width: 46px; font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; color: #D9A441; text-align: right; }
+.hueco.abalorio { border-radius: 50%; }
+.jugador .oro { white-space: nowrap; }
+.jugador.azul .oro { text-align: right; }
 .jugador.rojo .oro { text-align: left; }
 
-/* En medio, solo la diferencia de oro: barra corta y centrada, y el número debajo */
-.medio { display: grid; justify-items: center; gap: 7px; }
-.barra { position: relative; width: 96px; height: 6px; background: rgba(231, 223, 210, .1); border-radius: 3px; }
-.barra::after { content: ''; position: absolute; left: 50%; top: -3px; width: 1px; height: 12px; background: var(--hai); }
-.barra .relleno { position: absolute; top: 0; height: 100%; border-radius: 3px; transition: width .6s ease, left .6s ease; }
-.medio .dif { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--hai); white-space: nowrap; }
-.medio .dif b { font-weight: 700; }
-.medio .dif .azul { color: var(--azul-lado); }
-.medio .dif .rojo { color: #E4474C; }
+/* En medio: los puntos provisionales de los dos, y entre ellos la barra y la diferencia de oro */
+.medio { display: grid; grid-template-columns: 88px 1fr 88px; align-items: center; gap: 6px; }
+.puntos { display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
+.lineas.sin-puntos .puntos { visibility: hidden; }
+.dif-oro { display: grid; justify-items: center; gap: 6px; }
+.barra { position: relative; width: 116px; height: 7px; overflow: hidden; }
+.barra .relleno { position: absolute; top: 0; width: 50%; height: 100%; transform: scaleX(0); transition: transform var(--t-lento) var(--curva); }
+.barra .relleno.azul { right: 50%; transform-origin: 100% 50%; }
+.barra .relleno.rojo { left: 50%; transform-origin: 0 50%; }
+.dif { white-space: nowrap; }
+
+/* ---------- Cámaras de los casters (un hueco a cada lado del línea por línea) ---------- */
+/* La ventana es transparente: la cámara va por debajo del overlay en OBS, en la posición que da el panel
+   (camarasLineas en comun.js, que es quien las coloca). Entran un momento después del panel y se van con él */
+.camaras-lineas { position: absolute; inset: 0; pointer-events: none; }
+.camara-lineas { position: absolute; animation: camaraEntra var(--t-lento) var(--curva) both .16s; }
+.camara-lineas.sale { animation: camaraSale var(--t-medio) var(--curva-salida) both; }
+@keyframes camaraEntra { from { opacity: 0; transform: translateY(28px); } }
+@keyframes camaraSale { to { opacity: 0; transform: translateY(24px); } }
+.ventana-cam { position: relative; }
+.placa-cam { position: relative; display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 12px; overflow: hidden; }
+/* El emblema de Koryu Budo, tal cual, sobre un círculo de papel para que se lea encima de la tinta */
+.sello-cam { position: relative; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; flex: none; background: var(--washi); }
+.sello-cam img { width: 24px; height: 24px; object-fit: contain; }
+.nombre-cam { position: relative; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.detalle-cam { position: relative; min-width: 0; margin-left: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* La de la derecha va en espejo, como todo el lado rojo */
+.camara-lineas.derecha .placa-cam { flex-direction: row-reverse; }
+.camara-lineas.derecha .detalle-cam { margin-left: 0; margin-right: auto; }
+/* Guía para colocar las cámaras en OBS (?guia=1 o la vista previa del panel): la ventana rayada, con su medida */
+.medidas-cam { display: none; }
+body.guia .medidas-cam { display: grid; place-items: center; position: absolute; inset: 0;
+  background: repeating-linear-gradient(45deg, rgba(231, 223, 210, .12) 0 12px, transparent 12px 24px); }
+.medidas-cam span { padding: 5px 10px; background: rgba(22, 20, 18, .82); font-size: 17px; font-weight: 700; line-height: 1.4; text-align: center; color: var(--washi); }
+
+/* ---------- Ficha de un jugador (abajo, en el lado de su clan) ---------- */
+.ficha { position: absolute; bottom: 56px; display: grid; grid-template-columns: 290px 400px; gap: 22px; align-items: stretch; animation: fichaEntra var(--t-lento) var(--curva) both; }
+.ficha.azul { left: 72px; }
+.ficha.rojo { right: 72px; grid-template-columns: 400px 290px; }
+.ficha.rojo .ficha-carta { order: 2; }
+.ficha.sale { animation: fichaSale var(--t-medio) var(--curva-salida) both; }
+@keyframes fichaEntra { from { opacity: 0; transform: translateY(30px); } }
+@keyframes fichaSale { to { opacity: 0; transform: translateY(24px); } }
+.ficha-carta { position: relative; width: 290px; aspect-ratio: 5 / 7; animation: cartaEntra var(--t-lento) var(--curva) both .1s; }
+.ficha-carta .carta-g { width: 100%; height: 100%; }
+@keyframes cartaEntra { from { opacity: 0; transform: translateY(18px) rotate(-2deg); } }
+/* Sin carta: el retrato del campeón a tamaño de carta */
+.ficha-retrato { position: relative; width: 100%; height: 100%; overflow: hidden; }
+.ficha-retrato img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 18%; display: block; }
+.ficha-retrato-nivel { position: absolute; right: 14px; bottom: 14px; }
+.ficha-datos { display: flex; flex-direction: column; gap: 14px; min-width: 0; animation: piezaEntra var(--t-medio) var(--curva) both .2s; }
+.ficha-cabeza { display: grid; grid-template-columns: 50px minmax(0, 1fr) 60px; align-items: center; gap: 14px; }
+.ficha-logo { width: 50px; height: 48px; object-fit: contain; }
+.ficha-campeon { width: 60px; height: 60px; object-fit: cover; }
+.ficha-quien { display: flex; flex-direction: column; min-width: 0; line-height: 1.15; }
+.ficha-nombre { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ficha-cifras { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.ficha-cifra { display: flex; flex-direction: column; line-height: 1.1; white-space: nowrap; min-width: 0; animation: piezaEntra var(--t-medio) var(--curva) both; animation-delay: calc(.25s + var(--i) * .05s); }
+.ficha-objetos { display: flex; align-items: center; gap: 8px; animation: piezaEntra var(--t-medio) var(--curva) both .5s; }
+.ficha-objetos .huecos { display: flex; gap: 5px; }
+.ficha-objetos .hueco { width: 38px; height: 38px; }
+.ficha-puntos { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: auto; }
+
+/* ---------- Gráfica de oro (abajo, en el centro) ---------- */
+.grafica { position: absolute; bottom: 48px; left: 50%; width: 1000px; transform: translateX(-50%); animation: subir var(--t-lento) var(--curva) both; }
+.grafica.sale { animation: bajar var(--t-medio) var(--curva-salida) both; }
+.grafica-cabeza { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; height: 64px; padding: 0 22px; }
+.grafica-cabeza .equipo { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.grafica-cabeza .equipo.rojo { justify-content: flex-end; }
+.grafica-cabeza .logo { width: 42px; height: 42px; object-fit: contain; }
+.grafica-cabeza .nombre { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.grafica-titulo { display: flex; flex-direction: column; align-items: center; line-height: 1.15; }
+.grafica-svg { display: block; width: 1000px; height: 300px; }
+.grafica-svg .rejilla line { stroke: rgba(231, 223, 210, .1); stroke-width: 1; }
+.grafica-svg .cero { stroke-width: 1.5; }
+.grafica-svg .rotulo { font-size: 16px; font-weight: 700; fill: var(--hai); font-family: var(--gothic); }
+/* El área se descubre de izquierda a derecha (la cortina de recorte se escala), las barras salen del cero
+   escalonadas y la línea se dibuja encima */
+.grafica-svg .cortina { transform-box: view-box; transform-origin: 0 0; }
+.grafica-svg .cortina.entra { animation: cortinaEntra 1.1s var(--curva) both .15s; }
+@keyframes cortinaEntra { from { transform: scaleX(0); } }
+.grafica-svg .barra { transform-box: view-box; }
+.grafica-svg .barras.entra .barra { animation: barraEntra var(--t-medio) var(--curva) both; animation-delay: calc(.15s + var(--i) * 5ms); }
+@keyframes barraEntra { from { transform: scaleY(0); } }
+.grafica-svg .linea { fill: none; stroke-dasharray: 100; stroke-dashoffset: 0; }
+.grafica-svg .linea.entra { animation: lineaEntra 1.1s var(--curva) both .15s; }
+@keyframes lineaEntra { from { stroke-dashoffset: 100; } }
+.grafica-eje { position: relative; height: 28px; }
+.grafica-eje span { position: absolute; top: 4px; transform: translateX(-50%); white-space: nowrap; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0s !important; transition-duration: 0s !important; }

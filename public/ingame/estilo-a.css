@@ -1,0 +1,159 @@
+/* Versión A «retoque» del marcador de partida: la composición de siempre, pulida y con un paso más de color.
+   El color de cada clan tiene más presencia (un lavado desde el borde de su placa y su kanji de fondo), oro viejo en
+   filos y sellos, y acentos de color en los avisos y en las cifras que cambian. Todo acotado a [data-estilo="a"]:
+   si se elige la B, este archivo se borra. */
+
+/* ---------- Marcador ---------- */
+[data-estilo="a"] .placa { background: var(--grano), var(--sumi-alzado); }
+[data-estilo="a"] .azul .placa { padding: 0 34px 0 26px; clip-path: polygon(0 0, 100% 0, calc(100% - 26px) 100%, 0 100%); box-shadow: inset 8px 0 0 var(--clan, var(--azul-lado)); }
+[data-estilo="a"] .rojo .placa { padding: 0 26px 0 34px; clip-path: polygon(0 0, 100% 0, 100% 100%, 26px 100%); box-shadow: inset -8px 0 0 var(--clan, var(--rojo-lado)); }
+/* El lavado del color del clan, desde su borde hacia el centro, y su kanji grande de fondo */
+[data-estilo="a"] .placa::before { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .34;
+  background: linear-gradient(90deg, var(--clan, var(--azul-lado)) 0%, transparent 80%); }
+[data-estilo="a"] .rojo .placa::before { background: linear-gradient(270deg, var(--clan, var(--rojo-lado)) 0%, transparent 80%); }
+[data-estilo="a"] .placa .kanji-fondo { top: -14px; font-size: 96px; color: var(--clan, var(--hai)); opacity: .14; }
+[data-estilo="a"] .azul .placa .kanji-fondo { left: 96px; }
+[data-estilo="a"] .rojo .placa .kanji-fondo { right: 96px; }
+[data-estilo="a"] .placa .nombre { font-family: var(--mincho); font-weight: 800; font-size: 28px; line-height: 1.2; }
+[data-estilo="a"] .placa .kanji { font-family: var(--mincho); font-weight: 700; font-size: 16px; line-height: 1.2; color: var(--clan-texto, var(--hai)); letter-spacing: .12em; }
+[data-estilo="a"] .placa .kills { font-family: var(--mincho); font-weight: 800; font-size: 42px; line-height: 1; }
+/* Segunda fila: oro (estimado, con ≈), torres, larvas y los sellos de los dragones */
+[data-estilo="a"] .datos { padding: 0 18px; background: var(--tinta); font-size: 19px; font-weight: 700; }
+[data-estilo="a"] .azul .datos { padding-right: 46px; clip-path: polygon(0 0, calc(100% - 26px) 0, calc(100% - 38px) 100%, 0 100%); }
+[data-estilo="a"] .rojo .datos { padding-left: 46px; clip-path: polygon(26px 0, 100% 0, 100% 100%, 38px 100%); }
+[data-estilo="a"] .dato svg { color: var(--hai); }
+[data-estilo="a"] .dato.oro svg, [data-estilo="a"] .dato.oro b { color: var(--oro); }
+[data-estilo="a"] .dato.larvas svg { color: #9B6BD4; }
+[data-estilo="a"] .dragones i { transform: rotate(45deg); border-radius: 3px; background: var(--d); box-shadow: 0 0 0 1.5px rgba(22, 20, 18, .9), inset 0 0 0 1px rgba(255, 255, 255, .18); }
+[data-estilo="a"] .dragones i span { display: none; }
+[data-estilo="a"] .dragones i.vacio { background: transparent; box-shadow: inset 0 0 0 1.5px rgba(235, 210, 138, .45); }
+[data-estilo="a"] .dragones.alma i:not(.vacio) { box-shadow: 0 0 0 1.5px rgba(22, 20, 18, .9), 0 0 10px var(--d); }
+/* Centro: reloj y diferencia de oro (del color del clan que va por delante) */
+[data-estilo="a"] .reloj { background: var(--sumi); font-weight: 700; font-size: 27px; letter-spacing: .02em; box-shadow: inset 0 -3px 0 var(--shu); }
+[data-estilo="a"] .diferencia { background: var(--tinta); font-weight: 700; font-size: 19px; color: var(--hai); }
+[data-estilo="a"] .diferencia.azul { color: var(--clan-azul-texto, var(--azul-lado)); }
+[data-estilo="a"] .diferencia.rojo { color: var(--clan-rojo-texto, #E4474C); }
+[data-estilo="a"] .diferencia .flecha { font-size: 13px; }
+
+/* ---------- Temporizadores y módulos ---------- */
+[data-estilo="a"] .temporizadores { padding: 9px 26px 10px; background: var(--grano), var(--tinta); clip-path: polygon(0 0, 100% 0, calc(100% - 16px) 100%, 16px 100%); }
+[data-estilo="a"] .enso .pista { stroke: rgba(235, 210, 138, .16); stroke-width: 2.6; }
+[data-estilo="a"] .enso .trazo { stroke: var(--color, var(--washi)); stroke-width: 3.6; stroke-linecap: round; }
+[data-estilo="a"] .sello .kanji { font-size: 17px; color: var(--washi); }
+[data-estilo="a"] .sello.lleno { width: 34px; height: 34px; border-radius: 3px; background: var(--color); transform: rotate(-4deg); box-shadow: inset 0 0 0 2px rgba(0, 0, 0, .18), 0 0 0 1.5px var(--oro-viejo); }
+[data-estilo="a"] .sello.lleno .kanji { color: var(--tinta, var(--sumi)); font-size: 19px; }
+[data-estilo="a"] .temporizador small, [data-estilo="a"] .modulo small { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--hai); }
+[data-estilo="a"] .temporizador b { font-size: 19px; font-weight: 700; }
+[data-estilo="a"] .temporizador.vivo b { color: var(--shu-claro); }
+[data-estilo="a"] .temporizador.dragon { --color: var(--washi); }
+[data-estilo="a"] .temporizador.larvas, [data-estilo="a"] .temporizador.heraldo { --color: #8F7AE8; }
+[data-estilo="a"] .temporizador.baron { --color: #9B59D0; }
+[data-estilo="a"] .modulo { padding: 0 22px 0 8px; background: var(--grano), var(--tinta); box-shadow: inset 3px 0 0 var(--color); clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%); }
+[data-estilo="a"] .rojo .modulo { padding: 0 8px 0 22px; box-shadow: inset -3px 0 0 var(--color); clip-path: polygon(0 0, 100% 0, 100% 100%, 12px 100%); }
+[data-estilo="a"] .modulo b { font-size: 17px; font-weight: 700; }
+[data-estilo="a"] .modulo.punto b { color: var(--shu-claro); }
+
+/* ---------- Avisos y resumen de pelea ---------- */
+[data-estilo="a"] .aviso { padding: 11px 22px 11px 12px; background: var(--grano), var(--sumi-alzado);
+  box-shadow: inset 0 4px 0 var(--aviso, var(--shu)), inset 5px 0 0 var(--clan, var(--shu)), 0 10px 26px rgba(0, 0, 0, .45); }
+[data-estilo="a"] .aviso-quien { font-family: var(--mincho); font-weight: 800; font-size: 26px; line-height: 1.22; }
+[data-estilo="a"] .aviso-que { font-size: 17px; color: #CFC6B6; }
+[data-estilo="a"] .pelea { padding: 10px 20px 12px; gap: 2px; background: var(--grano), var(--sumi-alzado);
+  box-shadow: inset 0 4px 0 var(--shu), 0 0 0 1px rgba(235, 210, 138, .35), 0 10px 26px rgba(0, 0, 0, .45); }
+[data-estilo="a"] .pelea-titulo { font-size: 13px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--oro-viejo); }
+[data-estilo="a"] .pelea-cifra { font-family: var(--mincho); font-weight: 800; font-size: 46px; line-height: 1; color: var(--hai); }
+[data-estilo="a"] .pelea.gana-azul .pelea-cifra.azul, [data-estilo="a"] .pelea.empate .pelea-cifra.azul { color: var(--clan-azul-texto, var(--azul-lado)); }
+[data-estilo="a"] .pelea.gana-rojo .pelea-cifra.rojo, [data-estilo="a"] .pelea.empate .pelea-cifra.rojo { color: var(--clan-rojo-texto, #E4474C); }
+[data-estilo="a"] .pelea-raya { font-family: var(--mincho); font-size: 30px; color: var(--oro-viejo); }
+[data-estilo="a"] .pelea-destacado { font-size: 17px; color: #CFC6B6; }
+[data-estilo="a"] .pelea-destacado b { font-family: var(--mincho); font-weight: 800; font-size: 20px; }
+[data-estilo="a"] .pelea-destacado b.azul { color: var(--clan-azul-texto, var(--azul-lado)); }
+[data-estilo="a"] .pelea-destacado b.rojo { color: var(--clan-rojo-texto, #E4474C); }
+
+/* ---------- Línea por línea ---------- */
+[data-estilo="a"] .lineas { background: var(--grano), rgba(28, 25, 22, .97); box-shadow: 0 -12px 32px rgba(0, 0, 0, .45); }
+/* El filo de arriba: el color de cada clan desde su lado, con el bermellón en medio */
+[data-estilo="a"] .lineas::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 4px;
+  background: linear-gradient(90deg, var(--clan-azul, var(--azul-lado)) 0%, var(--clan-azul, var(--azul-lado)) 30%, var(--shu) 50%, var(--clan-rojo, var(--rojo-lado)) 70%, var(--clan-rojo, var(--rojo-lado)) 100%); }
+[data-estilo="a"] .lineas-cabeza { border-bottom: 1px solid rgba(235, 210, 138, .22); }
+[data-estilo="a"] .lineas-cabeza .equipo.azul { padding-left: 14px; box-shadow: inset 4px 0 0 var(--clan, var(--azul-lado)); }
+[data-estilo="a"] .lineas-cabeza .equipo.rojo { padding-right: 14px; box-shadow: inset -4px 0 0 var(--clan, var(--rojo-lado)); }
+[data-estilo="a"] .lineas-cabeza .nombre { font-family: var(--mincho); font-weight: 800; font-size: 26px; }
+[data-estilo="a"] .lineas-cabeza .sol { box-shadow: 0 0 0 1px rgba(0, 0, 0, .45), 0 0 0 2px rgba(235, 210, 138, .5), 0 4px 12px rgba(0, 0, 0, .35); }
+[data-estilo="a"] .fila + .fila { border-top: 1px solid rgba(53, 48, 41, .8); }
+[data-estilo="a"] .retrato img { border-radius: 3px; box-shadow: 0 0 0 2px var(--lado); }
+[data-estilo="a"] .retrato .nivel { font-size: 15px; font-weight: 700; background: var(--sumi); color: var(--washi); border-radius: 2px; box-shadow: 0 0 0 1px rgba(235, 210, 138, .35); }
+[data-estilo="a"] .retrato .muerte { font-size: 20px; font-weight: 700; color: var(--shu-claro); background: rgba(22, 20, 18, .55); border-radius: 3px; }
+[data-estilo="a"] .retrato::before { border-radius: 5px; box-shadow: 0 0 16px 4px rgba(236, 178, 74, .75); }
+[data-estilo="a"] .retrato.racha img { box-shadow: 0 0 0 2px #E3AE52; }
+[data-estilo="a"] .retrato.racha-alta img { box-shadow: 0 0 0 2px #F09A3E; }
+[data-estilo="a"] .retrato.racha-alta::before { box-shadow: 0 0 20px 6px rgba(245, 140, 60, .85); }
+[data-estilo="a"] .quien .nombre { font-family: var(--mincho); font-weight: 800; font-size: 22px; }
+[data-estilo="a"] .recompensa { padding: 1px 8px 1px 5px; border-radius: 999px; background: rgba(217, 164, 65, .16); box-shadow: inset 0 0 0 1px rgba(217, 164, 65, .5); color: #E8B85A; }
+[data-estilo="a"] .recompensa svg { color: var(--oro); }
+[data-estilo="a"] .recompensa b { font-size: 15px; font-weight: 700; line-height: 1.4; }
+[data-estilo="a"] .quien .kda { font-size: 20px; font-weight: 600; color: #DDD4C6; }
+[data-estilo="a"] .quien .kda .cs { color: var(--hai); font-weight: 500; }
+[data-estilo="a"] .hueco { border-radius: 3px; background: rgba(12, 11, 10, .6); box-shadow: inset 0 0 0 1px rgba(231, 223, 210, .08); }
+[data-estilo="a"] .hueco.abalorio { box-shadow: 0 0 0 1px rgba(235, 210, 138, .4); }
+[data-estilo="a"] .hueco.abalorio.vacio { box-shadow: inset 0 0 0 1px rgba(231, 223, 210, .12); }
+[data-estilo="a"] .jugador .oro { font-size: 20px; font-weight: 700; color: var(--oro); }
+/* En medio: puntos del fantasy (el que va por delante, del color de su clan) y la diferencia de oro */
+[data-estilo="a"] .puntos b { font-family: var(--mincho); font-weight: 800; font-size: 24px; color: var(--hai); }
+[data-estilo="a"] .rotulo-pts { font-size: 15px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--oro-viejo); }
+[data-estilo="a"] .puntos.azul.delante b { color: var(--clan-azul-texto, var(--azul-lado)); }
+[data-estilo="a"] .puntos.rojo.delante b { color: var(--clan-rojo-texto, #E4474C); }
+[data-estilo="a"] .barra { background: rgba(231, 223, 210, .1); border-radius: 3px; }
+[data-estilo="a"] .barra::after { content: ''; position: absolute; left: 50%; top: 0; width: 1px; height: 100%; background: var(--oro-viejo); }
+[data-estilo="a"] .barra .relleno.azul { background: var(--clan-azul, var(--azul-lado)); border-radius: 3px 0 0 3px; }
+[data-estilo="a"] .barra .relleno.rojo { background: var(--clan-rojo, var(--rojo-lado)); border-radius: 0 3px 3px 0; }
+[data-estilo="a"] .dif { font-size: 18px; font-weight: 700; color: var(--hai); }
+[data-estilo="a"] .dif.azul { color: var(--clan-azul-texto, var(--azul-lado)); }
+[data-estilo="a"] .dif.rojo { color: var(--clan-rojo-texto, #E4474C); }
+
+/* ---------- Cámaras de los casters ---------- */
+/* Marco de caster: el filo fino de oro viejo del panel, una raya de bermellón arriba (el color de la casa, como bajo
+   el reloj) y la placa de tinta con el emblema y el nombre */
+[data-estilo="a"] .camara-lineas { box-shadow: 0 0 0 1px rgba(22, 20, 18, .9), 0 0 0 3px rgba(235, 210, 138, .5), 0 -10px 30px rgba(0, 0, 0, .4); }
+[data-estilo="a"] .camara-lineas::before { content: ''; position: absolute; left: -3px; right: -3px; top: -7px; height: 4px; background: var(--shu); }
+[data-estilo="a"] .placa-cam { background: var(--grano), rgba(28, 25, 22, .97); border-top: 1px solid rgba(235, 210, 138, .3); }
+[data-estilo="a"] .sello-cam { box-shadow: 0 0 0 1.5px rgba(235, 210, 138, .7); }
+[data-estilo="a"] .nombre-cam { font-family: var(--mincho); font-weight: 800; font-size: 21px; }
+[data-estilo="a"] .detalle-cam { font-size: 16px; color: var(--hai); }
+
+/* ---------- Ficha de jugador ---------- */
+[data-estilo="a"] .ficha-datos { padding: 22px 24px 20px; background: var(--grano), rgba(28, 25, 22, .96);
+  box-shadow: inset 0 4px 0 var(--clan), 0 0 0 1px rgba(235, 210, 138, .3), 0 12px 32px rgba(0, 0, 0, .45); }
+[data-estilo="a"] .ficha-nombre { font-family: var(--mincho); font-weight: 800; font-size: 32px; }
+[data-estilo="a"] .ficha-rol { font-size: 18px; color: var(--clan-texto, var(--hai)); }
+[data-estilo="a"] .ficha-campeon { border-radius: 4px; box-shadow: 0 0 0 2px var(--clan); }
+[data-estilo="a"] .ficha-cifra { padding: 8px 12px; background: rgba(12, 11, 10, .45); border-radius: 4px; box-shadow: inset 0 0 0 1px rgba(231, 223, 210, .08); }
+[data-estilo="a"] .ficha-cifra small { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--hai); }
+[data-estilo="a"] .ficha-cifra b { font-size: 25px; font-weight: 700; margin-top: 2px; }
+[data-estilo="a"] .ficha-objetos .hueco { border-radius: 4px; background: rgba(12, 11, 10, .6); box-shadow: inset 0 0 0 1px rgba(231, 223, 210, .08); }
+[data-estilo="a"] .ficha-objetos .hueco.abalorio { box-shadow: 0 0 0 1px rgba(235, 210, 138, .4); }
+[data-estilo="a"] .ficha-cifra.oro b { color: var(--oro); }
+[data-estilo="a"] .ficha-puntos { padding-top: 12px; border-top: 1px solid rgba(235, 210, 138, .25); }
+[data-estilo="a"] .ficha-puntos small { font-size: 14px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--oro-viejo); }
+[data-estilo="a"] .ficha-puntos b { font-family: var(--mincho); font-weight: 800; font-size: 40px; line-height: 1; color: var(--washi); }
+[data-estilo="a"] .ficha-retrato { border-radius: 8px; background: var(--sumi); box-shadow: inset 0 0 0 3px var(--clan), 0 10px 22px rgba(0, 0, 0, .45); }
+[data-estilo="a"] .ficha-retrato img { border-radius: 8px; }
+[data-estilo="a"] .ficha-retrato-nivel { min-width: 44px; padding: 4px 8px; text-align: center; font-family: var(--mincho); font-weight: 800; font-size: 24px; background: var(--sumi); color: var(--washi); border-radius: 4px; box-shadow: 0 0 0 1.5px var(--oro-viejo); }
+
+/* ---------- Gráfica de oro ---------- */
+[data-estilo="a"] .grafica { background: var(--grano), rgba(28, 25, 22, .96); box-shadow: 0 0 0 1px rgba(235, 210, 138, .3), 0 12px 32px rgba(0, 0, 0, .45); }
+[data-estilo="a"] .grafica::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 4px;
+  background: linear-gradient(90deg, var(--clan-azul, var(--azul-lado)) 0%, var(--shu) 50%, var(--clan-rojo, var(--rojo-lado)) 100%); }
+[data-estilo="a"] .grafica-cabeza { border-bottom: 1px solid rgba(235, 210, 138, .22); }
+[data-estilo="a"] .grafica-cabeza .nombre { font-family: var(--mincho); font-weight: 800; font-size: 24px; }
+[data-estilo="a"] .grafica-titulo b { font-family: var(--mincho); font-weight: 800; font-size: 20px; }
+[data-estilo="a"] .grafica-titulo small { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--oro-viejo); }
+[data-estilo="a"] .grafica-svg .area.azul { fill: var(--clan-azul, var(--azul-lado)); opacity: .32; }
+[data-estilo="a"] .grafica-svg .area.rojo { fill: var(--clan-rojo, var(--rojo-lado)); opacity: .32; }
+[data-estilo="a"] .grafica-svg .barra.azul { stroke: var(--clan-azul, var(--azul-lado)); stroke-width: 2.5; opacity: .7; }
+[data-estilo="a"] .grafica-svg .barra.rojo { stroke: var(--clan-rojo, var(--rojo-lado)); stroke-width: 2.5; opacity: .7; }
+[data-estilo="a"] .grafica-svg .linea { stroke: var(--washi); stroke-width: 2.4; stroke-linejoin: round; }
+[data-estilo="a"] .grafica-svg .rotulo.azul { fill: var(--clan-azul-texto, var(--azul-lado)); }
+[data-estilo="a"] .grafica-svg .rotulo.rojo { fill: var(--clan-rojo-texto, #E4474C); }
+[data-estilo="a"] .grafica-svg .cero { stroke: var(--oro-viejo); }
+[data-estilo="a"] .grafica-eje { border-top: 1px solid rgba(235, 210, 138, .22); font-size: 15px; font-weight: 700; color: var(--hai); }

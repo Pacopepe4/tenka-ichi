@@ -29,9 +29,9 @@ import crypto from 'node:crypto';
 import { cargarFantasy, infoFantasy, cambiarAlineacion, guardarEstadisticas, cerrarAlineaciones, alineacionesCerradas } from './fantasy.js';
 import { atenderPublicacion, discordActivo } from './discord.js';
 import { cargarPartida, recibir as recibirPartida, resumen as resumenPartida, empezarPrueba, pararPrueba, enPrueba, olvidarPartida,
-  ponerContexto, marcarObjetivo, deshacerMarca } from './partida.js';
+  ponerContexto, marcarObjetivo, deshacerMarca, ajustarIngame } from './partida.js';
 import { crearZip } from './zip.js';
-import { fotoEstado, restaurarEstado, guardarEstadoSiCambia, guardarEstadoYa, estadoYaGuardado } from './estado-guardado.js';
+import { fotoEstado, restaurarEstado, guardarEstadoSiCambia, guardarEstadoYa, estadoYaGuardado, camaraLineas } from './estado-guardado.js';
 import { VISTAS, clavePartida, vistaAutomatica, fotoFinal, fotoFinalDelDraft, completarFinal } from './vista.js';
 
 // Clanes con su plantilla actual (lema, descripción, jugadores) para las páginas
@@ -75,10 +75,16 @@ const estado = {
   codigo: null,
   // El puente del PC del espectador solo busca la partida cuando se lo pide el panel (o al acabar el draft)
   buscarPartida: { activa: false, alAcabarDraft: true },
-  // Grafismo que el panel saca encima de la partida: { tipo: 'lineas', id } o nada
+  // Grafismo que el panel saca encima de la partida: { tipo: 'lineas' | 'ficha' | 'oro', id, lado e indice (la ficha) } o nada
   grafico: null,
   // Avisos propios de objetivos en el overlay; apagados, se ven los del propio LoL
   avisosPropios: false,
+  // Marcador de partida: estilo (A «retoque» o B «full art») e interruptores de lo nuevo, encendidos por defecto
+  // (sirven para ocultar algo si no va bien, no para tener que activarlo). oroIngresos apagado vuelve al valor de los objetos.
+  // camaras: las cámaras de los casters a los lados del línea por línea (izquierda y derecha), que sí hay que activar:
+  // huecos transparentes como los del draft, con el nombre y el detalle que se escriban en el panel
+  ingame: { estilo: 'a', puntosFantasy: true, resumenPelea: true, oroIngresos: true,
+    camaras: [{ activa: false, nombre: '', detalle: '' }, { activa: false, nombre: '', detalle: '' }] },
   aviso: null,
   hoja: { configurada: false, ok: false, error: null, cuenta: null },
 };
@@ -202,9 +208,9 @@ function buscarSiAcabaElDraft(completoAntes) {
 
 // Grafismo del panel encima de la partida; se quita solo pasados los segundos pedidos (0: hasta que se quite)
 let idGrafico = 0, temporizadorGrafico = null;
-function ponerGrafico(tipo, segundos) {
+function ponerGrafico(tipo, segundos, extra = {}) {
   clearTimeout(temporizadorGrafico);
-  estado.grafico = tipo ? { tipo, id: ++idGrafico } : null;
+  estado.grafico = tipo ? { tipo, id: ++idGrafico, ...extra } : null;
   if (!tipo || !segundos) return;
   const id = idGrafico;
   temporizadorGrafico = setTimeout(() => { if (estado.grafico?.id === id) { estado.grafico = null; emitir(); } }, segundos * 1000);
@@ -469,13 +475,25 @@ async function accion(nombre, d = {}) {
       estado.buscarPartida.alAcabarDraft = Boolean(d.activa);
       break;
     case 'grafico': {
-      const tipo = ['lineas'].includes(d.tipo) ? d.tipo : null;
-      ponerGrafico(tipo, Math.min(300, Math.max(0, Math.round(Number(d.segundos) || 0))));
+      const tipo = ['lineas', 'ficha', 'oro'].includes(d.tipo) ? d.tipo : null;
+      // La ficha lleva de quién es: el lado y el puesto (0-4) del enfrentamiento
+      const extra = tipo === 'ficha' ? { lado: ['azul', 'rojo'].includes(d.lado) ? d.lado : null, indice: Number(d.indice) } : {};
+      if (tipo === 'ficha' && (!extra.lado || !(extra.indice >= 0 && extra.indice <= 4))) return { ok: false, error: 'Elige el clan y el jugador de la ficha' };
+      ponerGrafico(tipo, Math.min(300, Math.max(0, Math.round(Number(d.segundos) || 0))), extra);
       break;
     }
     case 'avisosPropios':
       estado.avisosPropios = Boolean(d.activos);
       break;
+    case 'ingame': {
+      if (['a', 'b'].includes(d.estilo)) estado.ingame.estilo = d.estilo;
+      for (const k of ['puntosFantasy', 'resumenPelea', 'oroIngresos']) if (typeof d[k] === 'boolean') estado.ingame[k] = d[k];
+      // Las cámaras de los casters: la lista de las dos, cada una con lo que cambie (activarla, o su nombre y su detalle)
+      if (Array.isArray(d.camaras)) estado.ingame.camaras = estado.ingame.camaras.map((c, i) => camaraLineas(d.camaras[i], c));
+      ajustarIngame(estado.ingame);
+      emitirPartida();  // el oro cambia al momento si se toca el interruptor de los ingresos
+      break;
+    }
     // Dragones, heraldo y Barón marcados a mano (el cliente no se los da a los espectadores)
     case 'marcarObjetivo':
       if (!marcarObjetivo(d)) return { ok: false, error: 'Objetivo no válido' };
@@ -889,6 +907,7 @@ estado.hoja = estadoHoja();
 estado.fantasy.cerrado = alineacionesCerradas();
 // Lo que el panel tenía puesto antes del reinicio (y, si estaba conectado a DraftCore, se vuelve a conectar)
 const guardado = restaurarEstado(estado);
+ajustarIngame(estado.ingame);
 if (guardado.restaurado) {
   if (draftCompleto(estado.draft)) draftCompletoDesde = 1;
   busquedaTocada = Boolean(guardado.reciente);

@@ -142,8 +142,42 @@
         </select>
         <button id="verPartida" class="secundario">Ocultar el marcador</button>
       </div>
+      <div class="camaras-lineas">
+        <h4>Cámaras de los casters, a los lados del línea por línea</h4>
+        <div class="lista-camaras-lineas"></div>
+        <div class="fila"><button id="guardarCamarasLineas" class="secundario">Poner los nombres en el overlay</button></div>
+        <p class="ayuda">Un marco de caster a cada lado del línea por línea, con el nombre que escribas: salen y se van con él, y mientras tanto el panel se encoge un poco para hacerles sitio. Marca las que quieras; en OBS, pon cada cámara por debajo del overlay y encájala en su hueco con la medida que tiene al lado (cambia con el estilo del marcador). El hueco solo está mientras el línea por línea está fuera: lo cómodo es tener una escena de juego con las cámaras ya colocadas y pasar a ella en ese rato.</p>
+      </div>
+      <div class="fila">
+        <select id="fichaLado" aria-label="Clan de la ficha"><option value="azul">Lado azul</option><option value="rojo">Lado rojo</option></select>
+        <select id="fichaJugador" aria-label="Jugador de la ficha"></select>
+        <button id="verFicha" class="secundario">Sacar la ficha</button>
+        <select id="duracionFicha" aria-label="Cuánto tiempo se queda la ficha">
+          <option value="15">15 segundos</option><option value="30">30 segundos</option><option value="0">Hasta quitarla</option>
+        </select>
+      </div>
+      <div class="fila">
+        <button id="verOro" class="secundario">Sacar la gráfica de oro</button>
+        <select id="duracionOro" aria-label="Cuánto tiempo se queda la gráfica de oro">
+          <option value="15">15 segundos</option><option value="30">30 segundos</option><option value="0">Hasta quitarla</option>
+        </select>
+      </div>
+      <p class="ayuda">El línea por línea compara a cada jugador con su rival (objetos, oro, KDA, súbditos, nivel y puntos del fantasy) y sale abajo en el centro, con sus cámaras si están marcadas: úsalo en los momentos tranquilos. La ficha enseña la carta de un jugador con sus números; la gráfica, la diferencia de oro estimada desde el principio (hace falta tener al menos dos minutos de partida). Solo sale un grafismo a la vez. Los temporizadores y los buffs salen solos.</p>
+
+      <h3>Aspecto y avisos</h3>
+      <div class="fila">
+        <span class="etiqueta">Estilo del marcador</span>
+        <div class="estilos" role="radiogroup" aria-label="Estilo del marcador">
+          <button type="button" class="estilo" data-estilo="a" title="La composición de siempre, pulida y con más color">A · Retoque</button>
+          <button type="button" class="estilo" data-estilo="b" title="La versión más atrevida, al estilo de las cartas full art">B · Full art</button>
+        </div>
+      </div>
+      <p class="ayuda">Las dos versiones enseñan lo mismo; cambia el aspecto. Para compararlas a la vez, abre <code>/overlay/?estilo=a</code> y <code>/overlay/?estilo=b</code> en dos pestañas o dos fuentes de OBS.</p>
       <div class="fila"><label class="casilla"><input type="checkbox" id="avisosPropios"> Avisos propios de objetivos, con el logo del clan (si no, se ven los del propio LoL)</label></div>
-      <p class="ayuda">El línea por línea compara a cada jugador con su rival (objetos, oro, KDA, súbditos y nivel) y sale abajo en el centro: úsalo en los momentos tranquilos. Los temporizadores y los buffs salen solos.</p>
+      <div class="fila"><label class="casilla"><input type="checkbox" id="resumenPelea"> Resumen de pelea (al cerrarse una pelea de tres muertes o más, el marcador de la pelea por clan)</label></div>
+      <div class="fila"><label class="casilla"><input type="checkbox" id="puntosFantasy"> Puntos del fantasy provisionales en el línea por línea y en la ficha</label></div>
+      <div class="fila"><label class="casilla"><input type="checkbox" id="oroIngresos"> Oro estimado por ingresos (apagado, el oro es solo el valor de los objetos)</label></div>
+      <p class="ayuda">Lo nuevo viene encendido: los interruptores sirven para ocultarlo si algo no va bien en una partida.</p>
 
       <h3>Objetivos a mano</h3>
       <p class="ayuda">Como espectador, el cliente de LoL no da los dragones, el heraldo ni el Barón. Márcalos aquí cuando caigan: los dragones de cada clan salen debajo del reloj y sus temporizadores se ponen en marcha. Si el cliente sí los da, las marcas no cuentan.</p>
