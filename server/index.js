@@ -16,6 +16,7 @@ import { estadoHoja } from './sheets.js';
 import { cargarTierlist, vistaTierlist, ponerTier } from './tierlist.js';
 import { cargarAjustes } from './ajustes.js';
 import { cargarGacha, catalogo, probabilidades, abrirSobre, darAlta, darSobres, estadoUsuario, buscarUsuario, resumenGacha, fundirRepetidas,
+  vincularTwitch, desvincularTwitch,
   PESOS, CARTAS_POR_SOBRE, SOBRES_INICIALES, REPETIDAS_POR_SOBRE, PROBABILIDAD_LEGACY, CARPETA_ARTE, reversoCarta } from './gacha.js';
 import { crearCodigo, cerrarCodigo, mostrarCodigo, estadoCodigo, codigoEnPantalla, canjearCodigo as canjearCodigoDirecto } from './codigos.js';
 import { estadoJornadas, terminarJornada, jornadasCerradas, premiosPublicos } from './jornada.js';
@@ -515,7 +516,7 @@ async function accion(nombre, d = {}) {
   return { ok: true };
 }
 
-// ---------- gachapon y sesiones (Discord; Twitch solo para los puntos del canal) ----------
+// ---------- gachapon y sesiones (Discord; Twitch, para los puntos del canal: se vincula a la cuenta) ----------
 const EN_RENDER = Boolean(process.env.RENDER);
 const loginActivo = () => loginDiscordActivo() || !EN_RENDER; // en local se puede entrar sin Discord para probar
 const origen = req => `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`;
@@ -611,9 +612,20 @@ async function rutasSesion(req, res, url) {
     return redirigir(res, volverSeguro(guardado.volver));
   }
 
-  // ---------- Twitch: solo si se configura la app; los puntos del canal llegan a las cuentas entradas con Twitch ----------
+  // ---------- Twitch: solo si se configura la app. Sirve para los puntos del canal ----------
+  // Con el inicio de sesión de Discord activo, Twitch no es otra forma de entrar (serían dos colecciones por persona):
+  // cada uno vincula su Twitch a su cuenta y los sobres de sus canjes le llegan a ella
+  if (p === '/auth/twitch/vincular') {
+    if (!twitchActivo()) return paginaAviso(res, 'No disponible', 'Los puntos del canal de Twitch todavía no están conectados.', 503, aGachapon);
+    if (!usuarioDeSesion(req)) return redirigir(res, '/gachapon/');
+    const state = crypto.randomBytes(16).toString('hex');
+    ponerCookie(res, 'tk_oauth', firmar({ state, tipo: 'vincular' }, 600), 600, req);
+    return redirigir(res, urlAutorizar({ redirect: `${origen(req)}/auth/twitch/callback`, state, confirmar: true }));
+  }
+
   if (p === '/auth/twitch') {
     if (!twitchActivo()) return paginaAviso(res, 'No disponible', 'El inicio de sesión con Twitch no está activo. Entra con Discord.', 503, aGachapon);
+    if (loginDiscordActivo()) return redirigir(res, usuarioDeSesion(req) ? '/auth/twitch/vincular' : '/auth/discord?volver=/gachapon/');
     const state = crypto.randomBytes(16).toString('hex');
     ponerCookie(res, 'tk_oauth', firmar({ state, tipo: 'login', volver: volverSeguro(url.searchParams.get('volver')) }, 600), 600, req);
     return redirigir(res, urlAutorizar({ redirect: `${origen(req)}/auth/twitch/callback`, state }));
@@ -638,6 +650,13 @@ async function rutasSesion(req, res, url) {
         await conectarCanal(t, u);
         const c = estadoCanal();
         return paginaAviso(res, 'Canal conectado', c.error ? `El canal ${u.display_name} está conectado, pero: ${c.error}` : `La recompensa «${c.titulo}» ya está en el canal de ${u.display_name}, a ${c.coste} puntos. Ya puedes cerrar esta pestaña.`);
+      }
+      if (guardado.tipo === 'vincular') {
+        const yo = usuarioDeSesion(req);
+        if (!yo) return paginaAviso(res, 'No se pudo vincular', 'Tu sesión del gachapon ha caducado: entra otra vez y vuelve a vincular tu Twitch.', 401, aGachapon);
+        await vincularTwitch(yo, u);
+        sondear();   // por si ya tenía canjes esperando
+        return redirigir(res, '/gachapon/');
       }
       const sesion = { id: u.id, nombre: u.display_name, avatar: u.profile_image_url };
       await darAlta(sesion);
@@ -691,6 +710,18 @@ async function rutasSesion(req, res, url) {
       const r = await canjearCodigoDirecto(u, codigo);
       emitir();   // si el código se ha agotado, se retira del overlay
       return json(res, { ok: true, sobres: r.sobres, usuario: estadoDe(u) });
+    } catch (e) {
+      return json(res, { ok: false, error: e.message }, 400);
+    }
+  }
+
+  // Quitar el Twitch vinculado: los canjes que haga después ya no llegan a esta cuenta
+  if (p === '/api/gacha/desvincular-twitch' && req.method === 'POST') {
+    const u = usuarioDeSesion(req);
+    if (!u) return json(res, { ok: false, error: 'Entra con tu cuenta de Discord' }, 401);
+    try {
+      await desvincularTwitch(u);
+      return json(res, { ok: true, usuario: estadoDe(u) });
     } catch (e) {
       return json(res, { ok: false, error: e.message }, 400);
     }

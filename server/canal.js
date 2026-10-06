@@ -1,6 +1,8 @@
 // Puntos del canal de Twitch → sobres del gachapon.
 // El staff conecta el canal una vez desde el panel. La web crea la recompensa «Sobre de Tenka Ichi»
 // y cada minuto recoge los canjes pendientes de la cola de Twitch: da el sobre y marca el canje como hecho.
+// El sobre va al id de Twitch de quien canjea: si ha vinculado su Twitch en el gachapon, le llega a su cuenta de
+// siempre; si no, se le guarda y lo recibe en cuanto lo vincule (server/gacha.js).
 // Como los canjes esperan en la cola de Twitch, no se pierde ninguno aunque la web esté dormida.
 import { ajuste, guardarAjustes } from './ajustes.js';
 import { cifrar, descifrar } from './sesion.js';
@@ -10,6 +12,8 @@ import { canjeProcesado, darSobres } from './gacha.js';
 export const TITULO_RECOMPENSA = 'Sobre de Tenka Ichi';
 export const SCOPE_CANAL = 'channel:manage:redemptions';
 const COSTE_INICIAL = 3000;
+// Lo que lee el espectador en Twitch al canjear
+const TEXTO_RECOMPENSA = 'Un sobre de 3 cartas del gachapon de Tenka Ichi. Entra en tenka-ichi.onrender.com/gachapon/ y vincula tu Twitch: el sobre te llega en un minuto.';
 
 let tokens = null;
 const estado = { conectado: false, login: null, recompensa: null, coste: null, error: null, ultimoSondeo: null };
@@ -99,8 +103,7 @@ async function asegurarRecompensa() {
     if (!r) {
       const creada = await conToken(tk => helix(`channel_points/custom_rewards?broadcaster_id=${canal}`, {
         token: tk, method: 'POST',
-        body: { title: TITULO_RECOMPENSA, cost: COSTE_INICIAL, is_enabled: true,
-          prompt: 'Un sobre de 3 cartas del gachapon de Tenka Ichi. Ábrelo en tenka-ichi.onrender.com/gachapon/ entrando con tu cuenta de Twitch.' },
+        body: { title: TITULO_RECOMPENSA, cost: COSTE_INICIAL, is_enabled: true, prompt: TEXTO_RECOMPENSA },
       }));
       r = creada.data[0];
     }

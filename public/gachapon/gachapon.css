@@ -39,6 +39,10 @@ html.con-movimiento .titulo-seccion.revelar.visto::after { opacity: 1; transitio
 .como-mas { margin: 24px 0 0; max-width: 34em; color: var(--hai); font-size: 15px; transition: color .3s; }
 .como-mas b { color: var(--washi); }
 .como-mas a { color: var(--oro); }
+/* Vincular Twitch: el enlace destaca algo más que los otros; quitarlo, como «Salir» */
+.como-mas .vincular { font-weight: 700; text-underline-offset: 4px; }
+.como-mas .desvincular { background: none; border: 0; padding: 0; margin-left: 4px; color: var(--hai); font: inherit; font-size: 14px; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
+.como-mas .desvincular:hover { color: var(--washi); }
 
 /* Botones: los principales, cortados en diagonal como los de la portada; los secundarios, en línea */
 .boton-entrar, .boton-claro { position: relative; isolation: isolate; display: inline-flex; align-items: center; gap: 10px; padding: 13px 28px; border: 0; background: none;

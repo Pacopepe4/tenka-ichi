@@ -183,6 +183,51 @@ test('el staff regala sobres a alguien que aún no ha entrado: lo busca en Twitc
   assert.equal((await gacha(beto)).usuario.sobres, 2 + 3, 'los 2 del alta más los 3 regalados');
 });
 
+// Quien entra con su cuenta de siempre (en la web publicada, Discord; aquí, la de prueba) vincula su Twitch
+const dana = navegador();
+test('un coleccionista vincula su Twitch y los sobres de sus canjes le llegan a su colección de siempre', async () => {
+  // Dario canjea un sobre en Twitch antes de haber pasado por el gachapon
+  await control('canje', { login: 'dario' });
+  await accion('gachaSondear');
+  await dana.ir(`${urlWeb}/auth/prueba?nombre=Dana`);
+  assert.equal((await gacha(dana)).usuario.twitch, null);
+  // Sin sesión no hay nada que vincular: ni se llega a Twitch
+  const sinSesion = navegador();
+  assert.equal(new URL((await sinSesion.ir(`${urlWeb}/auth/twitch/vincular`)).url).pathname, '/gachapon/');
+  assert.equal(sinSesion.cookies.has('tk_oauth'), false);
+  // Si cancela en Twitch, vuelve al gachapon como estaba
+  await control('sesion', { login: 'dario' });
+  await control('denegar');
+  assert.equal(new URL((await dana.ir(`${urlWeb}/auth/twitch/vincular`)).url).pathname, '/gachapon/');
+  assert.equal((await gacha(dana)).usuario.twitch, null);
+
+  // Vincula: Twitch dice quién es y lo que ese Twitch ya tenía pasa a su cuenta
+  assert.equal(new URL((await dana.ir(`${urlWeb}/auth/twitch/vincular`)).url).pathname, '/gachapon/');
+  const u = (await gacha(dana)).usuario;
+  assert.deepEqual(u.twitch, { login: 'dario' });
+  assert.equal(u.nombre, 'Dana');
+  assert.equal(u.sobres, 2 + 1, 'los de bienvenida y el que canjeó antes de vincularse');
+  // Desde ahora, cada canje le llega a esa cuenta
+  await control('canje', { login: 'dario', veces: 2 });
+  const g = await accion('gachaSondear');
+  assert.equal((await gacha(dana)).usuario.sobres, 5);
+  assert.equal(g.gacha.resumen.conTwitch, 1, 'el panel sabe cuántos lo tienen vinculado');
+
+  // Lo quita: ese canje ya no es suyo. Lo vuelve a vincular: le llega
+  const quitar = await (await dana.ir(`${urlWeb}/api/gacha/desvincular-twitch`, { method: 'POST' })).json();
+  assert.equal(quitar.ok, true);
+  assert.equal(quitar.usuario.twitch, null);
+  await control('canje', { login: 'dario' });
+  await accion('gachaSondear');
+  assert.equal((await gacha(dana)).usuario.sobres, 5);
+  await dana.ir(`${urlWeb}/auth/twitch/vincular`);
+  assert.equal((await gacha(dana)).usuario.sobres, 6);
+});
+
+test('la recompensa de Twitch le dice al espectador que vincule su cuenta', async () => {
+  assert.match((await estadoTwitch()).recompensas[0].prompt, /vincula tu Twitch/);
+});
+
 test('al reiniciar la web valida la conexión guardada y sigue conectada', async () => {
   const validacionesAntes = (await estadoTwitch()).validaciones;
   await pararWeb();
@@ -191,6 +236,8 @@ test('al reiniciar la web valida la conexión guardada y sigue conectada', async
   assert.equal(g.gacha.canal.conectado, true);
   assert.ok((await estadoTwitch()).validaciones > validacionesAntes, 'ha llamado a /oauth2/validate al arrancar');
   assert.equal((await gacha(ana)).usuario.nombre, 'Ana', 'la sesión del espectador sigue valiendo');
+  const u = (await gacha(dana)).usuario;
+  assert.deepEqual([u.twitch, u.sobres], [{ login: 'dario' }, 6], 'y el Twitch vinculado, con sus sobres');
 });
 
 test('si el canal retira el permiso, el panel lo avisa y deja de recoger canjes', async () => {

@@ -363,7 +363,7 @@ function pintarGacha(g) {
   if (c.coste && document.activeElement !== $('#costeSobre')) $('#costeSobre').value = c.coste;
   const r = g.resumen, p = g.probabilidades;
   const n = (x, uno, varios) => `${x} ${x === 1 ? uno : varios}`;
-  $('#resumenGacha').textContent = `${n(r.coleccionistas, 'coleccionista', 'coleccionistas')}, ${n(r.sobresAbiertos, 'sobre abierto', 'sobres abiertos')} y ${n(r.sobresSinAbrir, 'sin abrir', 'sin abrir')}. ${n(r.cartas, 'carta', 'cartas')} en los sobres. Probabilidad por carta: `
+  $('#resumenGacha').textContent = `${n(r.coleccionistas, 'coleccionista', 'coleccionistas')}${r.conTwitch ? ` (${r.conTwitch} con su Twitch vinculado)` : ''}, ${n(r.sobresAbiertos, 'sobre abierto', 'sobres abiertos')} y ${n(r.sobresSinAbrir, 'sin abrir', 'sin abrir')}. ${n(r.cartas, 'carta', 'cartas')} en los sobres. Probabilidad por carta: `
     + [...(p['S+'] ? ['S+'] : []), ...TIERS].map(t => `${t} ${porcentaje(p[t] || 0)}`).join(', ') + '.';
 }
 async function actualizarGacha() {

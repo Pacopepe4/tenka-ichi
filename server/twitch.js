@@ -11,8 +11,10 @@ const URL_API = (process.env.TWITCH_URL_API || 'https://api.twitch.tv/helix').re
 
 export const twitchActivo = () => Boolean(ID && SECRETO && sesionesActivas());
 
-export function urlAutorizar({ redirect, state, scope = '' }) {
-  const q = new URLSearchParams({ client_id: ID, redirect_uri: redirect, response_type: 'code', scope, state, force_verify: 'false' });
+// confirmar: Twitch enseña siempre con qué cuenta se va a entrar (y deja cambiarla), aunque ya se hubiera autorizado
+// antes. Es para vincular: que nadie una sin querer la cuenta que tenía abierta en el navegador
+export function urlAutorizar({ redirect, state, scope = '', confirmar = false }) {
+  const q = new URLSearchParams({ client_id: ID, redirect_uri: redirect, response_type: 'code', scope, state, force_verify: String(confirmar) });
   return `${URL_ID}/oauth2/authorize?${q}`;
 }
 

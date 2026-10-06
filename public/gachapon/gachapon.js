@@ -45,10 +45,11 @@ function pintarCuenta() {
     return;
   }
   if (!u) {
-    // Con Twitch configurado también se puede entrar con Twitch: los sobres de los puntos del canal llegan a esa cuenta
+    // Se entra con Discord. Twitch solo es otra forma de entrar donde no hay Discord (en local): con los dos, cada
+    // uno vincula su Twitch a su cuenta para que los sobres de los puntos del canal le lleguen a ella
     cuenta.innerHTML = `<a class="boton-entrar" href="/auth/discord?volver=/gachapon/">Entrar con Discord</a>
-      ${info.twitch ? '<a class="boton-entrar secundario" href="/auth/twitch?volver=/gachapon/">Entrar con Twitch</a>' : ''}
-      <p class="aviso">La primera vez te llevas ${info.sobresIniciales} sobres.${info.twitch ? ' Los sobres de los puntos del canal llegan a la cuenta de Twitch.' : ''}</p>`;
+      ${info.twitch && !info.discord ? '<a class="boton-entrar secundario" href="/auth/twitch?volver=/gachapon/">Entrar con Twitch</a>' : ''}
+      <p class="aviso">La primera vez te llevas ${info.sobresIniciales} sobres.</p>`;
     sobre.disabled = true;
     $('.sobre-contador').textContent = '';
   } else {
@@ -64,9 +65,26 @@ function pintarCuenta() {
   }
   $('.como-mas').innerHTML = !hayCartas
     ? 'Todavía no hay cartas: el staff está preparando la tier list de los jugadores.'
-    : info.recompensa
-      ? `Consigue más sobres canjeando <b>${escapar(info.recompensa.titulo)}</b> por ${info.recompensa.coste} puntos del canal en <a href="https://twitch.tv/${info.canal}" target="_blank" rel="noopener">twitch.tv/${info.canal}</a>. Aparecen en la cuenta con la que entras con Twitch, en un minuto.`
-      : 'Más sobres: el staff los regala en premios y sorteos.';
+    : info.recompensa ? comoCanjear(u) : 'Más sobres: el staff los regala en premios y sorteos.';
+  const quitar = $('.como-mas .desvincular');
+  if (quitar) quitar.onclick = desvincularTwitch;
+}
+
+// Puntos del canal de Twitch: se ganan viendo el directo y se canjean allí por sobres. Para que el sobre llegue a esta
+// colección, cada uno vincula su Twitch a su cuenta (una vez)
+function comoCanjear(u) {
+  const canal = `<a href="https://twitch.tv/${info.canal}" target="_blank" rel="noopener">twitch.tv/${info.canal}</a>`;
+  const canje = `<b>${escapar(info.recompensa.titulo)}</b> por ${info.recompensa.coste} puntos del canal`;
+  if (!u) return `Más sobres con los puntos del canal de ${canal}, que se ganan viendo el directo: entra, vincula tu Twitch y canjea ${canje}.`;
+  if (u.twitch) return `Twitch vinculado: <b>${escapar(u.twitch.login)}</b>. Canjea ${canje} en ${canal} y el sobre te llega aquí en un minuto. <button type="button" class="desvincular">Desvincular</button>`;
+  return `Más sobres con los puntos del canal, que se ganan viendo el directo: <a class="vincular" href="/auth/twitch/vincular">vincula tu Twitch</a> y canjea ${canje} en ${canal}.`;
+}
+
+async function desvincularTwitch() {
+  const r = await fetch('/api/gacha/desvincular-twitch', { method: 'POST' }).then(x => x.json()).catch(() => ({ ok: false, error: 'No hay conexión con la web: prueba otra vez' }));
+  if (!r.ok) return avisar(r.error);
+  info.usuario = r.usuario;
+  pintarCuenta();
 }
 
 // El álbum entra escalonado la primera vez y al cambiar de filtro, no cada vez que se refresca solo

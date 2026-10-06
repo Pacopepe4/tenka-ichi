@@ -19,6 +19,7 @@ export function crearTwitchFalso() {
     ['ana', { id: '2001', login: 'ana', display_name: 'Ana' }],
     ['beto', { id: '2002', login: 'beto', display_name: 'Beto' }],
     ['carla', { id: '2003', login: 'carla', display_name: 'Carla' }],
+    ['dario', { id: '2004', login: 'dario', display_name: 'Dario' }],
   ].map(([k, u]) => [k, { ...u, profile_image_url: `https://static.twitch.tv/${u.login}.png` }]));
   const estado = {
     sesion: 'ana',              // quién tiene Twitch abierto en el navegador (lo cambia /_control/sesion)

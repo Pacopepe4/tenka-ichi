@@ -38,12 +38,18 @@ let registro = [];
 const usuarios = new Map();
 const canjes = new Set();
 const usosCodigo = new Map();   // código de directo → cuántas personas lo han canjeado
+// Twitch vinculado: id de Twitch → id de la cuenta del gachapon. Lo que le llegue a ese id de Twitch (los canjes de
+// puntos del canal, un regalo por su nombre de Twitch) cuenta para la cuenta vinculada
+const vinculos = new Map();
 let sinGuardar = [];
 
 function aplicar(e) {
-  let u = usuarios.get(e.id);
-  if (!u) { u = { id: e.id, nombre: e.usuario, sobres: 0, abiertos: 0, cartas: new Map(), codigos: new Set() }; usuarios.set(e.id, u); }
-  if (e.usuario) u.nombre = e.usuario;
+  const id = vinculos.get(String(e.id)) || e.id;
+  let u = usuarios.get(id);
+  if (!u) { u = { id, nombre: e.usuario, sobres: 0, abiertos: 0, cartas: new Map(), codigos: new Set(), twitch: null }; usuarios.set(id, u); }
+  // El nombre es el de la cuenta: un canje llega con el nombre de Twitch y no lo pisa
+  if (e.usuario && id === e.id) u.nombre = e.usuario;
+  if (e.tipo === 'vinculo') vincular(u, e.detalle);
   const n = Number(e.cantidad) || 0;
   if (e.tipo === 'alta') u.alta = true;
   // Sobres que entran: de bienvenida, regalados, canjeados con puntos del canal, premios de jornada, códigos de
@@ -60,7 +66,29 @@ function aplicar(e) {
   }
 }
 
-const aFila = e => [e.fecha, e.id, e.usuario, e.tipo, e.detalle || '', e.cantidad, e.rareza || ''];
+// Un vínculo con Twitch («id:nombre» en el detalle) o, con el detalle vacío, su retirada. Una cuenta lleva un solo
+// Twitch y un Twitch va a una sola cuenta: manda el último vínculo. Si ese Twitch ya tenía sobres o cartas a su
+// nombre (canjes de antes de vincularse), se juntan con los de la cuenta
+function vincular(u, detalle) {
+  const [twitch, login = ''] = String(detalle || '').split(':');
+  if (u.twitch) vinculos.delete(u.twitch.id);
+  u.twitch = null;
+  if (!twitch || twitch === String(u.id)) return;
+  const otra = usuarios.get(vinculos.get(twitch));
+  if (otra) otra.twitch = null;
+  const suya = usuarios.get(twitch);
+  if (suya) {
+    u.sobres += suya.sobres;
+    u.abiertos += suya.abiertos;
+    for (const [carta, n] of suya.cartas) u.cartas.set(carta, (u.cartas.get(carta) || 0) + n);
+    for (const codigo of suya.codigos) u.codigos.add(codigo);
+    usuarios.delete(twitch);
+  }
+  vinculos.set(twitch, u.id);
+  u.twitch = { id: twitch, login };
+}
+
+const aFila =e => [e.fecha, e.id, e.usuario, e.tipo, e.detalle || '', e.cantidad, e.rareza || ''];
 const deFila = f => ({ fecha: f[0], id: f[1], usuario: f[2], tipo: f[3], detalle: f[4], cantidad: Number(f[5]) || 0, rareza: f[6] || '' });
 
 export async function cargarGacha() {
@@ -75,7 +103,7 @@ export async function cargarGacha() {
     if (hojaActiva()) console.error('No se pudo leer el gachapon:', e.message);
     registro = [];
   }
-  usuarios.clear(); canjes.clear(); usosCodigo.clear();
+  usuarios.clear(); canjes.clear(); usosCodigo.clear(); vinculos.clear();
   registro.forEach(aplicar);
   await cargarCartas();
 }
@@ -310,6 +338,23 @@ export const abrirSobre = u => enCola(async () => {
 
 export const canjeProcesado = id => canjes.has(id);
 
+// ---------- Twitch vinculado ----------
+// Quien entra con su cuenta de siempre (Discord) vincula su Twitch y, desde entonces, los sobres de sus canjes de
+// puntos del canal le llegan a esa misma colección. twitch: { id, login } de quien ha autorizado en Twitch
+export const vincularTwitch = (u, twitch) => enCola(async () => {
+  const id = String(twitch?.id || '');
+  if (!id) throw new Error('Twitch no ha dicho de quién es la cuenta');
+  if (usuarios.get(u.id)?.twitch?.id === id) return false;
+  await registrar([{ fecha: ahora(), id: u.id, usuario: u.nombre, tipo: 'vinculo', detalle: `${id}:${twitch.login || ''}`, cantidad: 0 }]);
+  return true;
+});
+
+export const desvincularTwitch = u => enCola(async () => {
+  if (!usuarios.get(u.id)?.twitch) return false;
+  await registrar([{ fecha: ahora(), id: u.id, usuario: u.nombre, tipo: 'vinculo', detalle: '', cantidad: 0 }]);
+  return true;
+});
+
 // ---------- códigos de directo ----------
 // Cada persona canjea un código una sola vez; cuántas lo han canjeado sale del registro
 export const usosDeCodigo = codigo => usosCodigo.get(codigo) || 0;
@@ -345,8 +390,9 @@ export const fundirRepetidas = (u, pedidas, minimo = () => 1) => enCola(async ()
 
 export function estadoUsuario(id) {
   const u = usuarios.get(id);
-  if (!u) return { sobres: 0, abiertos: 0, cartas: [] };
-  return { sobres: u.sobres, abiertos: u.abiertos, cartas: [...u.cartas].map(([carta, cantidad]) => ({ id: carta, cantidad })) };
+  if (!u) return { sobres: 0, abiertos: 0, cartas: [], twitch: null };
+  return { sobres: u.sobres, abiertos: u.abiertos, cartas: [...u.cartas].map(([carta, cantidad]) => ({ id: carta, cantidad })),
+    twitch: u.twitch ? { login: u.twitch.login } : null };
 }
 
 export function buscarUsuario(nombre) {
@@ -358,6 +404,6 @@ export function resumenGacha() {
   let abiertos = 0, sobres = 0;
   for (const u of usuarios.values()) { abiertos += u.abiertos; sobres += u.sobres; }
   const cat = catalogo();
-  return { coleccionistas: usuarios.size, sobresAbiertos: abiertos, sobresSinAbrir: sobres,
+  return { coleccionistas: usuarios.size, sobresAbiertos: abiertos, sobresSinAbrir: sobres, conTwitch: vinculos.size,
     cartas: cat.filter(c => c.tipo !== 'legacy').length, legacy: cat.filter(c => c.tipo === 'legacy').length };
 }
