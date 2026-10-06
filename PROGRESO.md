@@ -237,4 +237,5 @@ Diseño aprobado en `docs/superpowers/specs/2026-10-04-ingame-mejoras-design.md`
 - Comprobado en local con `tenka-rama-ingame` (puerto 3067) y la partida de prueba, en las dos versiones: las dos cámaras, una sola, con nombre y sin él, la guía por `/ingame/` y por `/overlay/`, el panel (marcar, quitar, renombrar) y la entrada y la salida al marcar o quitar una cámara y al sacar o quitar el grafismo. Pruebas: 95.
 - **No comprobado:** con cámaras de verdad en OBS ni con una partida real.
 - **A tener en cuenta:** el hueco solo existe mientras el línea por línea está fuera; si las cámaras se dejan siempre visibles en OBS, el resto del tiempo se ven sin marco encima del juego. Lo cómodo es una escena de juego con las cámaras y pasar a ella en ese rato.
-- **Pendiente del usuario:** elegir versión del marcador (A o B) para unir la rama.
+- **Subido a GitHub el 06/10** en esta rama, con todo lo del marcador nuevo (línea por línea, resumen de pelea, ficha, gráfica y cámaras). No está en la rama principal (master), así que la web publicada sigue con el marcador anterior.
+- **Pendiente del usuario:** unir la rama en master para publicarla (las dos versiones quedarían elegibles desde el panel; por defecto, la A) y, cuando elija una, borrar la otra.

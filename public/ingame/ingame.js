@@ -1,8 +1,8 @@
 // Overlay de partida (/ingame/): marcador en directo con lo que manda el puente del PC donde se mira
 // la partida, temporizadores de los objetivos, lo que lleva cada clan (buffs, alma, inhibidores),
 // avisos de objetivos y resumen de pelea y, cuando lo saca el panel, el línea por línea (con las cámaras de los
-// casters a los lados, si están activadas), la ficha de un jugador o la gráfica de oro. Los clanes salen del enfrentamiento del panel (lado
-// azul a la izquierda).
+// casters a los lados, si están activadas), la ficha de un jugador o la gráfica de oro. Los clanes salen del
+// enfrentamiento del panel (lado azul a la izquierda).
 // El aspecto lo decide data-estilo en <body> (A «retoque» o B «full art»): lo elige el panel o ?estilo= en la dirección.
 import { cargarClanes, conectarDirecto, logo, icono, splash, camarasLineas, ESCALA_LINEAS_CON_CAMARAS } from '/comun.js';
 import { cartaHTML } from '/carta.js';
