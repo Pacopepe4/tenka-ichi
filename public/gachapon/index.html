@@ -17,7 +17,7 @@
 <body>
 <header class="barra">
   <a class="marca" href="/"><img src="/marca/koryu-budo.png" alt=""><span>Koryu Budo League</span></a>
-  <nav><a href="/#directo" class="enlace-directo">Directo</a><a href="/#clanes">Clanes</a><a href="/#liga">Liga</a><a href="/#tierlist">Tier list</a><a href="/gachapon/" aria-current="page">Gachapon</a></nav>
+  <nav><a href="/#directo" class="enlace-directo">Directo</a><a href="/#clanes">Clanes</a><a href="/#formato">Formato</a><a href="/#liga">Liga</a><a href="/#fantasy">Fantasy</a><a href="/#tierlist">Tier list</a><a href="/gachapon/" class="enlace-gachapon" aria-current="page">Gachapon</a></nav>
 </header>
 
 <main>
@@ -45,7 +45,7 @@
 
   <section class="fantasy" id="fantasy">
     <div class="fantasy-cabeza">
-      <h2>Fantasy</h2>
+      <div class="titulo-seccion" data-kanji="札"><span class="marca-seccion" aria-hidden="true">札</span><h2>Fantasy</h2></div>
       <div class="compartir" data-que="alineacion" hidden><button type="button" class="boton-secundario descargar">Descargar imagen</button><button type="button" class="boton-secundario publicar" hidden>Publicar en Discord</button><span class="estado-compartir" role="status"></span></div>
       <p class="nota">Alinea una carta de cada rol. Tus cinco jugadores suman los puntos que hagan en las partidas de Tenka Ichi, y el que más sume reina en la clasificación. Puedes llevar hasta 2 cartas BOOST, cada una vinculada a uno de tus jugadores: si en la partida cumple su condición, sus puntos se multiplican.</p>
     </div>
@@ -69,7 +69,7 @@
   <section class="coleccion">
     <div class="coleccion-cabeza">
       <div>
-        <h2>Colección</h2>
+        <div class="titulo-seccion" data-kanji="集"><span class="marca-seccion" aria-hidden="true">集</span><h2>Colección</h2></div>
         <p class="progreso"></p>
         <div class="compartir" data-que="coleccion" hidden><button type="button" class="boton-secundario descargar">Descargar imagen</button><button type="button" class="boton-secundario publicar" hidden>Publicar en Discord</button><button type="button" class="boton-secundario fundir-abrir" hidden>Fundir repetidas</button><span class="estado-compartir" role="status"></span></div>
       </div>
@@ -83,7 +83,7 @@
   </section>
 
   <section class="puntos-jugadores">
-    <h2>Puntos de los jugadores</h2>
+    <div class="titulo-seccion" data-kanji="点"><span class="marca-seccion" aria-hidden="true">点</span><h2>Puntos de los jugadores</h2></div>
     <p class="nota">Lo que lleva sumado cada jugador de la liga en el fantasy.</p>
     <div class="filtros filtros-rol" role="tablist" aria-label="Filtrar por rol">
       <button role="tab" aria-selected="true" data-rol="">Todos</button>
@@ -100,7 +100,7 @@
   </section>
 
   <section class="probabilidades">
-    <h2>Probabilidades</h2>
+    <div class="titulo-seccion" data-kanji="運"><span class="marca-seccion" aria-hidden="true">運</span><h2>Probabilidades</h2></div>
     <p class="nota">Para cada carta del sobre, la probabilidad de que sea de cada tier. Dependen de cuántos jugadores hay en cada una.</p>
     <div class="tabla-prob"></div>
     <h2 class="titulo-reglas">Cómo se puntúa</h2>
@@ -112,6 +112,7 @@
 <footer>
   <img src="/marca/koryu-budo.png" alt="">
   <p>Tenka Ichi es la liga de League of Legends de Koryu Budo.</p>
+  <nav aria-label="Más de Tenka Ichi"><a href="/">Portada</a><a href="https://twitch.tv/koryubudo" target="_blank" rel="noopener">Twitch</a></nav>
 </footer>
 
 <dialog class="apertura" aria-label="Abriendo un sobre">

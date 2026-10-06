@@ -1,58 +1,91 @@
-* { box-sizing: border-box; }
-body { margin: 0; background: var(--grano), var(--sumi); color: var(--washi); font: 17px/1.65 var(--gothic); }
-a { color: inherit; }
-:focus-visible { outline: 2px solid var(--shu-claro); outline-offset: 3px; }
+/* Guía de retransmisión. Es una página de instrucciones para el staff: manda la lectura. Comparte con la portada y
+   el gachapon la barra, el sello, el filo de oro y los botones cortados en diagonal (inicio.css va cargado antes);
+   aquí, el índice, los pasos y las placas de los enlaces. */
+main { display: grid; grid-template-columns: 220px minmax(0, 780px); column-gap: clamp(40px, 6vw, 88px); justify-content: center;
+  max-width: calc(var(--ancho) + 2 * var(--margen)); margin: 0 auto; padding: clamp(40px, 6vw, 80px) var(--margen) var(--aire-seccion); }
+main > * { grid-column: 2; }
 
-.barra { display: flex; align-items: center; padding: 12px clamp(16px, 4vw, 48px); border-bottom: 1px solid var(--sumi-linea); }
-.marca { display: flex; align-items: center; gap: 12px; text-decoration: none; font-weight: 700; }
-.marca img { width: 40px; height: 38px; object-fit: contain; }
+/* ---------- Cabecera ---------- */
+.titulo-guia { display: flex; align-items: center; gap: clamp(14px, 2vw, 24px); }
+.titulo-guia .marca-seccion { flex: none; margin: 0; animation: sellar .5s .2s cubic-bezier(.3, 1.4, .4, 1) both; }
+h1 { margin: 0; font-family: var(--mincho); font-weight: 800; font-size: clamp(38px, 5.4vw, 64px); line-height: 1.05; letter-spacing: -.01em; }
+.entrada { margin: 20px 0 0; font-size: var(--t-entrada); line-height: 1.6; color: var(--hai); max-width: 34em; text-wrap: pretty; }
 
-main { max-width: 780px; margin: 0 auto; padding: clamp(40px, 7vw, 88px) clamp(16px, 5vw, 32px) 96px; }
-h1 { margin: 0; font-family: var(--mincho); font-weight: 800; font-size: clamp(40px, 7vw, 64px); line-height: 1.05; }
-.entrada { margin: 16px 0 0; font-size: 19px; color: var(--hai); max-width: 34em; }
+/* ---------- Índice: a la izquierda y siempre a la vista en pantallas anchas; arriba, en una placa, en las estrechas ---------- */
+.indice { grid-column: 1; grid-row: 1 / span 30; align-self: start; position: sticky; top: 96px; }
+.indice b { display: block; margin-bottom: 12px; font-family: var(--mincho); font-weight: 800; font-size: 18px; color: var(--oro); }
+.indice ol { list-style: none; margin: 0; padding: 0; border-left: 1px solid var(--sumi-linea); }
+.indice a { display: block; margin-left: -1px; padding: 7px 0 7px 16px; border-left: 2px solid transparent; color: var(--hai); font-size: var(--t-menor); line-height: 1.35; text-decoration: none; transition: color .2s, border-color .2s; }
+.indice a:hover { color: var(--washi); }
+.indice a[aria-current] { color: var(--washi); border-left-color: var(--oro); font-weight: 700; }
+@media (max-width: 1000px) {
+  main { grid-template-columns: minmax(0, 780px); }
+  main > *, .indice { grid-column: 1; }
+  .indice { grid-row: auto; position: static; margin-top: 32px; padding: 18px 20px; background: var(--sumi-alzado); border-radius: var(--radio); box-shadow: inset 0 0 0 1px rgba(179, 154, 94, .35); }
+  .indice ol { border-left: 0; columns: 2; column-gap: 24px; }
+  .indice a { padding: 6px 0; border-left: 0; margin-left: 0; }
+  .indice a[aria-current] { font-weight: 500; color: var(--hai); }
+}
+@media (max-width: 520px) { .indice ol { columns: 1; } }
 
-section { margin-top: clamp(44px, 6vw, 64px); padding-top: 28px; border-top: 1px solid var(--sumi-linea); }
-h2 { margin: 0 0 16px; font-family: var(--mincho); font-weight: 800; font-size: clamp(26px, 4vw, 32px); line-height: 1.15; }
-section > p { margin: 0 0 16px; max-width: 38em; }
-.nota { color: var(--hai); font-size: 15.5px; }
+/* ---------- Secciones ---------- */
+main > section { margin-top: clamp(48px, 6vw, 72px); padding-top: 30px; scroll-margin-top: 84px;
+  background: linear-gradient(90deg, var(--oro), var(--oro-viejo)) 0 0 / 56px 2px no-repeat, linear-gradient(var(--sumi-linea), var(--sumi-linea)) 0 0.5px / 100% 1px no-repeat; }
+h2 { margin: 0 0 18px; font-family: var(--mincho); font-weight: 800; font-size: clamp(28px, 3.6vw, 38px); line-height: 1.12; letter-spacing: -.01em; }
+h3 { margin: 40px 0 14px; font-family: var(--mincho); font-weight: 800; font-size: 23px; line-height: 1.2; color: var(--oro); }
+section > p { margin: 0 0 16px; max-width: 38em; text-wrap: pretty; }
+section b { color: #F5EFE2; }
+/* Las notas: un aparte, con el canto de oro viejo */
+.nota { padding: 12px 16px 13px; border-left: 3px solid var(--oro-viejo); border-radius: 0 var(--radio) var(--radio) 0; background: rgba(34, 30, 26, .7); color: #B8AF9F; font-size: 15.5px; }
 
 /* Enlaces con botón de copiar */
-.enlaces { display: grid; gap: 10px; margin-bottom: 14px; }
-.enlace { display: flex; align-items: center; gap: 16px; padding: 14px 16px; background: var(--sumi-alzado); border-radius: 5px; }
+.enlaces { display: grid; gap: 8px; margin-bottom: 16px; }
+.enlace { display: flex; align-items: center; gap: 18px; padding: 14px 22px 14px 16px; background: var(--sumi-alzado); border-left: 4px solid var(--shu); border-radius: var(--radio); }
 .enlace > div { display: flex; flex-direction: column; min-width: 0; flex: 1; }
-.enlace b { font-size: 15px; color: var(--hai); font-weight: 500; }
+.enlace b { font-size: var(--t-menor); color: var(--hai); font-weight: 500; }
 .url { font-weight: 700; overflow-wrap: anywhere; }
-.url.en-linea { padding: 1px 6px; background: var(--sumi-alzado); border-radius: 3px; font-weight: 500; }
-.copiar { flex: none; background: var(--washi); color: var(--sumi); border: 0; padding: 8px 16px; font: inherit; font-size: 15px; font-weight: 700; border-radius: 4px; cursor: pointer; }
-.copiar:hover { background: #fff6e8; }
+.url.en-linea { padding: 1px 7px 2px; background: var(--sumi-alzado); border-radius: 3px; box-shadow: inset 0 0 0 1px var(--sumi-linea); font-weight: 500; font-size: .94em; }
+.copiar { position: relative; isolation: isolate; flex: none; min-width: 104px; padding: 9px 20px; border: 0; background: none; color: var(--washi); font: inherit; font-size: var(--t-menor); font-weight: 700; text-align: center; cursor: pointer; }
+.copiar::before { content: ''; position: absolute; inset: 0; z-index: -1; background: var(--shu); border-radius: 2px; transform: skewX(-12deg); transition: background-color .2s, box-shadow .2s; }
+.copiar:hover::before { background: var(--shu-claro); box-shadow: inset 0 -2px 0 var(--oro); }
 a.copiar { text-decoration: none; }
-h3 { margin: 32px 0 12px; font-family: var(--mincho); font-weight: 800; font-size: 22px; line-height: 1.2; }
 
-/* Pasos: son una secuencia real, van numerados */
-.pasos { margin: 0 0 16px; padding: 0; list-style: none; counter-reset: paso; display: grid; gap: 14px; }
-.pasos li { position: relative; padding-left: 46px; counter-increment: paso; max-width: 38em; }
-.pasos li::before { content: counter(paso); position: absolute; left: 0; top: 0; width: 30px; height: 30px; display: grid; place-items: center;
-  border: 1.5px solid var(--washi); border-radius: 50%; font-family: var(--mincho); font-weight: 800; font-size: 16px; line-height: 1; }
+/* Pasos: son una secuencia real, van numerados, cada uno separado del siguiente y unidos por una línea */
+.pasos { margin: 0 0 20px; padding: 0; list-style: none; counter-reset: paso; display: grid; gap: 20px; }
+.pasos li { position: relative; padding-left: 52px; min-height: 34px; counter-increment: paso; max-width: 38em; }
+.pasos li::before { content: counter(paso); position: absolute; left: 0; top: -2px; width: 34px; height: 34px; display: grid; place-items: center;
+  background: var(--noche); box-shadow: inset 0 0 0 1.5px var(--oro-viejo); border-radius: 50%; color: var(--oro); font-family: var(--mincho); font-weight: 800; font-size: 17px; line-height: 1; }
+.pasos:not(.lista) li:not(:last-child)::after { content: ''; position: absolute; left: 16.5px; top: 36px; bottom: -18px; width: 1px; background: var(--sumi-linea); }
 /* Lo que no es una secuencia: rombo bermellón en lugar de número */
-.pasos.lista li { padding-left: 26px; }
-.pasos.lista li::before { content: ''; top: .6em; left: 5px; width: 8px; height: 8px; border: 0; border-radius: 1px; background: var(--shu); transform: rotate(45deg); }
+.pasos.lista { gap: 12px; }
+.pasos.lista li { padding-left: 26px; min-height: 0; }
+.pasos.lista li::before { content: ''; top: .62em; left: 5px; width: 8px; height: 8px; box-shadow: none; border-radius: 1px; background: var(--shu); transform: rotate(45deg); }
 
 /* Disposición de las cámaras: miniatura del lienzo 1920×1080 y tabla para OBS */
-.disposiciones { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 28px 24px; margin-top: 24px; }
+.disposiciones { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 32px 24px; margin-top: 28px; }
 .disposicion { margin: 0; }
-.disposicion h3 { margin: 0 0 10px; font-family: var(--mincho); font-weight: 800; font-size: 22px; }
-.miniatura { position: relative; aspect-ratio: 16 / 9; background: var(--sumi-alzado); border-radius: 4px; overflow: hidden; }
+.disposicion h3 { margin: 0 0 10px; font-family: var(--mincho); font-weight: 800; font-size: 22px; color: var(--washi); }
+.miniatura { position: relative; aspect-ratio: 16 / 9; background: var(--noche); border-radius: var(--radio); overflow: hidden; box-shadow: inset 0 0 0 1px rgba(179, 154, 94, .4); }
 .miniatura i { position: absolute; top: 18.5%; height: 61.9%; width: 28.1%; background: rgba(231, 223, 210, .06); }
 .miniatura i.izq { left: 2.5%; box-shadow: inset 3px 0 0 var(--azul-lado); }
 .miniatura i.der { right: 2.5%; box-shadow: inset -3px 0 0 var(--rojo-lado); }
-.miniatura span { position: absolute; display: grid; place-items: center; border: 1.5px solid var(--washi); background: rgba(231, 223, 210, .12);
+.miniatura span { position: absolute; display: grid; place-items: center; border: 1.5px solid var(--oro); background: rgba(235, 210, 138, .1); color: var(--oro);
   font-family: var(--mincho); font-weight: 800; font-size: 15px; }
 .disposicion table { width: 100%; margin-top: 12px; border-collapse: collapse; font-size: 15px; font-variant-numeric: tabular-nums; }
-.disposicion th { text-align: left; font-weight: 500; color: var(--hai); padding: 0 6px 6px 0; border-bottom: 1px solid var(--sumi-linea); }
-.disposicion td { padding: 7px 6px 7px 0; border-bottom: 1px solid var(--sumi-linea); }
+.disposicion th { text-align: left; font-weight: 500; font-size: var(--t-nota); color: var(--hai); padding: 0 6px 6px 0; border-bottom: 1px solid var(--sumi-linea); }
+.disposicion td { padding: 8px 6px 8px 0; border-bottom: 1px solid var(--sumi-linea); }
+.disposicion td:first-child { font-family: var(--mincho); font-weight: 800; color: var(--oro); }
 
-/* Problemas frecuentes */
-.problemas { margin: 0; }
-.problemas dt { font-weight: 700; margin-top: 18px; }
-.problemas dt:first-child { margin-top: 0; }
-.problemas dd { margin: 4px 0 0; color: var(--hai); max-width: 38em; }
+/* Listas de «qué es cada cosa» y problemas frecuentes: cada entrada, separada de la siguiente */
+.problemas { margin: 0; display: grid; }
+.problemas dt { padding-top: 16px; font-weight: 700; color: #F5EFE2; border-top: 1px solid var(--sumi-linea); }
+.problemas dt:first-child { padding-top: 0; border-top: 0; }
+.problemas dd { margin: 4px 0 16px; color: #B8AF9F; max-width: 38em; }
+.problemas dd:last-child { margin-bottom: 0; }
+
+footer { margin: 0; }
+@media (max-width: 560px) {
+  .enlace { flex-wrap: wrap; gap: 12px; padding-right: 16px; }
+  .enlace > div { flex-basis: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .titulo-guia .marca-seccion { animation: none; } }
