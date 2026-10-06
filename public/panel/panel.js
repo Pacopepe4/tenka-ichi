@@ -126,7 +126,9 @@ function pintar() {
   const f = e.fuente;
   const fuente = $('#fuente');
   fuente.className = `estado ${f.conectado ? 'ok' : f.error ? 'mal' : ''}`;
-  fuente.textContent = f.conectado ? `Conectado al draft ${f.codigo}. Turno ${e.draft.turno || 'por empezar'}.` : (f.error || 'Sin conectar.');
+  // DraftCore numera los turnos del 1 al 20: por encima, ese draft ya ha terminado allí
+  const turno = e.draft.turno > 20 ? 'Ese draft ya ha terminado en DraftCore.' : `Turno ${e.draft.turno || 'por empezar'}.`;
+  fuente.textContent = f.conectado ? `Conectado al draft ${f.codigo}. ${turno}` : (f.error || 'Sin conectar.');
 
   document.querySelectorAll('.draft .hueco').forEach(h => {
     const c = e.draft[h.dataset.tipo][h.dataset.lado][Number(h.dataset.i)];
