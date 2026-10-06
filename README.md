@@ -150,6 +150,8 @@ public/cartas/         dibujos de las cartas (ID.png) y marcos por tier (marcos/
 
 Socket.IO en `https://ws.lol.draftcore.net` → `V3-joinDraft { draftId, url }`. Llegan `initializeDraft` / `V3-initialize` / `startDraft` con el draft completo (`ban1..ban5` azul y `ban6..ban10` rojo, `b1..b5`, `r1..r5`, `turn`, `hovered`), `V3-updateHover { hovered }` y `V2-timerTick { turn, timeLeft }`. Los campeones usan el id de Data Dragon.
 
+Desde octubre de 2026 su servidor solo deja entrar a los clientes que mandan la versión de su web al conectarse (`auth: { clientVersion }`): sin ella contesta `CLIENT_VERSION_REQUIRED` y, con una antigua, `CLIENT_VERSION_OUTDATED`. Además, cada intento rechazado deja a esa IP penalizada un rato (HTTP 400 «Handshake throttled», que Socket.IO enseña como «websocket error»). Por eso `server/draftcore.js` lee la versión de su propio cliente antes de conectar (está en uno de los trozos de código de la página del draft; se recuerda un cuarto de hora), reintenta cada vez más despacio (de 2 s a un minuto) y, si rechazan la versión, la vuelve a leer y prueba una sola vez más. `DRAFTCORE_VERSION` la fija a mano si algún día no se puede leer. Lo que le pasa a la conexión sale en el panel, bajo el enlace del draft.
+
 ## Formato de la competición
 
 - **Liguilla (Bo1)**: 10 clanes en un único grupo. Cada clan juega 5 partidas contra 5 rivales distintos sorteados (5 jornadas de 5 partidas). Los lados se reparten para que nadie tenga más de 3 azules.

@@ -239,3 +239,11 @@ Diseño aprobado en `docs/superpowers/specs/2026-10-04-ingame-mejoras-design.md`
 - **A tener en cuenta:** el hueco solo existe mientras el línea por línea está fuera; si las cámaras se dejan siempre visibles en OBS, el resto del tiempo se ven sin marco encima del juego. Lo cómodo es una escena de juego con las cámaras y pasar a ella en ese rato.
 - **Subido a GitHub el 06/10** en esta rama, con todo lo del marcador nuevo (línea por línea, resumen de pelea, ficha, gráfica y cámaras). No está en la rama principal (master), así que la web publicada sigue con el marcador anterior.
 - **Pendiente del usuario:** unir la rama en master para publicarla (las dos versiones quedarían elegibles desde el panel; por defecto, la A) y, cuando elija una, borrar la otra.
+
+## 06/10 (tarde): DraftCore exige la versión del cliente
+
+- **Qué pasó:** al conectar el draft, el panel decía «No se pudo conectar: websocket error». DraftCore ha cambiado su servidor: ahora rechaza a quien no manda la versión de su web al conectarse (`CLIENT_VERSION_REQUIRED`; con una antigua, `CLIENT_VERSION_OUTDATED`) y penaliza un rato a la IP de cada intento rechazado (HTTP 400 «Handshake throttled (penalty)»). Nuestra web no mandaba versión y reintentaba cada segundo, así que acababa siempre en la penalización, que es el «websocket error».
+- **Arreglo** (`server/draftcore.js`): la versión se lee de su cliente web antes de conectar (`versionCliente`; el 06/10 es la 0.7.0) y se manda en `auth.clientVersion`. Los reintentos van de 2 s a un minuto. Si rechazan la versión, se vuelve a leer y se prueba una vez más a los 30 s; si tampoco vale, se deja de insistir. El panel explica cada caso en lugar del error a secas. `DRAFTCORE_VERSION` la fija a mano.
+- **Pruebas:** `test/draftcore.test.js`, contra un DraftCore de mentira (su web y un Socket.IO mínimo sobre `ws`). 103 en total.
+- **Comprobado contra el DraftCore de verdad:** la lectura de la versión de su web. La conexión entera, ver más abajo en esta entrada si se pudo: al diagnosticarlo, la IP de este PC quedó penalizada.
+- **Si vuelve a fallar un día de directo:** los campeones se pueden escribir a mano en cada hueco del panel; si el panel dice que DraftCore limita las conexiones, pulsar Desconectar, esperar un par de minutos y volver a conectar.
