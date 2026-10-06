@@ -21,6 +21,13 @@ export function fotoEstado(e, { draftcore = false } = {}) {
 const esLista = (v, n) => Array.isArray(v) && v.length === n;
 const lados = (v, valido) => Boolean(v) && ['azul', 'rojo'].every(l => valido(v[l]));
 
+// Una cámara de caster del línea por línea (ingame.camaras), venga del panel o de lo guardado: lo que falte o venga
+// mal se queda como estaba
+export const camaraLineas = (x, antes) => ({
+  activa: typeof x?.activa === 'boolean' ? x.activa : antes.activa,
+  nombre: String(x?.nombre ?? antes.nombre).slice(0, 40), detalle: String(x?.detalle ?? antes.detalle).slice(0, 60),
+});
+
 // Pone en el estado lo guardado, comprobando la forma de cada parte (puede venir de una versión anterior).
 // Devuelve el enlace de DraftCore al que hay que volver a conectarse, si lo había
 export function restaurarEstado(e, texto = ajuste(CLAVE), ahora = Date.now()) {
@@ -58,6 +65,7 @@ export function restaurarEstado(e, texto = ajuste(CLAVE), ahora = Date.now()) {
   if (g.ingame && typeof g.ingame === 'object' && e.ingame) {
     if (['a', 'b'].includes(g.ingame.estilo)) e.ingame.estilo = g.ingame.estilo;
     for (const k of ['puntosFantasy', 'resumenPelea', 'oroIngresos']) if (typeof g.ingame[k] === 'boolean') e.ingame[k] = g.ingame[k];
+    if (esLista(g.ingame.camaras, 2) && esLista(e.ingame.camaras, 2)) e.ingame.camaras = e.ingame.camaras.map((c, i) => camaraLineas(g.ingame.camaras[i], c));
   }
   if (reciente) {
     if (typeof g.buscarPartida?.activa === 'boolean') e.buscarPartida.activa = g.buscarPartida.activa;

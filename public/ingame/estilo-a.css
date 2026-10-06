@@ -111,6 +111,16 @@
 [data-estilo="a"] .dif.azul { color: var(--clan-azul-texto, var(--azul-lado)); }
 [data-estilo="a"] .dif.rojo { color: var(--clan-rojo-texto, #E4474C); }
 
+/* ---------- Cámaras de los casters ---------- */
+/* Marco de caster: el filo fino de oro viejo del panel, una raya de bermellón arriba (el color de la casa, como bajo
+   el reloj) y la placa de tinta con el emblema y el nombre */
+[data-estilo="a"] .camara-lineas { box-shadow: 0 0 0 1px rgba(22, 20, 18, .9), 0 0 0 3px rgba(235, 210, 138, .5), 0 -10px 30px rgba(0, 0, 0, .4); }
+[data-estilo="a"] .camara-lineas::before { content: ''; position: absolute; left: -3px; right: -3px; top: -7px; height: 4px; background: var(--shu); }
+[data-estilo="a"] .placa-cam { background: var(--grano), rgba(28, 25, 22, .97); border-top: 1px solid rgba(235, 210, 138, .3); }
+[data-estilo="a"] .sello-cam { box-shadow: 0 0 0 1.5px rgba(235, 210, 138, .7); }
+[data-estilo="a"] .nombre-cam { font-family: var(--mincho); font-weight: 800; font-size: 21px; }
+[data-estilo="a"] .detalle-cam { font-size: 16px; color: var(--hai); }
+
 /* ---------- Ficha de jugador ---------- */
 [data-estilo="a"] .ficha-datos { padding: 22px 24px 20px; background: var(--grano), rgba(28, 25, 22, .96);
   box-shadow: inset 0 4px 0 var(--clan), 0 0 0 1px rgba(235, 210, 138, .3), 0 12px 32px rgba(0, 0, 0, .45); }

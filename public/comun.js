@@ -76,3 +76,14 @@ export function disposicionCamaras(n) {
     default: return [];
   }
 }
+
+// Cámaras de los casters en el línea por línea del marcador de partida: dos huecos en 16:9, uno a cada lado del panel
+// (izquierda y derecha), abajo, con la placa del nombre de 44 px pegada debajo. Mismas coordenadas del lienzo y sin
+// la placa. Para hacerles sitio, con cámaras el panel se encoge (ESCALA_LINEAS_CON_CAMARAS, que el marcador pone en
+// .zona-lineas): con esa escala el panel de la A queda de x 352 a 1568 y el de la B, con su filo, de x 356 a 1564.
+// Si se toca el tamaño del línea por línea o la escala, se tocan los huecos
+export const ESCALA_LINEAS_CON_CAMARAS = { a: 0.78, b: 0.75 };
+export function camarasLineas(estilo) {
+  const b = estilo === 'b', w = 320, h = 180, x = b ? 18 : 16, y = b ? 842 : 856;
+  return [{ x, y, w, h }, { x: 1920 - x - w, y, w, h }];
+}

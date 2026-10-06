@@ -1,15 +1,18 @@
 // Overlay de partida (/ingame/): marcador en directo con lo que manda el puente del PC donde se mira
 // la partida, temporizadores de los objetivos, lo que lleva cada clan (buffs, alma, inhibidores),
-// avisos de objetivos y resumen de pelea y, cuando lo saca el panel, el línea por línea, la ficha de un
-// jugador o la gráfica de oro. Los clanes salen del enfrentamiento del panel (lado azul a la izquierda).
+// avisos de objetivos y resumen de pelea y, cuando lo saca el panel, el línea por línea (con las cámaras de los
+// casters a los lados, si están activadas), la ficha de un jugador o la gráfica de oro. Los clanes salen del enfrentamiento del panel (lado
+// azul a la izquierda).
 // El aspecto lo decide data-estilo en <body> (A «retoque» o B «full art»): lo elige el panel o ?estilo= en la dirección.
-import { cargarClanes, conectarDirecto, logo, icono, splash } from '/comun.js';
+import { cargarClanes, conectarDirecto, logo, icono, splash, camarasLineas, ESCALA_LINEAS_CON_CAMARAS } from '/comun.js';
 import { cartaHTML } from '/carta.js';
 
 const $ = s => document.querySelector(s);
 const clanes = await cargarClanes();
 const params = new URLSearchParams(location.search);
 const ESTILO_FORZADO = ['a', 'b'].includes(params.get('estilo')) ? params.get('estilo') : null;
+// ?guia=1 (o la vista previa del panel): los huecos de las cámaras salen rayados y con su medida, para colocarlas en OBS
+if (params.has('guia')) document.body.classList.add('guia');
 const DRAGON = { infernal: 'infernal', oceano: 'del océano', montana: 'de montaña', nube: 'de nube', hextech: 'hextech', quimtech: 'quimtech', ancestral: 'ancestral', dragon: '' };
 const ALMA = { infernal: 'Infernal', oceano: 'Océano', montana: 'Montaña', nube: 'Nube', hextech: 'Hextech', quimtech: 'Quimtech' };
 const COLOR_DRAGON = { infernal: '#E0592A', oceano: '#3A8FD9', montana: '#A07D4F', nube: '#C8DFE4', hextech: '#2BC6C0', quimtech: '#8DBF3F', ancestral: '#C3A3EA', dragon: '#8E8676' };
@@ -322,7 +325,9 @@ function encolarAviso(a) {
 function pintarGraficos() {
   const g = estado?.grafico;
   const hay = tipo => g?.tipo === tipo && Boolean(partida?.activo);
-  pintarLineas(hay('lineas') && (partida.lineas || []).length === 5);
+  const lineas = hay('lineas') && (partida.lineas || []).length === 5;
+  pintarLineas(lineas);
+  pintarCamarasLineas(lineas);
   pintarFicha(hay('ficha') ? g : null);
   pintarGrafica(hay('oro'));
 }
@@ -351,6 +356,15 @@ filas.addEventListener('error', e => { if (e.target.tagName === 'IMG' && e.targe
 
 function pintarLineas(mostrar) {
   const caja = $('.lineas');
+  // Con cámaras a los lados, la zona del panel se encoge para hacerles sitio. Si el panel estaba fuera, entra ya a su
+  // tamaño; si estaba puesto (se marca o se quita una cámara), cambia con transición. Al irse, se va como estaba
+  if (mostrar) {
+    const zona = $('.zona-lineas'), estilo = document.body.dataset.estilo;
+    if (caja.hidden) zona.style.transition = 'none';
+    zona.style.setProperty('--escala-lineas', ESCALA_LINEAS_CON_CAMARAS[estilo] || ESCALA_LINEAS_CON_CAMARAS.a);
+    zona.classList.toggle('con-camaras', camarasActivas().length > 0);
+    if (caja.hidden) { void zona.offsetWidth; zona.style.transition = ''; }
+  }
   aparecer(caja, mostrar);
   if (!mostrar) return;
   const conPuntos = interruptor('puntosFantasy');
@@ -422,6 +436,30 @@ function pintarLineas(mostrar) {
       if (v == null) { cuentas.set(caja.querySelector('b'), 0); caja.querySelector('b').textContent = '–'; }
       else cifra(caja.querySelector('b'), Math.round(v * 10), n => decimal(n / 10));
     }
+  });
+}
+
+// ---------- cámaras de los casters, a los lados del línea por línea ----------
+// Dos huecos transparentes, uno a cada lado del panel: la cámara va por debajo del overlay en OBS, justo donde dice el
+// panel (camarasLineas en comun.js). Cada una se activa aparte y lleva el marco de caster: el emblema de Koryu Budo
+// (tal cual, sobre su papel) y el nombre y el detalle que se escriban en el panel
+const LADO_CAMARA = ['izquierda', 'derecha'];
+const camarasActivas = () => (estado?.ingame?.camaras || []).map((cam, i) => ({ ...cam, i, clave: LADO_CAMARA[i] })).filter(c => c.activa && LADO_CAMARA[c.i]);
+function pintarCamarasLineas(mostrar) {
+  const huecos = camarasLineas(document.body.dataset.estilo);
+  lista($('.camaras-lineas'), mostrar ? camarasActivas() : [], cam => {
+    const el = document.createElement('div');
+    el.className = `camara-lineas ${cam.clave}`;
+    el.innerHTML = '<div class="ventana-cam"><div class="medidas-cam"><span></span></div></div>'
+      + '<div class="placa-cam"><span class="sello-cam"><img src="/marca/koryu-budo.png" alt=""></span><span class="nombre-cam"></span><span class="detalle-cam"></span></div>';
+    return el;
+  }, (el, cam) => {
+    const h = huecos[cam.i];
+    Object.assign(el.style, { left: `${h.x}px`, top: `${h.y}px`, width: `${h.w}px` });
+    el.querySelector('.ventana-cam').style.height = `${h.h}px`;
+    el.querySelector('.medidas-cam span').innerHTML = `Cámara ${cam.clave}<br>${h.w}×${h.h} en x ${h.x}, y ${h.y}`;
+    el.querySelector('.nombre-cam').textContent = cam.nombre || 'Caster';
+    el.querySelector('.detalle-cam').textContent = cam.detalle || '';
   });
 }
 

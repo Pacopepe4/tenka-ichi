@@ -114,6 +114,10 @@ body.oculto #lienzo { opacity: 0; transform: translateY(-24px); }
 .kills, .dato b, .diferencia b, .jugador .oro, .dif, .puntos b, .ficha-puntos b { display: inline-block; transform-origin: 50% 60%; }
 
 /* ---------- Línea por línea (abajo, en el centro) ---------- */
+/* El panel va dentro de su zona, que ocupa el lienzo entero y es la que se encoge, hacia abajo y al centro, cuando
+   lleva las cámaras de los casters a los lados (la escala la pone el marcador: ESCALA_LINEAS_CON_CAMARAS) */
+.zona-lineas { position: absolute; inset: 0; pointer-events: none; transform-origin: 50% 100%; transition: transform var(--t-medio) var(--curva); }
+.zona-lineas.con-camaras { transform: scale(var(--escala-lineas, .78)); }
 /* Entra subiendo desde el borde, con las filas escalonadas; se va bajando */
 .lineas { position: absolute; bottom: 0; left: 50%; width: 1560px; transform: translateX(-50%); transform-origin: 50% 100%;
   animation: subir var(--t-lento) var(--curva) both; }
@@ -186,6 +190,30 @@ body.oculto #lienzo { opacity: 0; transform: translateY(-24px); }
 .barra .relleno.azul { right: 50%; transform-origin: 100% 50%; }
 .barra .relleno.rojo { left: 50%; transform-origin: 0 50%; }
 .dif { white-space: nowrap; }
+
+/* ---------- Cámaras de los casters (un hueco a cada lado del línea por línea) ---------- */
+/* La ventana es transparente: la cámara va por debajo del overlay en OBS, en la posición que da el panel
+   (camarasLineas en comun.js, que es quien las coloca). Entran un momento después del panel y se van con él */
+.camaras-lineas { position: absolute; inset: 0; pointer-events: none; }
+.camara-lineas { position: absolute; animation: camaraEntra var(--t-lento) var(--curva) both .16s; }
+.camara-lineas.sale { animation: camaraSale var(--t-medio) var(--curva-salida) both; }
+@keyframes camaraEntra { from { opacity: 0; transform: translateY(28px); } }
+@keyframes camaraSale { to { opacity: 0; transform: translateY(24px); } }
+.ventana-cam { position: relative; }
+.placa-cam { position: relative; display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 12px; overflow: hidden; }
+/* El emblema de Koryu Budo, tal cual, sobre un círculo de papel para que se lea encima de la tinta */
+.sello-cam { position: relative; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; flex: none; background: var(--washi); }
+.sello-cam img { width: 24px; height: 24px; object-fit: contain; }
+.nombre-cam { position: relative; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.detalle-cam { position: relative; min-width: 0; margin-left: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* La de la derecha va en espejo, como todo el lado rojo */
+.camara-lineas.derecha .placa-cam { flex-direction: row-reverse; }
+.camara-lineas.derecha .detalle-cam { margin-left: 0; margin-right: auto; }
+/* Guía para colocar las cámaras en OBS (?guia=1 o la vista previa del panel): la ventana rayada, con su medida */
+.medidas-cam { display: none; }
+body.guia .medidas-cam { display: grid; place-items: center; position: absolute; inset: 0;
+  background: repeating-linear-gradient(45deg, rgba(231, 223, 210, .12) 0 12px, transparent 12px 24px); }
+.medidas-cam span { padding: 5px 10px; background: rgba(22, 20, 18, .82); font-size: 17px; font-weight: 700; line-height: 1.4; text-align: center; color: var(--washi); }
 
 /* ---------- Ficha de un jugador (abajo, en el lado de su clan) ---------- */
 .ficha { position: absolute; bottom: 56px; display: grid; grid-template-columns: 290px 400px; gap: 22px; align-items: stretch; animation: fichaEntra var(--t-lento) var(--curva) both; }

@@ -142,6 +142,12 @@
         </select>
         <button id="verPartida" class="secundario">Ocultar el marcador</button>
       </div>
+      <div class="camaras-lineas">
+        <h4>Cámaras de los casters, a los lados del línea por línea</h4>
+        <div class="lista-camaras-lineas"></div>
+        <div class="fila"><button id="guardarCamarasLineas" class="secundario">Poner los nombres en el overlay</button></div>
+        <p class="ayuda">Un marco de caster a cada lado del línea por línea, con el nombre que escribas: salen y se van con él, y mientras tanto el panel se encoge un poco para hacerles sitio. Marca las que quieras; en OBS, pon cada cámara por debajo del overlay y encájala en su hueco con la medida que tiene al lado (cambia con el estilo del marcador). El hueco solo está mientras el línea por línea está fuera: lo cómodo es tener una escena de juego con las cámaras ya colocadas y pasar a ella en ese rato.</p>
+      </div>
       <div class="fila">
         <select id="fichaLado" aria-label="Clan de la ficha"><option value="azul">Lado azul</option><option value="rojo">Lado rojo</option></select>
         <select id="fichaJugador" aria-label="Jugador de la ficha"></select>
@@ -156,7 +162,7 @@
           <option value="15">15 segundos</option><option value="30">30 segundos</option><option value="0">Hasta quitarla</option>
         </select>
       </div>
-      <p class="ayuda">El línea por línea compara a cada jugador con su rival (objetos, oro, KDA, súbditos, nivel y puntos del fantasy) y sale abajo en el centro: úsalo en los momentos tranquilos. La ficha enseña la carta de un jugador con sus números; la gráfica, la diferencia de oro estimada desde el principio (hace falta tener al menos dos minutos de partida). Solo sale un grafismo a la vez. Los temporizadores y los buffs salen solos.</p>
+      <p class="ayuda">El línea por línea compara a cada jugador con su rival (objetos, oro, KDA, súbditos, nivel y puntos del fantasy) y sale abajo en el centro, con sus cámaras si están marcadas: úsalo en los momentos tranquilos. La ficha enseña la carta de un jugador con sus números; la gráfica, la diferencia de oro estimada desde el principio (hace falta tener al menos dos minutos de partida). Solo sale un grafismo a la vez. Los temporizadores y los buffs salen solos.</p>
 
       <h3>Aspecto y avisos</h3>
       <div class="fila">

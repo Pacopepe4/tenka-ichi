@@ -273,6 +273,10 @@ test('si la web se reinicia, vuelve con lo que el panel tenía puesto', async ()
   await c.accion('camaras', { cantidad: 2 });
   await c.accion('vistaOverlay', { vista: 'partida' });
   await c.accion('jornadaAuto', { cerrar: false, premios: [3, 2, 3] });
+  // Las cámaras de los casters del línea por línea: se marca la izquierda y se le pone nombre a la derecha
+  assert.equal(c.estado.ingame.camaras.some(x => x.activa), false, 'de fábrica, apagadas');
+  await c.accion('ingame', { camaras: [{ activa: true }, {}] });
+  await c.accion('ingame', { camaras: [{}, { nombre: 'Koryu', detalle: '@koryubudo' }] });
   const version = c.version;
   c.ws.close();
   await esperar(3600);   // el guardado espera unos segundos para juntar cambios
@@ -292,6 +296,7 @@ test('si la web se reinicia, vuelve con lo que el panel tenía puesto', async ()
   assert.equal(d.estado.vistaOverlay, 'partida');
   assert.equal(d.estado.buscarPartida.activa, true);
   assert.deepEqual([d.estado.jornadaAuto.cerrar, d.estado.jornadaAuto.premios], [false, [3, 2, 3]]);
+  assert.deepEqual(d.estado.ingame.camaras, [{ activa: true, nombre: '', detalle: '' }, { activa: false, nombre: 'Koryu', detalle: '@koryubudo' }]);
   // Sin la vista forzada, un draft que ya estaba completo va directo al postdraft
   await d.accion('vistaOverlay', { vista: 'auto' });
   assert.equal(d.estado.vistaOverlay, 'postdraft');

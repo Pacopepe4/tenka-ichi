@@ -31,7 +31,7 @@ import { atenderPublicacion, discordActivo } from './discord.js';
 import { cargarPartida, recibir as recibirPartida, resumen as resumenPartida, empezarPrueba, pararPrueba, enPrueba, olvidarPartida,
   ponerContexto, marcarObjetivo, deshacerMarca, ajustarIngame } from './partida.js';
 import { crearZip } from './zip.js';
-import { fotoEstado, restaurarEstado, guardarEstadoSiCambia, guardarEstadoYa, estadoYaGuardado } from './estado-guardado.js';
+import { fotoEstado, restaurarEstado, guardarEstadoSiCambia, guardarEstadoYa, estadoYaGuardado, camaraLineas } from './estado-guardado.js';
 import { VISTAS, clavePartida, vistaAutomatica, fotoFinal, fotoFinalDelDraft, completarFinal } from './vista.js';
 
 // Clanes con su plantilla actual (lema, descripción, jugadores) para las páginas
@@ -80,8 +80,11 @@ const estado = {
   // Avisos propios de objetivos en el overlay; apagados, se ven los del propio LoL
   avisosPropios: false,
   // Marcador de partida: estilo (A «retoque» o B «full art») e interruptores de lo nuevo, encendidos por defecto
-  // (sirven para ocultar algo si no va bien, no para tener que activarlo). oroIngresos apagado vuelve al valor de los objetos
-  ingame: { estilo: 'a', puntosFantasy: true, resumenPelea: true, oroIngresos: true },
+  // (sirven para ocultar algo si no va bien, no para tener que activarlo). oroIngresos apagado vuelve al valor de los objetos.
+  // camaras: las cámaras de los casters a los lados del línea por línea (izquierda y derecha), que sí hay que activar:
+  // huecos transparentes como los del draft, con el nombre y el detalle que se escriban en el panel
+  ingame: { estilo: 'a', puntosFantasy: true, resumenPelea: true, oroIngresos: true,
+    camaras: [{ activa: false, nombre: '', detalle: '' }, { activa: false, nombre: '', detalle: '' }] },
   aviso: null,
   hoja: { configurada: false, ok: false, error: null, cuenta: null },
 };
@@ -485,6 +488,8 @@ async function accion(nombre, d = {}) {
     case 'ingame': {
       if (['a', 'b'].includes(d.estilo)) estado.ingame.estilo = d.estilo;
       for (const k of ['puntosFantasy', 'resumenPelea', 'oroIngresos']) if (typeof d[k] === 'boolean') estado.ingame[k] = d[k];
+      // Las cámaras de los casters: la lista de las dos, cada una con lo que cambie (activarla, o su nombre y su detalle)
+      if (Array.isArray(d.camaras)) estado.ingame.camaras = estado.ingame.camaras.map((c, i) => camaraLineas(d.camaras[i], c));
       ajustarIngame(estado.ingame);
       emitirPartida();  // el oro cambia al momento si se toca el interruptor de los ingresos
       break;

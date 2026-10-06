@@ -119,8 +119,10 @@ function pintarVista(e) {
   if (vista === vistaActual) return;
   vistaActual = vista;
   const marco = $('.vista-partida');
-  // ?estilo=a|b en la dirección del overlay fuerza una versión del marcador (para comparar las dos en OBS)
-  if (vista === 'partida' && !marco.getAttribute('src')) marco.src = `/ingame/${params.has('estilo') ? `?estilo=${encodeURIComponent(params.get('estilo'))}` : ''}`;
+  // Al marcador le llegan de la dirección del overlay ?estilo=a|b, que fuerza una versión (para comparar las dos en
+  // OBS), y ?guia=1, que raya los huecos de sus cámaras
+  const consulta = ['estilo', 'guia'].filter(k => params.has(k)).map(k => `${k}=${encodeURIComponent(params.get(k))}`).join('&');
+  if (vista === 'partida' && !marco.getAttribute('src')) marco.src = `/ingame/${consulta ? `?${consulta}` : ''}`;
   document.body.dataset.vista = vista;
   // En el postdraft y en la pantalla final no hay cámaras: el fondo va entero
   firmaCamaras = '';

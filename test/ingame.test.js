@@ -1,9 +1,12 @@
-// Mejoras del marcador de partida: oro estimado por ingresos, puntos de fantasy provisionales, resumen de pelea y
-// muestras de la gráfica de oro. Paquetes inventados con la forma de la Live Client Data API, como en partida.test.js.
+// Mejoras del marcador de partida: oro estimado por ingresos, puntos de fantasy provisionales, resumen de pelea,
+// muestras de la gráfica de oro y cámaras de los casters en el línea por línea. Paquetes inventados con la forma de la
+// Live Client Data API, como en partida.test.js.
 import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { recibir, olvidarPartida, ajustarIngame, INGRESOS, REGLAS_PELEA } from '../server/partida.js';
 import { puntuar } from '../server/puntuacion.js';
+import { camaraLineas, restaurarEstado } from '../server/estado-guardado.js';
+import { camarasLineas, ESCALA_LINEAS_CON_CAMARAS } from '../public/comun.js';
 
 const POSICIONES = ['TOP', 'JUNGLE', 'MIDDLE', 'BOTTOM', 'UTILITY'];
 // Azul: A1…A5 y rojo: R1…R5, cada uno en su línea. Sin objetos, salvo que se pidan
@@ -163,4 +166,57 @@ test('si se entra con la partida empezada, la gráfica empieza donde hay datos',
   assert.deepEqual(p.grafica.muestras.map(m => m[0]), [1300]);
   const q = paquete(1316, jugadores(), []);
   assert.deepEqual(q.grafica.muestras.map(m => m[0]), [1300, 1316]);
+});
+
+// ---------- cámaras de los casters, a los lados del línea por línea ----------
+const camarasDeFabrica = () => [{ activa: false, nombre: '', detalle: '' }, { activa: false, nombre: '', detalle: '' }];
+
+test('una cámara de caster cambia solo en lo que llega bien, y los nombres tienen tope', () => {
+  const [izquierda, derecha] = camarasDeFabrica();
+  // Marcarla en el panel manda solo eso: lo demás se queda
+  assert.deepEqual(camaraLineas({ activa: true }, izquierda), { activa: true, nombre: '', detalle: '' });
+  // El botón manda el nombre y el detalle, sin tocar si está activa
+  assert.deepEqual(camaraLineas({ nombre: 'x'.repeat(60), detalle: '@koryu' }, { ...izquierda, activa: true }), { activa: true, nombre: 'x'.repeat(40), detalle: '@koryu' });
+  assert.deepEqual(camaraLineas({ nombre: '' }, { activa: true, nombre: 'Koryu', detalle: '@koryu' }), { activa: true, nombre: '', detalle: '@koryu' }, 'un nombre vacío lo borra');
+  // Nada, o algo que no se entiende: como estaba. Y no se cuela ningún campo de más
+  assert.deepEqual(camaraLineas(undefined, derecha), derecha);
+  assert.deepEqual(camaraLineas({ activa: 'sí', tipo: 'azul', color: 'rojo' }, derecha), derecha);
+});
+
+test('las cámaras de los casters vuelven con el estado guardado; uno anterior a ellas no las toca', () => {
+  const estado = () => ({ ingame: { estilo: 'a', puntosFantasy: true, resumenPelea: true, oroIngresos: true, camaras: camarasDeFabrica() } });
+  const guardado = { cuando: Date.now(), ingame: { estilo: 'b', oroIngresos: false,
+    camaras: [{ activa: true, nombre: 'Koryu', detalle: '@koryubudo' }, { activa: false, nombre: 'Izakaya', detalle: '' }] } };
+  const e = estado();
+  restaurarEstado(e, JSON.stringify(guardado));
+  assert.deepEqual(e.ingame, { estilo: 'b', puntosFantasy: true, resumenPelea: true, oroIngresos: false, camaras: guardado.ingame.camaras });
+  // Guardado por una versión sin cámaras, o con una lista que no es de dos: se quedan las de fábrica
+  for (const camaras of [undefined, [], [{ activa: true }], 'dos']) {
+    const viejo = estado();
+    restaurarEstado(viejo, JSON.stringify({ cuando: Date.now(), ingame: { estilo: 'b', camaras } }));
+    assert.equal(viejo.ingame.estilo, 'b');
+    assert.deepEqual(viejo.ingame.camaras, camarasDeFabrica());
+  }
+});
+
+test('los huecos de las cámaras: dos en 16:9, en espejo, a los lados del línea por línea encogido y sin pisarlo', () => {
+  // Lo que mide el panel en cada versión (ingame.css y estilo-b.css; la B lleva además su filo de 5 px), el filo del
+  // marco de la cámara por fuera del hueco (estilo-a.css y estilo-b.css) y la placa del nombre
+  const ANCHO_PANEL = { a: 1560, b: 1600 + 2 * 5 }, ALTO_PANEL = { a: 436, b: 458 + 12 }, FILO_MARCO = { a: 3, b: 8 }, PLACA = 44;
+  for (const estilo of ['a', 'b']) {
+    const escala = ESCALA_LINEAS_CON_CAMARAS[estilo];
+    assert.ok(escala > 0.7 && escala < 1, 'el panel se encoge, pero sigue leyéndose');
+    const izquierdaDelPanel = 960 - ANCHO_PANEL[estilo] * escala / 2, arribaDelPanel = 1080 - ALTO_PANEL[estilo] * escala;
+    const [izquierda, derecha] = camarasLineas(estilo);
+    assert.equal(camarasLineas(estilo).length, 2);
+    for (const h of [izquierda, derecha]) {
+      assert.equal(h.w / h.h, 16 / 9, 'la cámara no se deforma');
+      assert.ok(h.x - FILO_MARCO[estilo] >= 0 && h.x + h.w + FILO_MARCO[estilo] <= 1920 && h.y + h.h + PLACA <= 1080, `dentro del lienzo, con su placa (${estilo})`);
+      assert.ok(h.y > arribaDelPanel, 'a su lado, no por encima');
+    }
+    assert.ok(izquierda.x + izquierda.w + FILO_MARCO[estilo] < izquierdaDelPanel, `el marco no pisa el panel (${estilo})`);
+    assert.equal(izquierda.x, 1920 - (derecha.x + derecha.w), 'en espejo');
+    assert.equal(izquierda.y, derecha.y);
+  }
+  assert.deepEqual(camarasLineas(undefined), camarasLineas('a'), 'sin estilo, el de siempre');
 });

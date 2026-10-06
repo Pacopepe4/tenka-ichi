@@ -152,6 +152,17 @@
 [data-estilo="b"] .dif.azul { color: var(--clan-azul-texto, var(--azul-lado)); }
 [data-estilo="b"] .dif.rojo { color: var(--clan-rojo-texto, #E4474C); }
 
+/* ---------- Cámaras de los casters: marco redondeado con filo de oro y la placa de tinta con olas ---------- */
+/* La cámara de OBS es un rectángulo: el anillo de tinta de fuera tapa lo que asomaría por las esquinas redondeadas */
+[data-estilo="b"] .camara-lineas { border-radius: 12px; box-shadow: var(--filo), 0 0 0 8px rgba(22, 20, 18, .88), 0 12px 30px rgba(0, 0, 0, .5); }
+[data-estilo="b"] .placa-cam { border-radius: 0 0 12px 12px; background: linear-gradient(90deg, #453C31 0%, #1A1714 78%); box-shadow: 0 -2px 0 var(--oro-viejo); }
+[data-estilo="b"] .camara-lineas.derecha .placa-cam { background: linear-gradient(270deg, #453C31 0%, #1A1714 78%); }
+[data-estilo="b"] .placa-cam::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: var(--oro-viejo); opacity: .1;
+  -webkit-mask-image: var(--seigaiha); mask-image: var(--seigaiha); -webkit-mask-size: 40px 20px; mask-size: 40px 20px; }
+[data-estilo="b"] .sello-cam { box-shadow: 0 0 0 2px var(--oro-viejo), 0 2px 6px rgba(0, 0, 0, .6); }
+[data-estilo="b"] .nombre-cam { font-family: var(--mincho); font-weight: 800; font-size: 21px; color: #F5EFE2; text-shadow: 0 2px 6px rgba(0, 0, 0, .8); }
+[data-estilo="b"] .detalle-cam { font-size: 16px; color: var(--oro-viejo); }
+
 /* ---------- Ficha de jugador: el estandarte del clan junto a su carta ---------- */
 [data-estilo="b"] .ficha { bottom: 60px; }
 [data-estilo="b"] .ficha-datos { position: relative; padding: 24px 26px 22px; border-radius: var(--radio);

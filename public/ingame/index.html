@@ -97,7 +97,8 @@
   </div>
   </div>
 
-  <!-- Línea por línea: lo saca el panel -->
+  <!-- Línea por línea: lo saca el panel. Va dentro de su zona, que se encoge cuando lleva cámaras a los lados -->
+  <div class="zona-lineas">
   <section class="lineas" hidden>
     <header class="lineas-cabeza">
       <div class="equipo azul"><img class="logo" alt=""><b class="nombre"></b></div>
@@ -107,6 +108,11 @@
     </header>
     <div class="filas"></div>
   </section>
+  </div>
+
+  <!-- Cámaras de los casters: un hueco transparente a cada lado del línea por línea (la cámara va por debajo del
+       overlay, en OBS). Las activa el panel; salen y se van con el línea por línea -->
+  <div class="camaras-lineas"></div>
 
   <!-- Ficha de un jugador: su carta del gachapon (o el retrato de su campeón) y sus números. La saca el panel -->
   <section class="ficha" hidden>
