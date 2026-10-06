@@ -29,8 +29,12 @@ const centro = (cartas.length - 1) / 2;
 const movil = matchMedia('(max-width: 760px)');
 
 // Coloca las cartas en abanico; la carta activa sale de la baraja y abre hueco a sus vecinas
+let avisada = null;
 function colocar(activa = null) {
   if (movil.matches) return;
+  // Avisa de qué clan está fuera de la baraja, para lo que se mueve alrededor (inicio-movimiento.js)
+  if (activa !== avisada) baraja.dispatchEvent(new CustomEvent('clan-activo', { detail: activa === null ? null : competidores[activa] }));
+  avisada = activa;
   const ancho = baraja.clientWidth;
   const paso = Math.min(66, (ancho - 240) / (cartas.length - 1));
   cartas.forEach((carta, i) => {
@@ -146,6 +150,8 @@ function abrirFicha(c) {
 const clan = id => clanes.find(c => c.id === id) || { id, nombre: id, color: '#8E8676' };
 const nombre = id => clan(id).nombre;
 const escudo = id => `<img src="${logo(id)}" alt="">`;
+// El color del clan, para las piezas que hablan de él (filas, cruces, series y fichas de la tier list)
+const tinte = id => `style="--color:${clan(id).color}; --color-texto:${clan(id).texto || clan(id).color}"`;
 
 if (simulacion) {
   $('.aviso-simulacion').hidden = false;
@@ -170,7 +176,7 @@ const CRITERIO = { directo: 'por enfrentamiento directo', fuerza: 'por fuerza de
 const tbody = $('.tabla tbody');
 if (cls) {
   tbody.innerHTML = cls.filas.map(f => `
-    <tr class="${f.playoffs ? 'dentro' : 'fuera'}${f.puesto === 8 ? ' corte' : ''}">
+    <tr class="${f.playoffs ? 'dentro' : 'fuera'}${f.puesto === 8 ? ' corte' : ''}" ${tinte(f.clan)}>
       <td class="puesto">${f.puesto}</td>
       <td class="clan-celda">${escudo(f.clan)}<span>${nombre(f.clan)}${f.criterio && f.jugadas ? `<small title="Desempatado ${CRITERIO[f.criterio]}">${CRITERIO[f.criterio]}</small>` : ''}</span></td>
       <td>${f.jugadas}</td>
@@ -196,7 +202,7 @@ if (comp.calendario) {
       `<button role="tab" aria-selected="${i === actual}" data-i="${i}">Jornada ${i + 1}</button>`).join('');
     $('.cruces').innerHTML = jornadas[actual].map(c => {
       const r = cls.resultados[c.id];
-      const lado = (id, color) => `<span class="lado-cruce ${r ? (r.ganador === id ? 'gana' : 'pierde') : ''}"><i class="punto ${color}" title="Lado ${color}"></i>${escudo(id)}${nombre(id)}</span>`;
+      const lado = (id, color) => `<span class="lado-cruce ${r ? (r.ganador === id ? 'gana' : 'pierde') : ''}" ${tinte(id)}><i class="punto ${color}" title="Lado ${color}"></i>${escudo(id)}${nombre(id)}</span>`;
       return `<li>${lado(c.azul, 'azul')}<span class="vs-cruce">${r ? '' : 'vs'}</span>${lado(c.rojo, 'rojo')}</li>`;
     }).join('');
     document.querySelectorAll('.jornadas button').forEach(b => b.addEventListener('click', () => { actual = Number(b.dataset.i); pintarJornada(); }));
@@ -212,7 +218,7 @@ const serieHTML = s => {
   const fila = id => {
     if (!id) return '<div class="fila-serie pendiente"><span>Por decidir</span></div>';
     const v = s.victorias?.[id] ?? 0;
-    return `<div class="fila-serie ${s.ganador ? (s.ganador === id ? 'gana' : 'pierde') : ''}">
+    return `<div class="fila-serie ${s.ganador ? (s.ganador === id ? 'gana' : 'pierde') : ''}" ${tinte(id)}>
       <span class="semilla">${s.puestos?.[id] ?? ''}</span>${escudo(id)}<span class="nombre-serie">${nombre(id)}</span><b>${s.partidas.length ? v : ''}</b></div>`;
   };
   return `<div class="serie">${fila(s.alto)}${fila(s.bajo)}</div>`;
@@ -255,8 +261,8 @@ function pintarTierlist() {
   }
   $('.tier-filas').innerHTML = TIERS.map(t => {
     const fichas = lista.filter(x => x.tier === t).map(x => tipoTier === 'equipos'
-      ? `<span class="ficha-tier"><img src="${logo(x.id)}" alt=""><b>${x.nombre}</b></span>`
-      : `<button type="button" class="ficha-tier" data-id="${x.id}" title="Ver la carta de ${escapar(x.nombre)}"><img src="${logo(x.clan)}" alt=""><b>${escapar(x.nombre)}</b><small>${ROL_CORTO[x.rol]}, ${nombre(x.clan)}</small></button>`).join('');
+      ? `<span class="ficha-tier" ${tinte(x.id)}><img src="${logo(x.id)}" alt=""><b>${x.nombre}</b></span>`
+      : `<button type="button" class="ficha-tier" ${tinte(x.clan)} data-id="${x.id}" title="Ver la carta de ${escapar(x.nombre)}"><img src="${logo(x.clan)}" alt=""><b>${escapar(x.nombre)}</b><small>${ROL_CORTO[x.rol]}, ${nombre(x.clan)}</small></button>`).join('');
     return `<div class="tier-fila" data-tier="${t}" style="--color-tier: var(--tier-${t})"><span class="tier-letra">${t}</span>
       <div class="tier-fichas">${fichas || '<span class="tier-vacia">Nadie en esta tier</span>'}</div></div>`;
   }).join('');
@@ -335,3 +341,6 @@ function pintarFantasy() {
   $('.premios-portada').textContent = uno || dos || tres ? `Los tres primeros de cada jornada se llevan sobres: ${uno}, ${dos} y ${tres}.` : '';
 }
 pintarFantasy();
+
+// ---------- Movimiento: entradas al bajar, sección activa en el menú y salida de la baraja ----------
+import('/inicio-movimiento.js').catch(() => {});

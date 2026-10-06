@@ -2,12 +2,14 @@
 // clasificación de cada jornada del fantasy,
 // dibujadas en un lienzo con los mismos marcos, dibujos y textos que la web. Se descargan o se publican en el
 // canal de Discord (POST /api/discord/publicar, que pone el texto y comprueba quién publica).
-import { logo } from '/comun.js';
+import { logo, cargarClanes } from '/comun.js';
 import { emblemaDe } from '/carta.js';
 
 const MINCHO = "'Shippori Mincho B1', 'Yu Mincho', serif";
 const GOTHIC = "'Zen Kaku Gothic New', 'Yu Gothic', 'Segoe UI', sans-serif";
-const C = { sumi: '#161412', alzado: '#221E1A', linea: '#353029', washi: '#E7DFD2', hai: '#8E8676', shu: '#BE2A2F', tinta: '#1D1A17' };
+const C = { sumi: '#161412', alzado: '#221E1A', linea: '#353029', washi: '#E7DFD2', hai: '#8E8676', shu: '#BE2A2F', tinta: '#1D1A17', oro: '#EBD28A', oroViejo: '#B39A5E' };
+// El podio del fantasy: oro, plata y bronce, como en la web
+const METAL = { 1: C.oro, 2: '#B9C1C8', 3: '#B5814F' };
 const COLOR_TIER = { LEGACY: '#EBD28A', 'S+': '#9A6AD0', S: '#BE2A2F', A: '#D9A441', B: '#A9B3BC', C: '#7FA36B', D: '#8A8175' };
 const TIERS = ['LEGACY', 'S+', 'S', 'A', 'B', 'C', 'D'];
 const ROLES = ['TOP', 'JUNGLA', 'MEDIO', 'ADC', 'SUPPORT'];
@@ -70,14 +72,50 @@ function texto(ctx, t, x, y, { fuente, color = C.washi, alinear = 'left', base =
   ctx.fillText(ancho ? recortar(ctx, t, ancho) : t, x, y);
 }
 
-// Cabecera: título, línea de datos, el sol partido (tal cual) y la raya bermellón
+// Mezcla de dos colores #RRGGBB: cuánto de a (de 0 a 1) sobre b. Como color-mix() en la web
+function mezclar(a, b, cuanto) {
+  const n = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)), [x, y] = [n(a), n(b)];
+  return `rgb(${x.map((v, i) => Math.round(v * cuanto + y[i] * (1 - cuanto))).join(', ')})`;
+}
+
+// El filo de oro: una raya que va del oro viejo al oro y vuelve, como los cortes de la web
+function rayaDeOro(ctx, x, y, ancho, grosor) {
+  const oro = ctx.createLinearGradient(x, 0, x + ancho, 0);
+  oro.addColorStop(0, C.oroViejo); oro.addColorStop(0.5, C.oro); oro.addColorStop(1, C.oroViejo);
+  ctx.fillStyle = oro;
+  ctx.fillRect(x, y, ancho, grosor);
+}
+
+// El color de cada clan, para el canto de las fichas. Si no se pueden pedir, las fichas van sin color
+let coloresDeClan = null;
+const colorDeClan = async id => {
+  coloresDeClan ??= cargarClanes().then(({ clanes }) => new Map(clanes.map(c => [c.id, c.color]))).catch(() => new Map());
+  return (await coloresDeClan).get(id) || C.linea;
+};
+
+// Las repetidas: una pastilla de oro con cuántas hay, abajo a la derecha, como en el álbum de la web
+function pastillaCantidad(ctx, cantidad, x, y, w, h) {
+  if (!(cantidad > 1)) return;
+  const u = w / 100, t = `×${cantidad}`, fuente = `800 ${7.5 * u}px ${MINCHO}`;
+  ctx.font = fuente;
+  const ancho = ctx.measureText(t).width + 6 * u, alto = 11 * u, px = x + w - 5 * u - ancho, py = y + h - 5 * u - alto;
+  ctx.save();
+  ctx.shadowColor = 'rgba(0, 0, 0, .5)'; ctx.shadowBlur = 2 * u; ctx.shadowOffsetY = u;
+  ctx.fillStyle = C.oro;
+  ctx.beginPath();
+  ctx.roundRect(px, py, ancho, alto, alto / 2);
+  ctx.fill();
+  ctx.restore();
+  texto(ctx, t, px + ancho / 2, py + alto / 2 + 0.4 * u, { fuente, color: C.sumi, alinear: 'center', base: 'middle' });
+}
+
+// Cabecera: título, línea de datos, el sol partido (tal cual) y la raya de oro
 async function cabecera(ctx, titulo, subtitulo) {
   texto(ctx, titulo, MARGEN, 118, { fuente: `800 64px ${MINCHO}`, ancho: ANCHO - 2 * MARGEN - 190 });
   texto(ctx, subtitulo, MARGEN, 166, { fuente: `400 28px ${GOTHIC}`, color: C.hai, ancho: ANCHO - 2 * MARGEN - 190 });
   const sol = await imagen('/marca/sol-partido-sin-fondo.png');
   if (sol) contener(ctx, sol, ANCHO - MARGEN - 150, 34, 150, 150);
-  ctx.fillStyle = C.shu;
-  ctx.fillRect(MARGEN, 198, ANCHO - 2 * MARGEN, 3);
+  rayaDeOro(ctx, MARGEN, 198, ANCHO - 2 * MARGEN, 3);
 }
 
 function pie(ctx, alto, ruta) {
@@ -114,7 +152,6 @@ export async function dibujarCarta(ctx, c, x, y, w, { cantidad = 1, nombreClan =
     texto(ctx, c.nombre, x + w * 0.08, y + h * 0.088, { fuente: `800 ${w * 0.072}px ${MINCHO}`, color: C.tinta, base: 'middle', ancho: w * 0.72 });
     texto(ctx, quien, x + w * 0.1, y + h * 0.764, { fuente: `700 ${w * 0.05}px ${GOTHIC}`, color: C.tinta, base: 'top', ancho: w * 0.8 });
     if (c.bonus) texto(ctx, c.bonus.etiqueta, x + w * 0.1, y + h * 0.764 + w * 0.08, { fuente: `800 ${w * 0.05}px ${GOTHIC}`, color: C.tinta, base: 'top', ancho: w * 0.8 });
-    if (cantidad > 1) texto(ctx, `×${cantidad}`, x + w * 0.91, y + h * 0.93, { fuente: `800 ${w * 0.06}px ${MINCHO}`, color: C.tinta, alinear: 'right' });
   } else {
     // Sin marco: el dibujo a sangre con un velo, el sello de la tier y los textos en claro
     if (arte) cubrir(ctx, arte, x, y, w, h);
@@ -129,8 +166,8 @@ export async function dibujarCarta(ctx, c, x, y, w, { cantidad = 1, nombreClan =
     if (emblema) contener(ctx, emblema, x + w * 0.74, y + w * 0.05, w * 0.2, w * 0.19);
     texto(ctx, c.nombre, x + w * 0.06, y + h * 0.86, { fuente: `800 ${w * 0.11}px ${MINCHO}`, ancho: w * 0.86 });
     texto(ctx, quien, x + w * 0.06, y + h * 0.94, { fuente: `400 ${w * 0.06}px ${GOTHIC}`, color: '#CFC6B6', ancho: w * 0.86 });
-    if (cantidad > 1) texto(ctx, `×${cantidad}`, x + w * 0.94, y + h * 0.94, { fuente: `800 ${w * 0.08}px ${MINCHO}`, alinear: 'right' });
   }
+  pastillaCantidad(ctx, cantidad, x, y, w, h);
   ctx.restore();
   return h;
 }
@@ -212,7 +249,6 @@ function dibujarCompleta(ctx, c, { x, y, w, h, completa, emblema, quien, cantida
     const paso = ctx.measureText('★').width + 0.9 * u;
     for (let i = 0; i < ESTRELLAS[c.tier]; i++) texto(ctx, '★', izquierda + i * paso, medio, { fuente: ctx.font, color: ORO_CARTA, base: 'middle' });
   });
-  if (cantidad > 1) texto(ctx, `×${cantidad}`, x + w - 8 * u, y + h - 9.6 * u, { fuente: `800 ${6 * u}px ${MINCHO}`, color: CLARO_CARTA, alinear: 'right' });
   sinSombra();
 }
 
@@ -295,46 +331,63 @@ export async function imagenTierlist({ jugadores, equipos = [], nombreClan }) {
   const conTier = lista => ['S', 'A', 'B', 'C', 'D'].map(t => [t, lista.filter(x => x.tier === t)]).filter(([, l]) => l.length);
   const filasJugadores = conTier(jugadores.filter(j => j.nombre)), filasEquipos = conTier(equipos);
   const etiqueta = 110, hueco = 12, fichaW = 262, fichaH = 76;
-  const porLinea = Math.floor((ANCHO - 2 * MARGEN - etiqueta - 20 + hueco) / (fichaW + hueco));
+  const relleno = 12;   // el aire de la placa de cada tier alrededor de sus fichas
+  const porLinea = Math.floor((ANCHO - 2 * MARGEN - etiqueta - 12 - relleno + hueco) / (fichaW + hueco));
   const altoFila = l => Math.max(1, Math.ceil(l.length / porLinea)) * (fichaH + hueco) - hueco;
-  const altoSeccion = filas => filas.reduce((s, [, l]) => s + altoFila(l) + 20, 0);
+  const altoSeccion = filas => filas.reduce((s, [, l]) => s + altoFila(l) + 2 * relleno + 12, 0);
   const alto = ARRIBA + altoSeccion(filasJugadores) + (filasEquipos.length ? 90 + altoSeccion(filasEquipos) : 0) + 100;
   const [c, ctx] = lienzo(alto);
   await cabecera(ctx, 'Tier list de Tenka Ichi', `${filasJugadores.reduce((s, [, l]) => s + l.length, 0)} jugadores${filasEquipos.length ? `  ·  ${equipos.filter(e => e.tier).length} equipos` : ''}`);
 
-  const seccion = async (filas, y, ficha) => {
+  // Como en la web: la placa de cada tier se tiñe de su color, la letra va en un bloque cortado en diagonal, la S
+  // lleva el filo de oro y cada ficha, el color de su clan en el canto
+  const seccion = async (filas, y, ficha, clanDe) => {
     for (const [t, lista] of filas) {
-      const altoF = altoFila(lista);
+      const altoP = altoFila(lista) + 2 * relleno, anchoP = ANCHO - 2 * MARGEN;
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(MARGEN, y, anchoP, altoP, 6);
+      ctx.clip();
+      const tinte = ctx.createLinearGradient(MARGEN, 0, MARGEN + anchoP, 0);
+      tinte.addColorStop(0, mezclar(COLOR_TIER[t], C.alzado, 0.2)); tinte.addColorStop(0.6, C.alzado);
+      ctx.fillStyle = tinte;
+      ctx.fillRect(MARGEN, y, anchoP, altoP);
       ctx.fillStyle = COLOR_TIER[t];
       ctx.beginPath();
-      ctx.roundRect(MARGEN, y, etiqueta, altoF, 8);
+      ctx.moveTo(MARGEN, y); ctx.lineTo(MARGEN + etiqueta, y); ctx.lineTo(MARGEN + etiqueta - 24, y + altoP); ctx.lineTo(MARGEN, y + altoP);
       ctx.fill();
-      texto(ctx, t, MARGEN + etiqueta / 2, y + altoF / 2, { fuente: `800 56px ${MINCHO}`, color: t === 'S' ? C.washi : C.sumi, alinear: 'center', base: 'middle' });
+      ctx.restore();
+      if (t === 'S') { ctx.strokeStyle = C.oroViejo; ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(MARGEN + 1, y + 1, anchoP - 2, altoP - 2, 6); ctx.stroke(); }
+      texto(ctx, t, MARGEN + (etiqueta - 12) / 2, y + altoP / 2, { fuente: `800 56px ${MINCHO}`, color: t === 'S' ? C.washi : C.sumi, alinear: 'center', base: 'middle' });
       for (const [i, x] of lista.entries()) {
-        const fx = MARGEN + etiqueta + 20 + (i % porLinea) * (fichaW + hueco), fy = y + Math.floor(i / porLinea) * (fichaH + hueco);
-        ctx.fillStyle = C.alzado;
+        const fx = MARGEN + etiqueta + 12 + (i % porLinea) * (fichaW + hueco), fy = y + relleno + Math.floor(i / porLinea) * (fichaH + hueco);
+        ctx.fillStyle = C.sumi;
         ctx.beginPath();
-        ctx.roundRect(fx, fy, fichaW, fichaH, 8);
+        ctx.roundRect(fx, fy, fichaW, fichaH, 4);
+        ctx.fill();
+        ctx.fillStyle = await colorDeClan(clanDe(x));
+        ctx.beginPath();
+        ctx.roundRect(fx, fy, 5, fichaH, [4, 0, 0, 4]);
         ctx.fill();
         await ficha(x, fx, fy);
       }
-      y += altoF + 20;
+      y += altoP + 12;
     }
     return y;
   };
   let y = await seccion(filasJugadores, ARRIBA, async (j, fx, fy) => {
     const e = await imagen(logo(j.clan));
-    if (e) contener(ctx, e, fx + 10, fy + 12, 52, 52);
-    texto(ctx, j.nombre, fx + 72, fy + 36, { fuente: `800 26px ${MINCHO}`, ancho: fichaW - 82 });
-    texto(ctx, `${ROL[j.rol] || j.rol} · ${nombreClan(j.clan)}`, fx + 72, fy + 62, { fuente: `400 18px ${GOTHIC}`, color: C.hai, ancho: fichaW - 82 });
-  });
+    if (e) contener(ctx, e, fx + 14, fy + 12, 52, 52);
+    texto(ctx, j.nombre, fx + 76, fy + 36, { fuente: `800 26px ${MINCHO}`, ancho: fichaW - 86 });
+    texto(ctx, `${ROL[j.rol] || j.rol} · ${nombreClan(j.clan)}`, fx + 76, fy + 62, { fuente: `400 18px ${GOTHIC}`, color: C.hai, ancho: fichaW - 86 });
+  }, j => j.clan);
   if (filasEquipos.length) {
     texto(ctx, 'Equipos', MARGEN, y + 50, { fuente: `800 40px ${MINCHO}` });
     await seccion(filasEquipos, y + 80, async (e, fx, fy) => {
       const img = await imagen(logo(e.id));
-      if (img) contener(ctx, img, fx + 10, fy + 12, 52, 52);
-      texto(ctx, e.nombre, fx + 72, fy + 48, { fuente: `800 28px ${MINCHO}`, ancho: fichaW - 82 });
-    });
+      if (img) contener(ctx, img, fx + 14, fy + 12, 52, 52);
+      texto(ctx, e.nombre, fx + 76, fy + 48, { fuente: `800 28px ${MINCHO}`, ancho: fichaW - 86 });
+    }, e => e.id);
   }
   pie(ctx, alto, '/#tierlist');
   return aImagen(c);
@@ -376,18 +429,27 @@ export async function imagenClasificacion({ jornada, filas, ganadores = [] }) {
   if (!mostradas.length) texto(ctx, 'Nadie ha puntuado todavía', ANCHO / 2, ARRIBA + 50, { fuente: `800 40px ${MINCHO}`, color: C.hai, alinear: 'center' });
   mostradas.forEach((f, i) => {
     const y = ARRIBA + i * (altoFila + hueco), podio = f.puesto <= 3, sobres = ganadores.find(g => g.puesto === f.puesto)?.sobres || 0;
+    const anchoF = ANCHO - 2 * MARGEN, metal = METAL[f.puesto] || C.linea;
+    // Como en la web: el podio en oro, plata y bronce, con el metal en el canto, y el primero con el filo de oro
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(MARGEN, y, anchoF, altoFila, 6);
+    ctx.clip();
     ctx.fillStyle = C.alzado;
-    ctx.beginPath();
-    ctx.roundRect(MARGEN, y, ANCHO - 2 * MARGEN, altoFila, 8);
-    ctx.fill();
-    // El sello con el puesto: bermellón para el primero, hueso para el segundo y el tercero
-    ctx.fillStyle = f.puesto === 1 ? C.shu : podio ? C.washi : C.linea;
-    ctx.beginPath();
-    ctx.roundRect(MARGEN + 14, y + 13, 60, 60, 6);
-    ctx.fill();
-    texto(ctx, String(f.puesto), MARGEN + 44, y + 45, { fuente: `800 36px ${MINCHO}`, color: f.puesto === 1 ? C.washi : podio ? C.sumi : C.hai, alinear: 'center', base: 'middle' });
+    ctx.fillRect(MARGEN, y, anchoF, altoFila);
+    if (f.puesto === 1) {
+      const brillo = ctx.createLinearGradient(MARGEN, 0, MARGEN + anchoF * 0.6, 0);
+      brillo.addColorStop(0, 'rgba(235, 210, 138, .14)'); brillo.addColorStop(1, 'rgba(235, 210, 138, 0)');
+      ctx.fillStyle = brillo;
+      ctx.fillRect(MARGEN, y, anchoF, altoFila);
+    }
+    ctx.fillStyle = metal;
+    ctx.fillRect(MARGEN, y, 7, altoFila);
+    ctx.restore();
+    if (f.puesto === 1) { ctx.strokeStyle = C.oroViejo; ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(MARGEN + 1, y + 1, anchoF - 2, altoFila - 2, 6); ctx.stroke(); }
+    texto(ctx, String(f.puesto), MARGEN + 50, y + 45, { fuente: `800 44px ${MINCHO}`, color: podio ? metal : C.hai, alinear: 'center', base: 'middle' });
     texto(ctx, f.nombre, MARGEN + 100, y + 45, { fuente: `800 ${podio ? 40 : 34}px ${MINCHO}`, base: 'middle', ancho: ANCHO - 2 * MARGEN - 100 - 520 });
-    if (sobres) texto(ctx, `+${sobres} ${sobres === 1 ? 'sobre' : 'sobres'}`, ANCHO - MARGEN - 300, y + 45, { fuente: `700 28px ${GOTHIC}`, color: '#E0484D', alinear: 'right', base: 'middle' });
+    if (sobres) texto(ctx, `+${sobres} ${sobres === 1 ? 'sobre' : 'sobres'}`, ANCHO - MARGEN - 300, y + 45, { fuente: `700 28px ${GOTHIC}`, color: C.oro, alinear: 'right', base: 'middle' });
     texto(ctx, n(f.puntos), ANCHO - MARGEN - 130, y + 45, { fuente: `800 44px ${MINCHO}`, alinear: 'right', base: 'middle' });
     texto(ctx, f.puntos === 1 ? 'punto' : 'puntos', ANCHO - MARGEN - 24, y + 47, { fuente: `400 24px ${GOTHIC}`, color: C.hai, alinear: 'right', base: 'middle' });
   });
