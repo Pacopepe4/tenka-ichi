@@ -327,7 +327,7 @@ Para activarlo:
 3. En Render añade `TWITCH_CLIENT_ID` y `TWITCH_CLIENT_SECRET` (y `SESION_SECRETO`, si no lo tenías ya).
 4. En el panel, apartado **Gachapon**, pulsa **Conectar el canal de Twitch** y entra con la cuenta **koryubudo**. La web crea la recompensa «Sobre de Tenka Ichi» a 3000 puntos; el coste se cambia desde el panel. Si ya hay en Twitch una recompensa con ese nombre creada a mano, hay que borrarla antes: Twitch solo deja a cada app recoger los canjes de las recompensas que ha creado ella.
 
-La web recoge los canjes de la cola de Twitch cada minuto (y cuando alguien entra en el gachapon), da el sobre y marca el canje como hecho. Si la web está dormida, los canjes esperan en Twitch y no se pierden. Cuánto se gana por ver el directo se ajusta en Twitch (Panel de control del creador → Puntos del canal), no en la web.
+La web recoge los canjes de la cola de Twitch cada minuto (y cuando alguien entra en el gachapon), da el sobre y marca el canje como hecho. Si la web está dormida, los canjes esperan en Twitch y no se pierden. Cuántos puntos se ganan por ver el directo lo fija Twitch; lo que se ajusta es lo que cuesta el sobre, desde el panel. La cuenta del canal no puede canjear sus propias recompensas: para probarlo hace falta otra cuenta de Twitch.
 
 En la pestaña Gachapon de la hoja, cada canje queda a nombre del id de Twitch de quien lo hizo y cada vínculo es un movimiento `vinculo` de la cuenta, con el id y el nombre de Twitch en el detalle (vacío al desvincular): al leer el registro, lo de un Twitch vinculado cuenta para su cuenta (`vincular` en `server/gacha.js`). «Regalar sobres» desde el panel también vale con el nombre de Twitch.
 
