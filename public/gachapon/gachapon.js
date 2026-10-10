@@ -37,7 +37,7 @@ function avisar(texto) {
 
 function pintarCuenta() {
   const u = info.usuario, cuenta = $('.cuenta'), sobre = $('.sobre');
-  const hayCartas = info.catalogo.length > 0;
+  const listos = info.sobresListos;
   if (!info.activo) {
     cuenta.innerHTML = '<p class="aviso">El gachapon abre muy pronto.</p>';
     sobre.disabled = true;
@@ -53,7 +53,7 @@ function pintarCuenta() {
     sobre.disabled = true;
     $('.sobre-contador').textContent = '';
   } else {
-    const puede = u.sobres > 0 && hayCartas;
+    const puede = u.sobres > 0 && listos;
     cuenta.innerHTML = `<div class="yo">${u.avatar ? `<img src="${escapar(u.avatar)}" alt="">` : ''}
         <div><b>${escapar(u.nombre)}</b><span>${u.sobres === 1 ? 'Tienes 1 sobre' : `Tienes ${u.sobres} sobres`}</span></div></div>
       <button class="boton-claro abrir" type="button" ${puede ? '' : 'disabled'}>Abrir un sobre</button>
@@ -63,9 +63,9 @@ function pintarCuenta() {
     cuenta.querySelector('.abrir').onclick = abrir;
     cuenta.querySelector('.salir').onclick = async () => { await fetch('/auth/salir', { method: 'POST' }); cargar(); };
   }
-  $('.como-mas').innerHTML = !hayCartas
-    ? 'Todavía no hay cartas: el staff está preparando la tier list de los jugadores.'
-    : info.recompensa ? comoCanjear(u) : 'Más sobres: el staff los regala en premios y sorteos.';
+  // Sin cartas de Jugador los sobres esperan: solo con las BOOST saldrían todas de las mejores
+  $('.como-mas').innerHTML = (listos ? '' : '<b>Los sobres se abren cuando salgan las cartas de los jugadores:</b> el staff está preparando la tier list. ')
+    + (info.recompensa ? comoCanjear(u) : 'Más sobres: el staff los regala en premios y sorteos.');
   const quitar = $('.como-mas .desvincular');
   if (quitar) quitar.onclick = desvincularTwitch;
 }
@@ -111,18 +111,20 @@ function pintarAlbum(animar = !albumPintado) {
 function pintarProbabilidades() {
   const cuantos = (t, tipo) => info.catalogo.filter(c => c.tier === t && c.tipo === tipo).length;
   const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
+  // Mientras los sobres no se abren (faltan las cartas de Jugador) se enseña el reparto con el que van a salir
+  const listos = info.sobresListos, prob = t => (listos ? info.probabilidades : info.reparto)[t] || 0;
   const hayS = cuantos('S+', 'boost') > 0;
-  const pS = (info.probabilidades.S || 0) + (info.probabilidades['S+'] || 0);
+  const pS = prob('S') + prob('S+');
   // La fila de la S+ sale cuando hay cartas BOOST S+; cada fila cuenta jugadores y BOOST
   const legado = info.catalogo.filter(c => c.tipo === 'legacy').length;
   $('.tabla-prob').innerHTML = TIERS.filter(t => t !== 'LEGACY' && (t !== 'S+' || hayS)).map(t => {
-    const p = info.probabilidades[t] || 0, k = claveTier(t), j = cuantos(t, 'jugador'), b = cuantos(t, 'boost');
-    const quienes = [j && plural(j, 'jugador', 'jugadores'), b && plural(b, 'BOOST', 'BOOST')].filter(Boolean).join(' y ') || '0 cartas';
+    const p = prob(t), k = claveTier(t), j = cuantos(t, 'jugador'), b = cuantos(t, 'boost');
+    const quienes = [j && plural(j, 'jugador', 'jugadores'), b && plural(b, 'BOOST', 'BOOST')].filter(Boolean).join(' y ') || (listos ? '0 cartas' : 'por llegar');
     return `<div class="fila-prob" data-tier="${k}" style="--color-tier: var(--tier-${k})"><span class="letra">${t}</span>
       <span class="barra-prob"><span style="width:${(p * 100).toFixed(1)}%"></span></span>
       <span class="cifra">${pct(p)}<small>${quienes}</small></span></div>`;
-  }).join('') + (info.catalogo.length
-    ? `<p class="resumen-prob">En cada sobre, la probabilidad de que salga al menos una S${hayS ? ' o una S+' : ''} es del ${pct(1 - (1 - pS) ** info.cartasPorSobre)}.</p>` : '')
+  }).join('') + (listos ? '' : '<p class="resumen-prob">Los sobres todavía no se abren: así saldrán las cartas cuando estén las de los jugadores.</p>')
+    + `<p class="resumen-prob">En cada sobre, la probabilidad de que salga al menos una S${hayS ? ' o una S+' : ''} es del ${pct(1 - (1 - pS) ** info.cartasPorSobre)}.</p>`
     // Las LEGACY no están entre las tres del sobre: de vez en cuando sale una de regalo, como carta extra
     + (legado && info.probabilidadLegacy ? `<p class="resumen-prob prob-legacy"><b>LEGACY.</b> Aparte de sus ${info.cartasPorSobre} cartas, el ${pct(info.probabilidadLegacy)} de los sobres trae una carta extra del equipo Legacy (hay ${legado}). Son de colección: no se alinean en el fantasy.</p>` : '');
 }

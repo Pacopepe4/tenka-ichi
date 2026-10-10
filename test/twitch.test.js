@@ -111,14 +111,14 @@ after(async () => {
 
 const ana = navegador();
 
-test('un espectador entra con Twitch y empieza con 2 sobres', async () => {
+test('un espectador entra con Twitch y empieza con 3 sobres', async () => {
   await control('sesion', { login: 'ana' });
   const r = await ana.ir(`${urlWeb}/auth/twitch`);
   assert.equal(new URL(r.url).pathname, '/gachapon/');
   assert.ok(ana.cookies.get('tk_sesion'), 'queda la cookie de sesión');
   const g = await gacha(ana);
   assert.equal(g.usuario.nombre, 'Ana');
-  assert.equal(g.usuario.sobres, 2);
+  assert.equal(g.usuario.sobres, 3);
 });
 
 test('si cancela en Twitch vuelve al gachapon sin sesión', async () => {
@@ -135,7 +135,7 @@ test('abre un sobre y le salen 3 cartas del catálogo', async () => {
   assert.equal(j.ok, true);
   assert.equal(j.sobre.length, 3);
   for (const c of j.sobre) assert.match(c.id, /^(KAIJU|TORA)-(TOP|JUNGLA|MEDIO|ADC|SUPPORT)$/);
-  assert.equal(j.usuario.sobres, 1);
+  assert.equal(j.usuario.sobres, 2);
 });
 
 test('el staff conecta el canal y la web crea la recompensa en Twitch', async () => {
@@ -180,7 +180,7 @@ test('el staff regala sobres a alguien que aún no ha entrado: lo busca en Twitc
   await control('sesion', { login: 'beto' });
   const beto = navegador();
   await beto.ir(`${urlWeb}/auth/twitch`);
-  assert.equal((await gacha(beto)).usuario.sobres, 2 + 3, 'los 2 del alta más los 3 regalados');
+  assert.equal((await gacha(beto)).usuario.sobres, 3 + 3, 'los 3 del alta más los 3 regalados');
 });
 
 // Quien entra con su cuenta de siempre (en la web publicada, Discord; aquí, la de prueba) vincula su Twitch
@@ -206,11 +206,11 @@ test('un coleccionista vincula su Twitch y los sobres de sus canjes le llegan a 
   const u = (await gacha(dana)).usuario;
   assert.deepEqual(u.twitch, { login: 'dario' });
   assert.equal(u.nombre, 'Dana');
-  assert.equal(u.sobres, 2 + 1, 'los de bienvenida y el que canjeó antes de vincularse');
+  assert.equal(u.sobres, 3 + 1, 'los de bienvenida y el que canjeó antes de vincularse');
   // Desde ahora, cada canje le llega a esa cuenta
   await control('canje', { login: 'dario', veces: 2 });
   const g = await accion('gachaSondear');
-  assert.equal((await gacha(dana)).usuario.sobres, 5);
+  assert.equal((await gacha(dana)).usuario.sobres, 6);
   assert.equal(g.gacha.resumen.conTwitch, 1, 'el panel sabe cuántos lo tienen vinculado');
 
   // Lo quita: ese canje ya no es suyo. Lo vuelve a vincular: le llega
@@ -219,9 +219,9 @@ test('un coleccionista vincula su Twitch y los sobres de sus canjes le llegan a 
   assert.equal(quitar.usuario.twitch, null);
   await control('canje', { login: 'dario' });
   await accion('gachaSondear');
-  assert.equal((await gacha(dana)).usuario.sobres, 5);
-  await dana.ir(`${urlWeb}/auth/twitch/vincular`);
   assert.equal((await gacha(dana)).usuario.sobres, 6);
+  await dana.ir(`${urlWeb}/auth/twitch/vincular`);
+  assert.equal((await gacha(dana)).usuario.sobres, 7);
 });
 
 test('la recompensa de Twitch le dice al espectador que vincule su cuenta', async () => {
@@ -237,7 +237,7 @@ test('al reiniciar la web valida la conexión guardada y sigue conectada', async
   assert.ok((await estadoTwitch()).validaciones > validacionesAntes, 'ha llamado a /oauth2/validate al arrancar');
   assert.equal((await gacha(ana)).usuario.nombre, 'Ana', 'la sesión del espectador sigue valiendo');
   const u = (await gacha(dana)).usuario;
-  assert.deepEqual([u.twitch, u.sobres], [{ login: 'dario' }, 6], 'y el Twitch vinculado, con sus sobres');
+  assert.deepEqual([u.twitch, u.sobres], [{ login: 'dario' }, 7], 'y el Twitch vinculado, con sus sobres');
 });
 
 test('si el canal retira el permiso, el panel lo avisa y deja de recoger canjes', async () => {
@@ -252,7 +252,7 @@ test('sin sobres no se puede abrir ninguno', async () => {
   await control('sesion', { login: 'carla' });
   const carla = navegador();
   await carla.ir(`${urlWeb}/auth/twitch`);
-  for (let i = 0; i < 2; i++) assert.equal((await (await carla.ir(`${urlWeb}/api/gacha/abrir`, { method: 'POST' })).json()).ok, true);
+  for (let i = 0; i < 3; i++) assert.equal((await (await carla.ir(`${urlWeb}/api/gacha/abrir`, { method: 'POST' })).json()).ok, true);
   const r = await (await carla.ir(`${urlWeb}/api/gacha/abrir`, { method: 'POST' })).json();
   assert.equal(r.ok, false);
   assert.match(r.error, /No te quedan sobres/);

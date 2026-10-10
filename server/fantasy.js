@@ -15,7 +15,7 @@ import { vistaTierlist } from './tierlist.js';
 import { estadoUsuario, catalogo } from './gacha.js';
 import { ajuste, guardarAjustes } from './ajustes.js';
 import { hojaActiva, asegurarPestana, leer, anadir, escribir } from './sheets.js';
-import { CARPETA_DATOS } from './datos.js';
+import { CARPETA_DATOS, pestanaDeTemporada, archivoDeTemporada } from './datos.js';
 import { puntuar, participacion, cumpleCondicion, reglasLegibles } from './puntuacion.js';
 
 const CARPETA = CARPETA_DATOS;
@@ -23,7 +23,9 @@ const CARPETA = CARPETA_DATOS;
 const EST = { pestana: 'Estadisticas', archivo: path.join(CARPETA, 'estadisticas.json'),
   cabecera: ['Fecha', 'Partida', 'Jornada', 'Fase', 'Clan', 'Rol', 'Jugador', 'Id', 'Victoria', 'Asesinatos', 'Muertes', 'Asistencias', 'MVP', 'Puntos',
     'Farmeo', 'Visión', 'Daño', 'Primera sangre', 'Triples', 'Cuádruples', 'Pentakills', 'Torres', 'Participación', 'Fuente', 'Desglose', 'Daño a torres'] };
-const ALI = { pestana: 'Alineaciones', archivo: path.join(CARPETA, 'alineaciones.json'),
+// Las alineaciones son de cada temporada del gachapon (server/datos.js): con una nueva nadie conserva sus cartas, así
+// que se empieza sin ninguna, y las de la anterior se quedan en su pestaña
+const ALI = { pestana: pestanaDeTemporada('Alineaciones'), archivo: archivoDeTemporada('alineaciones'),
   cabecera: ['Fecha', 'ID de usuario', 'Usuario', ...ROLES, 'Boost 1', 'Vinculada 1', 'Boost 2', 'Vinculada 2'] };
 export const BOOSTS_POR_ALINEACION = 2;
 const sinBoosts = () => Array(BOOSTS_POR_ALINEACION).fill(null);

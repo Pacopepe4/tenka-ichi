@@ -361,10 +361,20 @@ function pintarGacha(g) {
       : `Sin conectar. Hay que entrar con la cuenta del canal (${c.canal}); la web crea la recompensa «${c.titulo}».`;
   $('#conectarCanal').textContent = c.conectado ? 'Volver a conectar el canal' : 'Conectar el canal de Twitch';
   if (c.coste && document.activeElement !== $('#costeSobre')) $('#costeSobre').value = c.coste;
-  const r = g.resumen, p = g.probabilidades;
+  // Sin cartas de jugador los sobres no se abren: se enseña el reparto con el que saldrán, no el de las BOOST solas
+  const r = g.resumen, p = r.listos ? g.probabilidades : g.reparto;
   const n = (x, uno, varios) => `${x} ${x === 1 ? uno : varios}`;
-  $('#resumenGacha').textContent = `${n(r.coleccionistas, 'coleccionista', 'coleccionistas')}${r.conTwitch ? ` (${r.conTwitch} con su Twitch vinculado)` : ''}, ${n(r.sobresAbiertos, 'sobre abierto', 'sobres abiertos')} y ${n(r.sobresSinAbrir, 'sin abrir', 'sin abrir')}. ${n(r.cartas, 'carta', 'cartas')} en los sobres. Probabilidad por carta: `
-    + [...(p['S+'] ? ['S+'] : []), ...TIERS].map(t => `${t} ${porcentaje(p[t] || 0)}`).join(', ') + '.';
+  $('#resumenGacha').textContent = `${n(r.coleccionistas, 'coleccionista', 'coleccionistas')}${r.conTwitch ? ` (${r.conTwitch} con su Twitch vinculado)` : ''}, ${n(r.sobresAbiertos, 'sobre abierto', 'sobres abiertos')} y ${n(r.sobresSinAbrir, 'sin abrir', 'sin abrir')}. ${n(r.cartas, 'carta', 'cartas')} en los sobres. `
+    + (r.listos ? 'Probabilidad por carta: ' : 'Los sobres no se pueden abrir hasta que haya cartas de jugador: guarda las plantillas y la tier list. Cuando se abran, por carta: ')
+    + [...(p['S+'] ? ['S+'] : []), ...TIERS].map(t => `${t} ${porcentaje(p[t] || 0)}`).join(', ') + '.'
+    + textoTemporada(g.temporada);
+}
+// La temporada del gachapon (cuando se estrena una, todos empiezan de cero): cuándo se estrenó o por qué no ha podido
+function textoTemporada(t) {
+  if (t?.pendiente) return ` La temporada ${t.numero} del gachapon está sin estrenar${t.error ? ` (${t.error})` : ''}: se intenta otra vez cuando la web se reinicie.`;
+  if (!t?.estreno) return '';
+  const cuando = new Date(t.estreno.fecha).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' });
+  return ` Temporada ${t.numero} del gachapon, estrenada el ${cuando}: ${t.estreno.cuentas === 1 ? '1 cuenta empezó' : `${t.estreno.cuentas} cuentas empezaron`} de cero.`;
 }
 async function actualizarGacha() {
   const r = await directo.enviar('gachaEstado', {}, claveInput.value);

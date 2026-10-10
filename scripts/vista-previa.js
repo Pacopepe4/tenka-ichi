@@ -1,7 +1,7 @@
 // Vista previa del gachapon y el fantasy con datos inventados, sin tocar data/, las plantillas ni Google Sheets:
 // jugadores inventados en todos los clanes, con su tier, y una carta BOOST de cada tier (S+, S, A y B).
 //   node scripts/vista-previa.js [puerto] [--cartas=carpeta]
-// Abre http://localhost:3055/auth/prueba?nombre=Ana para entrar sin Twitch (con 2 sobres) y ve al gachapon.
+// Abre http://localhost:3055/auth/prueba?nombre=Ana para entrar sin Twitch (con 3 sobres) y ve al gachapon.
 // Con --cartas se usan los dibujos y marcos de otra carpeta (misma forma que public/cartas: ID.png y marcos/TIER.png).
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';

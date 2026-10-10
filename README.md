@@ -112,7 +112,7 @@ server/estado-guardado.js   el estado del panel, guardado para que sobreviva a u
 server/ajustes.js      ajustes clave-valor que sobreviven a los reinicios (pestaña Ajustes)
 server/zip.js          zip mínimo para descargar el puente
 server/tierlist.js     tier list de jugadores y equipos
-server/gacha.js        sobres, cartas de Jugador y BOOST, arte, marcos y reverso, y el sorteo
+server/gacha.js        sobres, cartas de Jugador y BOOST, arte, marcos y reverso, el sorteo y el estreno de cada temporada
 server/entrada-discord.js   inicio de sesión de los espectadores con Discord (OAuth2, permiso identify; no guarda ningún token)
 server/twitch.js       API Helix y, si se configura, inicio de sesión con Twitch (con validación de tokens cada hora)
 server/canal.js        recompensa de puntos del canal y recogida de canjes
@@ -122,9 +122,10 @@ server/jornada.js      cierre de cada jornada del fantasy: sobres para los tres 
 server/codigos.js      códigos de directo que se canjean por sobres
 server/discord.js      publicar imágenes en un canal de Discord con un webhook
 server/puntuacion.js   reglas de puntuación del fantasy
-server/datos.js        carpeta de datos locales (data/, o CARPETA_DATOS en las pruebas)
+server/datos.js        carpeta de datos locales (data/, o CARPETA_DATOS en las pruebas) y la temporada del gachapon
 scripts/twitch-falso.js   Twitch de mentira para las pruebas (npm run twitch-falso)
 scripts/entrada-discord-falso.js   Discord de mentira para las pruebas del inicio de sesión (npm run entrada-discord-falso)
+scripts/sheets-falso.js   Google Sheets de mentira para las pruebas (npm run sheets-falso)
 scripts/vista-previa.js   la web con jugadores y cartas inventados (npm run vista-previa)
 scripts/prueba-directo.js   la web con una liga de prueba ya empezada, para ver el postdraft, la pantalla final y el ranking (npm run prueba-directo)
 test/                  pruebas (npm test)
@@ -174,6 +175,7 @@ Desde octubre de 2026 su servidor solo deja entrar a los clientes que mandan la 
 - **Calendario**: el sorteo de la liguilla.
 - **Plantillas**: jugadores por rol, suplentes, lema y descripción de cada clan. Se puede editar a mano en la hoja; la web lo recoge en un minuto.
 - **Ajustes**: lo que tiene que sobrevivir a un reinicio: el estado del panel (`estado_panel`), si las alineaciones están cerradas, las jornadas ya terminadas con sus premios, el código de directo en marcha y la conexión del canal de Twitch. No la edites a mano con la web encendida.
+- **Tierlist**, **Estadisticas** y, de cada temporada del gachapon, su registro y sus alineaciones: **GachaponT2** y **AlineacionesT2** desde el 10/10/2026 (apartado «Empezar todos de cero: una temporada nueva»). **Gachapon** y **Alineaciones**, sin número, son las de la primera temporada y ya no cambian.
 
 Las pestañas se crean solas la primera vez. Si Sheets no está configurado, todo se guarda en archivos locales, que en Render se borran al reiniciar.
 
@@ -230,14 +232,16 @@ Se edita en el panel, apartado **Tier list**: cada jugador (por su puesto en la 
 
 ## Gachapon
 
-`/gachapon/`: cada espectador entra con su cuenta de Discord y recibe **2 sobres**. Cada sobre trae **3 cartas**, de dos clases:
+`/gachapon/`: cada espectador entra con su cuenta de Discord y recibe **3 sobres**. Cada sobre trae **3 cartas**, de dos clases:
 
 - **Jugador:** los jugadores de la liga, con la rareza de su tier en la tier list (S, A, B, C; la D sigue funcionando mientras exista en la tier list).
 - **BOOST:** personajes de fuera de los clanes, de tier **S+**, S, A o B (abajo). No tienen clan ni rol, así que no se alinean en el fantasy.
 
 Aparte están las **LEGACY** (abajo): no salen entre las tres cartas; de vez en cuando un sobre trae una de regalo, como carta extra.
 
-En el sorteo cada carta pesa según su tier, sea de la clase que sea: S+ 0,5, S 1, A 3, B 6, C 10 y D 15 (una S sale 15 veces menos que una D; una S+, el doble de poco que una S). La página enseña las probabilidades reales, que dependen de cuántas cartas hay en cada tier. Los pesos se cambian en `PESOS` de `server/gacha.js`. Dentro de un mismo sobre no sale dos veces la misma carta.
+En el sorteo cada tier tiene su parte de las cartas que salen: **S+ 0,3 %, S 1,2 %, A 6,5 %, B 22 %, C 30 % y D 40 %**. Casi todo es de las tiers bajas y una S o una S+ es difícil de ver: 3 de cada 200 cartas, o un sobre de cada 23. La parte de una tier se la reparten por igual sus cartas, sean de Jugador o BOOST, así que no cambia con cuántas haya en ella; si una tier no tiene ninguna carta, su parte se reparte entre las demás en proporción, y la página enseña las probabilidades que salen de verdad. Se cambia en `PESOS` de `server/gacha.js`. Dentro de un mismo sobre no sale dos veces la misma carta.
+
+**Los sobres no se abren mientras no haya cartas de Jugador** (jugadores con nombre en su plantilla y con tier en la tier list): solo con las BOOST, todas las cartas saldrían S+ o S. Mientras tanto cada uno conserva sus sobres, la página lo avisa y enseña el reparto con el que saldrán, y el panel lo recuerda en el resumen del gachapon. En cuanto se guarda la tier del primer jugador, se abren.
 
 Más sobres, sin Twitch ni ser afiliado:
 
@@ -287,6 +291,16 @@ Más sobres: el staff los **regala** desde el panel (premios, sorteos). Opcional
 
 Todo se guarda como movimientos en la pestaña **Gachapon** de Google Sheets (altas, canjes, regalos, aperturas y cartas), así que ahí se ve quién tiene qué. Cada cuenta se identifica por `discord-` y su id de Discord (o por el id de Twitch, si entra con Twitch). La conexión del canal, si se usa, va cifrada en la pestaña **Ajustes**.
 
+### Empezar todos de cero: una temporada nueva
+
+El gachapon va por **temporadas** (`TEMPORADA` en `server/datos.js`). Al estrenar una, todos empiezan de cero: quien ya había entrado en la anterior conserva su cuenta (no tiene que volver a registrarse) y su Twitch vinculado, y se queda con los 3 sobres de bienvenida, haya ganado los que haya ganado. No arrastra cartas, sobres abiertos o conseguidos, historial ni alineación del fantasy. Las estadísticas de las partidas, las jornadas cerradas y todo lo demás siguen igual.
+
+- **Nada se borra.** La temporada nueva guarda su registro y sus alineaciones en pestañas nuevas de la hoja («GachaponT2» y «AlineacionesT2» para la temporada 2) y las de la anterior («Gachapon» y «Alineaciones») se quedan como estaban: son la copia de lo que había. Desde entonces, quién tiene qué se mira en la pestaña de la temporada en curso.
+- **La web publicada está en la temporada 2 desde el 10/10/2026**, con los porcentajes nuevos y antes de estrenar las cartas de los jugadores. En local y en las pruebas es la 1.
+- El estreno se hace solo y **una sola vez**, al arrancar la web: lee las cuentas de la temporada anterior y apunta en el registro nuevo un movimiento `temporada` y el alta de cada una (con su vínculo de Twitch), todo en una sola escritura. Mientras esa marca esté ahí no se repite, por mucho que la web se reinicie. El panel, en el resumen del gachapon, dice cuándo se estrenó y cuántas cuentas empezaron de cero; si no ha podido (la hoja no respondía), dice por qué y se intenta otra vez en el siguiente arranque.
+- **Para empezar otra vez de cero otro día:** subir el número en `server/datos.js`, o poner `GACHA_TEMPORADA=3` en Render.
+- **Para deshacerlo:** `GACHA_TEMPORADA=1` en Render y la web vuelve a la temporada anterior tal como se quedó (lo conseguido en la 2 se queda en sus pestañas).
+
 ### Activarlo con Discord (gratis)
 
 1. Entra en https://discord.com/developers/applications con tu cuenta de Discord y pulsa **New Application** (nombre: `Tenka Ichi`, o el que quieras). No hace falta crear ningún bot ni verificar la aplicación.
@@ -335,17 +349,19 @@ Como pide Twitch, los tokens guardados se validan al arrancar y cada hora (`/oau
 
 ### Probarlo sin Discord ni Twitch de verdad
 
-`npm test` arranca la web con datos temporales contra un **Discord falso** (`scripts/entrada-discord-falso.js`) y un **Twitch falso** (`scripts/twitch-falso.js`):
+`npm test` arranca la web con datos temporales contra un **Discord falso** (`scripts/entrada-discord-falso.js`), un **Twitch falso** (`scripts/twitch-falso.js`) y un **Google Sheets falso** (`scripts/sheets-falso.js`):
 
-- Inicio de sesión con Discord (`test/entrada-discord.test.js`): entrar y recibir 2 sobres una sola vez, cancelar, estados y códigos inválidos, que `volver` no saque de la web, nombres que no puedan ser fórmulas, regalos por nombre, reinicio de la web y que en Render sin claves no haya ni inicio de sesión ni entrada de prueba.
+- Inicio de sesión con Discord (`test/entrada-discord.test.js`): entrar y recibir 3 sobres una sola vez, cancelar, estados y códigos inválidos, que `volver` no saque de la web, nombres que no puedan ser fórmulas, regalos por nombre, reinicio de la web y que en Render sin claves no haya ni inicio de sesión ni entrada de prueba.
 - Twitch (`test/twitch.test.js`): entrar, abrir sobres, conectar el canal, canjes que dan sobres una sola vez, renovación de tokens, regalos, reinicio, permiso retirado y una partida del fantasy.
+- Google Sheets (`test/sheets.test.js` y `test/temporada.test.js`): el estreno de una temporada del gachapon con la web entera, también cuando la hoja falla a medias (no se puede leer el registro de una u otra temporada, falla al escribir el estreno o se pierde la respuesta), con miles de filas en la temporada anterior y con la versión anterior de la web escribiendo todavía en su pestaña.
 
-No tocan `data/`, las plantillas ni Google Sheets.
+No tocan `data/`, las plantillas ni la hoja de Google de verdad.
 
 Los falsos también se pueden arrancar sueltos y apuntar la web a ellos:
 
 - Inicio de sesión con Discord (`npm run entrada-discord-falso`, puerto 4041): `DISCORD_URL_WEB=http://localhost:4041`, `DISCORD_URL_API=http://localhost:4041/api/v10` y `DISCORD_URL_CDN=http://localhost:4041/cdn`, con `DISCORD_CLIENT_ID=cliente-prueba` y `DISCORD_CLIENT_SECRET=secreto-prueba`. Sus usuarios son ana, beto (sin nombre visible ni avatar), carla (nombre con una fórmula) y dani (nombre con caracteres raros).
 - Twitch (`npm run twitch-falso`, puerto 4040): `TWITCH_URL_ID=http://localhost:4040` y `TWITCH_URL_API=http://localhost:4040/helix`, con `TWITCH_CLIENT_ID=cliente-prueba` y `TWITCH_CLIENT_SECRET=secreto-prueba`. Sus usuarios son koryubudo (el canal, afiliado), ana, beto y carla.
+- Google Sheets (`npm run sheets-falso`, puerto 4060): `GOOGLE_URL_SHEETS=http://localhost:4060`, con `GOOGLE_SHEET_ID=hoja-de-prueba` y `GOOGLE_CREDENTIALS=prueba`. Empieza vacía y se pierde al pararla. Hace lo que de la hoja de verdad puede dar un disgusto: toma por fechas, horas o números lo que lo parece, exige comillas en los nombres de pestaña con espacios (por eso las de la web son de letras y números) y no deja escribir de golpe más allá de las 1000 filas de una pestaña nueva. `GOOGLE_URL_SHEETS` solo vale si apunta a este mismo ordenador.
 
 ## Fantasy
 

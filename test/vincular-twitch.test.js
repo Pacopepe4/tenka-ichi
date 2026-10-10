@@ -41,14 +41,14 @@ test('los canjes de un Twitch vinculado van a la cuenta de siempre, que conserva
   assert.equal(await g.vincularTwitch(ana, twAna), true);
   await canje(twAna, 1, 'canje-1');
   const e = g.estadoUsuario(ana.id);
-  assert.equal(e.sobres, 2 + 1, 'los dos de bienvenida y el del canje');
+  assert.equal(e.sobres, 3 + 1, 'los tres de bienvenida y el del canje');
   assert.deepEqual(e.twitch, { login: 'ana_tw' });
   assert.equal(g.buscarUsuario('Ana')?.id, ana.id, 'sigue llamándose como en Discord');
   assert.equal(g.buscarUsuario('ANA_TW'), null, 'no hay una segunda colección a nombre de su Twitch');
   assert.deepEqual([g.resumenGacha().coleccionistas, g.resumenGacha().conTwitch], [1, 1]);
   // El mismo canje no cuenta dos veces, llegue las veces que llegue
   await canje(twAna, 1, 'canje-1');
-  assert.equal(g.estadoUsuario(ana.id).sobres, 3);
+  assert.equal(g.estadoUsuario(ana.id).sobres, 4);
 });
 
 test('lo que ese Twitch ya tenía a su nombre (canjes de antes de vincularse) se junta al vincular', async () => {
@@ -61,7 +61,7 @@ test('lo que ese Twitch ya tenía a su nombre (canjes de antes de vincularse) se
   await g.darAlta(beto);
   await g.vincularTwitch(beto, twBeto);
   const e = g.estadoUsuario(beto.id);
-  assert.deepEqual([e.sobres, e.abiertos], [2 + 1, 1], 'los dos de bienvenida y el que le quedaba sin abrir');
+  assert.deepEqual([e.sobres, e.abiertos], [3 + 1, 1], 'los tres de bienvenida y el que le quedaba sin abrir');
   assert.equal(e.cartas.reduce((s, c) => s + c.cantidad, 0), 3, 'y las tres cartas del que abrió');
   assert.deepEqual(g.estadoUsuario(twBeto.id), { sobres: 0, abiertos: 0, cartas: [], twitch: null });
   assert.deepEqual([g.resumenGacha().coleccionistas, g.resumenGacha().conTwitch], [2, 2]);
@@ -78,10 +78,10 @@ test('al desvincular, los canjes dejan de llegar; al volver a vincular, llegan l
   assert.equal(g.estadoUsuario(ana.id).twitch, null);
   assert.equal(await g.desvincularTwitch(ana), false, 'ya no tenía ninguno');
   await canje(twAna, 1, 'canje-3');
-  assert.equal(g.estadoUsuario(ana.id).sobres, 3, 'ese canje no es suyo');
+  assert.equal(g.estadoUsuario(ana.id).sobres, 4, 'ese canje no es suyo');
   assert.equal(g.estadoUsuario(twAna.id).sobres, 1);
   await g.vincularTwitch(ana, twAna);
-  assert.equal(g.estadoUsuario(ana.id).sobres, 4);
+  assert.equal(g.estadoUsuario(ana.id).sobres, 5);
   assert.equal(g.resumenGacha().coleccionistas, 2);
 });
 
@@ -99,14 +99,24 @@ test('un Twitch va a una sola cuenta y una cuenta lleva un solo Twitch: manda el
   assert.equal(g.resumenGacha().conTwitch, 1);
 });
 
+const foto = () => JSON.stringify([ana.id, beto.id, twAna.id, twBeto.id].map(id => g.estadoUsuario(id)).concat(g.resumenGacha()));
+
 test('al volver a leer el registro (un reinicio de la web) queda todo igual', async () => {
-  const foto = () => JSON.stringify([ana.id, beto.id, twAna.id, twBeto.id].map(id => g.estadoUsuario(id)).concat(g.resumenGacha()));
   const antes = foto();
   await g.cargarGacha();
   assert.equal(foto(), antes);
-  // En el registro, cada vínculo es un movimiento más, con el id y el nombre de Twitch en el detalle
+  // En el registro, cada vínculo es un movimiento más, con el id y el nombre de Twitch en el detalle. Empieza por «tw:»
+  // para que la hoja no lo tome por una hora (hay nombres de Twitch que son solo números)
   const registro = JSON.parse(await readFile(path.join(carpeta, 'gacha.json'), 'utf8'));
   assert.deepEqual(registro.filter(e => e.tipo === 'vinculo').map(e => [e.id, e.detalle]),
-    [[ana.id, '2001:ana_tw'], [beto.id, '2002:beto_tw'], [ana.id, ''], [ana.id, '2001:ana_tw'], [beto.id, '2001:ana_tw']]);
+    [[ana.id, 'tw:2001:ana_tw'], [beto.id, 'tw:2002:beto_tw'], [ana.id, ''], [ana.id, 'tw:2001:ana_tw'], [beto.id, 'tw:2001:ana_tw']]);
   assert.ok(registro.filter(e => e.tipo === 'canje').every(e => /^200[12]$/.test(e.id)), 'y cada canje, a nombre de quien lo hizo en Twitch');
+});
+
+test('los vínculos apuntados antes de llevar «tw:» delante se siguen leyendo igual', async () => {
+  const archivo = path.join(carpeta, 'gacha.json'), antes = foto();
+  const registro = JSON.parse(await readFile(archivo, 'utf8'));
+  await writeFile(archivo, JSON.stringify(registro.map(e => (e.tipo === 'vinculo' ? { ...e, detalle: e.detalle.replace(/^tw:/, '') } : e))));
+  await g.cargarGacha();
+  assert.equal(foto(), antes);
 });

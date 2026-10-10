@@ -1,4 +1,4 @@
-// Cartas del gachapon: dos clases (Jugador y BOOST), pesos con la S+, probabilidades, arte, marcos por clase y
+// Cartas del gachapon: dos clases (Jugador y BOOST), la parte del sorteo de cada tier, arte, marcos por clase y
 // tier, y el reverso común. Todo con datos temporales: plantilla inventada, tier list, BOOST y dibujos de prueba.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -75,7 +75,7 @@ test('dos clases de carta: los jugadores de la tier list y las BOOST, de S+ a B,
   assert.equal(kami.clan, null);
   assert.equal(kami.rol, null);
   assert.equal(kami.subtitulo, 'Guardián del torneo');
-  assert.equal(kami.peso, 0.5);
+  assert.equal(kami.peso, 0.3, 'la parte de la S+ entera: es su única carta');
   assert.equal(porId().get('BOOST-KAPPA').subtitulo, 'Boost', 'sin subtítulo, «Boost»');
 });
 
@@ -134,18 +134,38 @@ test('el reverso es el mismo para todas las cartas', () => {
   assert.match(g.reversoCarta(), /^\/cartas\/marcos\/reverso\.webp\?v=/);
 });
 
-test('las probabilidades salen de los pesos: S+ 0,5, S 1, A 3, B 6, C 10 y D 15, de las dos clases', () => {
+const cerca = (a, b, texto) => assert.ok(Math.abs(a - b) < 1e-12, `${texto || ''} ${a} frente a ${b}`);
+
+test('cada tier tiene su parte del sorteo, haya las cartas que haya: S+ 0,3 %, S 1,2 %, A 6,5 %, B 22 %, C 30 % y D 40 %', () => {
   const p = g.probabilidades();
-  const total = 2 * (1 + 3 + 6 + 10 + 15) + 0.5 + 1 + 6;
-  assert.equal(p['S+'], 0.5 / total);
-  assert.equal(p.S, 3 / total, 'dos jugadores S y una BOOST S');
-  assert.equal(p.B, 18 / total, 'dos jugadores B y una BOOST B');
-  assert.equal(p.D, 30 / total);
-  assert.ok(Math.abs(Object.values(p).reduce((s, x) => s + x, 0) - 1) < 1e-12, 'suman 1');
   assert.deepEqual(Object.keys(p), ['S+', 'S', 'A', 'B', 'C', 'D']);
+  for (const [t, parte] of Object.entries({ 'S+': 0.003, S: 0.012, A: 0.065, B: 0.22, C: 0.3, D: 0.4 })) cerca(p[t], parte, t);
+  cerca(p.S + p['S+'], 0.015, 'una S o una S+: 3 de cada 200 cartas');
+  cerca(p.B + p.C + p.D, 0.92, 'casi todo es de las tiers bajas');
+  // La parte de una tier se la reparten por igual sus cartas, sean de Jugador o BOOST
+  const cat = porId();
+  for (const id of ['KAIJU-TOP', 'TORA-TOP', 'BOOST-TENGU']) cerca(cat.get(id).peso, 1.2 / 3, id);
+  for (const id of ['KAIJU-MEDIO', 'TORA-MEDIO', 'BOOST-KAPPA']) cerca(cat.get(id).peso, 22 / 3, id);
+  for (const id of ['KAIJU-SUPPORT', 'TORA-SUPPORT']) cerca(cat.get(id).peso, 40 / 2, id);
 });
 
-test('el sorteo respeta los pesos, también el decimal de la S+', () => {
+test('si una tier no tiene cartas, su parte se reparte entre las demás en proporción', () => {
+  const p = g.probabilidades(g.catalogo().filter(c => c.tier !== 'D'));
+  assert.equal(p.D, 0);
+  cerca(p.C, 30 / 60);
+  cerca(p['S+'], 0.3 / 60);
+  cerca(Object.values(p).reduce((s, x) => s + x, 0), 1, 'suman 1');
+});
+
+test('los sobres no se abren mientras no hay cartas de Jugador: solo con las BOOST saldrían todas de las mejores', () => {
+  const cat = g.catalogo(), boosts = cat.filter(c => c.tipo === 'boost');
+  assert.equal(g.sobresListos(cat), true);
+  assert.equal(g.sobresListos(boosts), false);
+  assert.equal(g.sobresListos([]), false);
+  assert.equal(g.resumenGacha().listos, true);
+});
+
+test('el sorteo respeta la parte de cada tier, también la de la S+, que es muy pequeña', () => {
   const cat = g.catalogo(), p = g.probabilidades(cat), n = 120000;
   const veces = Object.fromEntries(Object.keys(p).map(t => [t, 0]));
   for (let i = 0; i < n; i++) veces[g.sacarCarta(cat).tier]++;
@@ -167,7 +187,8 @@ test('un sobre da 3 cartas con su clase, su dibujo y su marco, sin el peso del s
     assert.ok('marco' in c);
     assert.equal('peso' in c, false);
   }
-  assert.equal(g.estadoUsuario('u1').sobres, 1);
+  assert.equal(g.estadoUsuario('u1').sobres, g.SOBRES_INICIALES - 1);
+  assert.equal(g.SOBRES_INICIALES, 3, 'tres sobres de bienvenida');
 });
 
 test('las BOOST no ocupan un hueco de rol en el fantasy', async () => {
@@ -176,7 +197,7 @@ test('las BOOST no ocupan un hueco de rol en el fantasy', async () => {
 });
 
 // ---------- BOOST vinculadas a un jugador ----------
-// Para tener justo las cartas que hacen falta, todas pesan igual y se abren sobres hasta que salgan
+// Para tener justo las cartas que hacen falta, todas las tiers salen igual y se abren sobres hasta que salgan
 async function coleccionar(u, quiero) {
   await g.darAlta(u);
   await g.darSobres(u, 300, 'regalo');

@@ -118,7 +118,7 @@ after(async () => {
 
 const ana = navegador();
 
-test('un espectador entra con Discord y empieza con 2 sobres', async () => {
+test('un espectador entra con Discord y empieza con 3 sobres', async () => {
   await control('sesion', { usuario: 'ana' });
   const r = await ana.ir(`${urlWeb}/auth/discord`);
   assert.equal(new URL(r.url).pathname, '/gachapon/');
@@ -127,7 +127,7 @@ test('un espectador entra con Discord y empieza con 2 sobres', async () => {
   assert.equal(g.activo, true);
   assert.equal(g.discord, true);
   assert.equal(g.usuario.nombre, 'Ana');
-  assert.equal(g.usuario.sobres, 2);
+  assert.equal(g.usuario.sobres, 3);
   assert.equal(g.usuario.avatar, `${urlDiscord}/cdn/avatars/300000000000000001/abc123.png?size=128`);
 });
 
@@ -138,9 +138,9 @@ test('la app se presenta a Discord con un User-Agent propio', async () => {
   for (const l of propias) assert.match(l.agente, /^TenkaIchi /);
 });
 
-test('volver a entrar no da otros 2 sobres', async () => {
+test('volver a entrar no da otros 3 sobres', async () => {
   await ana.ir(`${urlWeb}/auth/discord`);
-  assert.equal((await gacha(ana)).usuario.sobres, 2);
+  assert.equal((await gacha(ana)).usuario.sobres, 3);
 });
 
 test('sin nombre visible usa el nombre de usuario y sin avatar no pone imagen', async () => {
@@ -226,7 +226,7 @@ test('abre un sobre y le salen 3 cartas del catálogo', async () => {
   assert.equal(j.ok, true);
   assert.equal(j.sobre.length, 3);
   for (const c of j.sobre) assert.match(c.id, /^(KAIJU|TORA)-(TOP|JUNGLA|MEDIO|ADC|SUPPORT)$/);
-  assert.equal(j.usuario.sobres, 1);
+  assert.equal(j.usuario.sobres, 2);
 });
 
 test('el staff regala sobres por el nombre de quien ya ha entrado, y si no existe lo dice sin hablar de Twitch', async () => {

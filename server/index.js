@@ -16,7 +16,7 @@ import { estadoHoja } from './sheets.js';
 import { cargarTierlist, vistaTierlist, ponerTier } from './tierlist.js';
 import { cargarAjustes } from './ajustes.js';
 import { cargarGacha, catalogo, probabilidades, abrirSobre, darAlta, darSobres, estadoUsuario, buscarUsuario, resumenGacha, fundirRepetidas,
-  vincularTwitch, desvincularTwitch,
+  vincularTwitch, desvincularTwitch, sobresListos, reparto, estrenarTemporada, estadoTemporada,
   PESOS, CARTAS_POR_SOBRE, SOBRES_INICIALES, REPETIDAS_POR_SOBRE, PROBABILIDAD_LEGACY, CARPETA_ARTE, reversoCarta } from './gacha.js';
 import { crearCodigo, cerrarCodigo, mostrarCodigo, estadoCodigo, codigoEnPantalla, canjearCodigo as canjearCodigoDirecto } from './codigos.js';
 import { estadoJornadas, terminarJornada, jornadasCerradas, premiosPublicos } from './jornada.js';
@@ -525,17 +525,19 @@ const usuarioDeSesion = req => verificar(leerCookies(req).tk_sesion);
 const volverSeguro = v => (/^\/(?![/\\])/.test(v || '') ? v : '/gachapon/');
 
 function estadoGachaPanel() {
-  return { login: loginDiscordActivo(), canal: estadoCanal(), resumen: resumenGacha(), probabilidades: probabilidades(), cerrado: infoFantasy(null).cerrado,
-    codigo: estadoCodigo(), jornadas: estadoJornadas(), publicarDiscord: discordActivo('clasificacion') };
+  return { login: loginDiscordActivo(), canal: estadoCanal(), resumen: resumenGacha(), probabilidades: probabilidades(), reparto: reparto(), cerrado: infoFantasy(null).cerrado,
+    codigo: estadoCodigo(), jornadas: estadoJornadas(), publicarDiscord: discordActivo('clasificacion'), temporada: estadoTemporada() };
 }
 
 function infoGacha(u) {
-  const c = estadoCanal();
+  const c = estadoCanal(), cat = catalogo(), temporada = estadoTemporada();
   return {
     activo: loginActivo(), discord: loginDiscordActivo(), twitch: twitchActivo(), canal: CANAL,
     cartasPorSobre: CARTAS_POR_SOBRE, sobresIniciales: SOBRES_INICIALES, repetidasPorSobre: REPETIDAS_POR_SOBRE, pesos: PESOS,
-    probabilidades: probabilidades(), probabilidadLegacy: PROBABILIDAD_LEGACY,
-    catalogo: catalogo().map(({ peso, ...carta }) => carta),
+    probabilidades: probabilidades(cat), reparto: reparto(), probabilidadLegacy: PROBABILIDAD_LEGACY,
+    // Sin cartas de Jugador los sobres no se abren; y la temporada, con la fecha en que empezaron todos de cero
+    sobresListos: sobresListos(cat), temporada: { numero: temporada.numero, estreno: temporada.estreno?.fecha || null },
+    catalogo: cat.map(({ peso, ...carta }) => carta),
     publicarDiscord: discordActivo('coleccion'),
     reverso: reversoCarta(),
     recompensa: c.conectado && c.recompensa ? { titulo: c.titulo, coste: c.coste } : null,
@@ -932,6 +934,10 @@ setInterval(() => { for (const ws of clientes) if (ws.readyState === 1) ws.ping(
 await Promise.all([cargar(), cargarPlantillas(), cargarCalendario(), cargarAjustes()]);
 await Promise.all([cargarTierlist(), cargarGacha()]);
 await cargarFantasy();
+// Si la temporada del gachapon es nueva y aún no se ha estrenado, se estrena: todos de cero, con su cuenta. Si falla (la
+// hoja no responde), la web arranca igual y se vuelve a intentar en el siguiente arranque
+await estrenarTemporada().then(r => { if (r) console.log(`Temporada ${estadoTemporada().numero} del gachapon estrenada: ${r.cuentas} cuentas empiezan de cero`); },
+  e => console.error('Temporada del gachapon sin estrenar:', e.message));
 await cargarPartida();
 await cargarCanal().catch(e => console.error('Canal de Twitch:', e.message));
 estado.hoja = estadoHoja();

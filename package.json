@@ -11,6 +11,7 @@
     "test": "node --test test/*.test.js",
     "twitch-falso": "node scripts/twitch-falso.js",
     "entrada-discord-falso": "node scripts/entrada-discord-falso.js",
+    "sheets-falso": "node scripts/sheets-falso.js",
     "vista-previa": "node scripts/vista-previa.js",
     "prueba-directo": "node scripts/prueba-directo.js"
   },

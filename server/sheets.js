@@ -37,7 +37,20 @@ export function correoCuenta() {
   try { return credenciales().client_email; } catch { return null; }
 }
 
+// Las pruebas usan un Google Sheets de mentira (scripts/sheets-falso.js) con GOOGLE_URL_SHEETS: las mismas peticiones,
+// sin cuenta de servicio. Solo vale si está en este mismo ordenador: los datos de la hoja no salen a ningún otro sitio
+const URL_PRUEBAS = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(process.env.GOOGLE_URL_SHEETS || '') ? process.env.GOOGLE_URL_SHEETS : '';
+const clienteDePruebas = {
+  async request({ url, method = 'GET', data }) {
+    const r = await fetch(url, { method, headers: data ? { 'Content-Type': 'application/json' } : {}, body: data ? JSON.stringify(data) : undefined });
+    const cuerpo = await r.json().catch(() => ({}));
+    if (!r.ok) throw Object.assign(new Error(cuerpo?.error?.message || `Respuesta ${r.status}`), { response: { status: r.status, data: cuerpo } });
+    return { data: cuerpo };
+  },
+};
+
 function jwt() {
+  if (URL_PRUEBAS) return clienteDePruebas;
   if (!cliente) {
     const c = credenciales();
     cliente = new JWT({ email: c.client_email, key: c.private_key, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
@@ -83,7 +96,8 @@ export function marcarError(msg) {
   ultimoError = msg;
 }
 
-const base = () => `https://sheets.googleapis.com/v4/spreadsheets/${idHoja()}`;
+const base = () => `${URL_PRUEBAS || 'https://sheets.googleapis.com'}/v4/spreadsheets/${idHoja()}`;
+// Los nombres de las pestañas son de letras y números, sin espacios ni signos: así no hacen falta comillas en el rango
 const rango = (pestana, r) => encodeURIComponent(`${pestana}!${r}`);
 
 // Crea la pestaña si no existe
