@@ -15,6 +15,14 @@ export async function cargarClanes() {
 // Los clanes que compiten en Tenka Ichi: ni los invitados ni los equipos Legacy (de la organización, pero fuera de la competición)
 export const compite = c => !c.invitado && !c.legacy;
 
+// Una fecha del calendario (AAAA-MM-DD) en palabras: «8 nov» o, con largo, «8 de noviembre»
+export function fechaCorta(fecha, largo = false) {
+  if (!fecha) return '';
+  const d = new Date(`${fecha}T12:00:00Z`);
+  return largo ? d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', timeZone: 'UTC' })
+    : d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', timeZone: 'UTC' }).replace('.', '');
+}
+
 export const icono = id => `/ddragon/icono/${id}.png`;
 export const splash = id => `/ddragon/splash/${id}.jpg`;
 export const logo = clan => `/logos/${clan}.png`;
@@ -22,11 +30,12 @@ export const logo = clan => `/logos/${clan}.png`;
 // Conexión en directo con reconexión automática.
 // Si la web se actualiza mientras la página está abierta (una fuente de OBS puede pasar así toda la jornada), al
 // volver a conectarse llega una versión distinta y la página se recarga sola; con alVersion, se avisa en su lugar
-export function conectarDirecto({ alEstado, alRespuesta, alConexion, alPartida, alVersion }) {
+// Con canal: 'sorteo' solo llega el sorteo del calendario en directo (la portada no necesita el estado del draft)
+export function conectarDirecto({ alEstado, alRespuesta, alConexion, alPartida, alVersion, alSorteo, canal }) {
   let ws, pendientes = new Map(), id = 0, version = null;
   function abrir() {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-    ws = new WebSocket(`${proto}://${location.host}/ws`);
+    ws = new WebSocket(`${proto}://${location.host}/ws${canal ? `?canal=${canal}` : ''}`);
     ws.onopen = () => alConexion?.(true);
     ws.onclose = () => {
       alConexion?.(false);
@@ -41,8 +50,9 @@ export function conectarDirecto({ alEstado, alRespuesta, alConexion, alPartida, 
         if (version && m.version !== version) { if (alVersion) alVersion(m.version); else location.reload(); }
         version ??= m.version;
       }
-      if (m.tipo === 'estado') alEstado(m.estado);
+      if (m.tipo === 'estado') alEstado?.(m.estado);
       if (m.tipo === 'partida') alPartida?.(m.partida);
+      if (m.tipo === 'sorteo') alSorteo?.(m.sorteo);
       if (m.tipo === 'respuesta') {
         pendientes.get(m.id)?.(m);
         pendientes.delete(m.id);

@@ -9,6 +9,8 @@ import { conectar, codigoDeEnlace, destinoDeSlot } from './draftcore.js';
 import { cargar, guardarPartida, todas } from './registro.js';
 import { competicion } from './competicion.js';
 import { cargarCalendario, calendarioActual, temporadaSimulada, sortearCalendario } from './calendario.js';
+import { crearSorteo } from './sorteo.js';
+import { TEMPORADA } from './formato.js';
 import { statsCampeon, statsLiga } from './stats.js';
 import { CLANES, ROLES } from './clanes.js';
 import { cargarPlantillas, plantilla, guardarPlantilla, refrescarPlantillas } from './plantillas.js';
@@ -103,8 +105,16 @@ function emitir() {
   estado.codigo = codigo ? { texto: codigo.texto, sobres: codigo.sobres, quedan: codigo.caduca - Date.now() } : null;
   guardarEstadoSiCambia(fotoActual);
   const msg = JSON.stringify({ tipo: 'estado', estado });
-  for (const ws of clientes) if (ws.readyState === 1) ws.send(msg);
+  for (const ws of clientes) if (ws.readyState === 1 && ws.canal !== 'sorteo') ws.send(msg);
 }
+
+// El sorteo del calendario en directo (server/sorteo.js) llega a todas las pantallas. La portada solo pide este
+// canal (/ws?canal=sorteo): no necesita el estado del draft y así no se lo mandamos a cada visitante
+const sorteo = crearSorteo();
+sorteo.alCambiar(v => {
+  const msg = JSON.stringify({ tipo: 'sorteo', sorteo: v });
+  for (const ws of clientes) if (ws.readyState === 1) ws.send(msg);
+});
 
 // La partida en directo va en su propio mensaje: llega cada segundo y no hace falta reenviar todo el estado
 let partidaActiva = false, puenteConectado = false;
@@ -122,7 +132,7 @@ function emitirPartida(partida = resumenPartida()) {
   puenteConectado = partida.puente.conectado;
   const cambia = seguirPartida(partida);
   const msg = JSON.stringify({ tipo: 'partida', partida });
-  for (const ws of clientes) if (ws.readyState === 1) ws.send(msg);
+  for (const ws of clientes) if (ws.readyState === 1 && ws.canal !== 'sorteo') ws.send(msg);
   if (cambia) emitir();
 }
 // Si el puente deja de mandar datos, avisa al overlay para que se retire y al panel de que se ha cerrado
@@ -448,6 +458,22 @@ async function accion(nombre, d = {}) {
       const cal = await sortearCalendario(d.participantes || [], d.semilla);
       return { ok: true, semilla: cal.semilla };
     }
+    // Sorteo en directo: empezar (con los clanes de la temporada), sacar una bola, dejarlas salir solas y cancelar
+    case 'sorteoIniciar': {
+      const r = sorteo.iniciar({ participantes: TEMPORADA.clanes, semilla: d.semilla, ensayo: Boolean(d.ensayo) });
+      return { ok: true, ...r };
+    }
+    case 'sorteoBola':
+      await sorteo.siguiente();
+      return { ok: true };
+    case 'sorteoAuto': {
+      const segundos = Math.max(5, Math.min(30, Math.round(Number(d.segundos) || 8)));
+      sorteo.automatico(d.activo ? segundos * 1000 : 0);
+      return { ok: true };
+    }
+    case 'sorteoCancelar':
+      sorteo.cancelar();
+      return { ok: true };
     case 'probarHoja':
       await cargar().catch(() => {});
       estado.hoja = estadoHoja();
@@ -906,11 +932,15 @@ const servidor = http.createServer(async (req, res) => {
 });
 
 const wss = new WebSocketServer({ server: servidor, path: '/ws' });
-wss.on('connection', ws => {
+wss.on('connection', (ws, req) => {
   clientes.add(ws);
+  ws.canal = new URL(req.url, 'http://localhost').searchParams.get('canal');
   ws.send(JSON.stringify({ tipo: 'hola', version: VERSION }));
-  ws.send(JSON.stringify({ tipo: 'estado', estado }));
-  ws.send(JSON.stringify({ tipo: 'partida', partida: resumenPartida() }));
+  if (ws.canal !== 'sorteo') {
+    ws.send(JSON.stringify({ tipo: 'estado', estado }));
+    ws.send(JSON.stringify({ tipo: 'partida', partida: resumenPartida() }));
+  }
+  ws.send(JSON.stringify({ tipo: 'sorteo', sorteo: sorteo.vista() }));
   ws.on('close', () => clientes.delete(ws));
   ws.on('message', async raw => {
     let m;

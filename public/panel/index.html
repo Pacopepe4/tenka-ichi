@@ -39,10 +39,26 @@
   <main>
     <section id="competicion" data-fases="antes">
       <h2>Competición</h2>
+      <div class="sorteo-vivo-panel">
+        <h3>Sorteo en directo</h3>
+        <p class="ayuda">El bombo sale en la zona de la liga de la web: cada bola que saques la ve al momento todo el que tenga la web abierta. Los clanes son los seis de la temporada y el calendario no se guarda hasta que sale la última bola (24). La semilla es opcional: con el mismo número, el sorteo sale igual.</p>
+        <p class="estado" id="sorteoEstado">Sin sorteo en marcha.</p>
+        <div class="fila">
+          <label class="semilla">Semilla <input id="semillaVivo" type="number" placeholder="Al azar"></label>
+          <label class="casilla"><input type="checkbox" id="sorteoEnsayo"> Ensayo (no guarda nada)</label>
+          <button id="sorteoEmpezar">Empezar el sorteo</button>
+        </div>
+        <div class="fila">
+          <button id="sorteoBola" disabled>Sacar bola</button>
+          <label class="casilla"><input type="checkbox" id="sorteoAuto" disabled> Automático: una bola cada <input id="sorteoSegundos" type="number" min="5" max="30" value="8" class="corto"> s</label>
+          <button id="sorteoCancelar" class="secundario" disabled>Cancelar el sorteo</button>
+        </div>
+      </div>
       <div class="sin-calendario" hidden>
-        <p class="ayuda">Aún no hay calendario. Marca los 10 clanes que juegan y sortea. La semilla es opcional: con el mismo número, el sorteo sale igual y cualquiera puede comprobarlo.</p>
+        <p class="ayuda">Aún no hay calendario. Para sortearlo en directo, usa el bloque de arriba; este botón lo sortea de golpe y sin bombo (por si algo falla). Vienen marcados los seis clanes de la temporada.</p>
+        <p class="ayuda" id="fechasTemporada"></p>
         <div class="participantes"></div>
-        <div class="fila"><label class="semilla">Semilla <input id="semilla" type="number" placeholder="Al azar"></label><button id="sortear">Sortear calendario</button></div>
+        <div class="fila"><label class="semilla">Semilla <input id="semilla" type="number" placeholder="Al azar"></label><button id="sortear" class="secundario">Sortear de golpe</button></div>
       </div>
       <div class="con-calendario" hidden>
         <p class="ayuda" id="resumenCompeticion"></p>

@@ -66,7 +66,7 @@ Un equipo **Legacy** es de la organización y lo conserva todo (logo, arte, lema
 - No entra en el sorteo del calendario (ni en el panel ni en el servidor) ni en la tier list, así que sus jugadores no tienen carta de Jugador ni puntúan en el fantasy, y tampoco sale en la imagen de la tier list de Discord. Lo que tienen son las **cartas LEGACY**, de colección (apartado «Cartas LEGACY» del gachapon), que se ven también en su ficha.
 - En el panel se puede seguir eligiendo para el overlay (un amistoso o una exhibición) y se puede guardar su plantilla.
 
-Para que otro clan pase a Legacy (o vuelva a competir) basta con poner o quitar `legacy: true` en su línea de `server/clanes.js`; los textos de la portada que cuentan los clanes («Los doce clanes», «Doce clanes, un solo reino» y «Diez de los doce clanes») están escritos a mano en `public/index.html`.
+Para que otro clan pase a Legacy (o vuelva a competir) basta con poner o quitar `legacy: true` en su línea de `server/clanes.js`; los textos de la portada que cuentan los clanes («Los doce clanes», «Doce clanes, un solo reino» y «Seis de los doce clanes») están escritos a mano en `public/index.html`.
 
 ## Publicarlo en internet (Render, gratis)
 
@@ -155,19 +155,26 @@ Desde octubre de 2026 su servidor solo deja entrar a los clientes que mandan la 
 
 ## Formato de la competición
 
-- **Liguilla (Bo1)**: 10 clanes en un único grupo. Cada clan juega 5 partidas contra 5 rivales distintos sorteados (5 jornadas de 5 partidas). Los lados se reparten para que nadie tenga más de 3 azules.
-- **Desempates**: si empatan dos clanes, cuenta el enfrentamiento directo. Si son más, cuenta la fuerza de calendario (suma de victorias de los rivales). Si aun así hay empate en la frontera del 8.º y el 9.º puesto, se juega un Bo1 de desempate; en cualquier otro puesto se ordena por sorteo con la semilla.
-- **Playoffs (Bo3 fearless)**: los 8 primeros. El cuadro es fijo: 1.º–8.º y 4.º–5.º por un lado, 2.º–7.º y 3.º–6.º por el otro. El mejor clasificado elige lado en la partida 1; después elige el que perdió la partida anterior.
+Desde el 29/10/2026 la temporada la juegan **seis clanes** (SARU, KAIJU, KEMONO, ATSUI, TORA y BUSHI). Los clanes y las fechas están en `server/formato.js` (`TEMPORADA`); el formato, en `server/competicion.js`.
+
+- **Liguilla (Bo1)**: 6 clanes en un único grupo, en cuatro jornadas de 3 partidas: **domingos 8, 15, 22 y 29 de noviembre de 2026**. Cada clan juega 4 partidas contra 4 de sus 5 rivales (sorteados, sin repetir). Los lados se reparten para que nadie tenga más azules de la cuenta.
+- **Desempates**: si empatan dos clanes, cuenta el enfrentamiento directo. Si son más, cuenta la fuerza de calendario (suma de victorias de los rivales). En cualquier otro empate se ordena por sorteo con la semilla. Con 6 plazas para 6 clanes no hay corte, así que no se juega partida de desempate (el código sigue sabiendo hacerlo si algún día sobran clanes).
+- **Playoffs (Bo3 fearless)**: entran los 6, **domingos 6 de diciembre (cuartos), 13 (semifinales) y 20 (final)**. El cuadro es fijo: el 1.º y el 2.º se saltan los cuartos, donde juegan 4.º–5.º y 3.º–6.º; en semifinales, el 1.º contra el ganador del 4-5 y el 2.º contra el del 3-6. El mejor clasificado elige lado en la partida 1; después elige el que perdió la partida anterior.
+
+La web enseña las fechas desde el principio (pestañas de jornada, cabecera de cada ronda del cuadro y resumen de la liga), también antes de sortear los cruces. Para mover una fecha o cambiar los clanes basta con tocar `formato.js`.
 
 ### Sorteo y día de partida
 
-1. En el panel, apartado **Competición**, marca los 10 clanes y pulsa **Sortear calendario**. La semilla es opcional; con la misma semilla el sorteo sale igual.
+1. **Sorteo en directo** (el del domingo): en el panel, apartado **Competición**, bloque **Sorteo en directo**. **Empezar el sorteo** saca el bombo en la zona de la liga de la web (el que no lo tenga abierto lo ve al entrar, con lo que ya haya salido). Cada **Sacar bola** deja salir una bola, o **Automático** las deja salir solas, una cada 5 a 30 s. Cada jornada es un bombo de seis bolas, una por clan, que salen de dos en dos (lado azul y lado rojo de cada cruce): 24 bolas en total. La semilla es opcional; con la misma semilla el sorteo sale igual. **Ensayo** hace lo mismo sin guardar nada (la web pone una etiqueta «Ensayo»).
+   - El calendario se calcula entero al empezar, pero a la web solo viajan las bolas que ya han salido; ni las que faltan ni la semilla se ven antes de tiempo (la semilla sale al terminar). Se guarda al sacar la última bola y la liga de la web se repinta sola con él.
+   - El estado del sorteo vive en la memoria del servidor: si la web se reinicia en mitad del sorteo, hay que empezarlo otra vez (con la misma semilla sale igual). La portada lo recibe por un canal propio del WebSocket (`/ws?canal=sorteo`), sin el estado del draft.
+   - **Sortear de golpe** (bloque de más abajo, mientras no hay calendario) hace lo mismo sin bombo, por si algo falla en directo.
 2. El calendario se guarda en la pestaña **Calendario** de Google Sheets (y una copia en `data-proyecto/competicion.json`). Así sobrevive a los reinicios de Render y cualquiera que entre en la web lo ve.
 3. Cada día de partida, elige en **Competición** la siguiente partida y pulsa **Cargar en el panel**. Se rellenan jornada, fase, formato, número de partida, clanes y jugadores. En playoffs te dice quién elige lado.
 
 ### Simulación
 
-`npm run simular [semilla]` juega una temporada inventada entera y la guarda en `data-proyecto/simulacion.json`. Se ve en `/?simulacion#liga` sin tocar los datos reales.
+`npm run simular [semilla]` juega una temporada inventada entera (con los seis clanes de `formato.js`) y la guarda en `data-proyecto/simulacion.json`. Se ve en `/?simulacion#liga` sin tocar los datos reales.
 
 ## Qué se guarda en Google Sheets
 

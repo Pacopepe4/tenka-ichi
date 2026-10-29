@@ -253,3 +253,9 @@ details.ayuda[open] summary { margin-bottom: 6px; }
 .fila-camara-lineas .donde { display: flex; flex-direction: column; font-size: 13px; color: var(--hai); line-height: 1.35; }
 .fila-camara-lineas .donde b { color: var(--washi); font-size: 15px; }
 @media (max-width: 760px) { .fila-camara-lineas { grid-template-columns: 1fr 1fr; } .fila-camara-lineas .casilla { grid-column: 1 / -1; } }
+
+/* Sorteo en directo (Competición) */
+.sorteo-vivo-panel { margin-bottom: 22px; padding-bottom: 20px; border-bottom: 1px solid var(--sumi-linea); }
+.sorteo-vivo-panel h3 { margin: 0 0 8px; font-size: 16px; }
+.sorteo-vivo-panel .estado { margin: 0 0 4px; }
+.casilla input.corto { width: 4.5em; height: auto; padding: 6px 8px; accent-color: initial; }

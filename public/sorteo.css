@@ -1,0 +1,109 @@
+/* El bombo del sorteo del calendario (sorteo.js), en la zona de la liga de la portada */
+.sorteo {
+  --bombo: clamp(200px, 26vw, 264px);
+  --bola: calc(var(--bombo) * .2);
+  position: relative; isolation: isolate;
+  max-width: var(--ancho); margin: clamp(32px, 4vw, 48px) auto 0;
+  padding: clamp(20px, 3vw, 34px) var(--margen) clamp(22px, 3vw, 34px);
+  background: linear-gradient(180deg, var(--sumi-alzado), var(--sumi));
+  border-block: 1px solid var(--sumi-linea);
+}
+.sorteo[hidden] { display: none; }
+.sorteo::before { content: ''; position: absolute; inset: 0; z-index: -1; background: var(--grano-papel); opacity: .6; pointer-events: none; }
+
+.sorteo-cabecera { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.sorteo-cabecera h3 { margin: 0; font-family: var(--mincho); font-weight: 800; font-size: var(--t-h3); line-height: 1.15; }
+.sorteo-vivo { display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px 4px 10px; background: var(--shu); color: var(--washi);
+  font-size: var(--t-nota); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; border-radius: 2px; transform: skewX(-8deg); }
+.sorteo-vivo > * { transform: skewX(8deg); }
+.sorteo-vivo .punto-vivo { background: var(--washi); }
+.sorteo-vivo[hidden], .sorteo-ensayo[hidden] { display: none; }
+.sorteo-ensayo { padding: 4px 12px; border: 1px solid var(--oro-viejo); color: var(--oro); font-size: var(--t-nota); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; border-radius: 2px; }
+.sorteo-estado { margin: 8px 0 0; min-height: 1.6em; color: var(--hai); font-size: var(--t-menor); }
+
+/* La escena: el bombo a la izquierda y, a su derecha, la diana donde se planta cada bola */
+.sorteo-escena { position: relative; z-index: 2; display: flex; align-items: center; justify-content: center; gap: clamp(28px, 7vw, 96px); margin: clamp(22px, 3vw, 34px) 0 clamp(26px, 3.4vw, 40px); }
+@media (max-width: 640px) { .sorteo-escena { flex-direction: column; gap: 26px; } }
+
+.bombo { position: relative; flex: none; width: var(--bombo); height: var(--bombo); }
+.bombo::after { /* el pie del bombo */
+  content: ''; position: absolute; left: 22%; right: 22%; bottom: -17px; height: 14px; z-index: -1;
+  background: var(--sumi-linea); clip-path: polygon(0 0, 100% 0, 88% 100%, 12% 100%); }
+.bombo-aro {
+  position: absolute; inset: 0; border-radius: 50%;
+  border: 3px solid var(--oro-viejo);
+  background:
+    radial-gradient(circle at 50% 40%, rgba(235, 210, 138, .09), rgba(0, 0, 0, .5) 74%),
+    repeating-conic-gradient(from 0deg, transparent 0 11.25deg, rgba(235, 210, 138, .2) 11.25deg 12deg);
+  box-shadow: inset 0 0 44px rgba(0, 0, 0, .65), 0 0 0 6px var(--sumi), 0 0 0 7px var(--sumi-linea), 0 20px 50px rgba(0, 0, 0, .5);
+  animation: bombo-giro 26s linear infinite;
+}
+.bombo-aro::after { content: ''; position: absolute; inset: 17%; border-radius: 50%; border: 1px dashed rgba(235, 210, 138, .38); }
+.bombo-kanji { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--mincho); font-weight: 800;
+  font-size: calc(var(--bombo) * .5); color: var(--oro); opacity: .07; user-select: none; }
+.bombo-bolas { position: absolute; inset: 0; border-radius: 50%; overflow: hidden; }
+.bombo-boca { position: absolute; z-index: 3; left: 50%; bottom: -8px; width: calc(var(--bombo) * .24); height: 24px; margin-left: calc(var(--bombo) * -.12);
+  background: var(--sumi); border: 3px solid var(--oro-viejo); border-top: 0; border-radius: 0 0 16px 16px; }
+.bombo.agitando { animation: bombo-temblor .12s linear infinite; }
+.bombo.agitando .bombo-aro { animation-duration: 2.4s; }
+
+/* Las bolas de dentro: cada una gira a su radio y rebota un poco, para que no parezcan un reloj */
+.bola-d { position: absolute; left: 50%; top: 50%; width: var(--bola); height: var(--bola); margin: calc(var(--bola) / -2) 0 0 calc(var(--bola) / -2);
+  animation: bola-orbita var(--t) linear infinite; animation-delay: var(--d); }
+.bola-d.inversa { animation-direction: reverse; }
+.bombo.agitando .bola-d { animation-duration: calc(var(--t) / 4.5); }
+.bombo-bolas img, .bola-grande img { display: block; width: 62%; height: 62%; margin: 19%; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .6)); }
+.bola-d, .bola-grande {
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 33% 27%, rgba(255, 255, 255, .55) 0, rgba(255, 255, 255, 0) 34%),
+    radial-gradient(circle at 50% 50%, var(--color), color-mix(in srgb, var(--color) 48%, #000) 100%);
+  box-shadow: inset 0 -5px 10px rgba(0, 0, 0, .35), 0 3px 8px rgba(0, 0, 0, .5);
+}
+@keyframes bola-orbita {
+  from { transform: rotate(0deg) translateX(calc(var(--bombo) * var(--rf))) rotate(0deg); }
+  to { transform: rotate(360deg) translateX(calc(var(--bombo) * var(--rf))) rotate(-360deg); }
+}
+@keyframes bombo-giro { to { transform: rotate(360deg); } }
+@keyframes bombo-temblor {
+  0% { translate: 0 0; } 25% { translate: 2px -2px; } 50% { translate: -2px 1px; } 75% { translate: 1px 2px; } 100% { translate: 0 0; }
+}
+
+/* La bola grande que sale del bombo y se planta en la diana; su sitio lo calcula sorteo.js */
+.bola-grande { position: absolute; z-index: 5; left: 0; top: 0; width: 124px; height: 124px; margin: -62px 0 0 -62px; border: 3px solid var(--oro); opacity: 0; will-change: transform; }
+.sorteo-foco { position: relative; flex: none; width: 190px; display: grid; justify-items: center; gap: 4px; text-align: center; }
+.foco-diana { width: 150px; height: 150px; border-radius: 50%; border: 2px dashed var(--sumi-linea); box-shadow: 0 0 0 10px rgba(235, 210, 138, .03); }
+.foco-nombre { min-height: 1.2em; font-family: var(--mincho); font-weight: 800; font-size: var(--t-h3); line-height: 1.1; color: var(--washi); text-shadow: 0 0 22px var(--color, transparent); }
+.foco-lado { min-height: 1.4em; font-size: var(--t-menor); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.foco-lado.azul { color: var(--azul-lado); }
+.foco-lado.rojo { color: var(--shu-claro); }
+@media (max-width: 640px) { .sorteo-foco { width: auto; } }
+
+/* El tablero: las cuatro jornadas, que se van llenando cruce a cruce */
+.sorteo-tablero { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 1000px) { .sorteo-tablero { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .sorteo-tablero { grid-template-columns: minmax(0, 1fr); } }
+.tab-jornada { padding: 12px 12px 10px; background: rgba(0, 0, 0, .18); border: 1px solid var(--sumi-linea); border-radius: var(--radio, 4px); transition: border-color .3s, box-shadow .3s; }
+.tab-jornada.actual { border-color: var(--oro-viejo); box-shadow: 0 0 0 1px rgba(179, 154, 94, .35), 0 8px 26px rgba(0, 0, 0, .35); }
+.tab-jornada h4 { margin: 0 0 10px; font-family: var(--mincho); font-weight: 800; font-size: var(--t-texto); }
+.tab-jornada h4 small { color: var(--hai); font-family: var(--gothic); font-size: var(--t-nota); font-weight: 500; }
+.tab-jornada ul { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.tab-jornada li { display: grid; grid-template-columns: minmax(0, 1fr) 18px minmax(0, 1fr); align-items: center; gap: 2px; }
+.hueco { display: flex; align-items: center; gap: 6px; min-height: 36px; padding: 3px 7px; min-width: 0;
+  border: 1px dashed var(--sumi-linea); border-radius: 3px; font-size: 14px; font-weight: 600; }
+.hueco[data-lado="rojo"] { flex-direction: row-reverse; text-align: right; }
+.hueco.lleno { border: 1px solid var(--sumi-linea); border-left: 3px solid var(--color); background: rgba(231, 223, 210, .04); }
+.hueco[data-lado="rojo"].lleno { border-left: 1px solid var(--sumi-linea); border-right: 3px solid var(--color); }
+.hueco img { width: 22px; height: 22px; flex: none; object-fit: contain; }
+.hueco b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.hueco.nuevo { animation: hueco-nuevo .7s cubic-bezier(.2, .8, .2, 1); }
+.tab-jornada .vs { text-align: center; color: var(--hai); font-size: var(--t-nota); }
+@keyframes hueco-nuevo { 0% { background: color-mix(in srgb, var(--color) 55%, transparent); transform: scale(1.06); } 100% { transform: none; } }
+
+.sorteo-pie { margin: 16px 0 0; color: var(--hai); font-size: var(--t-menor); min-height: 1.2em; }
+.sorteo-pie:empty { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bombo-aro, .bola-d, .bombo.agitando, .bombo.agitando .bombo-aro, .hueco.nuevo { animation: none; }
+  .bola-d { transform: rotate(calc(var(--rf) * 1000deg)) translateX(calc(var(--bombo) * var(--rf))); }
+}

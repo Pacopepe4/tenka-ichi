@@ -1,15 +1,20 @@
-// Formato de TENKA ICHI
-// - Liguilla: 10 clanes en un grupo, Bo1, 5 jornadas de 5 partidas; rivales sorteados sin repetir.
+// Formato de TENKA ICHI (las fechas y los clanes de la temporada están en formato.js)
+// - Liguilla: 6 clanes en un grupo, Bo1, 4 jornadas de 3 partidas; cada clan juega contra 4 de sus 5 rivales,
+//   sorteados sin repetir.
 // - Clasificación: victorias; desempate por enfrentamiento directo (si empatan dos), fuerza de
-//   calendario (suma de victorias de los rivales) y, si el empate cae en el corte del 8.º, un Bo1
-//   de desempate; en el resto de puestos, sorteo con la semilla.
-// - Playoffs Bo3 fearless, top 8 con cuadro fijo: 1-8 y 4-5 por un lado, 2-7 y 3-6 por el otro.
+//   calendario (suma de victorias de los rivales) y, si el empate cae en el corte de la última plaza, un Bo1
+//   de desempate; en el resto de puestos, sorteo con la semilla. Con 6 plazas para 6 clanes no hay corte: la
+//   clasificación solo decide el cuadro.
+// - Playoffs Bo3 fearless, los 6 clanes con cuadro fijo: el 1.º y el 2.º se saltan los cuartos (4-5 y 3-6);
+//   en semifinales el 1.º juega contra el ganador del 4-5 y el 2.º contra el del 3-6.
 //   El mejor clasificado elige lado en la partida 1; en las siguientes elige quien perdió la anterior.
+import { TEMPORADA } from './formato.js';
+
 export const FASE_LIGA = 'Fase de liga';
 export const FASE_DESEMPATE = 'Desempate';
 export const FASE_FINAL = 'Fase final';
-export const JORNADAS = 5;
-export const PLAZAS_PLAYOFFS = 8;
+export const JORNADAS = TEMPORADA.liguilla.length;
+export const PLAZAS_PLAYOFFS = 6;
 
 // Generador pseudoaleatorio con semilla (mulberry32): el mismo número da el mismo sorteo
 export function azar(semilla) {
@@ -110,25 +115,31 @@ export function clasificacion(calendario, partidas) {
     orden.push(...g);
   }
 
-  // Corte del 8.º: si el 8.º y el 9.º siguen empatados tras la fuerza, se juega un desempate
+  // Corte de la última plaza: si el último que entra y el primero que se queda fuera siguen empatados tras la
+  // fuerza, se juega un desempate (con tantas plazas como clanes no hay nadie fuera y no se juega nunca)
   let desempate = null;
-  const n8 = orden[PLAZAS_PLAYOFFS - 1], n9 = orden[PLAZAS_PLAYOFFS];
-  if (completa && n8 && n9 && n8.victorias === n9.victorias && n8.fuerza === n9.fuerza && n8.criterio === 'sorteo') {
-    const jugado = partidas.filter(p => p.fase === FASE_DESEMPATE && mismaPareja(p, n8.clan, n9.clan)).at(-1);
-    desempate = { clanes: [n8.clan, n9.clan], ganador: jugado ? ganadorDe(jugado) : null };
-    if (jugado && ganadorDe(jugado) === n9.clan) [orden[PLAZAS_PLAYOFFS - 1], orden[PLAZAS_PLAYOFFS]] = [n9, n8];
-    n8.criterio = n9.criterio = 'desempate';
+  const ultimo = orden[PLAZAS_PLAYOFFS - 1], primeroFuera = orden[PLAZAS_PLAYOFFS];
+  if (completa && ultimo && primeroFuera && ultimo.victorias === primeroFuera.victorias && ultimo.fuerza === primeroFuera.fuerza && ultimo.criterio === 'sorteo') {
+    const jugado = partidas.filter(p => p.fase === FASE_DESEMPATE && mismaPareja(p, ultimo.clan, primeroFuera.clan)).at(-1);
+    desempate = { clanes: [ultimo.clan, primeroFuera.clan], ganador: jugado ? ganadorDe(jugado) : null };
+    if (jugado && ganadorDe(jugado) === primeroFuera.clan) [orden[PLAZAS_PLAYOFFS - 1], orden[PLAZAS_PLAYOFFS]] = [primeroFuera, ultimo];
+    ultimo.criterio = primeroFuera.criterio = 'desempate';
   }
 
   orden.forEach((f, i) => { f.puesto = i + 1; f.playoffs = i < PLAZAS_PLAYOFFS; });
-  return { filas: orden, completa, jugadas: Object.keys(res).length, total, resultados: res, desempate };
+  return { filas: orden, completa, jugadas: Object.keys(res).length, total, resultados: res, desempate, plazas: PLAZAS_PLAYOFFS };
 }
 
 // ---------- Cuadro de playoffs ----------
 const RONDAS = { cuartos: 'Cuartos de final', semis: 'Semifinales', final: 'Final' };
 
 function serie(id, ronda, a, b, puestos, partidas) {
-  if (!a || !b) return { id, ronda: RONDAS[ronda], alto: a || null, bajo: b || null, victorias: {}, partidas: [], ganador: null };
+  const fecha = TEMPORADA.playoffs[ronda];
+  if (!a || !b) {
+    // Aún falta un clan (el ganador de la serie anterior), pero el otro ya sabe su puesto
+    return { id, ronda: RONDAS[ronda], fecha, alto: a || null, bajo: b || null, puestos: Object.fromEntries([a, b].filter(Boolean).map(c => [c, puestos[c]])),
+      victorias: {}, partidas: [], ganador: null };
+  }
   const [alto, bajo] = puestos[a] <= puestos[b] ? [a, b] : [b, a];
   const jugadas = partidas.filter(p => p.fase === FASE_FINAL && mismaPareja(p, alto, bajo))
     .sort((x, y) => (x.fecha || '').localeCompare(y.fecha || '') || x.partida - y.partida);
@@ -143,7 +154,7 @@ function serie(id, ronda, a, b, puestos, partidas) {
     eligeLado = g === alto ? bajo : alto; // elige lado quien perdió
   }
   const ganador = victorias[alto] === 2 ? alto : victorias[bajo] === 2 ? bajo : null;
-  return { id, ronda: RONDAS[ronda], alto, bajo, puestos: { [alto]: puestos[alto], [bajo]: puestos[bajo] }, victorias, partidas: lista,
+  return { id, ronda: RONDAS[ronda], fecha, alto, bajo, puestos: { [alto]: puestos[alto], [bajo]: puestos[bajo] }, victorias, partidas: lista,
     ganador, siguiente: ganador ? null : { partida: lista.length + 1, eligeLado } };
 }
 
@@ -151,23 +162,32 @@ export function cuadro(clasif, partidas) {
   if (!clasif.completa || (clasif.desempate && !clasif.desempate.ganador)) return null;
   const s = clasif.filas.slice(0, PLAZAS_PLAYOFFS).map(f => f.clan);
   const puestos = Object.fromEntries(clasif.filas.map(f => [f.clan, f.puesto]));
+  // El 1.º y el 2.º esperan en semifinales al ganador de su lado: el 4-5 para el 1.º y el 3-6 para el 2.º
   const c = [
-    serie('C1', 'cuartos', s[0], s[7], puestos, partidas),
-    serie('C2', 'cuartos', s[3], s[4], puestos, partidas),
-    serie('C3', 'cuartos', s[1], s[6], puestos, partidas),
-    serie('C4', 'cuartos', s[2], s[5], puestos, partidas),
+    serie('C1', 'cuartos', s[3], s[4], puestos, partidas),
+    serie('C2', 'cuartos', s[2], s[5], puestos, partidas),
   ];
   const sf = [
-    serie('S1', 'semis', c[0].ganador, c[1].ganador, puestos, partidas),
-    serie('S2', 'semis', c[2].ganador, c[3].ganador, puestos, partidas),
+    serie('S1', 'semis', s[0], c[0].ganador, puestos, partidas),
+    serie('S2', 'semis', s[1], c[1].ganador, puestos, partidas),
   ];
   const f = serie('F', 'final', sf[0].ganador, sf[1].ganador, puestos, partidas);
   return { cuartos: c, semis: sf, final: f, campeon: f.ganador };
 }
 
+// Los clanes y las fechas de la temporada: la web y el panel los enseñan aunque el calendario aún no se haya sorteado
+export function formatoTemporada() {
+  return {
+    clanes: [...TEMPORADA.clanes],
+    liguilla: TEMPORADA.liguilla.map((fecha, i) => ({ jornada: i + 1, nombre: `Jornada ${i + 1}`, fecha })),
+    playoffs: Object.entries(RONDAS).map(([ronda, nombre]) => ({ ronda, nombre, fecha: TEMPORADA.playoffs[ronda] })),
+  };
+}
+
 // Resumen completo para la web y el panel
 export function competicion(calendario, partidas) {
-  if (!calendario) return { calendario: null };
+  const formato = formatoTemporada();
+  if (!calendario) return { calendario: null, formato };
   const clasif = clasificacion(calendario, partidas);
-  return { calendario, clasificacion: clasif, cuadro: cuadro(clasif, partidas) };
+  return { calendario, clasificacion: clasif, cuadro: cuadro(clasif, partidas), formato };
 }

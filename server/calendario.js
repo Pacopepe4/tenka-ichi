@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sortear } from './competicion.js';
 import { CLANES, enCompeticion } from './clanes.js';
+import { TEMPORADA } from './formato.js';
 import { hojaActiva, asegurarPestana, leer, escribir } from './sheets.js';
 
 const carpeta = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'data-proyecto');
@@ -59,17 +60,28 @@ export async function cargarCalendario() {
 export const calendarioActual = () => calendario;
 export const temporadaSimulada = () => simulacion;
 
-export async function sortearCalendario(participantes, semilla) {
+// Calcula el sorteo sin guardarlo (con la misma semilla sale igual): lo usa el sorteo en directo, que enseña las
+// bolas una a una y solo lo guarda al terminar
+export function prepararCalendario(participantes, semilla) {
   const clanes = [...new Set(participantes)];
   // Solo los clanes que compiten: ni invitados ni equipos Legacy
   const fuera = clanes.filter(id => !CLANES.some(c => c.id === id && enCompeticion(c)));
   if (fuera.length) throw new Error(`No compiten en Tenka Ichi: ${fuera.join(', ')}`);
-  if (clanes.length !== 10) throw new Error(`Hacen falta 10 clanes y hay ${clanes.length}`);
-  calendario = sortear(clanes, Number(semilla) || Math.floor(Math.random() * 1e6));
+  if (clanes.length !== TEMPORADA.clanes.length) throw new Error(`Hacen falta ${TEMPORADA.clanes.length} clanes y hay ${clanes.length}`);
+  return sortear(clanes, Number(semilla) || Math.floor(Math.random() * 1e6));
+}
+
+// Deja el calendario como el oficial: en memoria (la web ya lo enseña), en la copia local y en Google Sheets
+export async function fijarCalendario(cal) {
+  calendario = cal;
   await writeFile(ARCHIVO, JSON.stringify(calendario, null, 1)).catch(() => {});
   if (hojaActiva()) {
     try { await guardarEnHoja(calendario); }
     catch (e) { throw new Error(`Calendario sorteado, pero no se pudo guardar en Google Sheets y se perderá al reiniciar: ${e.message}`); }
   }
   return calendario;
+}
+
+export async function sortearCalendario(participantes, semilla) {
+  return fijarCalendario(prepararCalendario(participantes, semilla));
 }

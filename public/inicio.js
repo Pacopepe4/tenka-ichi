@@ -1,11 +1,12 @@
 // Portada pública: baraja de clanes, ficha de cada clan y resumen de la liga
-import { cargarCampeones, cargarClanes, icono, logo, compite } from '/comun.js';
+import { cargarCampeones, cargarClanes, conectarDirecto, icono, logo, compite, fechaCorta } from '/comun.js';
 import { cartaHTML, escapar } from '/carta.js';
+import { montarSorteo } from '/sorteo.js';
 
 const $ = s => document.querySelector(s);
 const simulacion = new URLSearchParams(location.search).has('simulacion');
 const q = simulacion ? '?simulacion' : '';
-const [{ clanes, roles }, campeones, liga, comp, tierlist, fantasy] = await Promise.all([
+let [{ clanes, roles }, campeones, liga, comp, tierlist, fantasy] = await Promise.all([
   cargarClanes(), cargarCampeones(), fetch('/api/liga' + q).then(r => r.json()), fetch('/api/competicion' + q).then(r => r.json()),
   fetch('/api/tierlist').then(r => r.json()).catch(() => ({ jugadores: [], equipos: [] })), fetch('/api/fantasy').then(r => r.json()).catch(() => null),
 ]);
@@ -99,7 +100,8 @@ ficha.addEventListener('click', e => { if (e.target === ficha) ficha.close(); })
 
 function abrirFicha(c) {
   const fila = comp.clasificacion?.filas.find(f => f.clan === c.id);
-  const participa = !comp.calendario || comp.calendario.participantes.includes(c.id);
+  // Antes del sorteo, los que juegan son los de la temporada (comp.formato.clanes)
+  const participa = (comp.calendario?.participantes || comp.formato.clanes).includes(c.id);
   ficha.style.setProperty('--color', c.color);
   ficha.style.setProperty('--color-texto', c.texto);
   ficha.querySelector('.ficha-arte img').src = `/clanes/${c.id}.jpg`;
@@ -158,81 +160,100 @@ if (simulacion) {
   document.title = 'Simulación · Tenka Ichi';
 }
 
-const cls = comp.clasificacion;
-if (!comp.calendario) {
-  $('.resumen-liga').textContent = 'El sorteo del calendario aún no se ha hecho. Aquí aparecerán la clasificación, las jornadas y el cuadro de playoffs.';
-} else if (cls.completa && comp.cuadro?.campeon) {
-  $('.resumen-liga').textContent = `Temporada terminada. ${nombre(comp.cuadro.campeon)} reina bajo el cielo.`;
-} else if (cls.completa) {
-  $('.resumen-liga').textContent = 'Liguilla terminada. Se juegan los playoffs.';
-} else {
-  $('.resumen-liga').textContent = cls.jugadas
-    ? `${cls.jugadas} de ${cls.total} partidas de liguilla jugadas. Los datos se actualizan al terminar cada partida.`
-    : 'Calendario sorteado. La liguilla aún no ha empezado.';
-}
+// Todo lo que depende del calendario y de los resultados: se vuelve a pintar cuando el sorteo en directo fija el calendario
+function pintarLiga() {
+  const cls = comp.clasificacion;
+  const formato = comp.formato;
+  // «Liguilla: 8, 15, 22 y 29 de noviembre. Playoffs: cuartos el 6 de diciembre, semifinales el 13 y final el 20.»
+  const diasDe = lista => `${lista.slice(0, -1).map(f => fechaCorta(f.fecha, true).split(' ')[0]).join(', ')} y ${fechaCorta(lista.at(-1).fecha, true)}`;
+  const fechasTemporada = `Liguilla: ${diasDe(formato.liguilla)}. Playoffs: cuartos el ${fechaCorta(formato.playoffs[0].fecha, true)}, semifinales el ${fechaCorta(formato.playoffs[1].fecha, true).split(' ')[0]} y final el ${fechaCorta(formato.playoffs[2].fecha, true).split(' ')[0]}.`;
+  if (!comp.calendario) {
+    $('.resumen-liga').textContent = `El sorteo de los cruces aún no se ha hecho. ${fechasTemporada}`;
+  } else if (cls.completa && comp.cuadro?.campeon) {
+    $('.resumen-liga').textContent = `Temporada terminada. ${nombre(comp.cuadro.campeon)} reina bajo el cielo.`;
+  } else if (cls.completa) {
+    $('.resumen-liga').textContent = 'Liguilla terminada. Se juegan los playoffs.';
+  } else {
+    $('.resumen-liga').textContent = cls.jugadas
+      ? `${cls.jugadas} de ${cls.total} partidas de liguilla jugadas. Los datos se actualizan al terminar cada partida.`
+      : `Calendario sorteado. La liguilla aún no ha empezado. ${fechasTemporada}`;
+  }
 
-// Clasificación
-const CRITERIO = { directo: 'por enfrentamiento directo', fuerza: 'por fuerza de calendario', sorteo: 'por sorteo', desempate: 'partida de desempate' };
-const tbody = $('.tabla tbody');
-if (cls) {
-  tbody.innerHTML = cls.filas.map(f => `
-    <tr class="${f.playoffs ? 'dentro' : 'fuera'}${f.puesto === 8 ? ' corte' : ''}" ${tinte(f.clan)}>
-      <td class="puesto">${f.puesto}</td>
-      <td class="clan-celda">${escudo(f.clan)}<span>${nombre(f.clan)}${f.criterio && f.jugadas ? `<small title="Desempatado ${CRITERIO[f.criterio]}">${CRITERIO[f.criterio]}</small>` : ''}</span></td>
-      <td>${f.jugadas}</td>
-      <td class="record">${f.victorias}–${f.derrotas}</td>
-      <td class="fuerza">${f.fuerza}</td>
-    </tr>`).join('');
-  const d = cls.desempate;
-  $('.desempate-nota').textContent = d
-    ? (d.ganador ? `${nombre(d.ganador)} ganó el Bo1 de desempate contra ${nombre(d.clanes.find(c => c !== d.ganador))} por la última plaza de playoffs.`
-      : `${nombre(d.clanes[0])} y ${nombre(d.clanes[1])} jugarán un Bo1 de desempate por la última plaza de playoffs.`)
-    : '';
-} else {
-  $('.tabla').hidden = true;
-}
+  // Clasificación
+  const CRITERIO = { directo: 'por enfrentamiento directo', fuerza: 'por fuerza de calendario', sorteo: 'por sorteo', desempate: 'partida de desempate' };
+  const tbody = $('.tabla tbody');
+  if (cls) {
+    $('.tabla').hidden = false;
+    tbody.innerHTML = cls.filas.map(f => `
+      <tr class="${f.playoffs ? 'dentro' : 'fuera'}${f.puesto === cls.plazas && cls.filas.length > cls.plazas ? ' corte' : ''}" ${tinte(f.clan)}>
+        <td class="puesto">${f.puesto}</td>
+        <td class="clan-celda">${escudo(f.clan)}<span>${nombre(f.clan)}${f.criterio && f.jugadas ? `<small title="Desempatado ${CRITERIO[f.criterio]}">${CRITERIO[f.criterio]}</small>` : ''}</span></td>
+        <td>${f.jugadas}</td>
+        <td class="record">${f.victorias}–${f.derrotas}</td>
+        <td class="fuerza">${f.fuerza}</td>
+      </tr>`).join('');
+    const d = cls.desempate;
+    $('.desempate-nota').textContent = d
+      ? (d.ganador ? `${nombre(d.ganador)} ganó el Bo1 de desempate contra ${nombre(d.clanes.find(c => c !== d.ganador))} por la última plaza de playoffs.`
+        : `${nombre(d.clanes[0])} y ${nombre(d.clanes[1])} jugarán un Bo1 de desempate por la última plaza de playoffs.`)
+      : '';
+  } else {
+    $('.tabla').hidden = true;
+  }
 
-// Calendario por jornadas
-if (comp.calendario) {
-  const jornadas = comp.calendario.jornadas;
-  const primeraPendiente = jornadas.findIndex(j => j.some(c => !cls.resultados[c.id]));
-  let actual = primeraPendiente === -1 ? jornadas.length - 1 : primeraPendiente;
-  const pintarJornada = () => {
-    $('.jornadas').innerHTML = jornadas.map((_, i) =>
-      `<button role="tab" aria-selected="${i === actual}" data-i="${i}">Jornada ${i + 1}</button>`).join('');
-    $('.cruces').innerHTML = jornadas[actual].map(c => {
-      const r = cls.resultados[c.id];
-      const lado = (id, color) => `<span class="lado-cruce ${r ? (r.ganador === id ? 'gana' : 'pierde') : ''}" ${tinte(id)}><i class="punto ${color}" title="Lado ${color}"></i>${escudo(id)}${nombre(id)}</span>`;
-      return `<li>${lado(c.azul, 'azul')}<span class="vs-cruce">${r ? '' : 'vs'}</span>${lado(c.rojo, 'rojo')}</li>`;
-    }).join('');
-    document.querySelectorAll('.jornadas button').forEach(b => b.addEventListener('click', () => { actual = Number(b.dataset.i); pintarJornada(); }));
+  // Calendario por jornadas: las fechas se enseñan desde el principio y los cruces, cuando se sortean
+  {
+    const sorteadas = comp.calendario?.jornadas || [];
+    const total = Math.max(formato.liguilla.length, sorteadas.length);
+    const primeraPendiente = sorteadas.findIndex(j => j.some(c => !cls.resultados[c.id]));
+    let actual = !sorteadas.length || primeraPendiente === -1 ? Math.max(sorteadas.length - 1, 0) : primeraPendiente;
+    const pintarJornada = () => {
+      $('.jornadas').innerHTML = Array.from({ length: total }, (_, i) =>
+        `<button role="tab" aria-selected="${i === actual}" data-i="${i}">Jornada ${i + 1}<small> · ${fechaCorta(formato.liguilla[i]?.fecha)}</small></button>`).join('');
+      $('.cruces').innerHTML = sorteadas[actual]?.map(c => {
+        const r = cls.resultados[c.id];
+        const lado = (id, color) => `<span class="lado-cruce ${r ? (r.ganador === id ? 'gana' : 'pierde') : ''}" ${tinte(id)}><i class="punto ${color}" title="Lado ${color}"></i>${escudo(id)}${nombre(id)}</span>`;
+        return `<li>${lado(c.azul, 'azul')}<span class="vs-cruce">${r ? '' : 'vs'}</span>${lado(c.rojo, 'rojo')}</li>`;
+      }).join('') || '<li class="vacio">Los cruces se sortean antes de la primera jornada.</li>';
+      document.querySelectorAll('.jornadas button').forEach(b => b.addEventListener('click', () => { actual = Number(b.dataset.i); pintarJornada(); }));
+    };
+    pintarJornada();
+  }
+
+  // Cuadro de playoffs
+  const cuadro = comp.cuadro;
+  const serieHTML = s => {
+    const fila = id => {
+      if (!id) return '<div class="fila-serie pendiente"><span>Por decidir</span></div>';
+      const v = s.victorias?.[id] ?? 0;
+      return `<div class="fila-serie ${s.ganador ? (s.ganador === id ? 'gana' : 'pierde') : ''}" ${tinte(id)}>
+        <span class="semilla">${s.puestos?.[id] ?? ''}</span>${escudo(id)}<span class="nombre-serie">${nombre(id)}</span><b>${s.partidas.length ? v : ''}</b></div>`;
+    };
+    return `<div class="serie">${fila(s.alto)}${fila(s.bajo)}</div>`;
   };
-  pintarJornada();
-} else {
-  $('.cruces').innerHTML = '<li class="vacio">Sin calendario todavía.</li>';
+  if (cuadro) {
+    const dia = ronda => `<small> · ${fechaCorta(formato.playoffs.find(r => r.ronda === ronda).fecha)}</small>`;
+    $('.cuadro').innerHTML = `
+      <div class="ronda"><h4>Cuartos${dia('cuartos')}</h4><div class="series">${cuadro.cuartos.map(serieHTML).join('')}</div></div>
+      <div class="ronda"><h4>Semifinales${dia('semis')}</h4><div class="series">${cuadro.semis.map(serieHTML).join('')}</div></div>
+      <div class="ronda"><h4>Final${dia('final')}</h4><div class="series">${serieHTML(cuadro.final)}</div></div>
+      <div class="ronda campeon-ronda"><h4>Campeón</h4><div class="series">${cuadro.campeon
+        ? `<div class="campeon" style="--color:${clan(cuadro.campeon).color}"><img src="/clanes/${cuadro.campeon}.jpg" alt=""><span class="hanko">一</span><b>${nombre(cuadro.campeon)}</b></div>`
+        : '<p class="vacio">Por decidir</p>'}</div></div>`;
+  } else {
+    $('.cuadro').innerHTML = `<p class="vacio">El cuadro se forma al terminar la liguilla${cls?.desempate && !cls.desempate.ganador ? ' y el desempate' : ''}. Cuartos el ${fechaCorta(formato.playoffs[0].fecha, true)}, semifinales el ${fechaCorta(formato.playoffs[1].fecha, true).split(' ')[0]} y final el ${fechaCorta(formato.playoffs[2].fecha, true).split(' ')[0]}.</p>`;
+  }
 }
+pintarLiga();
 
-// Cuadro de playoffs
-const cuadro = comp.cuadro;
-const serieHTML = s => {
-  const fila = id => {
-    if (!id) return '<div class="fila-serie pendiente"><span>Por decidir</span></div>';
-    const v = s.victorias?.[id] ?? 0;
-    return `<div class="fila-serie ${s.ganador ? (s.ganador === id ? 'gana' : 'pierde') : ''}" ${tinte(id)}>
-      <span class="semilla">${s.puestos?.[id] ?? ''}</span>${escudo(id)}<span class="nombre-serie">${nombre(id)}</span><b>${s.partidas.length ? v : ''}</b></div>`;
-  };
-  return `<div class="serie">${fila(s.alto)}${fila(s.bajo)}</div>`;
-};
-if (cuadro) {
-  $('.cuadro').innerHTML = `
-    <div class="ronda"><h4>Cuartos</h4><div class="series">${cuadro.cuartos.map(serieHTML).join('')}</div></div>
-    <div class="ronda"><h4>Semifinales</h4><div class="series">${cuadro.semis.map(serieHTML).join('')}</div></div>
-    <div class="ronda"><h4>Final</h4><div class="series">${serieHTML(cuadro.final)}</div></div>
-    <div class="ronda campeon-ronda"><h4>Campeón</h4><div class="series">${cuadro.campeon
-      ? `<div class="campeon" style="--color:${clan(cuadro.campeon).color}"><img src="/clanes/${cuadro.campeon}.jpg" alt=""><span class="hanko">一</span><b>${nombre(cuadro.campeon)}</b></div>`
-      : '<p class="vacio">Por decidir</p>'}</div></div>`;
-} else {
-  $('.cuadro').innerHTML = `<p class="vacio">El cuadro se forma al terminar la liguilla${cls?.desempate && !cls.desempate.ganador ? ' y el desempate' : ''}.</p>`;
+// Sorteo del calendario en directo: el bombo sale en la zona de la liga mientras sale y, mientras no haya
+// calendario, como anuncio. Al terminar, el servidor ya lo ha guardado y se vuelve a pintar la liga con él
+if (!simulacion) {
+  const bombo = montarSorteo($('.sorteo'), {
+    clan, logo, formato: comp.formato, hayCalendario: () => Boolean(comp.calendario),
+    alTerminar: async () => { comp = await fetch('/api/competicion').then(r => r.json()); pintarLiga(); },
+  });
+  conectarDirecto({ canal: 'sorteo', alSorteo: v => bombo.recibir(v) });
 }
 
 // Campeones con más presencia

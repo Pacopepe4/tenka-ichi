@@ -1,5 +1,5 @@
 // Panel de producción: conecta DraftCore, configura el enfrentamiento, corrige huecos y registra resultados
-import { cargarCampeones, cargarClanes, conectarDirecto, icono, logo, disposicionCamaras, camarasLineas, compite } from '/comun.js';
+import { cargarCampeones, cargarClanes, conectarDirecto, icono, logo, disposicionCamaras, camarasLineas, compite, fechaCorta } from '/comun.js';
 import { imagenTierlist, imagenClasificacion, descargar, publicar } from '/compartir.js';
 
 const $ = s => document.querySelector(s);
@@ -24,10 +24,11 @@ function aviso(texto) {
 }
 
 // La conexión se abre ya, pero lo que llegue antes de que el panel acabe de cargar se pinta al final
-let listo = false, partidaPendiente = null;
+let listo = false, partidaPendiente = null, sorteoPendiente = null;
 const directo = conectarDirecto({
   alEstado: e => { estado = e; if (listo) pintar(); },
   alPartida: p => { if (listo) pintarPartidaPanel(p); else partidaPendiente = p; },
+  alSorteo: v => { if (listo) pintarSorteo(v); else sorteoPendiente = v; },
   alConexion: ok => {
     const p = $('#estadoConexion');
     p.textContent = ok ? 'En directo' : 'Sin conexión, reintentando…';
@@ -192,15 +193,20 @@ new ResizeObserver(escalar).observe(vista.parentElement);
 
 // ---------- Competición: sorteo y siguiente partida ----------
 const nombreClan = id => clanes.clan(id).nombre;
-let proximas = [];
+let proximas = [], clanesTemporada = [], hayCalendario = false;
 
 async function cargarCompeticion() {
   const comp = await fetch('/api/competicion').then(r => r.json());
+  clanesTemporada = comp.formato.clanes;
+  hayCalendario = Boolean(comp.calendario);
   $('.sin-calendario').hidden = Boolean(comp.calendario);
   $('.con-calendario').hidden = !comp.calendario;
   if (!comp.calendario) {
+    // Vienen marcados los clanes de la temporada; las fechas de cada jornada ya están fijadas
     $('.participantes').innerHTML = clanes.clanes.filter(compite).map(c =>
-      `<label><input type="checkbox" value="${c.id}"><img src="${logo(c.id)}" alt="">${c.nombre}</label>`).join('');
+      `<label><input type="checkbox" value="${c.id}"${clanesTemporada.includes(c.id) ? ' checked' : ''}><img src="${logo(c.id)}" alt="">${c.nombre}</label>`).join('');
+    $('#fechasTemporada').textContent = `Liguilla: ${comp.formato.liguilla.map(j => `${j.nombre} el ${fechaCorta(j.fecha)}`).join(', ')}. `
+      + `Playoffs: ${comp.formato.playoffs.map(r => `${r.nombre.toLowerCase()} el ${fechaCorta(r.fecha)}`).join(', ')}.`;
     return;
   }
   const cls = comp.clasificacion;
@@ -210,12 +216,12 @@ async function cargarCompeticion() {
   // Lista de lo que queda por jugar, en orden
   proximas = [];
   for (const cruce of comp.calendario.jornadas.flat()) {
-    if (!cls.resultados[cruce.id]) proximas.push({ texto: `Jornada ${cruce.jornada}: ${nombreClan(cruce.azul)} vs ${nombreClan(cruce.rojo)}`,
+    if (!cls.resultados[cruce.id]) proximas.push({ texto: `Jornada ${cruce.jornada} (${fechaCorta(comp.formato.liguilla[cruce.jornada - 1]?.fecha)}): ${nombreClan(cruce.azul)} vs ${nombreClan(cruce.rojo)}`,
       config: { jornada: `Jornada ${cruce.jornada}`, fase: 'Fase de liga', formato: 'bo1', partida: 1 }, azul: cruce.azul, rojo: cruce.rojo });
   }
   if (cls.desempate && !cls.desempate.ganador) {
     const [a, b] = cls.desempate.clanes;
-    proximas.push({ texto: `Desempate por el 8.º puesto: ${nombreClan(a)} vs ${nombreClan(b)}`,
+    proximas.push({ texto: `Desempate por el ${cls.plazas}.º puesto: ${nombreClan(a)} vs ${nombreClan(b)}`,
       config: { jornada: 'Desempate', fase: 'Desempate', formato: 'bo1', partida: 1 }, azul: a, rojo: b });
   }
   if (comp.cuadro) {
@@ -223,7 +229,7 @@ async function cargarCompeticion() {
       if (!s.alto || !s.bajo || s.ganador) continue;
       const elige = s.siguiente.eligeLado;
       const otro = elige === s.alto ? s.bajo : s.alto;
-      proximas.push({ texto: `${s.ronda}, partida ${s.siguiente.partida}: ${nombreClan(s.alto)} vs ${nombreClan(s.bajo)} (${s.victorias[s.alto]}-${s.victorias[s.bajo]})`,
+      proximas.push({ texto: `${s.ronda} (${fechaCorta(s.fecha)}), partida ${s.siguiente.partida}: ${nombreClan(s.alto)} vs ${nombreClan(s.bajo)} (${s.victorias[s.alto]}-${s.victorias[s.bajo]})`,
         config: { jornada: s.ronda, fase: 'Fase final', formato: 'bo3f', partida: s.siguiente.partida }, azul: elige, rojo: otro,
         nota: `Elige lado ${nombreClan(elige)}${s.siguiente.partida === 1 ? ', por ser el mejor clasificado' : ', por haber perdido la partida anterior'}. Si elige rojo, pulsa «Invertir lados».` });
     }
@@ -237,8 +243,8 @@ async function cargarCompeticion() {
 
 $('#sortear').onclick = async () => {
   const participantes = [...document.querySelectorAll('.participantes input:checked')].map(i => i.value);
-  if (participantes.length !== 10) return aviso(`Marca 10 clanes (llevas ${participantes.length})`);
-  if (!confirm('¿Sortear el calendario con estos 10 clanes?')) return;
+  if (participantes.length !== clanesTemporada.length) return aviso(`Marca ${clanesTemporada.length} clanes (llevas ${participantes.length})`);
+  if (!confirm(`¿Sortear el calendario con estos ${participantes.length} clanes?`)) return;
   const r = await enviar('sortear', { participantes, semilla: $('#semilla').value });
   if (r.ok) { aviso(`Calendario sorteado con la semilla ${r.semilla}`); cargarCompeticion(); }
 };
@@ -260,6 +266,53 @@ $('#cargarProxima').onclick = async () => {
 };
 
 cargarCompeticion();
+
+// ---------- Sorteo en directo: el bombo de la web ----------
+let semillaSorteo = null, sorteoRecargado = null, estadoSorteo = { estado: 'ninguno' };
+const LADO_LEGIBLE = { azul: 'lado azul', rojo: 'lado rojo' };
+function pintarSorteo(v) {
+  estadoSorteo = v;
+  const enCurso = v.estado === 'en curso', terminado = v.estado === 'terminado';
+  $('#sorteoEmpezar').disabled = enCurso;
+  $('#sorteoBola').disabled = !enCurso;
+  $('#sorteoAuto').disabled = !enCurso;
+  $('#sorteoAuto').checked = enCurso && Boolean(v.cadaMs);
+  $('#sorteoCancelar').disabled = v.estado === 'ninguno';
+  $('#sorteoCancelar').textContent = terminado ? 'Cerrar el bombo' : 'Cancelar el sorteo';
+  const ultima = v.sacadas?.at(-1);
+  let texto = 'Sin sorteo en marcha.', clase = '';
+  if (enCurso) {
+    texto = `${v.ensayo ? 'Ensayo: ' : ''}han salido ${v.sacadas.length} de ${v.total} bolas`
+      + (ultima ? `; la última, ${nombreClan(ultima.clan)} (jornada ${ultima.jornada}, ${LADO_LEGIBLE[ultima.lado]})` : '; el bombo está listo')
+      + (semillaSorteo ? `. Semilla: ${semillaSorteo}.` : '.');
+  } else if (terminado) {
+    texto = `Sorteo terminado (semilla ${v.semilla}): ` + (v.ensayo ? 'era un ensayo, no se ha guardado nada.'
+      : v.guardado === false ? 'NO se ha podido guardar en Google Sheets; se perderá al reiniciar la web. Repítelo con la misma semilla.'
+      : v.guardado ? 'calendario guardado.' : 'guardando…');
+    clase = !v.ensayo && v.guardado === false ? ' mal' : v.guardado ? ' ok' : '';
+  }
+  $('#sorteoEstado').textContent = texto;
+  $('#sorteoEstado').className = `estado${clase}`;
+  // Al guardarse el calendario, el apartado pasa de «sortear» a «próxima partida»
+  if (terminado && v.guardado !== null && sorteoRecargado !== v.id) { sorteoRecargado = v.id; cargarCompeticion(); }
+}
+
+$('#sorteoEmpezar').onclick = async () => {
+  const ensayo = $('#sorteoEnsayo').checked;
+  if (!ensayo && !confirm('Empieza el sorteo de verdad: lo verá todo el que tenga la web abierta y, al salir la última bola, el calendario queda guardado'
+    + (hayCalendario ? ' (sustituirá al que hay ahora)' : '') + '. ¿Empezar?')) return;
+  const r = await enviar('sorteoIniciar', { semilla: $('#semillaVivo').value, ensayo });
+  if (r.ok) { semillaSorteo = r.semilla; aviso(`Sorteo empezado con la semilla ${r.semilla}`); pintarSorteo(estadoSorteo); }
+};
+$('#sorteoBola').onclick = () => enviar('sorteoBola');
+const enviarAuto = () => enviar('sorteoAuto', { activo: $('#sorteoAuto').checked, segundos: $('#sorteoSegundos').value });
+$('#sorteoAuto').onchange = enviarAuto;
+$('#sorteoSegundos').onchange = () => { if ($('#sorteoAuto').checked) enviarAuto(); };
+$('#sorteoCancelar').onclick = async () => {
+  if (estadoSorteo.estado === 'en curso' && !confirm('¿Cancelar el sorteo? Lo que haya salido se borra de la web y no se guarda nada.')) return;
+  semillaSorteo = null;
+  await enviar('sorteoCancelar');
+};
 
 // ---------- Cámaras ----------
 // Lo que hay escrito en las filas, aunque aún no se haya puesto en el overlay
@@ -716,6 +769,7 @@ pintar = function () { pintarAntesMarcas(); pintarMarcas(); pintarIngame(); };
 listo = true;
 if (estado) pintar();
 if (partidaPendiente) pintarPartidaPanel(partidaPendiente);
+if (sorteoPendiente) pintarSorteo(sorteoPendiente);
 
 // ---------- Tier list: descargar la imagen o publicarla en Discord (con la contraseña del panel) ----------
 async function imagenTier() {

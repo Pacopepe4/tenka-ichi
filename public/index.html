@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="/carta.css">
 <link rel="stylesheet" href="/inicio.css">
 <link rel="stylesheet" href="/directo.css">
+<link rel="stylesheet" href="/sorteo.css">
 </head>
 <body>
 <header class="barra">
@@ -70,26 +71,26 @@
     <div class="cabecera-seccion" data-kanji="道">
       <span class="marca-seccion" aria-hidden="true">道</span>
       <h2>El camino al trono</h2>
-      <p>Diez de los doce clanes juegan la temporada. Así se decide quién reina.</p>
+      <p>Seis de los doce clanes juegan la temporada. Así se decide quién reina.</p>
     </div>
     <ol class="camino">
       <li>
         <span class="paso" aria-hidden="true">一</span>
         <h3>Liguilla</h3>
-        <p class="formato-partida">Bo1, cinco jornadas</p>
-        <p>Un solo grupo. Cada clan se enfrenta a cinco rivales sorteados y los ocho primeros pasan a los playoffs.</p>
+        <p class="formato-partida">Bo1, cuatro jornadas</p>
+        <p>Un solo grupo. Cada clan se enfrenta a cuatro de sus cinco rivales, sorteados, y la clasificación decide el cuadro de los playoffs.</p>
       </li>
       <li>
         <span class="paso" aria-hidden="true">二</span>
         <h3>Desempate</h3>
-        <p class="formato-partida">Bo1, solo si hace falta</p>
-        <p>Los empates se resuelven por enfrentamiento directo y después por fuerza de calendario. Si el 8.º y el 9.º siguen igualados, se juegan la plaza.</p>
+        <p class="formato-partida">Sin partidas extra</p>
+        <p>Los empates se resuelven por enfrentamiento directo y después por fuerza de calendario; si aun así siguen igualados, decide el sorteo.</p>
       </li>
       <li>
         <span class="paso" aria-hidden="true">三</span>
         <h3>Playoffs</h3>
         <p class="formato-partida">Bo3 fearless</p>
-        <p>Cuadro fijo: 1.º contra 8.º, 4.º contra 5.º, 2.º contra 7.º y 3.º contra 6.º. El mejor clasificado elige lado en la primera partida; después elige quien perdió la anterior.</p>
+        <p>Entran los seis. El 1.º y el 2.º se saltan los cuartos, donde juegan 4.º contra 5.º y 3.º contra 6.º. En semifinales, el 1.º contra el ganador del 4-5 y el 2.º contra el del 3-6. El mejor clasificado elige lado en la primera partida; después elige quien perdió la anterior.</p>
       </li>
       <li class="final">
         <span class="paso" aria-hidden="true">天</span>
@@ -110,10 +111,11 @@
       <h2>La liga</h2>
       <p class="resumen-liga"></p>
     </div>
+    <div class="sorteo" hidden></div>
     <div class="liga-rejilla">
       <div class="bloque">
         <h3>Clasificación</h3>
-        <p class="nota-bloque">Liguilla a Bo1: cinco partidas por clan. Los ocho primeros pasan a los playoffs.</p>
+        <p class="nota-bloque">Liguilla a Bo1: cuatro partidas por clan. Pasan los seis; los dos primeros se saltan los cuartos.</p>
         <table class="tabla">
           <thead><tr><th scope="col"><span class="oculto">Puesto</span></th><th scope="col">Clan</th><th scope="col" title="Partidas jugadas">PJ</th><th scope="col" title="Victorias y derrotas">V–D</th><th scope="col" title="Fuerza de calendario: suma de victorias de los rivales">Fuerza</th></tr></thead>
           <tbody></tbody>
