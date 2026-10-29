@@ -37,7 +37,8 @@ function colocar(activa = null) {
   if (activa !== avisada) baraja.dispatchEvent(new CustomEvent('clan-activo', { detail: activa === null ? null : competidores[activa] }));
   avisada = activa;
   const ancho = baraja.clientWidth;
-  const paso = Math.min(66, (ancho - 240) / (cartas.length - 1));
+  // Con pocas cartas (seis clanes) se abren más, para que se lea el nombre de cada una
+  const paso = Math.min(cartas.length > 8 ? 66 : 104, (ancho - 240) / (cartas.length - 1));
   cartas.forEach((carta, i) => {
     const desde = i - centro;
     let x = desde * paso, y = Math.pow(Math.abs(desde), 1.6) * 3, r = desde * 3, s = 1, z = i;

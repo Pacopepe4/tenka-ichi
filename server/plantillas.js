@@ -38,11 +38,19 @@ function deFilas(filas) {
   return res;
 }
 
+const conJugadores = p => p.jugadores.some(Boolean);
+
 async function desdeHoja() {
   await asegurarPestana(PESTANA, CABECERA);
   const filas = await leer(PESTANA);
-  if (filas.length > 1) plantillas = { ...plantillas, ...deFilas(filas) };
-  else await escribir(PESTANA, aFilas()); // primera vez: sube la copia local
+  const hoja = deFilas(filas);
+  if (filas.length <= 1) await escribir(PESTANA, aFilas()); // primera vez: sube la copia local
+  else if (!Object.values(hoja).some(conJugadores) && Object.values(plantillas).some(conJugadores)) {
+    // La hoja se hizo cuando aún no había jugadores y nadie los ha puesto después: recibe los de la copia local (el
+    // lema y la descripción se quedan los de la hoja). En cuanto la hoja tiene un jugador, manda ella
+    for (const [id, p] of Object.entries(hoja)) plantillas[id] = { ...p, jugadores: plantillas[id].jugadores, suplentes: plantillas[id].suplentes };
+    await escribir(PESTANA, aFilas());
+  } else plantillas = { ...plantillas, ...hoja };
   leidaEn = Date.now();
 }
 

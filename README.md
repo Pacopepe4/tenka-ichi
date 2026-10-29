@@ -2,7 +2,7 @@
 
 Web de la liga TENKA ICHI de Koryu Budo. Refleja en directo un draft de **DraftCore** (lol.draftcore.net) en un overlay para OBS y lleva el registro de picks y bans con porcentajes.
 
-- **Portada pública:** `/` (los doce clanes que compiten en baraja, Amateratsu aparte como equipo Legacy, su plantilla, clasificación y campeones más presentes)
+- **Portada pública:** `/` (los seis clanes que compiten en baraja, Amateratsu aparte como equipo Legacy, su plantilla, clasificación y campeones más presentes)
 - **Panel de producción:** `/panel/` (con contraseña)
 - **Guía de retransmisión:** `/guia/` (enlaces, montaje en OBS, dónde va cada cámara, la carpeta de Drive con los vídeos y la música, y el marcador de partida; es lo que se le pasa a quien lleva OBS)
 - **Overlay para OBS:** `/overlay/` (1920×1080, con fondo de tinta y de 0 a 4 cámaras; `?transparente=1` quita el fondo y `?guia=1` marca los huecos de las cámaras)
@@ -56,7 +56,9 @@ En la cabecera del panel, **En el overlay** fuerza cualquiera de las cuatro vist
 
 ## Plantillas de los clanes
 
-Lema, descripción y jugadores de cada clan están en `data-proyecto/plantillas.json` y se ven en la portada. Se pueden editar desde el panel (**Guardar en la plantilla del clan**). En la web publicada, lo que se edite desde el panel dura hasta que Render reinicie; para dejarlo fijo, edita el archivo y súbelo a GitHub.
+Lema, descripción y jugadores de cada clan se ven en la portada (en la ficha de cada carta de la baraja). Se editan desde el panel (**Guardar en la plantilla del clan**) o a mano en la pestaña **Plantillas** de Google Sheets, que es la que manda en la web publicada. `data-proyecto/plantillas.json` es la copia local y el punto de partida: una hoja recién hecha, o una que aún no tiene **ningún** jugador, recibe al arrancar los jugadores de ese archivo (el lema y la descripción de la hoja se respetan). En cuanto la hoja tiene un jugador, el archivo ya no la toca.
+
+Juegan seis clanes (SARU, KAIJU, KEMONO, ATSUI, TORA y BUSHI). KAMIKAZE, KURU, DORAGON, RAIJIN, KANJI y CHIRU se quitaron de `server/clanes.js` el 29/10/2026; sus logos y su arte siguen en `public/logos` y `public/clanes` por si vuelven.
 
 ### Equipos Legacy
 
@@ -66,7 +68,7 @@ Un equipo **Legacy** es de la organización y lo conserva todo (logo, arte, lema
 - No entra en el sorteo del calendario (ni en el panel ni en el servidor) ni en la tier list, así que sus jugadores no tienen carta de Jugador ni puntúan en el fantasy, y tampoco sale en la imagen de la tier list de Discord. Lo que tienen son las **cartas LEGACY**, de colección (apartado «Cartas LEGACY» del gachapon), que se ven también en su ficha.
 - En el panel se puede seguir eligiendo para el overlay (un amistoso o una exhibición) y se puede guardar su plantilla.
 
-Para que otro clan pase a Legacy (o vuelva a competir) basta con poner o quitar `legacy: true` en su línea de `server/clanes.js`; los textos de la portada que cuentan los clanes («Los doce clanes», «Doce clanes, un solo reino» y «Seis de los doce clanes») están escritos a mano en `public/index.html`.
+Para que otro clan pase a Legacy (o vuelva a competir) basta con poner o quitar `legacy: true` en su línea de `server/clanes.js`; los textos de la portada que cuentan los clanes («Los seis clanes», «Seis clanes, un solo reino» y «Seis clanes, una temporada») están escritos a mano en `public/index.html`.
 
 ## Publicarlo en internet (Render, gratis)
 

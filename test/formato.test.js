@@ -60,7 +60,8 @@ test('el sorteo da 4 jornadas de 3 partidas: cada clan juega una vez por jornada
 
 test('el sorteo exige los seis clanes', async () => {
   await assert.rejects(sortearCalendario(TEMPORADA.clanes.slice(0, 5), 7), /Hacen falta 6 clanes y hay 5/);
-  await assert.rejects(sortearCalendario([...TEMPORADA.clanes, 'KURU'], 7), /Hacen falta 6 clanes y hay 7/);
+  // Los seis que ya no están (como KURU) no entran
+  await assert.rejects(sortearCalendario([...TEMPORADA.clanes.slice(0, 5), 'KURU'], 7), /No compiten en Tenka Ichi: KURU/);
 });
 
 test('con seis plazas para seis clanes pasan todos y no hay partida de desempate', () => {
