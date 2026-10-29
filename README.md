@@ -58,6 +58,8 @@ En la cabecera del panel, **En el overlay** fuerza cualquiera de las cuatro vist
 
 Lema, descripción y jugadores de cada clan se ven en la portada (en la ficha de cada carta de la baraja). Se editan desde el panel (**Guardar en la plantilla del clan**) o a mano en la pestaña **Plantillas** de Google Sheets, que es la que manda en la web publicada. `data-proyecto/plantillas.json` es la copia local y el punto de partida: una hoja recién hecha, o una que aún no tiene **ningún** jugador, recibe al arrancar los jugadores de ese archivo (el lema y la descripción de la hoja se respetan). En cuanto la hoja tiene un jugador, el archivo ya no la toca.
 
+El enlace al **multi de op.gg** de cada clan va en la columna **op.gg** de la misma pestaña (y en `opgg` de `data-proyecto/plantillas.json`). Sale en la ficha del clan, junto a «Plantilla», como «Ver su multi en op.gg». Solo vale una dirección `https://` de op.gg; si la celda está vacía o tiene otra cosa, se usa la del archivo.
+
 Juegan seis clanes (SARU, KAIJU, KEMONO, ATSUI, TORA y BUSHI). KAMIKAZE, KURU, DORAGON, RAIJIN, KANJI y CHIRU se quitaron de `server/clanes.js` el 29/10/2026; sus logos y su arte siguen en `public/logos` y `public/clanes` por si vuelven.
 
 ### Equipos Legacy

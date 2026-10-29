@@ -9,7 +9,8 @@
    "D4DT0R",
    "SERGI"
   ],
-  "suplentes": ""
+  "suplentes": "",
+  "opgg": ""
  },
  "ATSUI": {
   "lema": "El Samurái del Fuego Azul",
@@ -21,7 +22,8 @@
    "SEUS",
    "DARKMIEL"
   ],
-  "suplentes": ""
+  "suplentes": "",
+  "opgg": ""
  },
  "KAIJU": {
   "lema": "El Samurái Berserker",
@@ -33,7 +35,8 @@
    "HYAKKO",
    "XNEAR"
   ],
-  "suplentes": ""
+  "suplentes": "",
+  "opgg": ""
  },
  "KEMONO": {
   "lema": "El Rey de las Bestias",
@@ -45,7 +48,8 @@
    "",
    ""
   ],
-  "suplentes": ""
+  "suplentes": "",
+  "opgg": "https://op.gg/es/lol/multisearch/euw?summoners=Vascoñito%23EUW%2CGC+Daidak%23EUW%2CDoB+Domenache%23DoB%2CFrozenRonin%23EMEA%2C331+JAAVAA%23FTV%2CDusked%23ttv%2Cenm+taz%23enm%2CKuchau%231000%2C%2C"
  },
  "TORA": {
   "lema": "El Samurái Tigre",
@@ -57,7 +61,8 @@
    "NARCISO",
    "REXITO"
   ],
-  "suplentes": ""
+  "suplentes": "",
+  "opgg": "https://op.gg/es/lol/multisearch/euw?summoners=Manu%23zzzx%2CTHC+Jeeda%23ESP%2CPablosky15%238888%2CNarcïso%23ADC%2Cel+64%236969%2Csporfu%23LPS%2CUnleashed+Power%23EUW2%2CDavanyr%23KILL"
  },
  "BUSHI": {
   "lema": "El Rey Guerrero",
@@ -69,7 +74,8 @@
    "ALEX",
    "LEEM0N"
   ],
-  "suplentes": ""
+  "suplentes": "",
+  "opgg": ""
  },
  "AMATERATSU": {
   "lema": "La Reina del Sol",
@@ -81,7 +87,8 @@
    "D4DT0R",
    "SERGI"
   ],
-  "suplentes": ""
+  "suplentes": "",
+  "opgg": ""
  },
  "NEGROCLARO": {
   "lema": "",
@@ -93,7 +100,8 @@
    "",
    ""
   ],
-  "suplentes": ""
+  "suplentes": "",
+  "opgg": ""
  },
  "NONAME": {
   "lema": "",
@@ -105,6 +113,7 @@
    "",
    ""
   ],
-  "suplentes": ""
+  "suplentes": "",
+  "opgg": ""
  }
 }

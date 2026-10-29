@@ -1,4 +1,4 @@
-// Plantillas de los clanes: lema, descripción, jugadores por rol y suplentes.
+// Plantillas de los clanes: lema, descripción, jugadores por rol, suplentes y el enlace a su multi de op.gg.
 // Se guardan en la pestaña «Plantillas» de Google Sheets, que sobrevive a los reinicios de Render
 // y se puede editar a mano desde la hoja. data-proyecto/plantillas.json es la copia local y el
 // punto de partida la primera vez.
@@ -13,18 +13,28 @@ const ARCHIVO = process.env.ARCHIVO_PLANTILLAS
   ? path.resolve(process.env.ARCHIVO_PLANTILLAS)
   : path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'data-proyecto', 'plantillas.json');
 const PESTANA = 'Plantillas';
-const CABECERA = ['Clan', 'Top', 'Jungla', 'Medio', 'ADC', 'Support', 'Suplentes', 'Lema', 'Descripción'];
+const CABECERA = ['Clan', 'Top', 'Jungla', 'Medio', 'ADC', 'Support', 'Suplentes', 'Lema', 'Descripción', 'op.gg'];
 const REFRESCO = 60 * 1000; // cada cuánto se vuelve a leer la hoja, por si alguien la edita a mano
+
+// El enlace al multi de op.gg de un clan: solo una dirección https de op.gg (lo que no lo sea, desde la hoja o el
+// panel, se queda en nada, para que la portada no enlace a cualquier sitio)
+export function enlaceOpgg(v) {
+  const texto = String(v || '').trim();
+  try {
+    const u = new URL(texto);
+    return u.protocol === 'https:' && /(^|\.)op\.gg$/.test(u.hostname) ? texto : '';
+  } catch { return ''; }
+}
 
 let plantillas = {};
 let leidaEn = 0;
 
 const inicial = () => Object.fromEntries(CLANES.map(c => [c.id,
-  { lema: c.lema, descripcion: c.descripcion, jugadores: Array(5).fill(''), suplentes: '' }]));
+  { lema: c.lema, descripcion: c.descripcion, jugadores: Array(5).fill(''), suplentes: '', opgg: '' }]));
 
 const aFilas = () => [CABECERA, ...CLANES.map(c => {
   const p = plantillas[c.id];
-  return [c.id, ...p.jugadores, p.suplentes, p.lema, p.descripcion];
+  return [c.id, ...p.jugadores, p.suplentes, p.lema, p.descripcion, p.opgg || ''];
 })];
 
 function deFilas(filas) {
@@ -33,7 +43,8 @@ function deFilas(filas) {
     const id = String(f[0] || '').trim().toUpperCase();
     if (!plantillas[id]) continue;
     res[id] = { jugadores: [1, 2, 3, 4, 5].map(i => String(f[i] || '').trim()), suplentes: String(f[6] || '').trim(),
-      lema: String(f[7] || '').trim() || plantillas[id].lema, descripcion: String(f[8] || '').trim() || plantillas[id].descripcion };
+      lema: String(f[7] || '').trim() || plantillas[id].lema, descripcion: String(f[8] || '').trim() || plantillas[id].descripcion,
+      opgg: enlaceOpgg(f[9]) || plantillas[id].opgg || '' };
   }
   return res;
 }
@@ -50,7 +61,11 @@ async function desdeHoja() {
     // lema y la descripción se quedan los de la hoja). En cuanto la hoja tiene un jugador, manda ella
     for (const [id, p] of Object.entries(hoja)) plantillas[id] = { ...p, jugadores: plantillas[id].jugadores, suplentes: plantillas[id].suplentes };
     await escribir(PESTANA, aFilas());
-  } else plantillas = { ...plantillas, ...hoja };
+  } else {
+    plantillas = { ...plantillas, ...hoja };
+    // Una hoja de antes de una columna nueva (como op.gg) se reescribe una vez para que la tenga y se pueda editar
+    if (String(filas[0]) !== String(CABECERA)) await escribir(PESTANA, aFilas());
+  }
   leidaEn = Date.now();
 }
 
@@ -84,6 +99,7 @@ export async function guardarPlantilla(id, datos) {
     descripcion: datos.descripcion ?? actual.descripcion,
     jugadores: Array.isArray(datos.jugadores) ? datos.jugadores.slice(0, 5).map(j => String(j || '').trim()) : actual.jugadores,
     suplentes: datos.suplentes ?? actual.suplentes,
+    opgg: datos.opgg !== undefined ? enlaceOpgg(datos.opgg) : actual.opgg || '',
   };
   await writeFile(ARCHIVO, JSON.stringify(plantillas, null, 1)).catch(() => {});
   if (hojaActiva()) {

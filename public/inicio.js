@@ -119,6 +119,11 @@ function abrirFicha(c) {
       ? `<button type="button" class="ver-carta" data-id="${id}">Ver carta</button>` : ''}</dd>`;
   }).join('');
   ficha.querySelectorAll('.ver-carta').forEach(b => b.addEventListener('click', () => abrirCarta(b.dataset.id)));
+  // Las cuentas del clan en op.gg (su multi), cuando el staff lo ha puesto
+  const opgg = ficha.querySelector('.ficha-opgg');
+  opgg.hidden = !c.opgg;
+  if (c.opgg) { opgg.href = c.opgg; opgg.textContent = 'Ver su multi en op.gg'; opgg.title = `Las cuentas de ${c.nombre} en op.gg (se abre en otra pestaña)`; }
+  else opgg.removeAttribute('href');
   // Los campeones que más juega el clan, cuando ya ha jugado
   const cajaCampeones = ficha.querySelector('.ficha-campeones'), cajaLegacy = ficha.querySelector('.ficha-legacy');
   cajaCampeones.innerHTML = cajaLegacy.innerHTML = '';

@@ -1,6 +1,6 @@
 // Las plantillas y la pestaña «Plantillas» de Google Sheets (contra la hoja de mentira de scripts/sheets-falso.js).
 // La hoja publicada se hizo cuando aún no había jugadores: si sigue sin ninguno, recibe los de la copia local; en
-// cuanto tiene alguno, manda ella.
+// cuanto tiene alguno, manda ella. El multi de op.gg de cada clan va en su propia columna.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, writeFile } from 'node:fs/promises';
@@ -8,10 +8,12 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { crearSheetsFalso } from '../scripts/sheets-falso.js';
 
-const CABECERA = ['Clan', 'Top', 'Jungla', 'Medio', 'ADC', 'Support', 'Suplentes', 'Lema', 'Descripción'];
+const CABECERA = ['Clan', 'Top', 'Jungla', 'Medio', 'ADC', 'Support', 'Suplentes', 'Lema', 'Descripción', 'op.gg'];
+const CABECERA_VIEJA = CABECERA.slice(0, 9);
+const OPGG_TORA = 'https://op.gg/es/lol/multisearch/euw?summoners=Manu%23zzzx%2CNarcïso%23ADC';
 const LOCAL = {
   SARU: { lema: 'El Rey Mono', descripcion: 'Local', jugadores: ['KINGKAI', 'MITSU', 'FREDDY', 'D4DT0R', 'SERGI'], suplentes: 'PEPE' },
-  TORA: { lema: 'El Samurái Tigre', descripcion: 'Local', jugadores: ['', 'LUCASLOL', 'SPORFU', 'NARCISO', 'REXITO'], suplentes: '' },
+  TORA: { lema: 'El Samurái Tigre', descripcion: 'Local', jugadores: ['', 'LUCASLOL', 'SPORFU', 'NARCISO', 'REXITO'], suplentes: '', opgg: OPGG_TORA },
 };
 let falso, carpeta, n = 0;
 
@@ -62,4 +64,36 @@ test('una hoja recién creada recibe la copia local entera', async () => {
   const m = await cargar([CABECERA]);
   assert.deepEqual(m.plantilla('SARU').jugadores, LOCAL.SARU.jugadores);
   assert.deepEqual(falso.estado.hojas.get('Plantillas').find(f => f[0] === 'SARU').slice(1, 6), LOCAL.SARU.jugadores);
+});
+
+test('el enlace de op.gg solo vale si es de op.gg y por https', async () => {
+  const { enlaceOpgg } = await import('../server/plantillas.js?enlace');
+  assert.equal(enlaceOpgg(` ${OPGG_TORA} `), OPGG_TORA);
+  assert.equal(enlaceOpgg('https://www.op.gg/summoners/euw/Manu-zzzx'), 'https://www.op.gg/summoners/euw/Manu-zzzx');
+  for (const malo of ['http://op.gg/es', 'https://evilop.gg/es', 'https://op.gg.example.com/', 'javascript:alert(1)', 'op.gg/es', '', null])
+    assert.equal(enlaceOpgg(malo), '', String(malo));
+});
+
+test('una hoja de antes de la columna op.gg la gana una vez, con los enlaces de la copia local', async () => {
+  const m = await cargar([CABECERA_VIEJA, fila('SARU', LOCAL.SARU.jugadores), fila('TORA', ['', 'X', '', '', ''])]);
+  assert.equal(m.plantilla('TORA').opgg, OPGG_TORA);
+  assert.deepEqual(m.plantilla('TORA').jugadores, ['', 'X', '', '', ''], 'los jugadores siguen siendo los de la hoja');
+  const filas = falso.estado.hojas.get('Plantillas');
+  assert.deepEqual(filas[0], CABECERA);
+  assert.equal(filas.find(f => f[0] === 'TORA')[9], OPGG_TORA);
+  // La siguiente vez ya no se reescribe
+  const antes = falso.estado.peticiones.length;
+  process.env.ARCHIVO_PLANTILLAS = path.join(carpeta, `plantillas-${n}.json`);
+  const otra = await import(`../server/plantillas.js?caso=${++n}`);
+  await otra.cargarPlantillas();
+  assert.equal(otra.plantilla('TORA').opgg, OPGG_TORA);
+  assert.deepEqual(falso.estado.peticiones.slice(antes).map(p => p.accion), ['leer'], 'solo la ha leído');
+});
+
+test('un enlace puesto en la hoja manda; uno que no es de op.gg no se usa', async () => {
+  const propio = 'https://op.gg/es/lol/multisearch/euw?summoners=Otro%23EUW';
+  let m = await cargar([CABECERA, fila('SARU', LOCAL.SARU.jugadores), fila('TORA', ['', 'X', '', '', ''], ['', '', '', propio])]);
+  assert.equal(m.plantilla('TORA').opgg, propio);
+  m = await cargar([CABECERA, fila('SARU', LOCAL.SARU.jugadores), fila('TORA', ['', 'X', '', '', ''], ['', '', '', 'https://malo.example.com'])]);
+  assert.equal(m.plantilla('TORA').opgg, OPGG_TORA, 'vuelve al de la copia local');
 });

@@ -315,3 +315,11 @@ Diseño aprobado en `docs/superpowers/specs/2026-10-04-ingame-mejoras-design.md`
 - **Ojo:** en la pestaña Tierlist de la hoja había tiers de DORAGON (S A A S B, sin nombres): ya no se ven y desaparecerán la próxima vez que se guarde una tier. Las cartas de jugador siguen sin salir ni en los sobres ni en «Ver carta» hasta que cada jugador tenga tier (las pone el usuario desde el panel).
 - **Pruebas:** 162 (`test/plantillas.test.js` nueva, contra la hoja de mentira: hoja sin jugadores recibe los locales, hoja con jugadores manda, hoja nueva). Probado en local: baraja de seis, fichas con plantilla, tier list de 30 jugadores.
 - **Pendiente:** KEMONO (plantilla y cartas) y el top de TORA.
+
+## 29/10 (noche): enlace al multi de op.gg en la ficha de cada clan
+
+- **Lo que pidió el usuario:** «Pon también un enlace que vincule a su multi op.gg», con los de KEMONO y TORA («el resto te los iré pasando»), y «cuando acabes sube todo y pruébalo en el oficial».
+- **Dónde va:** columna nueva **op.gg** en la pestaña Plantillas (y `opgg` en `data-proyecto/plantillas.json`, de respaldo). La hoja publicada no tenía la columna: al arrancar, si la cabecera no es la de ahora, la pestaña se reescribe una vez con lo que ya tenía más la columna nueva. Solo se aceptan direcciones `https://` de op.gg (`enlaceOpgg`).
+- **En la portada:** la ficha del clan pone «Ver su multi en op.gg» a la derecha de «Plantilla» (se abre en otra pestaña). Sin enlace, no sale nada.
+- **Pruebas:** 165 (`test/plantillas.test.js`: qué enlaces valen, la hoja vieja gana la columna una sola vez, el de la hoja manda y uno que no es de op.gg no se usa).
+- **Pendiente:** los enlaces de SARU, KAIJU, ATSUI y BUSHI.
