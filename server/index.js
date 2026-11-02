@@ -5,6 +5,7 @@ import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
+import { crearSalasRealizador } from './realizador.js';
 import { conectar, codigoDeEnlace, destinoDeSlot } from './draftcore.js';
 import { cargar, guardarPartida, todas } from './registro.js';
 import { competicion } from './competicion.js';
@@ -931,7 +932,15 @@ const servidor = http.createServer(async (req, res) => {
   }
 });
 
-const wss = new WebSocketServer({ server: servidor, path: '/ws' });
+// Dos WebSocket en el mismo servidor: /ws (panel, overlays) y /realizador (puente entre los PCs del realizador)
+const wss = new WebSocketServer({ noServer: true });
+const salasRealizador = crearSalasRealizador();
+servidor.on('upgrade', (req, socket, head) => {
+  const ruta = new URL(req.url, 'http://localhost').pathname;
+  if (ruta === '/ws') wss.handleUpgrade(req, socket, head, ws => wss.emit('connection', ws, req));
+  else if (ruta === '/realizador') salasRealizador.handleUpgrade(req, socket, head);
+  else socket.destroy();
+});
 wss.on('connection', (ws, req) => {
   clientes.add(ws);
   ws.canal = new URL(req.url, 'http://localhost').searchParams.get('canal');
