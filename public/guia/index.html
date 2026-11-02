@@ -177,18 +177,21 @@
         <button class="copiar" data-enlace="ingame">Copiar</button>
       </div>
       <div class="enlace">
-        <div><b>Puente para el ordenador del espectador</b><span class="url">Para Windows. No instala nada: usa PowerShell, que ya viene con Windows.</span></div>
-        <a class="copiar" href="/puente/puente-tenka-ichi.zip" download>Descargar</a>
+        <div><b>Puente y realizador para el PC de emisión</b><span class="url">Para Windows. Trae el puente del marcador y el realizador automático, todo con la contraseña del panel.</span></div>
+        <a class="copiar" href="/puente/realizador-pc2.zip" download>Descargar</a>
       </div>
     </div>
 
     <h3>Poner el puente en marcha</h3>
+    <p>El puente va en el PC de emisión: el que mira la partida como espectador y lleva OBS. Se monta una vez:</p>
     <ol class="pasos">
-      <li>En el ordenador que mira la partida como espectador, descarga el puente y descomprímelo en una carpeta.</li>
-      <li>Haz doble clic en <b>Abrir el puente.bat</b>. Si Windows avisa de que el archivo viene de internet, pulsa <b>Ejecutar</b> (o <b>Más información</b> y <b>Ejecutar de todas formas</b>).</li>
-      <li>La primera vez pide la contraseña del panel: escríbela y pulsa Intro. Se guarda en <b>clave.txt</b>, en esa carpeta, y no vuelve a pedirla. No compartas ese archivo.</li>
-      <li>Déjalo abierto toda la jornada. Se queda <b>en espera</b> y no hace nada hasta que el panel le pide la partida.</li>
+      <li>Cierra OBS, descarga el puente y descomprímelo en una carpeta que no vayas a borrar (por ejemplo, en Documentos).</li>
+      <li>Haz doble clic en <b>INSTALAR-PC2.bat</b>. Si Windows avisa de que el archivo viene de internet, pulsa <b>Ejecutar</b> (o <b>Más información</b> y <b>Ejecutar de todas formas</b>).</li>
+      <li>Pide la contraseña del panel: escríbela y pulsa Intro. Si League of Legends no está en la carpeta de siempre, pregunta dónde está. Deja la contraseña al puente (en <b>puente\clave.txt</b>; no compartas ese archivo), activa la opción del juego que oculta su marcador, prepara OBS para el realizador y crea en el escritorio <b>Realizador PC2</b>.</li>
+      <li>Si el cliente de LoL estaba abierto, ciérralo y vuelve a abrirlo.</li>
     </ol>
+    <p>Cada jornada, abre <b>Realizador PC2</b> en el escritorio y déjalo abierto: abre OBS, la ventana del puente y el realizador. El puente se queda <b>en espera</b> y no hace nada hasta que el panel le pide la partida.</p>
+    <p class="nota">Si solo quieres el marcador, sin el realizador, abre <b>Abrir el puente.bat</b> en la carpeta <b>puente</b>: la primera vez pide la contraseña del panel. También puedes <a href="/puente/puente-tenka-ichi.zip" download>descargar solo el puente</a>, que no necesita instalar nada.</p>
 
     <h3>Cómo empieza y termina cada partida</h3>
     <ol class="pasos">
@@ -206,7 +209,7 @@
     </ol>
 
     <h3>Ocultar el marcador del propio juego</h3>
-    <p>El marcador de Tenka Ichi va arriba en el centro, justo donde el juego pone el suyo. El puente oculta el del juego, pero hace falta activar una vez una opción del cliente:</p>
+    <p>El marcador de Tenka Ichi va arriba en el centro, justo donde el juego pone el suyo. El puente oculta el del juego, pero hace falta activar una vez una opción del cliente. <b>INSTALAR-PC2.bat</b> ya la activa; si usas solo el puente, hazlo a mano:</p>
     <ol class="pasos">
       <li>Con el juego cerrado, abre con el Bloc de notas el archivo <b>game.cfg</b>, que está en <b>C:\Riot Games\League of Legends\Config</b>. Si instalaste el juego en otra carpeta, está dentro de su carpeta Config.</li>
       <li>Busca la línea <b>[General]</b>, añade justo debajo <b>EnableReplayApi=1</b> y guarda.</li>
@@ -231,6 +234,37 @@
     <p class="nota">El juego no da a los espectadores el oro sin gastar, así que el oro es lo que valen los objetos: la diferencia se parece mucho a la del juego, pero no es idéntica. Los temporizadores siguen las reglas de la temporada 2026: primer dragón a los 5:00 y 5 minutos después de cada uno, ancestral 6 minutos después del alma, larvas a los 6:00 (y un segundo grupo si el primero cae antes de las 9:45), heraldo de las 15:00 a las 19:45, Barón a los 20:00 y 6 minutos después de cada uno, e inhibidores 5 minutos.</p>
   </section>
 
+  <section id="realizador">
+    <h2>Realizador automático</h2>
+    <p>El realizador lleva la cámara del observer como lo haría una persona: sigue la jugada, abre el plano en las peleas, acerca la cámara después de un asesinato y lanza las repeticiones en OBS. Usa dos PCs y 2 minutos de margen: el PC 1 mira la partida casi en directo y decide, y el PC de emisión (PC 2) la emite 2 minutos después, así que cuando algo sale en antena ya sabe cómo acaba. Las repeticiones se graban y se lanzan en el PC 2: no hay que pasar vídeos de un PC a otro.</p>
+    <div class="enlaces">
+      <div class="enlace">
+        <div><b>PC 2 · emisión</b><span class="url">El mismo paquete que el puente: puente del marcador, OBS y la cámara en antena.</span></div>
+        <a class="copiar" href="/puente/realizador-pc2.zip" download>Descargar</a>
+      </div>
+      <div class="enlace">
+        <div><b>PC 1 · realización</b><span class="url">Mira la partida 2 minutos antes y decide los planos y las repeticiones.</span></div>
+        <a class="copiar" href="/puente/realizador-pc1.zip" download>Descargar</a>
+      </div>
+    </div>
+
+    <h3>Montarlo (una vez)</h3>
+    <ol class="pasos">
+      <li><b>PC 2:</b> si ya montaste el puente con <b>INSTALAR-PC2.bat</b>, está hecho. Si no, mira «Poner el puente en marcha».</li>
+      <li><b>PC 1:</b> descarga su paquete, descomprímelo en una carpeta que no vayas a borrar y haz doble clic en <b>INSTALAR-PC1.bat</b>. Pide la misma contraseña, la del panel, y crea en el escritorio <b>Realizador PC1</b>.</li>
+      <li>Si el cliente de LoL estaba abierto en alguno de los dos, ciérralo y vuelve a abrirlo.</li>
+    </ol>
+    <p class="nota">Los instaladores necesitan Node.js. Si no está, intentan ponerlo solos; si no pueden, abren su página para descargarlo: instálalo y vuelve a abrir el instalador.</p>
+
+    <h3>Cada directo</h3>
+    <ol class="pasos">
+      <li>En el PC 2, abre <b>Realizador PC2</b>. En el PC 1, abre <b>Realizador PC1</b>: abre en el navegador su panel con lo que va decidiendo.</li>
+      <li>Los dos PCs se encuentran solos a través de esta web con la contraseña del panel, aunque estén en casas distintas. Si la web estaba dormida, tardan alrededor de un minuto.</li>
+      <li>Entrad como espectadores en la partida en los dos PCs. El PC 1 la encuentra y empieza a realizar solo, y el PC 2 pone la antena 2 minutos por detrás.</li>
+      <li>En el panel de Tenka Ichi, en <b>Partida</b>, la sección <b>Realizador automático</b> enseña si están conectados los dos PCs, la partida y OBS, el plano en antena y los próximos. <b>Tomar el control</b> para el realizador y deja elegir a quién sigue la cámara; pulsa otra vez para devolvérselo.</li>
+    </ol>
+  </section>
+
   <section>
     <h2>Si algo falla</h2>
     <dl class="problemas">
@@ -246,6 +280,10 @@
       <dd>Mira cuántas cámaras hay elegidas en el panel y pasa a la escena de OBS de ese número.</dd>
       <dt>El marcador de partida no aparece</dt>
       <dd>Mira la ventana del puente. Tiene que decir «Enviando la partida». Si dice «En espera», pulsa <b>Buscar la partida</b> en el panel. Si dice «Buscando la partida», el juego no está abierto en ese ordenador o todavía está cargando. Si dice «Contraseña incorrecta», borra clave.txt y vuelve a abrirlo. En el panel, en <b>Partida</b>, comprueba también que el marcador no esté oculto.</dd>
+      <dt>El realizador no junta los dos PCs</dt>
+      <dd>En el panel, en <b>Realizador automático</b>, tienen que salir en verde <b>PC 1</b> y <b>PC 2</b>. Si falta uno, mira que su ventana siga abierta. Si los dos están abiertos y no se ven, alguno tiene otra contraseña: vuelve a abrir su instalador y escribe la del panel.</dd>
+      <dt>El realizador no lanza repeticiones</dt>
+      <dd>En el panel tiene que salir <b>OBS</b> en verde. Abre OBS siempre con <b>Realizador PC2</b>, no a mano, y no tengas dos OBS abiertos a la vez. Si OBS dice que no puede iniciar el búfer de repetición, ciérralo y vuelve a pasar <b>INSTALAR-PC2.bat</b>.</dd>
       <dt>En el línea por línea, un jugador sale en la línea equivocada</dt>
       <dd>Corrige los jugadores del enfrentamiento en el panel (cada uno en su puesto) o el campeón de su hueco del draft. El línea por línea se corrige solo.</dd>
       <dt>Se ven los dos marcadores, el del juego y el de Tenka Ichi</dt>
