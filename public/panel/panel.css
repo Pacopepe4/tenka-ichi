@@ -259,3 +259,21 @@ details.ayuda[open] summary { margin-bottom: 6px; }
 .sorteo-vivo-panel h3 { margin: 0 0 8px; font-size: 16px; }
 .sorteo-vivo-panel .estado { margin: 0 0 4px; }
 .casilla input.corto { width: 4.5em; height: auto; padding: 6px 8px; accent-color: initial; }
+
+/* Realizador automático */
+.realizador-clave { display: flex; gap: 10px; align-items: center; font-size: 14px; color: var(--hai); }
+.realizador-clave input { width: 220px; }
+.realizador-puntos { display: flex; gap: 14px; flex-wrap: wrap; margin: 12px 0 0; font-size: 13px; color: var(--hai); }
+.realizador-puntos i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; background: var(--hai); }
+.realizador-puntos i.si { background: #9CD9A6; } .realizador-puntos i.no { background: var(--shu-claro); }
+.realizador-reloj { display: flex; gap: 24px; margin: 12px 0 0; }
+.realizador-reloj div { display: grid; gap: 2px; }
+.realizador-reloj dt { font-size: 12px; color: var(--hai); }
+.realizador-reloj dd { margin: 0; font-size: 20px; font-variant-numeric: tabular-nums; }
+#realizadorControl.manual { background: var(--shu-claro); }
+.realizador-jugadores { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px; margin-top: 14px; }
+.realizador-jugadores button { display: grid; gap: 2px; text-align: left; }
+.realizador-jugadores small { font-size: 11px; opacity: .8; }
+.realizador-lista { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; font-size: 14px; }
+.realizador-lista li { display: flex; gap: 10px; }
+.realizador-lista .t { min-width: 52px; color: var(--hai); font-variant-numeric: tabular-nums; }

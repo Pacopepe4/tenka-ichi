@@ -205,6 +205,33 @@
       <p class="ayuda">La partida de prueba se inventa los datos (con los campeones del draft) y va seis veces más rápida: sirve para colocar el overlay en OBS sin jugar. Se para sola cuando llega una partida de verdad.</p>
     </section>
 
+    <section id="realizador" data-fases="partida">
+      <h2>Realizador automático</h2>
+      <p class="ayuda">La cámara del observer, las repeticiones y el zoom los lleva el realizador (sus dos PCs, con 2 minutos de margen). Pon aquí la contraseña del realizador (la de sus instaladores, no la del panel) para verlo y, si hace falta, tomar el control.</p>
+      <div class="fila">
+        <label class="realizador-clave">Contraseña del realizador <input id="claveRealizador" type="password" autocomplete="off"></label>
+        <span id="realizadorConexion" class="pastilla">Sin conectar</span>
+      </div>
+      <p class="realizador-puntos" id="realizadorPuntos"></p>
+      <dl class="realizador-reloj">
+        <div><dt>Directo</dt><dd id="realizadorDirecto">--:--</dd></div>
+        <div><dt>Antena</dt><dd id="realizadorAntena">--:--</dd></div>
+        <div><dt>Margen</dt><dd id="realizadorMargen">--</dd></div>
+      </dl>
+      <p class="estado" id="realizadorPlano">Esperando al PC 1</p>
+      <div class="fila">
+        <button id="realizadorControl">Tomar el control</button>
+        <button id="realizadorGeneral" class="secundario">Plano general</button>
+      </div>
+      <div class="realizador-jugadores" id="realizadorJugadores"></div>
+      <h3>Próximos planos</h3>
+      <ol class="realizador-lista" id="realizadorProximos"></ol>
+      <h3>Repeticiones y grafismos</h3>
+      <ol class="realizador-lista" id="realizadorAcciones"></ol>
+      <h3>Últimas decisiones</h3>
+      <ol class="realizador-lista" id="realizadorRegistro"></ol>
+    </section>
+
     <section id="resultado" data-fases="resultado">
       <h2>Resultado</h2>
       <p class="ayuda" id="ayudaHoja"></p>
@@ -319,5 +346,6 @@
 </div>
 <div id="aviso" role="status" hidden></div>
 <script type="module" src="panel.js"></script>
+<script type="module" src="realizador.js"></script>
 </body>
 </html>
