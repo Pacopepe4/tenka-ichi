@@ -54,6 +54,10 @@ En la cabecera del panel, **En el overlay** fuerza cualquiera de las cuatro vist
 - Las páginas abiertas reciben la versión de la web al conectarse (en Render, el commit desplegado). Si cambia, los overlays de OBS **se recargan solos** y el panel avisa con un botón para recargar.
 - El puente no se cierra nunca por un corte: reintenta, dice en su ventana qué pasa (la web se reinicia, no hay internet, contraseña mal) y avisa cuando vuelve. El título de la ventana dice si está en espera, buscando o mandando la partida.
 
+## Realizador automático
+
+El realizador de los directos (repositorio `Pacopepe4/realizador`) se reparte desde la guía (`/guia/#realizador`): `/puente/realizador-pc2.zip` (el PC de emisión: realizador más el puente del marcador en `puente/`) y `/puente/realizador-pc1.zip`. Los zips salen de la copia en `realizador/` (`server/descargas.js`); para actualizarla, `node scripts/traer-realizador.js ../realizador`. Sus dos PCs se encuentran en `/realizador` (`server/realizador.js`) con la contraseña del panel, y el panel lo ve y lo controla en **Partida → Realizador automático**.
+
 ## Plantillas de los clanes
 
 Lema, descripción y jugadores de cada clan se ven en la portada (en la ficha de cada carta de la baraja). Se editan desde el panel (**Guardar en la plantilla del clan**) o a mano en la pestaña **Plantillas** de Google Sheets, que es la que manda en la web publicada. `data-proyecto/plantillas.json` es la copia local y el punto de partida: una hoja recién hecha, o una que aún no tiene **ningún** jugador, recibe al arrancar los jugadores de ese archivo (el lema y la descripción de la hoja se respetan). En cuanto la hoja tiene un jugador, el archivo ya no la toca.
