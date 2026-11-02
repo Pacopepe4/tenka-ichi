@@ -1,0 +1,6 @@
+{
+  "rutaLoL": "C:\\Riot Games\\League of Legends",
+  "rele": { "ip": "192.168.1.50" },
+  "obs": { "activo": false, "url": "ws://192.168.1.50:4455", "clave": "" },
+  "tenkaIchi": { "activo": false, "url": "wss://TU-WEB/ws", "clave": "" }
+}

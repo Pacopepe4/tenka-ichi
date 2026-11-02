@@ -1,13 +1,12 @@
-// Sección «Realizador automático» del panel: se une a la sala del realizador (/realizador) con la huella de su
-// contraseña, pinta lo que manda su PC 1 (foto, cada segundo) y le manda tomar el control u órdenes de cámara.
+// Sección «Realizador automático» del panel: se une a la sala del realizador (/realizador) con la huella de la
+// contraseña del panel (la misma que ponen sus instaladores), pinta lo que manda su PC 1 (foto, cada segundo) y le manda tomar el control u órdenes de cámara.
 const $ = s => document.querySelector(s);
 const esc = t => String(t ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
 const reloj = t => (t === null || t === undefined ? '--:--' : `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`);
 const ZOOM = { cerca: ' · zoom in', general: '', abierto: '' };
 const plano = p => (p.tipo === 'general' ? 'Plano general' : `Sigue a ${esc(p.objetivo?.campeon)}${ZOOM[p.zoom] || ''}`);
 
-const input = $('#claveRealizador');
-try { input.value = localStorage.getItem('tenka-realizador') || ''; } catch {}
+const input = $('#clave');
 
 let ws = null, foto = null, presentes = { pc1: false, pc2: false }, espera = 2000, temporizador = null;
 
@@ -88,7 +87,7 @@ function pintar() {
   lista('#realizadorRegistro', f?.registro?.slice(0, 8), r => `<li><span class="t">${esc(r.hora?.slice(11, 19))}</span><span>${esc(r.quien)} · ${esc(r.que)}${r.motivo ? ' (' + esc(r.motivo) + ')' : ''}</span></li>`, 'Sin decisiones');
 }
 
-input.addEventListener('change', () => { try { localStorage.setItem('tenka-realizador', input.value.trim()); } catch {} conectar(); });
+input.addEventListener('change', conectar);
 $('#realizadorControl').onclick = () => mandar({ tipo: 'panelControl', manual: !foto?.manual });
 $('#realizadorGeneral').onclick = () => mandar({ tipo: 'panelOrden', orden: { tipo: 'general' } });
 $('#realizadorJugadores').onclick = e => {

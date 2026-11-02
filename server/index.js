@@ -34,7 +34,7 @@ import { cargarFantasy, infoFantasy, cambiarAlineacion, guardarEstadisticas, cer
 import { atenderPublicacion, discordActivo } from './discord.js';
 import { cargarPartida, recibir as recibirPartida, resumen as resumenPartida, empezarPrueba, pararPrueba, enPrueba, olvidarPartida,
   ponerContexto, marcarObjetivo, deshacerMarca, ajustarIngame } from './partida.js';
-import { crearZip } from './zip.js';
+import { DESCARGAS, zipDescarga } from './descargas.js';
 import { fotoEstado, restaurarEstado, guardarEstadoSiCambia, guardarEstadoYa, estadoYaGuardado, camaraLineas } from './estado-guardado.js';
 import { VISTAS, clavePartida, vistaAutomatica, fotoFinal, fotoFinalDelDraft, completarFinal } from './vista.js';
 
@@ -44,9 +44,6 @@ const clanesConPlantilla = () => CLANES.map(c => ({ ...c, ...plantilla(c.id) }))
 const PUERTO = Number(process.env.PORT) || 3000;
 const CLAVE = process.env.PANEL_CLAVE || 'tenkaichi';
 const PUBLICO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
-const PUENTE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'puente');
-const ARCHIVOS_PUENTE = ['Abrir el puente.bat', 'puente-tenka-ichi.ps1', 'LEEME.txt'];  // clave.txt nunca va dentro
-let zipPuente = null;
 
 const vacio = () => ({ azul: Array(5).fill(null), rojo: Array(5).fill(null) });
 
@@ -890,20 +887,17 @@ const servidor = http.createServer(async (req, res) => {
     }
   }
   // El puente, comprimido al vuelo con lo que hay en puente/ para que la descarga no se quede atrás
-  if (url.pathname === '/puente/puente-tenka-ichi.zip') {
+  // Descargas de la guía: el puente del marcador y el realizador de cada PC (server/descargas.js)
+  const descarga = url.pathname.match(/^\/puente\/([a-z0-9-]+\.zip)$/)?.[1];
+  if (descarga && DESCARGAS[descarga]) {
     try {
-      zipPuente ??= crearZip(await Promise.all(ARCHIVOS_PUENTE.map(async nombre => {
-        const ruta = path.join(PUENTE, nombre);
-        // Son archivos para Windows: saltos de línea CRLF, venga el repositorio como venga
-        const texto = (await readFile(ruta, 'utf8')).replace(/\r?\n/g, '\r\n');
-        return { nombre, datos: Buffer.from(texto, 'utf8'), fecha: (await stat(ruta)).mtime };
-      })));
-      res.writeHead(200, { 'Content-Type': 'application/zip', 'Content-Disposition': 'attachment; filename="puente-tenka-ichi.zip"', 'Cache-Control': 'no-cache' });
-      return res.end(zipPuente);
+      const zip = await zipDescarga(descarga);
+      res.writeHead(200, { 'Content-Type': 'application/zip', 'Content-Disposition': `attachment; filename="${descarga}"`, 'Cache-Control': 'no-cache' });
+      return res.end(zip);
     } catch (e) {
-      console.error('Zip del puente:', e.message);
+      console.error(`Zip ${descarga}:`, e.message);
       res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
-      return res.end('No se ha podido preparar el puente');
+      return res.end('No se ha podido preparar la descarga');
     }
   }
   let ruta = decodeURIComponent(url.pathname);

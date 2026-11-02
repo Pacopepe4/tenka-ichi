@@ -1,0 +1,27 @@
+{
+  "name": "realizador",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Realizador automático para directos de League of Legends: decide la cámara y las repeticiones con 2 minutos de margen",
+  "type": "module",
+  "scripts": {
+    "agente": "node pc1/agente.js",
+    "agente-ligero": "node pc1/agente.js --perfil-minimo",
+    "rele": "node pc2/rele.js",
+    "grabada": "node pc1/grabada.js",
+    "capturar": "node herramientas/capturar.js",
+    "configurar-pc1": "node instalar/configurar-lol.js pc1",
+    "configurar-pc2": "node instalar/configurar-lol.js pc2",
+    "configurar-obs": "node instalar/configurar-obs.js",
+    "instalar-pc1": "node instalar/instalar.js pc1",
+    "instalar-pc2": "node instalar/instalar.js pc2",
+    "perfil-minimo": "node instalar/configurar-lol.js perfil-minimo",
+    "restaurar": "node instalar/configurar-lol.js restaurar",
+    "demo": "node simulador/demo.js",
+    "demo-grabada": "node simulador/demo-grabada.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

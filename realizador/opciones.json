@@ -1,0 +1,119 @@
+{
+  "margenSegundos": 120,
+
+  "explorador": {
+    "liveClientData": "https://127.0.0.1:2999",
+    "liveEventsPuerto": 34243,
+    "cadaMs": 1000,
+    "finTrasSegundos": 10
+  },
+
+  "rele": {
+    "ip": "127.0.0.1",
+    "puerto": 4610,
+    "replayApi": "https://127.0.0.1:2999",
+    "cadaMs": 250,
+    "toleranciaSegundos": 4,
+    "seleccionarPor": "jugador",
+    "desplazamientoCamara": { "x": 0, "y": 1911.85, "z": -1200 },
+    "degradadoTrasSegundos": 15,
+    "zoom": {
+      "general": { "fov": 66, "distancia": 1.45 },
+      "abierto": { "fov": 56, "distancia": 1.15 },
+      "cerca": { "fov": 44, "distancia": 0.8 },
+      "transicionSegundos": 1.2,
+      "pasosPorSegundo": 25
+    }
+  },
+
+  "panel": {
+    "puerto": 4600
+  },
+
+  "reglas": {
+    "anticipacion": 5,
+    "anticipacionObjetivo": 10,
+    "cola": 3,
+    "ventanaPelea": 12,
+    "planoMinimo": 6,
+    "congelarSegundos": 3,
+    "prioridades": {
+      "pelea": 5,
+      "objetivo": 4,
+      "muerte": 3,
+      "estructura": 2
+    },
+    "repeticion": {
+      "minimoMuertes": 3,
+      "objetivos": ["BaronKill", "Ace"],
+      "segundos": 12,
+      "colchon": 1.5,
+      "calmaNecesaria": 15
+    },
+    "cerca": {
+      "activo": true,
+      "calmaSegundos": 10,
+      "segundos": 4,
+      "retraso": 0.5
+    },
+    "lineaPorLinea": {
+      "desdeSegundo": 240,
+      "calmaNecesaria": 40,
+      "segundos": 20,
+      "cadaSegundosComoMinimo": 180
+    }
+  },
+
+  "obs": {
+    "activo": false,
+    "url": "ws://127.0.0.1:4455",
+    "escenaJuego": "Juego",
+    "escenaRepeticion": "Repeticion",
+    "fuenteRepeticion": "Repeticion clip",
+    "escenaCasters": "Casters",
+    "escenaPausa": "Pausa",
+    "segundosBufer": 45,
+    "codificador": "x264",
+    "overlay": ""
+  },
+
+  "puente": {
+    "modo": "red",
+    "url": "wss://tenka-ichi.onrender.com/realizador"
+  },
+
+  "tenkaIchi": {
+    "activo": false,
+    "url": "ws://localhost:3000/ws"
+  },
+
+  "perfilMinimo": {
+    "General": {
+      "WindowMode": "1",
+      "Width": "640",
+      "Height": "360"
+    },
+    "Performance": {
+      "GraphicsSlider": "0",
+      "ShadowQuality": "0",
+      "CharacterQuality": "0",
+      "EnvironmentQuality": "0",
+      "EffectsQuality": "0",
+      "FrameCapType": "3",
+      "EnableHUDAnimations": "0"
+    },
+    "Volume": {
+      "MasterMute": "1"
+    }
+  },
+
+  "grabada": {
+    "velocidadExploracion": 8,
+    "desde": 0,
+    "reproducirAlAcabar": false
+  },
+
+  "registro": {
+    "carpeta": "partidas"
+  }
+}
