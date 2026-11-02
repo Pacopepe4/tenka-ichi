@@ -432,6 +432,10 @@ function textoTemporada(t) {
 async function actualizarGacha() {
   const r = await directo.enviar('gachaEstado', {}, claveInput.value);
   if (r.sinConexion) { setTimeout(actualizarGacha, 1500); return; } // la conexión aún no está abierta
+  // Junto a la contraseña: si el servidor la da por buena
+  const e = $('#claveEstado');
+  e.textContent = !claveInput.value ? '' : r.ok ? 'Correcta' : 'Incorrecta';
+  e.className = `clave-estado ${r.ok ? 'bien' : 'mal'}`;
   if (r.ok) pintarGacha(r.gacha);
   else $('#estadoLoginTwitch').textContent = 'Escribe la contraseña arriba a la derecha para ver el estado del gachapon.';
 }

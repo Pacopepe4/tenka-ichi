@@ -241,7 +241,9 @@ export function crearRele(o, { registrar = console.log, obs: conObs = true, sala
     sala.on('aviso', t => registrar(`[puente] ${t}`));
     sala.on('mensaje', d => {
       if (d.tipo === 'guion') recibirGuion(d);
-      else if (d.tipo === 'orden') recibirOrden(d);
+      else if (d.tipo === 'orden') recibirOrden(d.orden || {});
+      // Un PC 1 anterior mandaba la orden suelta (su tipo pisaba el del mensaje): también vale
+      else if (d.tipo === 'seguir' || d.tipo === 'general') recibirOrden(d);
     });
   }
   const vuelta = async () => {
