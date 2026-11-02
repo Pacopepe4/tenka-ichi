@@ -51,6 +51,41 @@ test('los dos PCs de la misma sala se pasan los mensajes; otra sala no los ve', 
   }
 });
 
+test('el panel de TENKA ICHI ve la foto del PC 1 y le manda órdenes; el PC 2 no recibe las fotos', async () => {
+  const salas = crearSalasRealizador();
+  const servidor = http.createServer();
+  servidor.on('upgrade', (req, s, h) => salas.handleUpgrade(req, s, h));
+  await new Promise(r => servidor.listen(0, r));
+  const { port } = servidor.address();
+  try {
+    const panel = await conectar(port);
+    panel.send(JSON.stringify({ tipo: 'unirse', sala: sala('tenka123'), papel: 'panel' }));
+    assert.deepEqual(await panel.siguiente(), { tipo: 'unido', papel: 'panel', companero: false });
+    assert.deepEqual(await panel.siguiente(), { tipo: 'presentes', pc1: false, pc2: false });
+    const pc1 = await conectar(port);
+    pc1.send(JSON.stringify({ tipo: 'unirse', sala: sala('tenka123'), papel: 'pc1' }));
+    await pc1.siguiente();
+    assert.deepEqual(await panel.siguiente(), { tipo: 'presentes', pc1: true, pc2: false });
+    const pc2 = await conectar(port);
+    pc2.send(JSON.stringify({ tipo: 'unirse', sala: sala('tenka123'), papel: 'pc2' }));
+    await pc2.siguiente();
+    await pc1.siguiente();  // companero
+    assert.deepEqual(await panel.siguiente(), { tipo: 'presentes', pc1: true, pc2: true });
+
+    pc1.send(JSON.stringify({ tipo: 'foto', plano: 'x' }));
+    pc1.send(JSON.stringify({ tipo: 'guion', planos: [] }));
+    assert.deepEqual(await panel.siguiente(), { tipo: 'foto', plano: 'x' });
+    assert.deepEqual(await pc2.siguiente(), { tipo: 'guion', planos: [] }, 'la foto no llega al PC 2');
+    panel.send(JSON.stringify({ tipo: 'panelControl', manual: true }));
+    assert.deepEqual(await pc1.siguiente(), { tipo: 'panelControl', manual: true });
+    for (const w of [panel, pc1, pc2]) w.close();
+  } finally {
+    salas.cerrar();
+    servidor.closeAllConnections?.();
+    servidor.close();
+  }
+});
+
 test('sin unirse a una sala válida no se pasa nada', async () => {
   const salas = crearSalasRealizador();
   const servidor = http.createServer();

@@ -3,27 +3,40 @@
 // (sha256, nunca la contraseña). El servidor no entiende lo que pasa: reenvía cada mensaje del PC 1 al PC 2 de
 // la misma sala y al revés, y avisa a cada uno de si el otro está conectado.
 //
-//   → { tipo: 'unirse', sala: '<64 hex>', papel: 'pc1' | 'pc2' }
+//   → { tipo: 'unirse', sala: '<64 hex>', papel: 'pc1' | 'pc2' | 'panel' }
 //   ← { tipo: 'unido', papel, companero: true|false }
-//   ← { tipo: 'companero', conectado: true|false }
-//   → cualquier otro mensaje JSON: llega tal cual al otro PC de la sala
+//   ← { tipo: 'companero', conectado: true|false }        (a los PCs)
+//   ← { tipo: 'presentes', pc1: true|false, pc2: true|false } (a los paneles)
+//   → cualquier otro mensaje JSON: llega tal cual al otro PC de la sala.
+//     Del PC 1, las «foto» (el estado del realizador) van a los paneles abiertos y no al PC 2.
+//     De un panel (el de TENKA ICHI, con la contraseña del realizador), todo va al PC 1.
 import { WebSocketServer } from 'ws';
 
-const PAPELES = new Set(['pc1', 'pc2']);
+const PAPELES = new Set(['pc1', 'pc2', 'panel']);
 const otro = papel => (papel === 'pc1' ? 'pc2' : 'pc1');
 
 export function crearSalasRealizador({ maxSalas = 50 } = {}) {
   const wss = new WebSocketServer({ noServer: true, maxPayload: 2 * 1024 * 1024 });
-  const salas = new Map();  // sala → { pc1: ws, pc2: ws }
+  const salas = new Map();  // sala → { pc1: ws, pc2: ws, paneles: Set<ws> }
 
   const enviar = (ws, m) => { if (ws?.readyState === 1) ws.send(typeof m === 'string' ? m : JSON.stringify(m)); };
 
+  const presentes = s => {
+    const m = JSON.stringify({ tipo: 'presentes', pc1: Boolean(s.pc1), pc2: Boolean(s.pc2) });
+    for (const p of s.paneles) enviar(p, m);
+  };
+
   function salir(ws) {
     const s = salas.get(ws.sala);
-    if (!s || s[ws.papel] !== ws) return;
-    delete s[ws.papel];
-    enviar(s[otro(ws.papel)], { tipo: 'companero', conectado: false });
-    if (!s.pc1 && !s.pc2) salas.delete(ws.sala);
+    if (!s) return;
+    if (ws.papel === 'panel') s.paneles.delete(ws);
+    else {
+      if (s[ws.papel] !== ws) return;
+      delete s[ws.papel];
+      enviar(s[otro(ws.papel)], { tipo: 'companero', conectado: false });
+      presentes(s);
+    }
+    if (!s.pc1 && !s.pc2 && !s.paneles.size) salas.delete(ws.sala);
   }
 
   wss.on('connection', ws => {
@@ -39,18 +52,31 @@ export function crearSalasRealizador({ maxSalas = 50 } = {}) {
           return ws.close();
         }
         if (!salas.has(m.sala) && salas.size >= maxSalas) { enviar(ws, { tipo: 'error', error: 'Demasiadas salas' }); return ws.close(); }
-        const s = salas.get(m.sala) || {};
+        const s = salas.get(m.sala) || { paneles: new Set() };
         salas.set(m.sala, s);
-        // El mismo papel otra vez (se reconecta o se abrió dos veces): se queda el nuevo
-        if (s[m.papel] && s[m.papel] !== ws) { const viejo = s[m.papel]; viejo.sala = null; viejo.close(4000, 'Otro PC ha entrado con el mismo papel'); }
         ws.sala = m.sala;
         ws.papel = m.papel;
+        if (m.papel === 'panel') {
+          if (s.paneles.size >= 10) { enviar(ws, { tipo: 'error', error: 'Demasiados paneles abiertos' }); return ws.close(); }
+          s.paneles.add(ws);
+          enviar(ws, { tipo: 'unido', papel: 'panel', companero: Boolean(s.pc1) });
+          presentes(s);
+          return;
+        }
+        // El mismo papel otra vez (se reconecta o se abrió dos veces): se queda el nuevo
+        if (s[m.papel] && s[m.papel] !== ws) { const viejo = s[m.papel]; viejo.sala = null; viejo.close(4000, 'Otro PC ha entrado con el mismo papel'); }
         s[m.papel] = ws;
         enviar(ws, { tipo: 'unido', papel: m.papel, companero: Boolean(s[otro(m.papel)]) });
         enviar(s[otro(m.papel)], { tipo: 'companero', conectado: true });
+        presentes(s);
         return;
       }
-      enviar(salas.get(ws.sala)?.[otro(ws.papel)], raw.toString());
+      const s = salas.get(ws.sala);
+      if (!s) return;
+      const texto = raw.toString();
+      if (ws.papel === 'panel') return enviar(s.pc1, texto);
+      if (ws.papel === 'pc1' && m.tipo === 'foto') { for (const p of s.paneles) enviar(p, texto); return; }
+      enviar(s[otro(ws.papel)], texto);
     });
   });
 
