@@ -97,6 +97,8 @@ before(async () => {
   carpeta = await mkdtemp(path.join(os.tmpdir(), 'tenka-discord-'));
   // Plantilla con jugadores inventados en Kaiju y Tora, y su tier list
   const plantillas = JSON.parse(await readFile(path.join(RAIZ, 'data-proyecto', 'plantillas.json'), 'utf8'));
+  // Solo KAIJU y TORA tienen jugadores: los sobres se abren cuando todos los que tienen nombre tienen tier
+  for (const c of Object.values(plantillas)) c.jugadores = Array(5).fill('');
   plantillas.KAIJU.jugadores = ['Gojirasu', 'Kage', 'Mizuchi', 'Hayate', 'Tsuru'];
   plantillas.TORA.jugadores = ['Byakko', 'Shiro', 'Kiba', 'Raiden', 'Hoshi'];
   await writeFile(path.join(carpeta, 'plantillas.json'), JSON.stringify(plantillas));

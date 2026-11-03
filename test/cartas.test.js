@@ -14,6 +14,8 @@ let carpeta, g, fantasy;
 before(async () => {
   carpeta = await mkdtemp(path.join(os.tmpdir(), 'tenka-cartas-'));
   const plantillas = JSON.parse(await readFile(path.join(RAIZ, 'data-proyecto', 'plantillas.json'), 'utf8'));
+  // Solo KAIJU y TORA tienen jugadores: los sobres se abren cuando todos los que tienen nombre tienen tier
+  for (const c of Object.values(plantillas)) c.jugadores = Array(5).fill('');
   plantillas.KAIJU.jugadores = ['Gojirasu', 'Kage', 'Mizuchi', 'Hayate', 'Tsuru'];
   plantillas.TORA.jugadores = ['Byakko', 'Shiro', 'Kiba', 'Raiden', 'Hoshi'];
   await writeFile(path.join(carpeta, 'plantillas.json'), JSON.stringify(plantillas));
@@ -278,4 +280,19 @@ test('el bonus de una BOOST multiplica los puntos de su jugador solo si cumple l
   await pausa();
   await jugar('P5', { 'KAIJU-TOP': 30000 });
   assert.equal(fantasy.infoFantasy(bea).yo.puntosBoost, antes, 'la BOOST va con la JUNGLA, que no hizo el máximo daño');
+});
+
+test('los sobres esperan a la tier list entera: un jugador con nombre y sin tier los cierra para todos', async () => {
+  const { guardarPlantilla } = await import('../server/plantillas.js');
+  const { ponerTier } = await import('../server/tierlist.js');
+  assert.deepEqual([g.sobresListos(), g.faltanTiers()], [true, []]);
+  await guardarPlantilla('SARU', { jugadores: ['Nuevo', '', '', '', ''] });
+  assert.deepEqual([g.sobresListos(), g.faltanTiers()], [false, ['SARU-TOP']]);
+  assert.deepEqual(g.resumenGacha().faltanTiers, ['SARU-TOP']);
+  ponerTier('jugador', 'SARU-TOP', 'C');
+  assert.deepEqual([g.sobresListos(), g.faltanTiers()], [true, []]);
+  // Un hueco sin nombre no cuenta, aunque no tenga tier
+  ponerTier('jugador', 'SARU-TOP', null);
+  await guardarPlantilla('SARU', { jugadores: ['', '', '', '', ''] });
+  assert.equal(g.sobresListos(), true);
 });

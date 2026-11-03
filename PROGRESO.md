@@ -339,3 +339,11 @@ Diseño aprobado en `docs/superpowers/specs/2026-10-04-ingame-mejoras-design.md`
 - **Lo que pidió el usuario:** «hay que añadir un botón para acceder a KB stats http://kbstats.es/».
 - En la portada, el gachapon y la guía, un botón con filo de oro a la derecha del menú (en el móvil, en la línea de la marca, para que se vea sin deslizar el menú), y un enlace en el pie de la portada y del gachapon. Va a https://kbstats.es/ (la dirección con http redirige allí) y se abre en otra pestaña. Estilos en `.enlace-kbstats` de `public/inicio.css`; el menú se arrima a la derecha con `margin-left: auto`.
 - Comprobado en local a 1920 px y en un móvil de 412 px (portada y gachapon). Pruebas: 176.
+
+## 03/11: KEMONO en la web, y los sobres esperan a la tier list entera
+
+- **Lo que dio el usuario:** «KEMONO top: Jaavaa gwen C, jungla: vaskoñito wukong C, medio: kuchauu elise S, adc: domenache samira C, support: Frozenronin bardo C» y «Crea las cartas y súbelas».
+- **Plantilla y tiers en la web publicada sin la contraseña del panel:** `data-proyecto/importaciones.json` y `server/importaciones.js`. Al arrancar en Render se aplica cada importación una vez (queda en Ajustes, `importaciones_hechas`); después manda el panel. La primera, «2026-11-03 KEMONO»: JAAVAA, VASKOÑITO, KUCHAUU, DOMENACHE y FROZENRONIN, con C, C, S, C y C. En `data-proyecto/plantillas.json` también, para el local. Los nombres van en mayúsculas, como el resto, y como los escribió el usuario (en su op.gg salen «Vascoñito» con c y «Kuchau» con una u).
+- **Los sobres esperan a que todos los jugadores con nombre tengan tier** (`sobresListos` y `faltanTiers` en `server/gacha.js`). Antes bastaba con una carta de jugador: con solo KEMONO con tier, todos los sobres habrían salido de KEMONO y de las BOOST. El panel dice cuántos faltan y de qué clanes. Lo decidí yo; se cambia en esa línea si el usuario prefiere abrirlos antes.
+- Pruebas: 180 (`test/importaciones.test.js` nueva, contra la hoja de mentira; y en `test/cartas.test.js` la de la tier list entera).
+- **Pendiente:** las tiers de SARU, KAIJU, ATSUI, TORA y BUSHI, el top de TORA y los dibujos de KEMONO.

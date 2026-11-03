@@ -1,0 +1,22 @@
+[
+ {
+  "nombre": "2026-11-03 KEMONO",
+  "dicho": "Plantilla y tiers de KEMONO que dio el usuario el 03/11/2026",
+  "plantillas": {
+   "KEMONO": [
+    "JAAVAA",
+    "VASKOÑITO",
+    "KUCHAUU",
+    "DOMENACHE",
+    "FROZENRONIN"
+   ]
+  },
+  "tiers": {
+   "KEMONO-TOP": "C",
+   "KEMONO-JUNGLA": "C",
+   "KEMONO-MEDIO": "S",
+   "KEMONO-ADC": "C",
+   "KEMONO-SUPPORT": "C"
+  }
+ }
+]

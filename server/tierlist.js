@@ -53,20 +53,26 @@ export function vistaTierlist() {
 
 export const tierDeJugador = id => jugadores[id] || null;
 
+async function volcar() {
+  const v = vistaTierlist();
+  const filas = [CABECERA,
+    ...v.equipos.filter(e => e.tier).map(e => ['Equipo', e.id, e.nombre, e.id, '', e.tier]),
+    ...v.jugadores.filter(j => j.tier).map(j => ['Jugador', j.id, j.nombre, j.clan, j.rol, j.tier])];
+  if (hojaActiva()) { await asegurarPestana(PESTANA, CABECERA); await escribir(PESTANA, filas); }
+  else { await mkdir(path.dirname(ARCHIVO), { recursive: true }); await writeFile(ARCHIVO, JSON.stringify({ jugadores, equipos }, null, 1)); }
+}
+
 // Guardado con una pequeña espera: si el staff cambia varias tiers seguidas, se escribe una sola vez
 let pendiente = null;
 function guardar() {
   clearTimeout(pendiente);
-  pendiente = setTimeout(async () => {
-    const v = vistaTierlist();
-    const filas = [CABECERA,
-      ...v.equipos.filter(e => e.tier).map(e => ['Equipo', e.id, e.nombre, e.id, '', e.tier]),
-      ...v.jugadores.filter(j => j.tier).map(j => ['Jugador', j.id, j.nombre, j.clan, j.rol, j.tier])];
-    try {
-      if (hojaActiva()) { await asegurarPestana(PESTANA, CABECERA); await escribir(PESTANA, filas); }
-      else { await mkdir(path.dirname(ARCHIVO), { recursive: true }); await writeFile(ARCHIVO, JSON.stringify({ jugadores, equipos }, null, 1)); }
-    } catch (e) { console.error('No se pudo guardar la tier list:', e.message); }
-  }, 1500);
+  pendiente = setTimeout(() => volcar().catch(e => console.error('No se pudo guardar la tier list:', e.message)), 1500);
+}
+
+// Sin esperar y avisando si falla (las importaciones de server/importaciones.js tienen que saberlo)
+export async function guardarTierlistYa() {
+  clearTimeout(pendiente);
+  await volcar();
 }
 
 export function ponerTier(tipo, id, tier) {

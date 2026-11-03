@@ -18,6 +18,7 @@ import { cargarPlantillas, plantilla, guardarPlantilla, refrescarPlantillas } fr
 import { estadoHoja } from './sheets.js';
 import { cargarTierlist, vistaTierlist, ponerTier } from './tierlist.js';
 import { cargarAjustes } from './ajustes.js';
+import { aplicarImportaciones } from './importaciones.js';
 import { cargarGacha, catalogo, probabilidades, abrirSobre, darAlta, darSobres, estadoUsuario, buscarUsuario, resumenGacha, fundirRepetidas,
   vincularTwitch, desvincularTwitch, sobresListos, reparto, estrenarTemporada, estadoTemporada,
   PESOS, CARTAS_POR_SOBRE, SOBRES_INICIALES, REPETIDAS_POR_SOBRE, PROBABILIDAD_LEGACY, CARPETA_ARTE, reversoCarta } from './gacha.js';
@@ -966,6 +967,9 @@ setInterval(() => { for (const ws of clientes) if (ws.readyState === 1) ws.ping(
 
 await Promise.all([cargar(), cargarPlantillas(), cargarCalendario(), cargarAjustes()]);
 await Promise.all([cargarTierlist(), cargarGacha()]);
+// Plantillas y tiers que el usuario ha dictado para la web publicada (data-proyecto/importaciones.json), una vez cada una
+await aplicarImportaciones().then(h => { if (h.length) console.log(`Importado en la hoja: ${h.join(', ')}`); },
+  e => console.error('Importaciones sin hacer:', e.message));
 await cargarFantasy();
 // Si la temporada del gachapon es nueva y aún no se ha estrenado, se estrena: todos de cero, con su cuenta. Si falla (la
 // hoja no responde), la web arranca igual y se vuelve a intentar en el siguiente arranque

@@ -300,8 +300,10 @@ export function probabilidades(cat = catalogo()) {
   return Object.fromEntries(TIERS_CARTA.map(t => [t, total ? cat.filter(c => c.tier === t).reduce((s, c) => s + c.peso, 0) / total : 0]));
 }
 
-// Los sobres se abren cuando hay cartas de Jugador: solo con las BOOST (S+ y S), todas las cartas saldrían de las mejores
-export const sobresListos = (cat = catalogo()) => cat.some(c => c.tipo === 'jugador');
+// Los sobres se abren cuando todos los jugadores con nombre en su plantilla tienen tier (y por tanto carta). Con la tier
+// list a medias, los sobres de todos saldrían de unos pocos clanes y de las BOOST (S+ y S)
+export const faltanTiers = () => vistaTierlist().jugadores.filter(j => j.nombre && !j.tier).map(j => j.id);
+export const sobresListos = (cat = catalogo()) => cat.some(c => c.tipo === 'jugador') && !faltanTiers().length;
 // El reparto tal como está pensado, con cartas en todas las tiers: lo que se enseña mientras los sobres no se abren
 export function reparto() {
   const total = Object.values(PESOS).reduce((s, x) => s + x, 0);
@@ -487,5 +489,6 @@ export function resumenGacha() {
   for (const u of usuarios.values()) { abiertos += u.abiertos; sobres += u.sobres; }
   const cat = catalogo();
   return { coleccionistas: usuarios.size, sobresAbiertos: abiertos, sobresSinAbrir: sobres, conTwitch: vinculos.size,
-    cartas: cat.filter(c => c.tipo !== 'legacy').length, legacy: cat.filter(c => c.tipo === 'legacy').length, listos: sobresListos(cat) };
+    cartas: cat.filter(c => c.tipo !== 'legacy').length, legacy: cat.filter(c => c.tipo === 'legacy').length, listos: sobresListos(cat),
+    faltanTiers: faltanTiers() };
 }

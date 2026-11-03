@@ -195,6 +195,8 @@ La web enseña las fechas desde el principio (pestañas de jornada, cabecera de 
 
 Las pestañas se crean solas la primera vez. Si Sheets no está configurado, todo se guarda en archivos locales, que en Render se borran al reiniciar.
 
+**Plantillas y tiers dictadas** (`server/importaciones.js`): lo que el usuario da por el chat para la web publicada (los jugadores de una plantilla, sus tiers) va en `data-proyecto/importaciones.json`, con un nombre. Al arrancar, la web publicada aplica cada una una sola vez y la apunta en Ajustes (`importaciones_hechas`): lo que el staff cambie después desde el panel no se vuelve a pisar. En una plantilla, un puesto a `null` se queda como esté. Si la hoja falla a medias, no queda apuntada y se repite en el siguiente arranque. En local y en las pruebas no se aplica ninguna, salvo con `IMPORTACIONES=1`.
+
 ## Cámaras en OBS
 
 El overlay tiene de 0 a 4 huecos transparentes en el centro, entre los picks. Se eligen en el panel, apartado **Cámaras**: cuántas salen y qué es cada una (caster, lado azul, lado rojo o un clan). Las de lado azul y rojo siguen al clan que esté en ese lado aunque se inviertan los lados.
@@ -257,7 +259,7 @@ Aparte están las **LEGACY** (abajo): no salen entre las tres cartas; de vez en 
 
 En el sorteo cada tier tiene su parte de las cartas que salen: **S+ 0,3 %, S 1,2 %, A 6,5 %, B 22 %, C 30 % y D 40 %**. Casi todo es de las tiers bajas y una S o una S+ es difícil de ver: 3 de cada 200 cartas, o un sobre de cada 23. La parte de una tier se la reparten por igual sus cartas, sean de Jugador o BOOST, así que no cambia con cuántas haya en ella; si una tier no tiene ninguna carta, su parte se reparte entre las demás en proporción, y la página enseña las probabilidades que salen de verdad. Se cambia en `PESOS` de `server/gacha.js`. Dentro de un mismo sobre no sale dos veces la misma carta.
 
-**Los sobres no se abren mientras no haya cartas de Jugador** (jugadores con nombre en su plantilla y con tier en la tier list): solo con las BOOST, todas las cartas saldrían S+ o S. Mientras tanto cada uno conserva sus sobres, la página lo avisa y enseña el reparto con el que saldrán, y el panel lo recuerda en el resumen del gachapon. En cuanto se guarda la tier del primer jugador, se abren.
+**Los sobres no se abren hasta que todos los jugadores de las plantillas tienen tier** (cada uno con nombre en su plantilla tiene que tener su tier en la tier list; un hueco sin nombre no cuenta). Con la tier list a medias, los sobres de todos saldrían de unos pocos clanes y de las BOOST. Mientras tanto cada uno conserva sus sobres, la página lo avisa y enseña el reparto con el que saldrán, y el panel dice cuántos jugadores faltan y de qué clanes. En cuanto el último tiene tier, se abren.
 
 Más sobres, sin Twitch ni ser afiliado:
 

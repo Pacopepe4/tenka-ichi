@@ -418,7 +418,7 @@ function pintarGacha(g) {
   const r = g.resumen, p = r.listos ? g.probabilidades : g.reparto;
   const n = (x, uno, varios) => `${x} ${x === 1 ? uno : varios}`;
   $('#resumenGacha').textContent = `${n(r.coleccionistas, 'coleccionista', 'coleccionistas')}${r.conTwitch ? ` (${r.conTwitch} con su Twitch vinculado)` : ''}, ${n(r.sobresAbiertos, 'sobre abierto', 'sobres abiertos')} y ${n(r.sobresSinAbrir, 'sin abrir', 'sin abrir')}. ${n(r.cartas, 'carta', 'cartas')} en los sobres. `
-    + (r.listos ? 'Probabilidad por carta: ' : 'Los sobres no se pueden abrir hasta que haya cartas de jugador: guarda las plantillas y la tier list. Cuando se abran, por carta: ')
+    + (r.listos ? 'Probabilidad por carta: ' : `Los sobres no se pueden abrir hasta que todos los jugadores de las plantillas tengan tier${r.faltanTiers?.length ? ` (faltan ${r.faltanTiers.length}, de ${[...new Set(r.faltanTiers.map(id => id.split('-')[0]))].join(', ')})` : ''}. Cuando se abran, por carta: `)
     + [...(p['S+'] ? ['S+'] : []), ...TIERS].map(t => `${t} ${porcentaje(p[t] || 0)}`).join(', ') + '.'
     + textoTemporada(g.temporada);
 }
