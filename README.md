@@ -337,7 +337,7 @@ La web pide a Discord solo el permiso **identify** (id, nombre y avatar). No gua
 La colección y la alineación (botones en el gachapon) y la tier list (panel, apartado Tier list) se publican como imagen en un canal con un **webhook**, que no necesita bot:
 
 1. En el servidor de Discord: **Ajustes del servidor › Integraciones › Webhooks › Nuevo webhook**, elige el canal y pulsa **Copiar URL del webhook**. No la pegues en ningún chat: quien la tenga puede publicar en ese canal.
-2. En Render, en Environment: `DISCORD_WEBHOOK_URL` con esa dirección. Si la tier list o la clasificación del fantasy van en otro canal, crea otro webhook ahí y ponlo en `DISCORD_WEBHOOK_TIERLIST` o `DISCORD_WEBHOOK_CLASIFICACION`.
+2. En Render, en Environment: `DISCORD_WEBHOOK_URL` con esa dirección. Si la tier list (la del staff y las de los espectadores) o la clasificación del fantasy van en otro canal, crea otro webhook ahí y ponlo en `DISCORD_WEBHOOK_TIERLIST` o `DISCORD_WEBHOOK_CLASIFICACION`; sin ellos, todo va al canal de `DISCORD_WEBHOOK_URL`.
 
 El texto lo pone la web (menciona a quien publica sin enviarle aviso y no deja colar menciones a todo el servidor), y cada persona puede publicar su colección y su alineación una vez cada 10 minutos. Sin webhook, el botón de publicar no sale y la imagen se puede descargar igual.
 

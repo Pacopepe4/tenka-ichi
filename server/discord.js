@@ -6,8 +6,8 @@
 const WEBHOOKS = {
   coleccion: process.env.DISCORD_WEBHOOK_URL,
   alineacion: process.env.DISCORD_WEBHOOK_URL,
-  // La tier list que hace cada espectador en la portada
-  mitierlist: process.env.DISCORD_WEBHOOK_URL,
+  // La tier list que hace cada espectador en la portada: al mismo canal que la del staff
+  mitierlist: process.env.DISCORD_WEBHOOK_TIERLIST || process.env.DISCORD_WEBHOOK_URL,
   tierlist: process.env.DISCORD_WEBHOOK_TIERLIST || process.env.DISCORD_WEBHOOK_URL,
   clasificacion: process.env.DISCORD_WEBHOOK_CLASIFICACION || process.env.DISCORD_WEBHOOK_URL,
 };
