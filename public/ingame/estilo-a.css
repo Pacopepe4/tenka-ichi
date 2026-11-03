@@ -97,6 +97,10 @@
 [data-estilo="a"] .hueco { border-radius: 3px; background: rgba(12, 11, 10, .6); box-shadow: inset 0 0 0 1px rgba(231, 223, 210, .08); }
 [data-estilo="a"] .hueco.abalorio { box-shadow: 0 0 0 1px rgba(235, 210, 138, .4); }
 [data-estilo="a"] .hueco.abalorio.vacio { box-shadow: inset 0 0 0 1px rgba(231, 223, 210, .12); }
+[data-estilo="a"] .sum, [data-estilo="a"] .mision { border-radius: 3px; background: rgba(12, 11, 10, .6); box-shadow: inset 0 0 0 1px rgba(231, 223, 210, .08); }
+[data-estilo="a"] .runa { border-radius: 50%; background: rgba(12, 11, 10, .6); box-shadow: 0 0 0 1px rgba(231, 223, 210, .1); }
+[data-estilo="a"] .mision { box-shadow: 0 0 0 1px rgba(235, 210, 138, .4); }
+[data-estilo="a"] .mision.vacio { box-shadow: inset 0 0 0 1px rgba(231, 223, 210, .12); }
 [data-estilo="a"] .jugador .oro { font-size: 20px; font-weight: 700; color: var(--oro); }
 /* En medio: puntos del fantasy (el que va por delante, del color de su clan) y la diferencia de oro */
 [data-estilo="a"] .puntos b { font-family: var(--mincho); font-weight: 800; font-size: 24px; color: var(--hai); }

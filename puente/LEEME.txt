@@ -38,4 +38,12 @@ oculta el del juego si activas una vez la Replay API, con el juego cerrado:
 Si instalaste el juego en otra carpeta, game.cfg está dentro de su carpeta Config.
 
 
+VOLCADO DE LOS JUGADORES (para afinar el línea por línea)
+---------------------------------------------------------
+Con una partida o una repetición en marcha (mejor pasado el minuto 15), doble clic en
+«Volcado de jugadores.bat». Guarda volcado-jugadores.json en esta carpeta con lo que el
+cliente da de cada jugador (hechizos, runas, objetos y sus huecos). Solo lee datos de
+este ordenador y no manda nada a internet. Si lo pide quien mantiene la web, se lo envías.
+
+
 Todo lo demás está en la guía: https://tenka-ichi.onrender.com/guia/#ingame

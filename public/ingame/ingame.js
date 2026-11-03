@@ -333,17 +333,21 @@ function pintarGraficos() {
 }
 
 // ---------- línea por línea ----------
-// Cada fila es un puesto (top, jungla, medio, ADC y apoyo, en ese orden): retrato, nombre, KDA y súbditos, objetos
-// y oro de cada jugador; en medio, la diferencia de oro y los puntos provisionales del fantasy de los dos
+// Cada fila es un puesto (top, jungla, medio, ADC y apoyo, en ese orden): retrato, hechizos, runa y misión de rol, nombre,
+// KDA y súbditos, objetos y oro de cada jugador; en medio, la diferencia de oro y los puntos provisionales del fantasy de los dos
 const filas = $('.lineas .filas');
 filas.innerHTML = [0, 1, 2, 3, 4].map(i => `<div class="fila" style="--i:${i}" data-i="${i}">
   ${['azul', 'rojo'].map(lado => {
     const retrato = '<span class="retrato"><img alt=""><i class="nivel"></i><i class="muerte"></i></span>';
+    // Pegados al retrato: los dos hechizos apilados y, al lado, la piedra angular sobre el hueco de la misión de rol
+    const icono = clase => `<i class="${clase}"><img alt="" hidden></i>`;
+    const iconos = `<span class="iconos"><span class="sums">${icono('sum')}${icono('sum')}</span>`
+      + `<span class="runa-mision">${icono('runa')}${icono('mision vacio')}</span></span>`;
     const quien = '<span class="quien"><span class="linea-nombre"><b class="nombre"></b>'
       + '<span class="recompensa" hidden><svg><use href="#i-oro"/></svg><b></b></span></span><small class="kda"><b class="kda-cifras"></b><span class="cs"></span></small></span>';
     const objetos = '<span class="objetos"><span class="huecos"></span><i class="hueco abalorio"><img alt="" hidden></i></span>';
     const oro = '<span class="oro"></span>';
-    const partes = lado === 'azul' ? [retrato, quien, objetos, oro] : [oro, objetos, quien, retrato];
+    const partes = lado === 'azul' ? [retrato, iconos, quien, objetos, oro] : [oro, objetos, quien, iconos, retrato];
     return `<div class="jugador ${lado}">${partes.join('')}</div>`;
   }).join(`<div class="medio">
     <span class="puntos azul"><b></b></span>
@@ -353,6 +357,16 @@ filas.innerHTML = [0, 1, 2, 3, 4].map(i => `<div class="fila" style="--i:${i}" d
 </div>`).join('');
 // Un objeto sin icono (nuevo en un parche) deja el hueco vacío en lugar de una imagen rota
 filas.addEventListener('error', e => { if (e.target.tagName === 'IMG' && e.target.closest('.hueco')) e.target.closest('.hueco').remove(); }, true);
+// Un hechizo, una runa o una misión sin icono se esconde (el hueco se queda, para no descolocar la fila) y se recuerda
+// cuál falló para no pedirlo otra vez cada segundo
+filas.addEventListener('error', e => {
+  if (e.target.tagName === 'IMG' && e.target.closest('.iconos')) { e.target.dataset.roto = e.target.getAttribute('src'); e.target.hidden = true; }
+}, true);
+function pintarIcono(img, src) {
+  const verlo = Boolean(src) && img.dataset.roto !== src;
+  if (verlo && img.getAttribute('src') !== src) img.src = src;
+  img.hidden = !verlo;
+}
 
 function pintarLineas(mostrar) {
   const caja = $('.lineas');
@@ -406,6 +420,12 @@ function pintarLineas(mostrar) {
         if (rutaAbalorio) { ia.hidden = false; ia.src = rutaAbalorio; } else { ia.hidden = true; ia.removeAttribute('src'); }
       }
       abalorio.classList.toggle('vacio', !rutaAbalorio);
+      // Hechizos de invocador, piedra angular y recompensa de la misión de rol (si el cliente la da)
+      caja.querySelectorAll('.sum img').forEach((img, n) => pintarIcono(img, j.hechizos?.[n] && `/ddragon/hechizo/${j.hechizos[n]}.png`));
+      pintarIcono(caja.querySelector('.runa img'), j.runa && `/ddragon/runa/${j.runa}.png`);
+      const mision = caja.querySelector('.mision');
+      pintarIcono(mision.querySelector('img'), j.mision?.objeto && `/ddragon/objeto/${j.mision.objeto}.png`);
+      mision.classList.toggle('vacio', !j.mision);
       // El nombre del panel para ese puesto, si lo hay; si no, el del cliente
       caja.querySelector('.nombre').textContent = estado?.equipos?.[lado]?.jugadores?.[i] || j.nombre;
       caja.querySelector('.kda-cifras').textContent = `${j.k} / ${j.d} / ${j.a}`;

@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node server/index.js",
     "ddragon": "node scripts/ddragon.js",
+    "ddragon-sums": "node scripts/ddragon-sums.js",
     "simular": "node scripts/simular.js",
     "test": "node --test test/*.test.js",
     "twitch-falso": "node scripts/twitch-falso.js",

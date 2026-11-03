@@ -152,11 +152,14 @@ const idCampeon = j => {
   return [...idsCampeon].find(id => id.toLowerCase() === limpio.toLowerCase()) || crudo || limpio;
 };
 const oroObjetos = items => (items || []).reduce((s, o) => s + (precios[o.itemID] ?? o.price ?? 0) * (o.count || 1), 0);
-// Inventario por huecos: 0-5 los objetos y 6 el abalorio, como en el juego
+// Inventario por huecos: 0-5 los objetos y 6 el abalorio, como en el juego. El hueco 7 es el de la misión de rol
+// (temporada 2026) y va aparte, en misionDe
+const HUECO_MISION = 7;
 const porHuecos = items => {
   const huecos = Array(7).fill(null);
   for (const o of items || []) {
-    const s = Number.isInteger(o.slot) && o.slot >= 0 && o.slot < 7 && huecos[o.slot] == null ? o.slot : huecos.indexOf(null);
+    if (o.slot >= HUECO_MISION) continue;
+    const s = Number.isInteger(o.slot) && o.slot >= 0 && huecos[o.slot] == null ? o.slot : huecos.indexOf(null);
     if (s >= 0) huecos[s] = o.itemID;
   }
   return huecos;
@@ -164,6 +167,27 @@ const porHuecos = items => {
 const nombreJugador = j => j.riotIdGameName || String(j.riotId || j.summonerName || '').split('#')[0];
 const tieneAplastar = j => ['summonerSpellOne', 'summonerSpellTwo'].some(k =>
   /smite|aplastar/i.test(`${j.summonerSpells?.[k]?.rawDisplayName || ''} ${j.summonerSpells?.[k]?.displayName || ''}`));
+
+// Hechizos de invocador: el cliente da el nombre interno (GeneratedTip_SummonerSpell_SummonerFlash_DisplayName) y, según
+// el idioma, el traducido. Se pasan al id de Data Dragon por palabras clave, así las variantes (Aplastar helado, el
+// Teleportar mejorado…) enseñan el icono base. Lo que no se reconoce queda en null
+const HECHIZOS = [
+  [/flash|destello/i, 'SummonerFlash'], [/teleport|teletransport/i, 'SummonerTeleport'], [/smite|aplastar/i, 'SummonerSmite'],
+  [/heal|curar/i, 'SummonerHeal'], [/haste|ghost|fantasmal/i, 'SummonerHaste'], [/barrier|barrera/i, 'SummonerBarrier'],
+  [/boost|cleanse|limpiar/i, 'SummonerBoost'], [/dot|ignite|prender/i, 'SummonerDot'], [/exhaust|extenuaci/i, 'SummonerExhaust'],
+];
+const idHechizo = h => {
+  const interno = /SummonerSpell_(.+?)_DisplayName/.exec(h?.rawDisplayName || '')?.[1] || h?.displayName || '';
+  return HECHIZOS.find(([re]) => re.test(interno))?.[1] ?? null;
+};
+const hechizosDe = j => ['summonerSpellOne', 'summonerSpellTwo'].map(k => idHechizo(j.summonerSpells?.[k]));
+
+// Misión de rol: su recompensa ocupa un hueco de inventario nuevo (el 7: las botas del ADC, el pinkward del apoyo…).
+// Las que mejoran un hechizo (Teleportar desatado, Aplastar primigenio) aún no sabemos cómo las da el cliente
+const misionDe = j => {
+  const objeto = (j.items || []).find(o => o.slot === HUECO_MISION);
+  return objeto ? { objeto: objeto.itemID } : null;
+};
 
 // Estructuras: Turret_T1_…/Barracks_T1_… son del lado azul (ORDER) y T2 del rojo (CHAOS)
 const duenoEstructura = nombre => (/_T1_|_T1L|_T100/.test(nombre) ? 'azul' : /_T2_|_T2L|_T200/.test(nombre) ? 'rojo' : null);
@@ -339,7 +363,8 @@ export function resumen() {
       vision: Number.isFinite(Number(s.wardScore)) ? Math.round(Number(s.wardScore)) : null,
       primeraSangre: false, triples: 0, quadras: 0, pentas: 0, torres: 0, puntos: null, kp: null,
       muerto: Boolean(j.isDead), reaparece: Math.round(j.respawnTimer || 0), objetos: porHuecos(j.items), racha: 0,
-      posicion: j.position || '', aplastar: tieneAplastar(j) };
+      posicion: j.position || '', aplastar: tieneAplastar(j),
+      hechizos: hechizosDe(j), runa: j.runes?.keystone?.id ?? null, mision: misionDe(j) };
     jugadores[lado].push(jugador);
     for (const n of [j.summonerName, j.riotId, j.riotIdGameName, jugador.nombre]) if (n) jugadorPorNombre.set(normalizar(n), jugador);
   }
@@ -580,6 +605,10 @@ const OBJETOS_PRUEBA = [
 const CAMPEONES_PRUEBA = { azul: ['Aatrox', 'LeeSin', 'Ahri', 'Jinx', 'Thresh'], rojo: ['Jax', 'Viego', 'Syndra', 'Kaisa', 'Nautilus'] };
 const POSICIONES_PRUEBA = ['TOP', 'JUNGLE', 'MIDDLE', 'BOTTOM', 'UTILITY'];
 const FARMEO_PRUEBA = [0.125, 0.09, 0.13, 0.135, 0.02];  // súbditos por segundo según el rol
+// Hechizos, piedra angular y hueco de misión de cada rol en la partida de prueba (el apoyo, con el pinkward; el ADC, con botas)
+const SUMS_PRUEBA = [['Teleport', 'Flash'], ['Smite', 'Flash'], ['Flash', 'Dot'], ['Flash', 'Heal'], ['Flash', 'Exhaust']];
+const RUNAS_PRUEBA = [8437, 8010, 8112, 8021, 8465];
+const MISION_PRUEBA = [null, null, null, 3006, 2055];
 const COMPRAS_PRUEBA = [1, 0.8, 1, 1, 0.45];              // qué parte de las compras hace cada rol (el apoyo, menos de la mitad)
 const VISION_PRUEBA = [0.01, 0.018, 0.011, 0.009, 0.032];  // puntos de visión por segundo según el rol
 let temporizadorPrueba = null;
@@ -653,9 +682,12 @@ export function empezarPrueba({ picks, jugadores }, alPaquete) {
       jugadores: jug.map(j => ({ championName: j.campeon, rawChampionName: `game_character_displayname_${j.campeon}`,
         riotIdGameName: j.nombre, summonerName: j.nombre, team: j.team, position: POSICIONES_PRUEBA[j.rol], level: j.nivel,
         isDead: j.muertoHasta > t, respawnTimer: Math.max(0, j.muertoHasta - t),
-        summonerSpells: { summonerSpellOne: { rawDisplayName: `GeneratedTip_SummonerSpell_${j.rol === 1 ? 'SummonerSmite' : 'SummonerFlash'}_DisplayName` } },
-        // Objetos en sus huecos y el abalorio en el 6 (el apoyo, con la lente)
-        items: [...j.items.map((o, slot) => ({ ...o, slot })), { itemID: j.rol === 4 ? 3364 : 3340, count: 1, slot: 6 }],
+        summonerSpells: Object.fromEntries(['summonerSpellOne', 'summonerSpellTwo'].map((k, n) =>
+          [k, { rawDisplayName: `GeneratedTip_SummonerSpell_Summoner${SUMS_PRUEBA[j.rol][n]}_DisplayName` }])),
+        runes: { keystone: { id: RUNAS_PRUEBA[j.rol] } },
+        // Objetos en sus huecos, el abalorio en el 6 (el apoyo, con la lente) y el hueco de misión en el 7
+        items: [...j.items.map((o, slot) => ({ ...o, slot })), { itemID: j.rol === 4 ? 3364 : 3340, count: 1, slot: 6 },
+          ...(MISION_PRUEBA[j.rol] ? [{ itemID: MISION_PRUEBA[j.rol], count: 1, slot: 7 }] : [])],
         scores: { kills: j.k, deaths: j.d, assists: j.a, creepScore: j.cs, wardScore: j.vision } })),
       eventos,
     }, { prueba: true }));

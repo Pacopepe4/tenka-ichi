@@ -5,6 +5,8 @@ credenciales*.json
 
 # Contraseña que guarda el puente en el PC del espectador
 puente/clave.txt
+# Lo que vuelca el puente de la partida (puede llevar nombres de jugadores)
+puente/volcado-jugadores.json
 
 # Originales de los marcos (se sacan con node diseno/marcos/exportar.mjs)
 diseno/marcos/png/
