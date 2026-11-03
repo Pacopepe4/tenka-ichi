@@ -3,149 +3,363 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Realizador · Panel</title>
+<title>Realizador</title>
 <style>
   :root {
-    --fondo: #111214; --caja: #1a1c1f; --borde: #2b2e33; --texto: #e8e6e1; --suave: #8f9399;
-    --azul: #4c8dff; --rojo: #ff5a4f; --ok: #3ccf7a; --aviso: #f2b33d; --mal: #ff5a4f; --acento: #e8c46a;
+    --fondo: #0f1012; --caja: #18191c; --caja2: #1f2125; --borde: #2a2d32; --texto: #ecebe7; --suave: #9196a0;
+    --azul: #4c8dff; --rojo: #ff4d43; --ok: #39c977; --aviso: #f2b33d; --acento: #e8c46a;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--fondo); color: var(--texto); font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  header { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--borde); }
-  h1 { font-size: 15px; margin: 0 8px 0 0; letter-spacing: .04em; text-transform: uppercase; }
-  .conex { display: flex; flex-wrap: wrap; gap: 12px; color: var(--suave); font-size: 13px; }
-  .punto { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; background: var(--suave); }
-  .punto.si { background: var(--ok); } .punto.no { background: var(--mal); }
-  .relojes { margin-left: auto; display: flex; gap: 18px; font-variant-numeric: tabular-nums; }
-  .reloj b { display: block; font-size: 20px; }
-  .reloj span { color: var(--suave); font-size: 12px; }
-  main { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; padding: 16px; }
-  @media (max-width: 900px) { main { grid-template-columns: 1fr; } .relojes { margin-left: 0; } }
-  section { background: var(--caja); border: 1px solid var(--borde); border-radius: 8px; padding: 14px; }
-  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--suave); margin: 0 0 10px; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--fondo); color: var(--texto); font: 15px/1.45 "Segoe UI", system-ui, -apple-system, sans-serif; }
+  button { font: inherit; color: var(--texto); background: var(--caja2); border: 1px solid var(--borde); border-radius: 8px; padding: 8px 12px; cursor: pointer; }
+  button:hover:not(:disabled) { border-color: var(--suave); }
+  button:disabled { opacity: .45; cursor: default; }
+
+  /* Cabecera */
+  header { display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; padding: 10px 20px; border-bottom: 1px solid var(--borde); background: #131417; position: sticky; top: 0; z-index: 2; }
+  .marca { display: flex; align-items: baseline; gap: 10px; }
+  .marca b { font-size: 15px; letter-spacing: .12em; text-transform: uppercase; }
+  .marca span { color: var(--acento); font-size: 13px; font-weight: 600; }
+  nav { display: flex; gap: 4px; }
+  nav button { background: none; border-color: transparent; color: var(--suave); padding: 6px 12px; }
+  nav button.activa { color: var(--texto); background: var(--caja2); border-color: var(--borde); }
+  .conex { margin-left: auto; display: flex; flex-wrap: wrap; gap: 12px; color: var(--suave); font-size: 13px; }
+  .punto { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--suave); vertical-align: 1px; }
+  .punto.si { background: var(--ok); } .punto.no { background: var(--rojo); }
+
+  main { max-width: 1180px; margin: 0 auto; padding: 20px; }
+  .pestana[hidden] { display: none !important; }
+  section { background: var(--caja); border: 1px solid var(--borde); border-radius: 12px; padding: 16px; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--suave); margin: 0 0 12px; font-weight: 600; }
+  .vacio { color: var(--suave); }
+
+  /* Directo */
+  .directo { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 20px; }
+  @media (max-width: 860px) { .directo { grid-template-columns: 1fr; } .conex { margin-left: 0; } }
+  .estado { padding: 28px 24px; text-align: center; display: grid; gap: 14px; justify-items: center; position: relative; overflow: hidden; }
+  .estado.vivo { border-color: var(--rojo); box-shadow: 0 0 0 1px var(--rojo) inset; }
+  .insignia { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; padding: 4px 12px; border-radius: 99px; background: var(--caja2); color: var(--suave); border: 1px solid var(--borde); }
+  .insignia.vivo { background: var(--rojo); color: #fff; border-color: var(--rojo); animation: latido 1.6s ease-in-out infinite; }
+  .insignia.listo { color: var(--ok); border-color: var(--ok); }
+  .insignia.espera { color: var(--aviso); border-color: var(--aviso); }
+  @keyframes latido { 50% { opacity: .65; } }
+  .titulo { font-size: 30px; font-weight: 700; line-height: 1.15; }
+  .cuenta { font-size: 64px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; letter-spacing: -.02em; }
+  .sub { color: var(--suave); max-width: 46ch; }
+  .boton { font-size: 20px; font-weight: 700; padding: 18px 36px; border-radius: 12px; min-width: 280px; border: 0; background: var(--ok); color: #08130c; letter-spacing: .02em; }
+  .boton:hover:not(:disabled) { filter: brightness(1.08); }
+  .boton.cancelar { background: var(--caja2); color: var(--texto); border: 1px solid var(--borde); }
+  .boton.terminar { background: var(--rojo); color: #fff; }
+  .boton.seguro { background: #b3261e; color: #fff; }
+  .modos { display: inline-flex; border: 1px solid var(--borde); border-radius: 10px; padding: 3px; background: var(--fondo); }
+  .modos[hidden] { display: none; }
+  .modos button { border: 0; background: none; color: var(--suave); padding: 6px 14px; border-radius: 7px; font-size: 14px; }
+  .modos button.activa { background: var(--caja2); color: var(--texto); }
+  .error { background: rgba(255, 77, 67, .12); border: 1px solid var(--rojo); color: #ffb4ae; border-radius: 8px; padding: 10px 14px; max-width: 52ch; }
+  .error[hidden] { display: none; }
+
+  .relojes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 20px; }
+  .reloj { background: var(--caja); border: 1px solid var(--borde); border-radius: 12px; padding: 12px 14px; }
+  .reloj span { color: var(--suave); font-size: 12px; display: block; }
+  .reloj b { font-size: 24px; font-variant-numeric: tabular-nums; }
+  .barra { grid-column: 1 / -1; height: 8px; border-radius: 4px; background: var(--caja2); position: relative; overflow: hidden; }
+  .barra i { position: absolute; inset: 0 auto 0 0; background: var(--acento); border-radius: 4px; transition: width .4s; }
+
+  .lista { display: grid; gap: 2px; }
+  .cond { display: grid; grid-template-columns: 28px 1fr; gap: 2px 10px; padding: 10px 4px; border-top: 1px solid var(--borde); }
+  .cond:first-child { border-top: 0; }
+  .icono { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; font-weight: 700; }
+  .cond.ok .icono { background: rgba(57, 201, 119, .16); color: var(--ok); }
+  .cond.no .icono { background: rgba(255, 77, 67, .16); color: var(--rojo); }
+  .cond.opcional .icono { background: rgba(242, 179, 61, .16); color: var(--aviso); }
+  .cond small { grid-column: 2; color: var(--suave); font-size: 13px; }
+  .enAntena { margin-top: 20px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .enAntena[hidden] { display: none; }
+  .enAntena .que { font-size: 18px; font-weight: 600; }
+  .como { margin-top: 20px; color: var(--suave); font-size: 13px; }
+  .como ol { margin: 6px 0 0; padding-left: 18px; }
+  .como li { padding: 2px 0; }
+
+  /* Realización (PC 1) */
+  .real { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; }
+  @media (max-width: 900px) { .real { grid-template-columns: 1fr; } }
+  .col { display: grid; gap: 16px; align-content: start; }
   .antena { display: flex; gap: 16px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
   .antena .que { font-size: 22px; font-weight: 600; }
   .antena .detalle { color: var(--suave); }
-  button { font: inherit; color: var(--texto); background: #24272b; border: 1px solid var(--borde); border-radius: 6px; padding: 8px 12px; cursor: pointer; }
-  button:hover { border-color: var(--suave); }
   button.grande { padding: 12px 18px; font-weight: 600; }
-  button.manual { background: var(--mal); border-color: var(--mal); color: #fff; }
+  button.manual { background: var(--rojo); border-color: var(--rojo); color: #fff; }
   .jugadores { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 12px; }
   .jugadores button { text-align: left; }
   .jugadores button.azul { border-left: 3px solid var(--azul); } .jugadores button.rojo { border-left: 3px solid var(--rojo); }
   .jugadores button small { color: var(--suave); display: block; }
-  ol, ul { list-style: none; margin: 0; padding: 0; }
-  li { padding: 6px 0; border-top: 1px solid var(--borde); display: flex; gap: 10px; align-items: baseline; }
-  li:first-child { border-top: 0; }
-  .t { font-variant-numeric: tabular-nums; color: var(--suave); min-width: 56px; }
+  ol.l, ul.l { list-style: none; margin: 0; padding: 0; }
+  ol.l li, ul.l li { padding: 6px 0; border-top: 1px solid var(--borde); display: flex; gap: 10px; align-items: baseline; }
+  ol.l li:first-child, ul.l li:first-child { border-top: 0; }
+  .t { font-variant-numeric: tabular-nums; color: var(--suave); min-width: 64px; }
   .chip { font-size: 11px; padding: 1px 7px; border-radius: 10px; border: 1px solid var(--borde); color: var(--suave); white-space: nowrap; }
   .chip.en-curso { color: #111; background: var(--acento); border-color: var(--acento); }
   .chip.guion { color: var(--texto); border-color: var(--suave); }
   .chip.emitidos { color: var(--ok); border-color: var(--ok); }
   .chip.descartadas { text-decoration: line-through; }
   .avisos li { color: var(--aviso); }
-  .vacio { color: var(--suave); }
-  .col { display: grid; gap: 16px; align-content: start; }
-  .registro { max-height: 320px; overflow: auto; font-size: 13px; }
+  .registro { max-height: 60vh; overflow: auto; font-size: 13px; }
+
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #2a1715; border: 1px solid var(--rojo); color: #ffd2ce; padding: 10px 16px; border-radius: 8px; max-width: min(90vw, 520px); }
+  .toast[hidden] { display: none; }
+  .desconectado { position: fixed; inset: 0; background: rgba(10, 10, 12, .85); display: grid; place-items: center; text-align: center; padding: 20px; z-index: 5; }
+  .desconectado[hidden] { display: none; }
 </style>
 </head>
 <body>
 <header>
-  <h1>Realizador</h1>
+  <div class="marca"><b>Realizador</b><span id="papel"></span></div>
+  <nav id="pestanas">
+    <button data-p="directo" class="activa">Directo</button>
+    <button data-p="realizacion" id="pRealizacion" hidden>Realización</button>
+    <button data-p="registro">Registro</button>
+  </nav>
   <div class="conex" id="conex"></div>
-  <div class="relojes">
-    <div class="reloj"><span>Directo (PC 1)</span><b id="tDirecto">--:--</b></div>
-    <div class="reloj"><span>Antena (PC 2)</span><b id="tAntena">--:--</b></div>
-    <div class="reloj"><span>Margen</span><b id="margen">--</b></div>
-  </div>
 </header>
+
 <main>
-  <div class="col">
-    <section>
-      <h2>En antena</h2>
-      <div class="antena">
-        <div><div class="que" id="que">Esperando partida</div><div class="detalle" id="detalle"></div></div>
-        <button class="grande" id="botonControl">Tomar el control</button>
+  <!-- Directo: el botón y lo que falta -->
+  <div class="pestana" id="directo">
+    <div class="directo">
+      <div>
+        <section class="estado" id="cajaEstado">
+          <span class="insignia" id="insignia">Preparando</span>
+          <div class="titulo" id="titulo">Conectando…</div>
+          <div class="cuenta" id="cuenta" hidden></div>
+          <div class="sub" id="sub"></div>
+          <button class="boton" id="boton" disabled>Empezar directo</button>
+          <div class="modos" id="modos" title="Elige antes de empezar">
+            <button data-m="emitir" class="activa">Emitir en directo</button>
+            <button data-m="grabar">Prueba: solo grabar</button>
+          </div>
+          <div class="error" id="error" hidden></div>
+        </section>
+        <div class="relojes">
+          <div class="reloj"><span>Partida en directo</span><b id="tDirecto">--:--</b></div>
+          <div class="reloj"><span>Lo que se emite</span><b id="tAntena">--:--</b></div>
+          <div class="reloj"><span>Margen</span><b id="margen">--</b></div>
+          <div class="barra" title="Margen de la antena respecto al directo"><i id="barra" style="width:0"></i></div>
+        </div>
+        <section class="enAntena" id="cajaEnAntena" hidden>
+          <div><h2 style="margin:0 0 4px">En antena</h2><div class="que" id="queResumen"></div></div>
+          <button id="irRealizacion">Ver realización</button>
+        </section>
       </div>
-      <div class="jugadores" id="jugadores"></div>
-      <div style="margin-top:8px"><button id="general">Plano general</button></div>
-    </section>
-    <section>
-      <h2>Próximos planos</h2>
-      <ol id="proximos"></ol>
-    </section>
-    <section>
-      <h2>Acciones programadas</h2>
-      <ol id="acciones"></ol>
-    </section>
+      <div>
+        <section>
+          <h2>Para empezar hace falta</h2>
+          <div class="lista" id="condiciones"></div>
+        </section>
+        <div class="como">
+          <b>Cómo va</b>
+          <ol>
+            <li>Pulsa <b>Empezar directo</b> cuando quieras, aunque falte algo.</li>
+            <li>Espectead la partida en los dos PCs. El PC 2 la pone 2 minutos por detrás.</li>
+            <li>Unos segundos antes del principio, OBS empieza a emitir con la escena de pausa.</li>
+            <li>La partida sale desde el segundo 0. Al acabar pasa a casters y la siguiente entra sola.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
   </div>
-  <div class="col">
-    <section class="avisos" id="cajaAvisos" hidden>
-      <h2>Avisos</h2>
-      <ul id="avisos"></ul>
-    </section>
-    <section>
-      <h2>Jugadas</h2>
-      <ol id="jugadas"></ol>
-    </section>
-    <section>
-      <h2>Registro</h2>
-      <ol class="registro" id="registro"></ol>
-    </section>
+
+  <!-- Realización (solo PC 1) -->
+  <div class="pestana real" id="realizacion" hidden>
+    <div class="col">
+      <section>
+        <h2>En antena</h2>
+        <div class="antena">
+          <div><div class="que" id="que">Esperando partida</div><div class="detalle" id="detalle"></div></div>
+          <button class="grande" id="botonControl">Tomar el control</button>
+        </div>
+        <div class="jugadores" id="jugadores"></div>
+        <div style="margin-top:8px"><button id="general">Plano general</button></div>
+      </section>
+      <section><h2>Próximos planos</h2><ol class="l" id="proximos"></ol></section>
+      <section><h2>Acciones programadas</h2><ol class="l" id="acciones"></ol></section>
+    </div>
+    <div class="col">
+      <section><h2>Jugadas</h2><ol class="l" id="jugadas"></ol></section>
+    </div>
+  </div>
+
+  <!-- Registro -->
+  <div class="pestana" id="registroP" hidden>
+    <div class="real">
+      <section><h2>Registro</h2><ol class="l registro" id="registro"></ol></section>
+      <section class="avisos"><h2>Avisos</h2><ul class="l" id="avisos"></ul></section>
+    </div>
   </div>
 </main>
+
+<div class="toast" id="toast" hidden></div>
+<div class="desconectado" id="desconectado" hidden>
+  <div><div class="titulo">El realizador está cerrado</div><p class="sub">Vuelve a abrir «Realizador PC1» o «Realizador PC2» desde el escritorio. Esta página se reconecta sola.</p></div>
+</div>
+
 <script>
   const $ = id => document.getElementById(id);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const reloj = t => t === null || t === undefined ? '--:--' : `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
-  const NOMBRES = { explorador: 'Explorador', liveEvents: 'LiveEvents', puente: 'Servidor del puente', rele: 'PC 2', obs: 'OBS', tenka: 'TENKA ICHI' };
+  const NOMBRES = { explorador: 'LoL', liveEvents: 'LiveEvents', puente: 'Servidor', rele: 'PC 2', pc1: 'PC 1', obs: 'OBS', tenka: 'TENKA ICHI' };
   const TIPOS = { pelea: 'Pelea', objetivo: 'Objetivo', muerte: 'Muerte', estructura: 'Estructura' };
   const ESTADOS = { pendientes: 'pendiente', guion: 'en guion', 'en-curso': 'en antena', emitidos: 'emitida', descartadas: 'descartada' };
   let f = null;
+  let modo = null;          // elegido en esta página antes de empezar
+  let confirmar = 0;        // hora hasta la que vale el segundo clic de «Terminar»
 
-  const plano = p => p.tipo === 'general' ? 'Plano general' : `Sigue a ${esc(p.objetivo?.campeon)} <span class="vacio">${esc(p.objetivo?.jugador)}</span>`;
+  // ---------- pestañas ----------
+  const PESTANAS = { directo: 'directo', realizacion: 'realizacion', registro: 'registroP' };
+  function ir(p) {
+    for (const [k, id] of Object.entries(PESTANAS)) $(id).hidden = k !== p;
+    for (const b of $('pestanas').children) b.classList.toggle('activa', b.dataset.p === p);
+    try { localStorage.setItem('pestana', p); } catch {}
+  }
+  $('pestanas').onclick = e => { const b = e.target.closest('button'); if (b) ir(b.dataset.p); };
+  $('irRealizacion').onclick = () => ir('realizacion');
 
-  function pintar() {
-    if (!f) return;
-    $('conex').innerHTML = Object.entries(f.conexiones).filter(([k, v]) => v !== null && v !== undefined && k !== 'releIp')
-      .map(([k, v]) => `<span><i class="punto ${v ? 'si' : 'no'}"></i>${NOMBRES[k] || k}</span>`).join('');
-    $('tDirecto').textContent = reloj(f.tDirecto);
-    $('tAntena').textContent = reloj(f.tAntena);
-    $('margen').textContent = f.margenReal === null ? '--' : `${Math.round(f.margenReal)} s`;
-
-    const p = f.planoActual;
-    $('que').innerHTML = f.manual ? 'Control manual' : p ? plano(p) : (f.tAntena === null ? 'Esperando partida' : 'Sin plano');
-    $('detalle').textContent = f.modoRele === 'degradado' ? 'El relé está en modo degradado: no le llegan órdenes'
-      : p?.jugada ? `Jugada ${p.jugada}` : '';
-    const b = $('botonControl');
-    b.textContent = f.manual ? 'Devolver el control' : 'Tomar el control';
-    b.classList.toggle('manual', f.manual);
-
-    $('jugadores').innerHTML = (f.jugadores || []).map((j, i) =>
-      `<button class="${esc(j.equipo)}" data-i="${i}">${esc(j.campeon)}<small>${esc(j.jugador)} · ${esc(j.posicion)}</small></button>`).join('');
-
-    $('proximos').innerHTML = f.proximos.length ? f.proximos.map(x =>
-      `<li><span class="t">${f.tAntena === null ? reloj(x.inicio) : '+' + Math.round(x.inicio - f.tAntena) + ' s'}</span><span>${plano(x)}</span></li>`).join('')
-      : '<li class="vacio">Nada aún</li>';
-    $('acciones').innerHTML = f.acciones.length ? f.acciones.map(a =>
-      `<li><span class="t">${reloj(a.t)}</span><span>${a.tipo === 'repeticion' ? 'Repetición de ' + esc(a.jugada) : 'Línea por línea'} · ${a.segundos} s</span></li>`).join('')
-      : '<li class="vacio">Ninguna</li>';
-    $('jugadas').innerHTML = f.jugadas.length ? f.jugadas.map(j =>
-      `<li><span class="t">${reloj(j.inicio)}</span><span>${TIPOS[j.tipo] || j.tipo}${j.muertes ? ' · ' + j.muertes + (j.muertes === 1 ? ' muerte' : ' muertes') : ''}${j.objetivos.length ? ' · ' + esc(j.objetivos.join(', ')) : ''}${j.repetir ? ' · repetir' : ''}
-       <span class="vacio">${esc(j.campeones.join(', '))}</span></span><span class="chip ${j.estado}" style="margin-left:auto">${ESTADOS[j.estado] || j.estado}</span></li>`).join('')
-      : '<li class="vacio">Sin jugadas</li>';
-    $('registro').innerHTML = f.registro.map(r =>
-      `<li><span class="t">${esc(r.hora.slice(11, 19))}</span><span>${esc(r.quien)} · ${esc(r.que)}${r.jugada ? ' ' + esc(r.jugada) : ''}${r.motivo ? ' (' + esc(r.motivo) + ')' : ''}</span></li>`).join('');
-    $('cajaAvisos').hidden = !f.avisos.length;
-    $('avisos').innerHTML = f.avisos.map(a => `<li>${esc(a.hora.slice(11, 19))} · ${esc(a.texto)}</li>`).join('');
+  function aviso(texto) {
+    $('toast').textContent = texto;
+    $('toast').hidden = false;
+    clearTimeout(aviso.t);
+    aviso.t = setTimeout(() => { $('toast').hidden = true; }, 6000);
   }
 
   async function mandar(ruta, cuerpo) {
-    const r = await fetch(ruta, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) });
-    const d = await r.json();
-    if (!d.ok) alert(d.error || 'No se pudo');
+    try {
+      const r = await fetch(ruta, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) });
+      const d = await r.json();
+      if (!d.ok) aviso(d.error || 'No se pudo');
+    } catch { aviso('No se pudo hablar con el realizador'); }
   }
 
+  const plano = p => p.tipo === 'general' ? 'Plano general' : `Sigue a ${esc(p.objetivo?.campeon)} <span class="vacio">${esc(p.objetivo?.jugador)}</span>`;
+
+  // ---------- Directo ----------
+  function pintarDirecto() {
+    const e = f.emision;
+    const fase = e?.fase || null;
+    const grabar = (e?.modo || modo) === 'grabar';
+    const enAire = Boolean(e?.enElAire);
+    const faltan = f.faltan;
+    const pendientes = (f.condiciones || []).filter(c => !c.ok && c.bloquea);
+
+    let insignia = 'Preparando', clase = 'espera', titulo = '', sub = '', cuenta = null;
+    let boton = { texto: 'Empezar directo', clase: '', accion: 'armar', activo: Boolean(e) };
+
+    if (!e) {
+      titulo = f.papel === 'pc1' ? 'Falta el PC 2' : 'Arrancando…';
+      sub = f.papel === 'pc1' ? 'El botón se activa en cuanto el PC 2 esté conectado.' : '';
+      boton.activo = false;
+    } else if (fase === 'apagada') {
+      if (f.listo) { insignia = 'Todo listo'; clase = 'listo'; titulo = 'Listo para empezar'; }
+      else { titulo = pendientes.length === 1 ? `Falta: ${pendientes[0].texto.toLowerCase()}` : `Faltan ${pendientes.length} cosas`; }
+      sub = f.listo && faltan === null ? 'La partida ya está en antena: si pulsas ahora, el directo empieza donde vaya.'
+        : f.listo ? 'Pulsa y el directo empezará solo, con la partida desde el segundo 0.'
+        : 'Puedes pulsarlo ya: el directo empezará solo, desde el principio de la partida, cuando esté todo.';
+    } else if (fase === 'armada' && enAire) {
+      insignia = grabar ? 'Grabando' : 'En el aire'; clase = 'vivo';
+      titulo = e.partidas ? `Entre partidas (${e.partidas} emitida${e.partidas === 1 ? '' : 's'})` : 'En el aire';
+      sub = f.listo && faltan !== null ? `La siguiente partida sale en antena en ${reloj(faltan)}.` : 'Sale la escena de casters. La siguiente partida entrará sola al empezar.';
+      boton = { texto: 'Terminar emisión', clase: 'terminar', accion: 'terminar', activo: true };
+    } else if (fase === 'armada') {
+      insignia = 'Preparado'; clase = 'listo';
+      if (!f.listo) { titulo = 'Esperando'; sub = `Empezará solo cuando esté: ${pendientes.map(c => c.texto.toLowerCase()).join(', ')}.`; insignia = 'Esperando'; clase = 'espera'; }
+      else if (faltan !== null) { titulo = 'La partida sale en'; cuenta = reloj(faltan); sub = `OBS empezará a ${grabar ? 'grabar' : 'emitir'} ${e.previaSegundos} s antes, con la escena de pausa.`; }
+      else { titulo = 'Arrancando OBS…'; }
+      boton = { texto: 'Cancelar', clase: 'cancelar', accion: 'cancelar', activo: true };
+    } else if (fase === 'previa') {
+      insignia = grabar ? 'Grabando' : 'En el aire'; clase = 'vivo';
+      titulo = 'Empezamos'; cuenta = faltan !== null ? reloj(faltan) : null;
+      sub = 'Sale la escena de pausa. La partida entra en antena desde el principio.';
+      boton = { texto: 'Terminar emisión', clase: 'terminar', accion: 'terminar', activo: true };
+    } else if (fase === 'directo') {
+      insignia = grabar ? 'Grabando' : 'En directo'; clase = 'vivo';
+      titulo = `Partida en antena · ${reloj(f.tAntena)}`;
+      sub = e.desdeSegundo > 0 ? `Empezó en el minuto ${reloj(e.desdeSegundo)} (se pulsó con la partida empezada).` : 'Desde el principio. El realizador lleva la cámara y las repeticiones.';
+      boton = { texto: 'Terminar emisión', clase: 'terminar', accion: 'terminar', activo: true };
+    }
+    if (boton.accion === 'terminar' && Date.now() < confirmar) boton = { ...boton, texto: '¿Seguro? Pulsa otra vez', clase: 'seguro' };
+
+    $('insignia').textContent = insignia;
+    $('insignia').className = `insignia ${clase}`;
+    $('cajaEstado').classList.toggle('vivo', clase === 'vivo');
+    $('titulo').textContent = titulo;
+    $('cuenta').hidden = cuenta === null;
+    $('cuenta').textContent = cuenta ?? '';
+    $('sub').textContent = sub;
+    const b = $('boton');
+    b.textContent = boton.texto;
+    b.className = `boton ${boton.clase}`;
+    b.disabled = !boton.activo;
+    b.dataset.accion = boton.accion;
+
+    // Modo: se elige con la emisión apagada; luego se enseña el que va
+    const m = fase && fase !== 'apagada' ? e.modo : (modo || e?.modo || 'emitir');
+    for (const x of $('modos').children) x.classList.toggle('activa', x.dataset.m === m);
+    $('modos').hidden = Boolean(fase && fase !== 'apagada');
+    $('error').hidden = !e?.error;
+    $('error').textContent = e?.error || '';
+
+    $('tDirecto').textContent = reloj(f.tDirecto);
+    $('tAntena').textContent = reloj(f.tAntena);
+    $('margen').textContent = f.margenReal === null || f.margenReal === undefined ? '--' : `${Math.round(f.margenReal)} s`;
+    const pct = f.margenReal ? Math.max(0, Math.min(100, f.margenReal / f.margen * 100)) : (f.tDirecto ? Math.min(100, f.tDirecto / f.margen * 100) : 0);
+    $('barra').style.width = `${pct}%`;
+
+    $('condiciones').innerHTML = (f.condiciones || []).map(c => {
+      const cl = c.ok ? 'ok' : c.bloquea ? 'no' : 'opcional';
+      return `<div class="cond ${cl}"><span class="icono">${c.ok ? '✓' : c.bloquea ? '✕' : '!'}</span><span>${esc(c.texto)}</span>${c.ok ? '' : `<small>${esc(c.ayuda)}</small>`}</div>`;
+    }).join('');
+
+    if (f.papel === 'pc1') {
+      const p = f.planoActual;
+      $('cajaEnAntena').hidden = f.tAntena === null || f.tAntena === undefined;
+      $('queResumen').innerHTML = f.manual ? 'Control manual' : p ? plano(p) : 'Sin plano';
+    }
+  }
+
+  $('boton').onclick = () => {
+    const a = $('boton').dataset.accion;
+    if (a === 'terminar' && Date.now() >= confirmar) { confirmar = Date.now() + 4000; pintar(); setTimeout(pintar, 4100); return; }
+    confirmar = 0;
+    mandar('/emision', { accion: a, modo: modo || f?.emision?.modo || 'emitir' });
+  };
+  $('modos').onclick = e => {
+    const b = e.target.closest('button');
+    if (!b || b.disabled) return;
+    modo = b.dataset.m;
+    try { localStorage.setItem('modo', modo); } catch {}
+    if (f) pintar();
+  };
+
+  // ---------- Realización (PC 1) ----------
+  function pintarRealizacion() {
+    const p = f.planoActual;
+    $('que').innerHTML = f.manual ? 'Control manual' : p ? plano(p) : (f.tAntena === null ? 'Esperando partida' : 'Sin plano');
+    $('detalle').textContent = f.modoRele === 'degradado' ? 'El PC 2 no recibe órdenes: la cámara va sola' : p?.jugada ? `Jugada ${p.jugada}` : '';
+    const b = $('botonControl');
+    b.textContent = f.manual ? 'Devolver el control' : 'Tomar el control';
+    b.classList.toggle('manual', f.manual);
+    $('jugadores').innerHTML = (f.jugadores || []).map((j, i) =>
+      `<button class="${esc(j.equipo)}" data-i="${i}">${esc(j.campeon)}<small>${esc(j.jugador)} · ${esc(j.posicion)}</small></button>`).join('');
+    $('proximos').innerHTML = f.proximos?.length ? f.proximos.map(x =>
+      `<li><span class="t">${f.tAntena === null ? reloj(x.inicio) : '+' + Math.round(x.inicio - f.tAntena) + ' s'}</span><span>${plano(x)}</span></li>`).join('')
+      : '<li class="vacio">Nada aún</li>';
+    $('acciones').innerHTML = f.acciones?.length ? f.acciones.map(a =>
+      `<li><span class="t">${reloj(a.t)}</span><span>${a.tipo === 'repeticion' ? 'Repetición de ' + esc(a.jugada) : 'Línea por línea'} · ${a.segundos} s</span></li>`).join('')
+      : '<li class="vacio">Ninguna</li>';
+    $('jugadas').innerHTML = f.jugadas?.length ? f.jugadas.map(j =>
+      `<li><span class="t">${reloj(j.inicio)}</span><span>${TIPOS[j.tipo] || j.tipo}${j.muertes ? ' · ' + j.muertes + (j.muertes === 1 ? ' muerte' : ' muertes') : ''}${j.objetivos.length ? ' · ' + esc(j.objetivos.join(', ')) : ''}${j.repetir ? ' · repetir' : ''}
+       <span class="vacio">${esc(j.campeones.join(', '))}</span></span><span class="chip ${j.estado}" style="margin-left:auto">${ESTADOS[j.estado] || j.estado}</span></li>`).join('')
+      : '<li class="vacio">Sin jugadas</li>';
+  }
   $('botonControl').onclick = () => mandar('/control', { manual: !f?.manual });
   $('general').onclick = () => mandar('/orden', { tipo: 'general' });
   $('jugadores').onclick = e => {
@@ -155,8 +369,33 @@
     mandar('/orden', { tipo: 'seguir', objetivo: { jugador: j.jugador, campeon: j.campeon, equipo: j.equipo } });
   };
 
+  // ---------- Registro ----------
+  function pintarRegistro() {
+    $('registro').innerHTML = (f.registro || []).map(r =>
+      `<li><span class="t">${esc(new Date(r.hora).toLocaleTimeString('es-ES'))}</span><span>${esc(r.quien)} · ${esc(r.que)}${r.jugada ? ' ' + esc(r.jugada) : ''}${r.motivo ? ' (' + esc(r.motivo) + ')' : ''}</span></li>`).join('')
+      || '<li class="vacio">Nada aún</li>';
+    $('avisos').innerHTML = (f.avisos || []).map(a => `<li>${esc(new Date(a.hora).toLocaleTimeString('es-ES'))} · ${esc(a.texto)}</li>`).join('')
+      || '<li class="vacio">Ninguno</li>';
+  }
+
+  function pintar() {
+    if (!f) return;
+    const pc1 = f.papel === 'pc1';
+    $('papel').textContent = pc1 ? 'PC 1 · realización' : 'PC 2 · emisión';
+    document.title = `Realizador · ${pc1 ? 'PC 1' : 'PC 2'}`;
+    $('pRealizacion').hidden = !pc1;
+    $('conex').innerHTML = Object.entries(f.conexiones || {}).filter(([k, v]) => v !== null && v !== undefined && NOMBRES[k])
+      .map(([k, v]) => `<span><i class="punto ${v ? 'si' : 'no'}"></i>${NOMBRES[k]}</span>`).join('');
+    pintarDirecto();
+    if (pc1) pintarRealizacion();
+    pintarRegistro();
+  }
+
+  try { modo = localStorage.getItem('modo'); const p = localStorage.getItem('pestana'); if (p && PESTANAS[p]) ir(p); } catch {}
+
   const fuente = new EventSource('/sse');
-  fuente.onmessage = m => { f = JSON.parse(m.data); pintar(); };
+  fuente.onmessage = m => { f = JSON.parse(m.data); $('desconectado').hidden = true; if (f.papel !== 'pc1' && !$('realizacion').hidden) ir('directo'); pintar(); };
+  fuente.onerror = () => { $('desconectado').hidden = false; };
 </script>
 </body>
 </html>

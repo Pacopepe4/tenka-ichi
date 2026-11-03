@@ -13,6 +13,7 @@ import { arrancarPanel } from './panel.js';
 import { buscar } from '../comun/puente.js';
 import { Sala } from '../comun/sala.js';
 import { aplicarPerfil, restaurarPerfil, rutaConfig } from '../instalar/configurar-lol.js';
+import { condiciones } from '../comun/condiciones.js';
 
 // «explorador» permite cambiar de dónde salen los sucesos (el modo grabada pone el suyo)
 export function arrancarAgente(o, { perfilMinimo = false, log = console.log, explorador: otroExplorador = null, sala: otraSala = null } = {}) {
@@ -101,7 +102,12 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
     ejecutor.apuntar('realizador', 'partida nueva', info);
     log(`Partida encontrada (${info.modo || 'modo desconocido'}). Registro en ${buzon.carpeta}`);
   });
-  explorador.on('fin', info => ejecutor.apuntar('realizador', 'fin de la partida', info));
+  explorador.on('fin', info => {
+    // El PC 2 pasa a la escena final cuando la antena llegue a este segundo
+    ejecutor.tFin = explorador.tiempo?.t ?? explorador.ahora();
+    ejecutor.hayCambios();
+    ejecutor.apuntar('realizador', 'fin de la partida', { ...info, t: ejecutor.tFin });
+  });
   explorador.on('evento', e => {
     const j = cerebro.agregar(e);
     if (j) ejecutor.hayCambios();
@@ -118,7 +124,20 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
     if (!obs && ejecutor.antena && ejecutor.antena.obs !== undefined && ejecutor.antena.obs !== null) conexiones.obs = ejecutor.releConectado && ejecutor.antena.obs;
     const tA = ejecutor.tAntena();
     const tD = explorador.ahora();
+    // Lo que manda el relé del PC 2 (emisión, OBS, su LoL), si está conectado
+    const a = ejecutor.releConectado ? ejecutor.antena : null;
+    const c = condiciones({
+      papel: 'pc1', pc1: true, pc2: ejecutor.releConectado,
+      partidaPc1: Boolean(conexiones.explorador && partida), partidaPc2: Boolean(a?.juego),
+      obs: a ? a.obs === true : null, bufer: a ? a.bufer ?? null : null,
+    });
+    const faltan = Number.isFinite(a?.faltan) ? Math.max(0, a.faltan - (Date.now() - a.recibido) / 1000) : null;
     return {
+      papel: 'pc1',
+      condiciones: c.lista,
+      listo: c.listo,
+      emision: a?.emision || null,
+      faltan,
       conexiones,
       partida,
       jugadores: explorador.jugadores,
@@ -146,6 +165,7 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
     foto,
     control: async ({ manual }) => ejecutor.ponerManual(manual),
     orden: async orden => ejecutor.ordenManual(orden),
+    emision: async orden => ejecutor.emision(orden),
   });
 
   // Panel de TENKA ICHI (sección «Realizador»): ve lo mismo que este panel y puede tomar el control
@@ -155,6 +175,7 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
       try {
         if (d.tipo === 'panelControl') await ejecutor.ponerManual(Boolean(d.manual), 'panel de TENKA ICHI');
         else if (d.tipo === 'panelOrden' && d.orden) await ejecutor.ordenManual(d.orden, 'panel de TENKA ICHI');
+        else if (d.tipo === 'panelEmision') await ejecutor.emision(d, 'panel de TENKA ICHI');
       } catch (e) { avisar(`Orden del panel de TENKA ICHI: ${e.message}`); }
     });
     fotoSala = setInterval(() => sala.enviar({ tipo: 'foto', ...foto(), registro: registro.slice(0, 15) }), 1000);
@@ -178,8 +199,7 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
       sala?.cerrar();
       obs?.cerrar();
       tenka?.cerrar();
-      panel.servidor.closeAllConnections?.();
-      panel.servidor.close();
+      panel.parar();
       if (perfilAplicado) {
         try { restaurarPerfil(perfilAplicado); log('Perfil del juego restaurado'); } catch (e) { log(`No se pudo restaurar el perfil: ${e.message}`); }
       }

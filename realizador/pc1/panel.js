@@ -1,5 +1,6 @@
-// Panel de supervisión (PC 1): una página local con el guion próximo, lo que está en antena y el botón de
-// tomar el control. Se actualiza solo por Server-Sent Events.
+// Interfaz del realizador: una página local que se actualiza sola por Server-Sent Events. La usan los dos PCs
+// (la misma página, con lo que sabe cada uno): el botón de empezar el directo, lo que falta para empezar y,
+// en el PC 1, la realización (lo que está en antena, tomar el control, próximos planos, jugadas, registro).
 import http from 'node:http';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -8,7 +9,7 @@ import { leerCuerpo, responder } from '../comun/http.js';
 
 const CARPETA = join(dirname(fileURLToPath(import.meta.url)), 'panel');
 
-export function arrancarPanel({ puerto, foto, control, orden }) {
+export function arrancarPanel({ puerto, host, foto, control, orden, emision }) {
   const oyentes = new Set();
   let programado = null;
 
@@ -27,13 +28,18 @@ export function arrancarPanel({ puerto, foto, control, orden }) {
         req.on('close', () => oyentes.delete(res));
         return;
       }
-      if (req.method === 'POST' && url.pathname === '/control') {
+      if (req.method === 'POST' && url.pathname === '/control' && control) {
         await control(await leerCuerpo(req));
         emitir();
         return responder(res, { ok: true });
       }
-      if (req.method === 'POST' && url.pathname === '/orden') {
+      if (req.method === 'POST' && url.pathname === '/orden' && orden) {
         await orden(await leerCuerpo(req));
+        emitir();
+        return responder(res, { ok: true });
+      }
+      if (req.method === 'POST' && url.pathname === '/emision' && emision) {
+        await emision(await leerCuerpo(req));
         emitir();
         return responder(res, { ok: true });
       }
@@ -42,7 +48,11 @@ export function arrancarPanel({ puerto, foto, control, orden }) {
       responder(res, { ok: false, error: e.message }, 500);
     }
   });
-  servidor.listen(puerto);
+  servidor.on('error', e => {
+    if (e.code === 'EADDRINUSE') console.error(`El puerto ${puerto} está ocupado: ¿hay otro realizador abierto? Ciérralo y vuelve a abrir este.`);
+    else console.error(`Página: ${e.message}`);
+  });
+  servidor.listen(puerto, host);
 
   // Como mucho 4 envíos por segundo, aunque cambien muchas cosas a la vez
   function emitir() {
@@ -54,7 +64,18 @@ export function arrancarPanel({ puerto, foto, control, orden }) {
     }, 250);
   }
   // Y una vez por segundo para que corran los relojes
-  setInterval(emitir, 1000).unref();
+  const reloj = setInterval(emitir, 1000);
+  reloj.unref();
 
-  return { emitir, servidor };
+  return {
+    emitir,
+    servidor,
+    parar() {
+      clearInterval(reloj);
+      clearTimeout(programado);
+      for (const r of oyentes) r.end();
+      servidor.closeAllConnections?.();
+      servidor.close();
+    },
+  };
 }

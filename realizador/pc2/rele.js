@@ -11,11 +11,21 @@ import { pedirJSON, leerCuerpo, responder } from '../comun/http.js';
 import { anunciar, ficha, igual, CABECERA } from '../comun/puente.js';
 import { Sala } from '../comun/sala.js';
 import { Obs, segundosAtras } from '../pc1/obs.js';
+import { Emision } from './emision.js';
+import { condiciones } from '../comun/condiciones.js';
+import { arrancarPanel } from '../pc1/panel.js';
 
 // obs: false para no tocar OBS desde el relé (modo de un solo PC, donde lo lleva el agente). En las pruebas,
 // obs y sala pueden ser objetos de mentira.
-export function crearRele(o, { registrar = console.log, obs: conObs = true, sala: otraSala = null } = {}) {
+export function crearRele(o, { registrar: registrarFuera = console.log, obs: conObs = true, sala: otraSala = null, panel: conPanel = false } = {}) {
   const r = o.rele;
+  // Lo que se apunta también se guarda para la página del PC 2
+  const registro = [];
+  const registrar = texto => {
+    registro.unshift({ hora: new Date().toISOString(), texto });
+    registro.length = Math.min(registro.length, 60);
+    registrarFuera(texto);
+  };
   const api = r.replayApi.replace(/\/$/, '');
   const estado = {
     planos: [],
@@ -31,6 +41,8 @@ export function crearRele(o, { registrar = console.log, obs: conObs = true, sala
     accionesObs: [],        // lo que hay que hacer en el OBS de este PC (lo manda el PC 1 con el guion)
     hechasObs: new Set(),
     clips: new Map(),       // jugada → { ruta, t }
+    meta: null,             // segundo al que va (o irá) la antena; negativo mientras espera el margen
+    tFin: null,             // segundo en que acabó la partida (lo dice el PC 1)
   };
 
   // OBS de este mismo PC: guarda el búfer y lanza las repeticiones cuando la antena llega a su segundo
@@ -39,6 +51,12 @@ export function crearRele(o, { registrar = console.log, obs: conObs = true, sala
     : null;
   if (typeof conObs !== 'object') obs?.on('conexion', v => registrar(v ? '[obs] conectado' : '[obs] sin conexión (¿está abierto?)'));
   if (typeof conObs !== 'object') obs?.conectar();
+
+  // El botón de «Empezar directo»: arranca OBS justo para que la partida salga desde el principio
+  const emision = new Emision({
+    opciones: o.emision, obs, registrar,
+    escenas: { juego: o.obs?.escenaJuego, previa: o.obs?.escenaPausa, final: o.obs?.escenaCasters },
+  });
 
   async function hacerObs(tA) {
     if (!obs) return;
@@ -138,12 +156,15 @@ export function crearRele(o, { registrar = console.log, obs: conObs = true, sala
       if (++estado.errores === 3) registrar(`[antena] sin respuesta de la Replay API: ${e.message}`);
       estado.playback = null;
       estado.modo = 'sin-juego';
+      estado.meta = null;
+      await pasoEmision();
       return;
     }
 
     // 1. Retraso de la antena (en una partida grabada el reloj lo lleva quien la ve: el relé solo mueve la cámara)
     const ahora = Date.now();
     const meta = r.controlarReloj === false ? null : objetivoAntena(pb);
+    estado.meta = meta;
     if (meta === null) {
       // nada
     } else if (meta < 0) {
@@ -178,7 +199,34 @@ export function crearRele(o, { registrar = console.log, obs: conObs = true, sala
 
     // 3. OBS (repeticiones)
     hacerObs(pb.time).catch(e => registrar(`[obs] ${e.message}`));
+
+    // 4. Emisión (el botón de empezar el directo)
+    await pasoEmision();
   }
+
+  // ---------- emisión con un botón ----------
+  const pc1Conectado = () => (sala ? sala.companero : Date.now() - estado.ultimoContacto < 10000);
+  const partidaPc1 = () => Boolean(estado.directo && Date.now() - estado.directo.hora < 10000);
+  function condicionesAhora() {
+    return condiciones({
+      papel: 'pc2', pc1: pc1Conectado(), pc2: true, partidaPc1: partidaPc1(), partidaPc2: Boolean(estado.playback),
+      obs: obs ? Boolean(obs.listo) : null, bufer: emision.salidas ? emision.salidas.bufer : null,
+    });
+  }
+  function tAntenaAhora() {
+    const pb = estado.playback;
+    return pb ? (pb.paused ? pb.time : pb.time + (Date.now() - pb.hora) / 1000) : null;
+  }
+  async function pasoEmision() {
+    try {
+      await emision.paso({
+        meta: estado.meta, tAntena: tAntenaAhora(), pausado: estado.playback?.paused ?? true,
+        juego: Boolean(estado.playback), listo: condicionesAhora().listo, tFin: estado.tFin,
+      });
+    } catch (e) { registrar(`[emisión] ${e.message}`); }
+  }
+  // Segundos que faltan para que la partida salga en antena (desde el principio)
+  const faltan = () => (Number.isFinite(estado.meta) && estado.meta < 0 ? -estado.meta : null);
 
   function estadoPublico() {
     const pb = estado.playback;
@@ -187,11 +235,30 @@ export function crearRele(o, { registrar = console.log, obs: conObs = true, sala
       tAntena, pausado: pb?.paused ?? null, length: pb?.length ?? null, modo: estado.modo,
       plano: estado.aplicado, zoom: estado.zoomAplicado || null, planos: estado.planos.length,
       obs: obs ? obs.listo : null,
+      juego: Boolean(pb), faltan: faltan(), emision: emision.publico(),
+      bufer: emision.salidas ? emision.salidas.bufer : null,
+    };
+  }
+
+  // Página del PC 2 (la misma interfaz que el PC 1, con lo que se sabe aquí)
+  function foto() {
+    const c = condicionesAhora();
+    const tA = tAntenaAhora();
+    const tD = partidaPc1() ? estado.directo.t + (Date.now() - estado.directo.hora) / 1000 : null;
+    return {
+      papel: 'pc2',
+      conexiones: { ...(sala ? { puente: sala.unido } : {}), pc1: pc1Conectado(), obs: obs ? Boolean(obs.listo) : null },
+      condiciones: c.lista, listo: c.listo,
+      emision: emision.publico(), faltan: faltan(),
+      tDirecto: tD, tAntena: tA, margenReal: tA !== null && tD !== null ? tD - tA : null, margen: o.margenSegundos,
+      modoRele: estado.modo, manual: estado.manual,
+      registro: registro.slice(0, 40).map(l => ({ hora: l.hora, quien: 'PC 2', que: l.texto })),
     };
   }
 
   function recibirGuion(d) {
     estado.ultimoContacto = Date.now();
+    if (d.tFin === null || Number.isFinite(d.tFin)) estado.tFin = d.tFin;
     if (Number.isFinite(d.tDirecto)) estado.directo = { t: d.tDirecto, hora: Date.now() };
     if (Array.isArray(d.planos)) estado.planos = d.planos.filter(p => Number.isFinite(p.inicio)).sort((a, b) => a.inicio - b.inicio);
     if (Array.isArray(d.obs)) estado.accionesObs = d.obs.filter(a => a && a.id && Number.isFinite(a.t));
@@ -223,6 +290,10 @@ export function crearRele(o, { registrar = console.log, obs: conObs = true, sala
         recibirOrden(await leerCuerpo(req));
         return responder(res, { ok: true });
       }
+      if (req.method === 'POST' && url.pathname === '/emision') {
+        await emision.orden(await leerCuerpo(req));
+        return responder(res, { ok: true, emision: emision.publico() });
+      }
       responder(res, { ok: false, error: 'No existe' }, 404);
     } catch (e) {
       responder(res, { ok: false, error: e.message }, 500);
@@ -244,6 +315,7 @@ export function crearRele(o, { registrar = console.log, obs: conObs = true, sala
       else if (d.tipo === 'orden') recibirOrden(d.orden || {});
       // Un PC 1 anterior mandaba la orden suelta (su tipo pisaba el del mensaje): también vale
       else if (d.tipo === 'seguir' || d.tipo === 'general') recibirOrden(d);
+      else if (d.tipo === 'emision') emision.orden(d).catch(e => registrar(`[emisión] ${e.message}`));
     });
   }
   const vuelta = async () => {
@@ -251,9 +323,21 @@ export function crearRele(o, { registrar = console.log, obs: conObs = true, sala
     temporizador = setTimeout(vuelta, r.cadaMs);
   };
 
+  // Cada cambio de la emisión sale enseguida hacia el PC 1 (y su página), sin esperar al latido
+  emision.on('cambio', () => { sala?.enviar({ tipo: 'estado', ...estadoPublico() }); panel?.emitir(); });
+  let panel = null;
+
   return {
     estado,
+    emision,
+    foto,
     arrancar(puerto = r.puerto) {
+      if (conPanel) {
+        panel = arrancarPanel({
+          puerto: o.panelPc2?.puerto ?? 4601, host: '127.0.0.1', foto,
+          emision: d => emision.orden(d),
+        });
+      }
       servidor.listen(puerto, '0.0.0.0');
       if (o.clave && r.anunciarse !== false && !sala) anuncio = anunciar({ clave: o.clave, puerto });
       if (sala) {
@@ -263,15 +347,21 @@ export function crearRele(o, { registrar = console.log, obs: conObs = true, sala
       vuelta();
       return servidor;
     },
-    parar() { clearTimeout(temporizador); clearInterval(latido); anuncio?.parar(); sala?.cerrar(); if (typeof conObs !== 'object') obs?.cerrar(); servidor.close(); },
+    parar() {
+      clearTimeout(temporizador); clearInterval(latido); anuncio?.parar(); sala?.cerrar();
+      if (typeof conObs !== 'object') obs?.cerrar();
+      servidor.close();
+      if (panel) { panel.parar(); panel = null; }
+    },
   };
 }
 
 // Arrancado directamente (npm run rele)
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const o = cargarOpciones();
-  const rele = crearRele(o);
+  const rele = crearRele(o, { panel: true });
   rele.arrancar();
+  console.log(`Página del PC 2: http://localhost:${o.panelPc2?.puerto ?? 4601}/`);
   console.log(`Relé en marcha en el puerto ${o.rele.puerto}. Replay API: ${o.rele.replayApi}. Margen: ${o.margenSegundos} s`);
   console.log(o.clave && o.puente?.modo === 'tenka'
     ? `Puente por el servidor de TENKA ICHI (${o.puente.url}) con la contraseña.`

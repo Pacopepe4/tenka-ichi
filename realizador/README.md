@@ -58,7 +58,19 @@ Cada directo: abre **Realizador PC2** (abre OBS con el búfer en marcha, el puen
 
 Otros modos (en `opciones.local.json`): `"puente": { "modo": "red" }` con los dos PCs en la misma red (el PC 2 se anuncia y el PC 1 lo encuentra con `"rele": { "ip": "auto" }`), o la IP del PC 2 a mano en `rele.ip`. Por órdenes: `npm run configurar-pc1|pc2`, `npm run rele`, `npm run agente` (o `agente-ligero` con el perfil mínimo del juego).
 
-## El panel
+## Empezar el directo con un botón
+
+«Realizador PC1» y «Realizador PC2» abren cada uno su ventana (PC 1: http://localhost:4600/, PC 2: http://localhost:4601/). Las dos enseñan lo mismo en la pestaña **Directo**: qué falta para empezar (los dos PCs conectados, OBS, la partida en los dos LoL y el búfer de repeticiones), con qué hacer si falta algo, y el botón **Empezar directo**.
+
+- Se puede pulsar en cualquiera de los dos PCs (o desde el panel de TENKA ICHI con el mensaje `panelEmision`), aunque falten cosas y antes de que empiece la partida. Queda **armado**.
+- Cuando está todo, sale la cuenta atrás hasta que la partida llegue a la antena (los 2 minutos de margen). `emision.previaSegundos` (10) antes, el PC 2 pone la escena `Pausa`, arranca el búfer de repetición si no lo estaba y OBS empieza a emitir. Cuando la antena arranca en el segundo 0, pasa a `Juego`: la partida se emite desde el principio.
+- Al acabar la partida (el PC 1 dice en qué segundo acabó; o el LoL del PC 2 deja de responder), pasa a `Casters` sin cortar la emisión, y la siguiente partida entra sola. **Terminar emisión** (dos clics) la corta.
+- **Prueba: solo grabar** hace lo mismo pero grabando en el disco en vez de emitir.
+- Si OBS no puede emitir (por ejemplo, sin clave de emisión en el perfil), sale el aviso en rojo y lo reintenta cada 10 s.
+
+Todo lo hace el relé del PC 2, que es donde está OBS (`pc2/emision.js`). Opciones en `emision` de `opciones.json`: `modo`, `previaSegundos`, `segundosTrasFin`, `sinJuegoSegundos`, `pararAlAcabar` y `pararTrasSegundos`. Sin LoL: `npm run demo` y abre las dos páginas.
+
+## El panel (pestaña Realización del PC 1)
 
 - **En antena:** el plano que está saliendo y el botón **Tomar el control**. Con el control tomado, el realizador sigue planificando y apuntando, pero no manda nada; los botones de cada campeón y **Plano general** mueven la cámara a mano. **Devolver el control** lo devuelve.
 - **Próximos planos** y **Acciones programadas** (repeticiones y línea por línea), con cuánto falta para que salgan.
