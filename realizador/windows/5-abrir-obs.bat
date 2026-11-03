@@ -1,5 +1,7 @@
 @echo off
 chcp 65001 >nul
+rem setlocal: al acabar vuelve a la carpeta de antes (si no, quien lo llama se queda en la de OBS)
+setlocal
 rem Abre OBS con la coleccion y el perfil del realizador y el bufer de repeticion ya arrancado.
 tasklist /FI "IMAGENAME eq obs64.exe" /NH | find /I "obs64.exe" >nul
 if not errorlevel 1 (

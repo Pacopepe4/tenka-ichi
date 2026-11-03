@@ -4,6 +4,8 @@ title Realizador PC 2 - no cierres esta ventana
 cd /d "%~dp0.."
 call windows\_node.bat || (pause & exit /b 1)
 call "%~dp05-abrir-obs.bat" sinpausa
+rem Por si acaso: volver a la carpeta del realizador (abrir OBS cambia de carpeta)
+cd /d "%~dp0.."
 rem El puente del marcador de TENKA ICHI (si viene en la descarga de la guia) en su propia ventana
 if exist "%~dp0..\puente\Abrir el puente.bat" start "Puente de Tenka Ichi" /d "%~dp0..\puente" cmd /c "Abrir el puente.bat"
 echo.
