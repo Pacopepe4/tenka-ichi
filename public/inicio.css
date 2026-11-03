@@ -25,7 +25,7 @@ a { color: inherit; }
 .marca { display: flex; align-items: center; gap: 12px; text-decoration: none; font-family: var(--mincho); font-weight: 800; font-size: 18px; }
 .marca img { width: 40px; height: 38px; object-fit: contain; }
 .marca span { white-space: nowrap; }
-.barra nav { display: flex; align-items: center; gap: clamp(16px, 2.6vw, 34px); overflow-x: auto; scrollbar-width: none; white-space: nowrap; margin-left: 16px; padding: 0 6px; }
+.barra nav { display: flex; align-items: center; gap: clamp(16px, 2.6vw, 34px); overflow-x: auto; scrollbar-width: none; white-space: nowrap; margin-left: auto; padding: 0 6px; }
 .barra nav::-webkit-scrollbar { display: none; }
 .barra nav a { position: relative; display: inline-flex; align-items: center; gap: 6px; min-height: 64px; text-decoration: none; color: var(--hai);
   font-size: var(--t-menor); font-weight: 500; transition: color .2s; }
@@ -42,6 +42,15 @@ html[data-directo="si"] .enlace-directo::before { content: ''; width: 8px; heigh
 .barra nav .enlace-gachapon:hover::after { background: var(--shu-claro); }
 /* En el propio gachapon, el botón lleva el trazo de oro de la sección en la que se está */
 .barra nav .enlace-gachapon[aria-current]::after { transform: skewX(-12deg); box-shadow: inset 0 -3px 0 var(--oro); }
+/* KB Stats, la web de estadísticas de Koryu Budo (se abre en otra pestaña): fuera del menú, con filo de oro, para que en el
+   móvil se vea siempre junto a la marca */
+.enlace-kbstats { position: relative; isolation: isolate; display: inline-flex; align-items: center; gap: 6px; flex: none; margin-left: clamp(14px, 2vw, 26px);
+  padding: 6px 16px; color: var(--oro); font-size: var(--t-menor); font-weight: 700; white-space: nowrap; text-decoration: none; transition: color .2s; }
+.enlace-kbstats::before { content: ''; position: absolute; inset: 0; z-index: -1; border: 1px solid var(--oro); border-radius: var(--radio-fino);
+  transform: skewX(-12deg); transition: background-color .2s; }
+.enlace-kbstats span { font-size: .85em; }
+.enlace-kbstats:hover { color: var(--sumi); }
+.enlace-kbstats:hover::before { background: var(--oro); }
 
 /* ---------- Portada: una carta a carta completa. El papel con el sol partido, el título sobre la tinta y el filo de oro ---------- */
 .portada { position: relative; min-height: clamp(560px, calc(100vh - 64px), 920px); min-height: clamp(560px, calc(100svh - 64px), 920px);
@@ -519,6 +528,7 @@ footer nav a:hover { color: var(--oro); }
     -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent); }
   .barra nav a { min-height: 44px; }
   .barra nav .enlace-gachapon { padding: 4px 16px; margin: 0 28px 0 4px; }
+  .enlace-kbstats { order: 1; margin-left: auto; padding: 4px 13px; font-size: 14px; }
 }
 
 /* ---------- Entrada de las secciones (las clases las pone inicio-movimiento.js) ---------- */

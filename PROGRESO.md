@@ -333,3 +333,9 @@ Diseño aprobado en `docs/superpowers/specs/2026-10-04-ingame-mejoras-design.md`
 - **Pruebas:** 169 (`test/lineas-sums.test.js` nueva). Probado en el navegador con la partida de prueba (estilos A y B, mitad azul y roja); la partida de prueba pone ahora los dos hechizos, la runa y la misión (botas en el ADC y pinkward en el apoyo).
 - **Sin confirmar con una partida real:** cómo da el cliente el hueco de misión (si es el slot 7, si en top y jungla llega como hechizo) y si manda `runes` de los demás jugadores. Para verlo, `puente/Volcado de jugadores.bat` (o `volcado-jugadores.ps1`) guarda `volcado-jugadores.json` con una partida o repetición en marcha. Con eso se completa la misión de top (TP desatado) y jungla (Aplastar mejorado), que de momento salen vacías.
 - **No se puede (la API no lo da a los espectadores):** enfriamientos de los sums, anillo de la ult y barras de vida. La tabla enseña qué sums lleva cada uno, no si están en espera.
+
+## 03/11: botón de KB Stats en la barra de arriba
+
+- **Lo que pidió el usuario:** «hay que añadir un botón para acceder a KB stats http://kbstats.es/».
+- En la portada, el gachapon y la guía, un botón con filo de oro a la derecha del menú (en el móvil, en la línea de la marca, para que se vea sin deslizar el menú), y un enlace en el pie de la portada y del gachapon. Va a https://kbstats.es/ (la dirección con http redirige allí) y se abre en otra pestaña. Estilos en `.enlace-kbstats` de `public/inicio.css`; el menú se arrima a la derecha con `margin-left: auto`.
+- Comprobado en local a 1920 px y en un móvil de 412 px (portada y gachapon). Pruebas: 176.
