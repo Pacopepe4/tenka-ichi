@@ -9,7 +9,7 @@ import { leerCuerpo, responder } from '../comun/http.js';
 
 const CARPETA = join(dirname(fileURLToPath(import.meta.url)), 'panel');
 
-export function arrancarPanel({ puerto, host, foto, control, orden, emision }) {
+export function arrancarPanel({ puerto, host, foto, control, orden, emision, camaras }) {
   const oyentes = new Set();
   let programado = null;
 
@@ -40,6 +40,11 @@ export function arrancarPanel({ puerto, host, foto, control, orden, emision }) {
       }
       if (req.method === 'POST' && url.pathname === '/emision' && emision) {
         await emision(await leerCuerpo(req));
+        emitir();
+        return responder(res, { ok: true });
+      }
+      if (req.method === 'POST' && url.pathname === '/camaras' && camaras) {
+        await camaras(await leerCuerpo(req));
         emitir();
         return responder(res, { ok: true });
       }

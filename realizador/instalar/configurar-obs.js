@@ -1,7 +1,8 @@
 // Deja OBS listo para el realizador (PC 2, o el mismo PC en las pruebas de un solo PC). Con OBS cerrado:
 //
-//   - Colección de escenas "Realizador": Juego, Repeticion, Casters y Pausa, con sus fuentes
-//     (captura del juego, overlay de TENKA ICHI, "Repeticion clip", cámara, rótulos y audio).
+//   - Colección de escenas "Realizador": Juego, Repeticion, Casters, Pausa y Draft, con sus fuentes
+//     (captura del juego, overlay de TENKA ICHI, "Repeticion clip", cámaras, rótulos y audio). En Draft, cuatro
+//     cámaras debajo del overlay: el relé las encaja en los huecos del draft y les pone la cámara elegida.
 //   - Perfil "Realizador": copia del perfil que usas ahora (clave de emisión incluida) con el búfer de
 //     repetición activado y los clips en Vídeos\Realizador.
 //   - Servidor WebSocket activado, con el puerto de opciones.json y una contraseña, que se apunta en
@@ -20,6 +21,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { ponerEnIni } from './configurar-lol.js';
+import { disposicionCamaras, FUENTES as CAMARAS_DRAFT } from '../pc2/camaras.js';
 
 export const NOMBRE = 'Realizador';
 const ANCHO = 1920;
@@ -64,13 +66,17 @@ function rotulo(nombre, contenido, tam) {
   }, { version: 'text_gdiplus_v2' });
 }
 
-// Elemento de escena: a pantalla completa (por defecto) o a su tamaño, centrado en `centro`
+// Elemento de escena: a pantalla completa (por defecto), a su tamaño centrado en `centro`, o encajado en un
+// recuadro (`centro` con w y h: x, y es la esquina de arriba a la izquierda)
 function elemento(f, n, centro) {
+  const caja = centro && centro.w ? centro : null;
+  if (caja) centro = null;
   return {
-    name: f.name, source_uuid: f.uuid, visible: true, locked: false, rot: 0.0,
-    pos: centro || { x: 0, y: 0 }, scale: { x: 1.0, y: 1.0 },
+    name: f.name, source_uuid: f.uuid, visible: !caja?.oculto, locked: false, rot: 0.0,
+    pos: caja ? { x: caja.x, y: caja.y } : centro || { x: 0, y: 0 }, scale: { x: 1.0, y: 1.0 },
     align: centro ? 0 : 5,  // 0 = centro, 5 = arriba a la izquierda
-    bounds_type: centro ? 0 : 2, bounds_align: 0, bounds: centro ? { x: 0, y: 0 } : { x: ANCHO, y: ALTO },
+    // 2 = ajustar dentro; 3 = cubrir el recuadro (las cámaras llenan su hueco)
+    bounds_type: centro ? 0 : caja ? 3 : 2, bounds_align: 0, bounds: centro ? { x: 0, y: 0 } : caja ? { x: caja.w, y: caja.h } : { x: ANCHO, y: ALTO },
     crop_left: 0, crop_top: 0, crop_right: 0, crop_bottom: 0,
     id: n, group_item_backup: false, scale_filter: 'disable', blend_method: 'default', blend_type: 'normal',
     show_transition: { duration: 0 }, hide_transition: { duration: 0 }, private_settings: {},
@@ -100,12 +106,16 @@ export function crearColeccion({ escenas, fuenteRepeticion, overlay = '' }) {
   const rRepeticion = rotulo('Rotulo repeticion', 'REPETICIÓN', 64);
   const rCasters = rotulo('Rotulo casters', 'TENKA ICHI', 72);
   const rPausa = rotulo('Rotulo pausa', 'PAUSA · volvemos enseguida', 96);
+  // Draft: las cámaras debajo y el overlay (que en el draft pinta su fondo con los huecos recortados) encima
+  const camarasDraft = CAMARAS_DRAFT.map(n => fuente(n, 'dshow_input', {}));
+  const huecos = disposicionCamaras(4);
 
   const lista = [
     escena(escenas.juego, [[juego], [marcador]]),
     escena(escenas.repeticion, [[clip], [marcador], [rRepeticion, { x: 220, y: 80 }]]),
     escena(escenas.casters, [[fondo], [camara], [rCasters, { x: ANCHO / 2, y: 980 }]]),
     escena(escenas.pausa, [[fondo], [rPausa, { x: ANCHO / 2, y: ALTO / 2 }]]),
+    escena(escenas.draft || 'Draft', [[fondo], ...camarasDraft.map((c, i) => [c, { ...huecos[i], oculto: true }]), [marcador]]),
   ];
 
   return {
@@ -113,7 +123,7 @@ export function crearColeccion({ escenas, fuenteRepeticion, overlay = '' }) {
     current_scene: lista[0].name,
     current_program_scene: lista[0].name,
     scene_order: lista.map(e => ({ name: e.name })),
-    sources: [...lista, juego, marcador, clip, fondo, camara, rRepeticion, rCasters, rPausa],
+    sources: [...lista, juego, marcador, clip, fondo, camara, ...camarasDraft, rRepeticion, rCasters, rPausa],
     groups: [],
     DesktopAudioDevice1: fuente('Audio del escritorio', 'wasapi_output_capture', { device_id: 'default' }, { audio: true }),
     AuxAudioDevice1: fuente('Mic/Aux', 'wasapi_input_capture', { device_id: 'default' }, { audio: true }),
@@ -216,7 +226,7 @@ export function configurarObs({ carpeta, opciones, rutaLocal, overlay, overlayPo
   // 2. Colección de escenas
   const escenas = join(carpeta, 'basic', 'scenes');
   const url = overlay ?? (o.overlay || buscarOverlay(escenas) || overlayPorDefecto || '');
-  const nombres = { juego: o.escenaJuego, repeticion: o.escenaRepeticion, casters: o.escenaCasters, pausa: o.escenaPausa };
+  const nombres = { juego: o.escenaJuego, repeticion: o.escenaRepeticion, casters: o.escenaCasters, pausa: o.escenaPausa, draft: o.escenaDraft || 'Draft' };
   const rutaColeccion = join(escenas, `${NOMBRE}.json`);
   guardarCopia(rutaColeccion, `${NOMBRE}.json`);
   escribir(rutaColeccion, JSON.stringify(crearColeccion({ escenas: nombres, fuenteRepeticion: o.fuenteRepeticion, overlay: url }), null, 4));

@@ -294,3 +294,11 @@ details.ayuda[open] summary { margin-bottom: 6px; }
 .realizador-lista { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; font-size: 14px; }
 .realizador-lista li { display: flex; gap: 10px; }
 .realizador-lista .t { min-width: 52px; color: var(--hai); font-variant-numeric: tabular-nums; }
+
+/* Enlaces de DraftCore creados por adelantado */
+.enlaces-draft { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--sumi-linea); }
+.enlaces-draft h3 { margin: 0 0 6px; font-size: 14px; letter-spacing: .04em; }
+.enlace-draft { display: grid; grid-template-columns: 140px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 6px 0; }
+.enlace-draft b.azul { color: #7FB2FF; } .enlace-draft b.rojo { color: var(--shu-claro); }
+.enlace-draft code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+@media (max-width: 600px) { .enlace-draft { grid-template-columns: 1fr auto; } .enlace-draft b { grid-column: 1 / -1; } }

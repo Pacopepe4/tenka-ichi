@@ -105,6 +105,13 @@
   .chip.descartadas { text-decoration: line-through; }
   .avisos li { color: var(--aviso); }
   .registro { max-height: 60vh; overflow: auto; font-size: 13px; }
+  .camaras { display: grid; gap: 10px; margin: 14px 0; }
+  .camara { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--borde); border-radius: 10px; }
+  .camara.apagada { opacity: .55; }
+  .camara small { display: block; color: var(--suave); font-size: 12px; }
+  .camara select { font: inherit; color: var(--texto); background: var(--caja2); border: 1px solid var(--borde); border-radius: 8px; padding: 8px; width: 100%; }
+  @media (max-width: 600px) { .camara { grid-template-columns: 1fr; } }
+  .filaBotones { display: flex; gap: 10px; flex-wrap: wrap; }
 
   .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #2a1715; border: 1px solid var(--rojo); color: #ffd2ce; padding: 10px 16px; border-radius: 8px; max-width: min(90vw, 520px); }
   .toast[hidden] { display: none; }
@@ -118,6 +125,7 @@
   <nav id="pestanas">
     <button data-p="directo" class="activa">Directo</button>
     <button data-p="realizacion" id="pRealizacion" hidden>Realización</button>
+    <button data-p="camaras" id="pCamaras" hidden>Cámaras</button>
     <button data-p="registro">Registro</button>
   </nav>
   <div class="conex" id="conex"></div>
@@ -190,6 +198,21 @@
   </div>
 
   <!-- Registro -->
+  <!-- Cámaras del draft (PC 2): qué cámara va en cada hueco del overlay de TENKA ICHI -->
+  <div class="pestana" id="camarasP" hidden>
+    <section>
+      <h2>Cámaras del draft</h2>
+      <p class="sub" id="camarasResumen"></p>
+      <div class="error" id="camarasError" hidden></div>
+      <div class="camaras" id="camarasLista"></div>
+      <div class="filaBotones">
+        <button class="grande" id="camarasGuardar">Guardar</button>
+        <button id="camarasBuscar">Buscar cámaras otra vez</button>
+      </div>
+      <div class="como">Se elige una vez. Cuando el panel de TENKA ICHI tenga un draft en marcha, el realizador pone la escena <b>Draft</b> con estas cámaras en los huecos del overlay. Cuántas salen y qué es cada una se cambia en el panel de TENKA ICHI, apartado <b>Cámaras</b>.</div>
+    </section>
+  </div>
+
   <div class="pestana" id="registroP" hidden>
     <div class="real">
       <section><h2>Registro</h2><ol class="l registro" id="registro"></ol></section>
@@ -215,7 +238,7 @@
   let confirmar = 0;        // hora hasta la que vale el segundo clic de «Terminar»
 
   // ---------- pestañas ----------
-  const PESTANAS = { directo: 'directo', realizacion: 'realizacion', registro: 'registroP' };
+  const PESTANAS = { directo: 'directo', realizacion: 'realizacion', camaras: 'camarasP', registro: 'registroP' };
   function ir(p) {
     for (const [k, id] of Object.entries(PESTANAS)) $(id).hidden = k !== p;
     for (const b of $('pestanas').children) b.classList.toggle('activa', b.dataset.p === p);
@@ -260,13 +283,15 @@
     } else if (fase === 'apagada') {
       if (f.listo) { insignia = 'Todo listo'; clase = 'listo'; titulo = 'Listo para empezar'; }
       else { titulo = pendientes.length === 1 ? `Falta: ${pendientes[0].texto.toLowerCase()}` : `Faltan ${pendientes.length} cosas`; }
-      sub = f.listo && faltan === null ? 'La partida ya está en antena: si pulsas ahora, el directo empieza donde vaya.'
+      sub = e.draft ? 'Hay un draft en el panel de TENKA ICHI: si pulsas, el directo empieza ya, con el draft y sus cámaras.'
+        : f.listo && faltan === null ? 'La partida ya está en antena: si pulsas ahora, el directo empieza donde vaya.'
         : f.listo ? 'Pulsa y el directo empezará solo, con la partida desde el segundo 0.'
         : 'Puedes pulsarlo ya: el directo empezará solo, desde el principio de la partida, cuando esté todo.';
     } else if (fase === 'armada' && enAire) {
       insignia = grabar ? 'Grabando' : 'En el aire'; clase = 'vivo';
-      titulo = e.partidas ? `Entre partidas (${e.partidas} emitida${e.partidas === 1 ? '' : 's'})` : 'En el aire';
-      sub = f.listo && faltan !== null ? `La siguiente partida sale en antena en ${reloj(faltan)}.` : 'Sale la escena de casters. La siguiente partida entrará sola al empezar.';
+      titulo = e.draft ? 'Draft en directo' : e.partidas ? `Entre partidas (${e.partidas} emitida${e.partidas === 1 ? '' : 's'})` : 'En el aire';
+      sub = e.draft ? 'Sale la escena Draft con las cámaras. Al cerrar el draft pasa a pausa y la partida entra sola.'
+        : f.listo && faltan !== null ? `La siguiente partida sale en antena en ${reloj(faltan)}.` : 'Sale la escena de casters. La siguiente partida entrará sola al empezar.';
       boton = { texto: 'Terminar emisión', clase: 'terminar', accion: 'terminar', activo: true };
     } else if (fase === 'armada') {
       insignia = 'Preparado'; clase = 'listo';
@@ -369,6 +394,38 @@
     mandar('/orden', { tipo: 'seguir', objetivo: { jugador: j.jugador, campeon: j.campeon, equipo: j.equipo } });
   };
 
+  // ---------- Cámaras del draft (PC 2) ----------
+  let firmaCamaras = null;
+  function pintarCamaras() {
+    const c = f.camaras;
+    if (!c) return;
+    const n = c.cantidad || 0;
+    $('camarasResumen').textContent = n
+      ? `El panel de TENKA ICHI tiene puestas ${n} cámara${n === 1 ? '' : 's'} en el draft. Elige qué cámara del PC va en cada hueco.`
+      : 'El panel de TENKA ICHI no tiene cámaras puestas en el draft (apartado Cámaras). Puedes dejarlas elegidas igualmente.';
+    $('camarasError').hidden = !c.error;
+    $('camarasError').textContent = c.error || '';
+    // Solo se repinta si cambia algo (y no mientras se está eligiendo)
+    const firma = JSON.stringify([n, c.nombres, c.disponibles, c.elegidos, c.asignadas]);
+    if (firma === firmaCamaras || $('camarasLista').contains(document.activeElement)) return;
+    firmaCamaras = firma;
+    const opciones = sel => `<option value="">Automática${c.disponibles.length ? '' : ' (OBS no enseña ninguna)'}</option>`
+      + c.disponibles.map(d => `<option value="${esc(d.id)}"${d.id === sel ? ' selected' : ''}>${esc(d.nombre)}</option>`).join('');
+    $('camarasLista').innerHTML = [0, 1, 2, 3].map(i => {
+      const asignada = c.disponibles.find(d => d.id === c.asignadas[i])?.nombre;
+      return `<label class="camara${i < n ? '' : ' apagada'}"><span><b>Cámara ${i + 1}</b>${c.nombres[i] ? ` · ${esc(c.nombres[i])}` : ''}<small>${i < n ? (asignada ? `Ahora: ${esc(asignada)}` : 'Sin cámara') : 'No sale en el draft'}</small></span>
+        <select data-i="${i}">${opciones(c.elegidos[i] || '')}</select></label>`;
+    }).join('');
+  }
+  $('camarasGuardar').onclick = async () => {
+    const elegidos = [...$('camarasLista').querySelectorAll('select')].map(s => s.value);
+    await mandar('/camaras', { elegidos });
+    firmaCamaras = null;
+    $('camarasGuardar').textContent = 'Guardado ✓';
+    setTimeout(() => { $('camarasGuardar').textContent = 'Guardar'; }, 2500);
+  };
+  $('camarasBuscar').onclick = () => { firmaCamaras = null; mandar('/camaras', { leer: true }); };
+
   // ---------- Registro ----------
   function pintarRegistro() {
     $('registro').innerHTML = (f.registro || []).map(r =>
@@ -384,17 +441,19 @@
     $('papel').textContent = pc1 ? 'PC 1 · realización' : 'PC 2 · emisión';
     document.title = `Realizador · ${pc1 ? 'PC 1' : 'PC 2'}`;
     $('pRealizacion').hidden = !pc1;
+    $('pCamaras').hidden = !f.camaras;
     $('conex').innerHTML = Object.entries(f.conexiones || {}).filter(([k, v]) => v !== null && v !== undefined && NOMBRES[k])
       .map(([k, v]) => `<span><i class="punto ${v ? 'si' : 'no'}"></i>${NOMBRES[k]}</span>`).join('');
     pintarDirecto();
     if (pc1) pintarRealizacion();
+    if (f.camaras) pintarCamaras();
     pintarRegistro();
   }
 
   try { modo = localStorage.getItem('modo'); const p = localStorage.getItem('pestana'); if (p && PESTANAS[p]) ir(p); } catch {}
 
   const fuente = new EventSource('/sse');
-  fuente.onmessage = m => { f = JSON.parse(m.data); $('desconectado').hidden = true; if (f.papel !== 'pc1' && !$('realizacion').hidden) ir('directo'); pintar(); };
+  fuente.onmessage = m => { f = JSON.parse(m.data); $('desconectado').hidden = true; if (f.papel !== 'pc1' && !$('realizacion').hidden) ir('directo'); if (!f.camaras && !$('camarasP').hidden) ir('directo'); pintar(); };
   fuente.onerror = () => { $('desconectado').hidden = false; };
 </script>
 </body>

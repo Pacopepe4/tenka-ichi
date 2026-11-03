@@ -142,6 +142,18 @@ function tomarMuestra(t, dif) {
 }
 const grafica = () => ({ cada: CADA_MUESTRA, muestras: bruto.muestras });
 
+// Lado y puesto (0-4) en el línea por línea de un jugador, por su nombre o por su campeón (el realizador
+// automático pide la ficha así: no sabe en qué puesto lo coloca el marcador). lado, si se sabe, acota la búsqueda
+export function buscarJugador(lineas, { jugador, campeon, lado } = {}) {
+  const letras = x => String(x || '').replace(/[^A-Za-z]/g, '').toLowerCase();
+  const lados = ['azul', 'rojo'].includes(lado) ? [lado] : ['azul', 'rojo'];
+  const huecos = (lineas || []).flatMap((l, indice) => lados.map(ld => ({ lado: ld, indice, j: l?.[ld] }))).filter(h => h.j);
+  const n = normalizar(jugador);
+  const h = (n && huecos.find(x => normalizar(x.j.nombre) === n))
+    || (campeon && huecos.find(x => letras(x.j.campeon) === letras(campeon)));
+  return h ? { lado: h.lado, indice: h.indice } : null;
+}
+
 export function olvidarPartida() { bruto = vacia(); return resumen(); }
 
 // ---------- de los datos del cliente al marcador ----------

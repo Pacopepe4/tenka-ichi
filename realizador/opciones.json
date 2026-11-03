@@ -72,11 +72,24 @@
       "segundos": 4,
       "retraso": 0.5
     },
-    "lineaPorLinea": {
-      "desdeSegundo": 240,
-      "calmaNecesaria": 40,
-      "segundos": 20,
-      "cadaSegundosComoMinimo": 180
+    "overlay": {
+      "base": "lineas",
+      "baseDesdeSegundo": 0,
+      "oro": {
+        "activo": true,
+        "desdeSegundo": 480,
+        "calmaNecesaria": 35,
+        "segundos": 15,
+        "cadaSegundosComoMinimo": 180
+      },
+      "ficha": {
+        "activo": true,
+        "rachas": [3, 5, 8],
+        "segundos": 10,
+        "retraso": 3,
+        "buscarSegundos": 45,
+        "cadaSegundosComoMinimo": 120
+      }
     }
   },
 
@@ -88,6 +101,8 @@
     "fuenteRepeticion": "Repeticion clip",
     "escenaCasters": "Casters",
     "escenaPausa": "Pausa",
+    "escenaDraft": "Draft",
+    "camarasDraft": ["", "", "", ""],
     "repeticion": {
       "transicionEntrada": "",
       "transicionSalida": "",
