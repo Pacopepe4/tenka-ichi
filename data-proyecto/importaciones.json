@@ -54,5 +54,16 @@
    "BUSHI-SUPPORT": "C",
    "TORA-ADC": "A"
   }
+ },
+ {
+  "nombre": "2026-11-03 quitar la partida de prueba KAIJU-SARU",
+  "dicho": "El usuario: «me sale que hay un partido jugado, cuando no hay ninguno». Era una de prueba del 06/10 (KAIJU contra SARU) que cuadraba con el J4-1 del sorteo",
+  "quitarPartidas": {
+   "antesDe": "2026-11-08",
+   "clanes": [
+    "KAIJU",
+    "SARU"
+   ]
+  }
  }
 ]
