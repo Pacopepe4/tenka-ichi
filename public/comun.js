@@ -25,7 +25,7 @@ export function horaEspana(fecha, hora = '00:00') {
   return new Date(supuesto.getTime() - (enMadrid - supuesto.getTime()));
 }
 // Las horas de los partidos de un día: el primero a su hora y cada uno, «margen» minutos después del anterior
-export function horasDelDia(cuantos, primera = '19:00', margen = 45) {
+export function horasDelDia(cuantos, primera = '17:00', margen = 45) {
   const [h, m] = primera.split(':').map(Number);
   return Array.from({ length: cuantos }, (_, i) => {
     const t = h * 60 + m + i * margen;
