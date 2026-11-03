@@ -12,7 +12,7 @@
 <header class="barra">
   <a class="marca" href="/"><span class="hanko sello">天</span><span>Panel de draft</span></a>
   <p id="estadoConexion" class="pastilla">Conectando…</p>
-  <label class="clave">Contraseña <input id="clave" type="password" autocomplete="current-password"></label>
+  <form class="clave" id="formClave"><label for="clave">Contraseña</label> <input id="clave" type="password" autocomplete="current-password"><button type="submit" class="secundario">Entrar</button><span id="claveEstado" class="clave-estado" aria-live="polite"></span></form>
   <!-- Qué enseña el overlay de OBS: cambia solo (draft, postdraft, partida y pantalla final) y aquí se puede forzar -->
   <div class="vistas" role="group" aria-label="Qué enseña el overlay">
     <span class="vistas-titulo">En el overlay</span>

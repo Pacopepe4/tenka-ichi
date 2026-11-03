@@ -38,6 +38,9 @@ section[hidden] { display: none; }
 .version-nueva[hidden] { display: none; }
 .version-nueva button { margin-left: 10px; padding: 5px 12px; font-size: 13px; }
 .clave input { width: 150px; }
+.clave button { padding: 6px 12px; font-size: 13px; }
+.clave-estado { font-size: 12px; white-space: nowrap; }
+.clave-estado.bien { color: #9CD9A6; } .clave-estado.mal { color: var(--shu-claro); }
 
 .disposicion { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 44%); gap: 24px; max-width: 1500px; margin: 0 auto; padding: 24px clamp(16px, 3vw, 32px) 64px; }
 aside { position: sticky; top: 118px; align-self: start; }

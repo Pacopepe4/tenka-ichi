@@ -164,7 +164,9 @@ export class Ejecutor extends EventEmitter {
 
   async mandar(tipo, cuerpo) {
     if (this.sala) {
-      if (!this.sala.enviar({ tipo, ...cuerpo })) throw new Error('sin conexión con la sala');
+      // La orden va dentro de «orden»: su propio tipo (seguir, general) no puede pisar el del mensaje
+      const mensaje = tipo === 'orden' ? { tipo, orden: cuerpo } : { tipo, ...cuerpo };
+      if (!this.sala.enviar(mensaje)) throw new Error('sin conexión con la sala');
       return;
     }
     await pedirJSON(`${this.urlRele}/${tipo}`, { metodo: 'POST', cuerpo, cabeceras: this.cabeceras });
