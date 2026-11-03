@@ -18,5 +18,41 @@
    "KEMONO-ADC": "C",
    "KEMONO-SUPPORT": "C"
   }
+ },
+ {
+  "nombre": "2026-11-03 tiers de todos y TORA",
+  "dicho": "Tiers de SARU, KAIJU, ATSUI y BUSHI que dio el usuario el 03/11/2026; TORA por anunciar salvo NARCISO de ADC (A)",
+  "plantillas": {
+   "TORA": [
+    "",
+    "",
+    "",
+    "NARCISO",
+    ""
+   ]
+  },
+  "tiers": {
+   "SARU-TOP": "A",
+   "SARU-JUNGLA": "A",
+   "SARU-MEDIO": "B",
+   "SARU-ADC": "S",
+   "SARU-SUPPORT": "A",
+   "KAIJU-TOP": "B",
+   "KAIJU-JUNGLA": "S",
+   "KAIJU-MEDIO": "A",
+   "KAIJU-ADC": "A",
+   "KAIJU-SUPPORT": "A",
+   "ATSUI-TOP": "S",
+   "ATSUI-JUNGLA": "D",
+   "ATSUI-MEDIO": "A",
+   "ATSUI-ADC": "B",
+   "ATSUI-SUPPORT": "S",
+   "BUSHI-TOP": "B",
+   "BUSHI-JUNGLA": "A",
+   "BUSHI-MEDIO": "A",
+   "BUSHI-ADC": "A",
+   "BUSHI-SUPPORT": "C",
+   "TORA-ADC": "A"
+  }
  }
 ]

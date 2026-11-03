@@ -6,6 +6,8 @@
 const WEBHOOKS = {
   coleccion: process.env.DISCORD_WEBHOOK_URL,
   alineacion: process.env.DISCORD_WEBHOOK_URL,
+  // La tier list que hace cada espectador en la portada
+  mitierlist: process.env.DISCORD_WEBHOOK_URL,
   tierlist: process.env.DISCORD_WEBHOOK_TIERLIST || process.env.DISCORD_WEBHOOK_URL,
   clasificacion: process.env.DISCORD_WEBHOOK_CLASIFICACION || process.env.DISCORD_WEBHOOK_URL,
 };
@@ -16,7 +18,7 @@ export const discordActivo = (tipo = 'coleccion') => Boolean(WEBHOOKS[tipo]);
 
 // Cada coleccionista puede publicar su colección y su alineación una vez cada 10 minutos, y el staff la tier
 // list una vez por minuto: así nadie llena el canal
-const ESPERA_MS = { coleccion: 10 * 60000, alineacion: 10 * 60000, tierlist: 60000, clasificacion: 60000 };
+const ESPERA_MS = { coleccion: 10 * 60000, alineacion: 10 * 60000, mitierlist: 10 * 60000, tierlist: 60000, clasificacion: 60000 };
 export const MAXIMO_IMAGEN = 8 * 1024 * 1024;
 const ultimas = new Map();
 
@@ -94,6 +96,7 @@ export function textoDiscord(tipo, { usuario, tiene = 0, total = 0, puntos = 0, 
       + (g.sobres ? ` (+${g.sobres} ${g.sobres === 1 ? 'sobre' : 'sobres'})` : ''));
     return `**Clasificación del fantasy de Tenka Ichi${jornada ? `: ${escaparMarkdown(jornada)}` : ''}**${lineas.length ? `\n${lineas.join('\n')}` : ''}${pie}`;
   }
+  if (tipo === 'mitierlist') return `${autorDiscord(usuario)} comparte su tier list de Tenka Ichi. ¿Estás de acuerdo? Haz la tuya:${pie}`;
   if (tipo === 'coleccion') return `${autorDiscord(usuario)} enseña su colección de Tenka Ichi: ${numero(tiene)} de ${numero(total)} cartas.${pie}`;
   if (tipo === 'alineacion') {
     return `${autorDiscord(usuario)} presenta su alineación del fantasy de Tenka Ichi: ${numero(puntos)} ${puntos === 1 ? 'punto' : 'puntos'}`

@@ -1,5 +1,5 @@
 // Portada pública: baraja de clanes, ficha de cada clan y resumen de la liga
-import { cargarCampeones, cargarClanes, conectarDirecto, icono, logo, compite, fechaCorta } from '/comun.js';
+import { cargarCampeones, cargarClanes, conectarDirecto, icono, logo, compite, fechaCorta, horasDelDia } from '/comun.js';
 import { cartaHTML, escapar } from '/carta.js';
 import { montarSorteo } from '/sorteo.js';
 
@@ -216,10 +216,11 @@ function pintarLiga() {
     const pintarJornada = () => {
       $('.jornadas').innerHTML = Array.from({ length: total }, (_, i) =>
         `<button role="tab" aria-selected="${i === actual}" data-i="${i}">Jornada ${i + 1}<small> · ${fechaCorta(formato.liguilla[i]?.fecha)}</small></button>`).join('');
-      $('.cruces').innerHTML = sorteadas[actual]?.map(c => {
+      const horas = horasDelDia(sorteadas[actual]?.length || 0, formato.hora, formato.margen);
+      $('.cruces').innerHTML = sorteadas[actual]?.map((c, i) => {
         const r = cls.resultados[c.id];
         const lado = (id, color) => `<span class="lado-cruce ${r ? (r.ganador === id ? 'gana' : 'pierde') : ''}" ${tinte(id)}><i class="punto ${color}" title="Lado ${color}"></i>${escudo(id)}${nombre(id)}</span>`;
-        return `<li>${lado(c.azul, 'azul')}<span class="vs-cruce">${r ? '' : 'vs'}</span>${lado(c.rojo, 'rojo')}</li>`;
+        return `<li>${formato.hora ? `<span class="hora-cruce">${horas[i]}</span>` : ''}${lado(c.azul, 'azul')}<span class="vs-cruce">${r ? '' : 'vs'}</span>${lado(c.rojo, 'rojo')}</li>`;
       }).join('') || '<li class="vacio">Los cruces se sortean antes de la primera jornada.</li>';
       document.querySelectorAll('.jornadas button').forEach(b => b.addEventListener('click', () => { actual = Number(b.dataset.i); pintarJornada(); }));
     };
@@ -278,12 +279,13 @@ import('/directo.js').then(({ iniciarDirecto }) => iniciarDirecto({
 // ---------- Tier list ----------
 const TIERS = ['S', 'A', 'B', 'C', 'D'];
 const ROL_CORTO = { TOP: 'Top', JUNGLA: 'Jungla', MEDIO: 'Medio', ADC: 'ADC', SUPPORT: 'Support' };
-let tipoTier = 'jugadores';
+let tipoTier = 'jugadores', rolTier = '';
 
 function pintarTierlist() {
-  const lista = tierlist[tipoTier].filter(x => x.tier && (tipoTier === 'equipos' || x.nombre));
+  const lista = tierlist[tipoTier].filter(x => x.tier && (tipoTier === 'equipos' || (x.nombre && (!rolTier || x.rol === rolTier))));
+  $('.filtro-rol.oficial').hidden = tipoTier !== 'jugadores';
   if (!lista.length) {
-    $('.tier-filas').innerHTML = `<p class="tier-aviso">La tier list de ${tipoTier === 'jugadores' ? 'jugadores' : 'equipos'} se publica cuando el staff la tenga lista.</p>`;
+    $('.tier-filas').innerHTML = `<p class="tier-aviso">${rolTier && tipoTier === 'jugadores' ? `Aún no hay nadie de ${ROL_CORTO[rolTier]} en la tier list.` : `La tier list de ${tipoTier === 'jugadores' ? 'jugadores' : 'equipos'} se publica cuando el staff la tenga lista.`}</p>`;
     return;
   }
   $('.tier-filas').innerHTML = TIERS.map(t => {
@@ -299,6 +301,11 @@ function pintarTierlist() {
 document.querySelectorAll('.tier-pestanas button').forEach(b => b.addEventListener('click', () => {
   tipoTier = b.dataset.tipo;
   document.querySelectorAll('.tier-pestanas button').forEach(x => x.setAttribute('aria-selected', String(x === b)));
+  pintarTierlist();
+}));
+document.querySelectorAll('.filtro-rol.oficial button').forEach(b => b.addEventListener('click', () => {
+  rolTier = b.dataset.rol;
+  document.querySelectorAll('.filtro-rol.oficial button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
   pintarTierlist();
 }));
 pintarTierlist();

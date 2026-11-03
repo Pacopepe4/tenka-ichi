@@ -18,6 +18,7 @@ import { cargarPlantillas, plantilla, guardarPlantilla, refrescarPlantillas } fr
 import { estadoHoja } from './sheets.js';
 import { cargarTierlist, vistaTierlist, ponerTier } from './tierlist.js';
 import { cargarAjustes, ajuste, guardarAjustes } from './ajustes.js';
+import { cargarTierlistsPublico, candidatos, tierlistDe, guardarTierlistPublico } from './mitierlist.js';
 import { aplicarImportaciones } from './importaciones.js';
 import { cargarGacha, catalogo, probabilidades, abrirSobre, darAlta, darSobres, estadoUsuario, buscarUsuario, resumenGacha, fundirRepetidas,
   vincularTwitch, desvincularTwitch, sobresListos, reparto, estrenarTemporada, estadoTemporada,
@@ -779,6 +780,18 @@ async function rutasSesion(req, res, url) {
 
   if (p === '/api/fantasy') return json(res, { ...infoFantasy(usuarioDeSesion(req)), premios: premiosPublicos(), sobresPremio: estado.jornadaAuto.premios });
 
+  // La tier list de cada espectador (server/mitierlist.js): a quién se puede colocar, la suya y guardarla
+  if (p === '/api/mitierlist') {
+    const u = usuarioDeSesion(req);
+    if (req.method === 'GET') {
+      return json(res, { entrado: Boolean(u), nombre: u?.nombre || null, login: loginActivo(), ...candidatos(), mia: tierlistDe(u), publicarDiscord: discordActivo('mitierlist') });
+    }
+    if (req.method !== 'POST') return json(res, { ok: false, error: 'Método no permitido' }, 405);
+    if (!u) return json(res, { ok: false, error: 'Entra con tu cuenta de Discord para guardarla' }, 401);
+    try { return json(res, { ok: true, mia: await guardarTierlistPublico(u, await leerCuerpo(req, 50000)) }); }
+    catch (e) { return json(res, { ok: false, error: e.message }, 500); }
+  }
+
   // Publicar en el canal de Discord la imagen que dibuja la página: la colección o la alineación del que ha
   // entrado, o la tier list (el staff, con la contraseña del panel). El texto lo pone discord.js con estos datos
   if (p === '/api/discord/publicar' && req.method === 'POST') {
@@ -791,7 +804,7 @@ async function rutasSesion(req, res, url) {
       tipo, req, usuario: u, staff: req.headers['x-clave-panel'] === CLAVE,
       datos: tipo === 'clasificacion' ? { jornada, ganadores }
         : tipo === 'coleccion' && u ? { tiene: estadoUsuario(u.id).cartas.length, total: catalogo().length } : yo ? { puntos: yo.puntos, puesto: yo.puesto } : {},
-      avatar: `${origen(req)}/marca/tenka-ichi-cuadro.png`, enlace: `${origen(req)}/gachapon/`,
+      avatar: `${origen(req)}/marca/tenka-ichi-cuadro.png`, enlace: tipo === 'mitierlist' ? `${origen(req)}/#mitierlist` : `${origen(req)}/gachapon/`,
     });
     return json(res, r.cuerpo, r.estado);
   }
@@ -828,7 +841,7 @@ async function huella(archivo, s) {
 
 const servidor = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
-  const rutaSesion = url.pathname.startsWith('/auth/') || url.pathname.startsWith('/api/gacha') || url.pathname.startsWith('/api/fantasy') || url.pathname === '/api/tierlist'
+  const rutaSesion = url.pathname.startsWith('/auth/') || url.pathname.startsWith('/api/gacha') || url.pathname.startsWith('/api/fantasy') || url.pathname === '/api/tierlist' || url.pathname === '/api/mitierlist'
     || url.pathname.startsWith('/api/discord');
   try {
     if (rutaSesion && await rutasSesion(req, res, url)) return;
@@ -988,7 +1001,7 @@ wss.on('connection', (ws, req) => {
 setInterval(() => { for (const ws of clientes) if (ws.readyState === 1) ws.ping(); }, 25000);
 
 await Promise.all([cargar(), cargarPlantillas(), cargarCalendario(), cargarAjustes()]);
-await Promise.all([cargarTierlist(), cargarGacha()]);
+await Promise.all([cargarTierlist(), cargarGacha(), cargarTierlistsPublico()]);
 // El sorteo que estaba en marcha cuando la web se reinició sigue en la misma bola (si no se guardó ya el calendario)
 try {
   const enCurso = JSON.parse(ajuste('sorteo_en_curso') || 'null');

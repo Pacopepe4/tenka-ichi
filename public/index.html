@@ -111,6 +111,7 @@
       <span class="marca-seccion" aria-hidden="true">戦</span>
       <h2>La liga</h2>
       <p class="resumen-liga"></p>
+      <div class="cuenta-atras" data-cuenta hidden></div>
     </div>
     <div class="sorteo" hidden></div>
     <div class="liga-rejilla">
@@ -165,8 +166,34 @@
       <button role="tab" aria-selected="true" data-tipo="jugadores">Jugadores</button>
       <button role="tab" aria-selected="false" data-tipo="equipos">Equipos</button>
     </div>
+    <div class="filtro-rol oficial" role="group" aria-label="Rol">
+        <button type="button" data-rol="" aria-pressed="true">Todos</button><button type="button" data-rol="TOP" aria-pressed="false">Top</button><button type="button" data-rol="JUNGLA" aria-pressed="false">Jungla</button><button type="button" data-rol="MEDIO" aria-pressed="false">Medio</button><button type="button" data-rol="ADC" aria-pressed="false">ADC</button><button type="button" data-rol="SUPPORT" aria-pressed="false">Support</button>
+      </div>
     <div class="tier-filas"></div>
     <p class="tier-pista">Toca a un jugador para ver su carta.</p>
+    <!-- La de cada espectador (mitierlist.js) -->
+    <div class="mi-tier" id="mitierlist">
+      <div class="mi-tier-cabecera">
+        <h3>Haz tu tier list</h3>
+        <p>Coloca a los jugadores y a los equipos a tu gusto: arrástralos a su tier o, en el móvil, toca uno y después la tier. Luego publícala en Discord.</p>
+      </div>
+      <div class="tier-pestanas mi-tier-pestanas" role="tablist" aria-label="Tu tier list">
+        <button role="tab" aria-selected="true" data-tipo="jugadores">Jugadores</button>
+        <button role="tab" aria-selected="false" data-tipo="equipos">Equipos</button>
+      </div>
+      <div class="filtro-rol mia" role="group" aria-label="Rol">
+        <button type="button" data-rol="" aria-pressed="true">Todos</button><button type="button" data-rol="TOP" aria-pressed="false">Top</button><button type="button" data-rol="JUNGLA" aria-pressed="false">Jungla</button><button type="button" data-rol="MEDIO" aria-pressed="false">Medio</button><button type="button" data-rol="ADC" aria-pressed="false">ADC</button><button type="button" data-rol="SUPPORT" aria-pressed="false">Support</button>
+      </div>
+      <div class="mi-tier-filas"></div>
+      <div class="mi-banco" data-destino=""></div>
+      <div class="mi-tier-acciones">
+        <a class="boton-secundario mi-entrar" hidden>Entrar con Discord</a>
+        <button type="button" class="boton-secundario mi-descargar">Descargar imagen</button>
+        <button type="button" class="boton-secundario mi-publicar" hidden>Publicar en Discord</button>
+        <button type="button" class="boton-secundario mi-vaciar">Empezar de nuevo</button>
+      </div>
+      <p class="mi-tier-estado" role="status"></p>
+    </div>
   </section>
   <section class="cierre" aria-label="El lema de Tenka Ichi">
     <span class="cierre-kanji" aria-hidden="true">天下一</span>
@@ -220,5 +247,7 @@
 </dialog>
 
 <script type="module" src="/inicio.js"></script>
+<script type="module" src="/mitierlist.js"></script>
+<script type="module" src="/cuenta-atras.js"></script>
 </body>
 </html>

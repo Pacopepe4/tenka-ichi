@@ -181,6 +181,7 @@ export function formatoTemporada() {
     clanes: [...TEMPORADA.clanes],
     liguilla: TEMPORADA.liguilla.map((fecha, i) => ({ jornada: i + 1, nombre: `Jornada ${i + 1}`, fecha })),
     playoffs: Object.entries(RONDAS).map(([ronda, nombre]) => ({ ronda, nombre, fecha: TEMPORADA.playoffs[ronda] })),
+    hora: TEMPORADA.hora, margen: TEMPORADA.margenMinutos,
   };
 }
 

@@ -326,9 +326,10 @@ export async function imagenAlineacion({ nombre, alineacion, puntos = {}, boosts
 
 // ---------- tier list ----------
 // jugadores: [{ id, clan, rol, nombre, tier }]; equipos: [{ id, nombre, tier }]
-export async function imagenTierlist({ jugadores, equipos = [], nombreClan }) {
+// La del staff va de S a D; la que hace cada espectador en la portada, de S+ a D y con su nombre en el título
+export async function imagenTierlist({ jugadores, equipos = [], nombreClan, titulo = 'Tier list de Tenka Ichi', tiers = ['S', 'A', 'B', 'C', 'D'], ruta = '/#tierlist' }) {
   await fuentes();
-  const conTier = lista => ['S', 'A', 'B', 'C', 'D'].map(t => [t, lista.filter(x => x.tier === t)]).filter(([, l]) => l.length);
+  const conTier = lista => tiers.map(t => [t, lista.filter(x => x.tier === t)]).filter(([, l]) => l.length);
   const filasJugadores = conTier(jugadores.filter(j => j.nombre)), filasEquipos = conTier(equipos);
   const etiqueta = 110, hueco = 12, fichaW = 262, fichaH = 76;
   const relleno = 12;   // el aire de la placa de cada tier alrededor de sus fichas
@@ -337,7 +338,7 @@ export async function imagenTierlist({ jugadores, equipos = [], nombreClan }) {
   const altoSeccion = filas => filas.reduce((s, [, l]) => s + altoFila(l) + 2 * relleno + 12, 0);
   const alto = ARRIBA + altoSeccion(filasJugadores) + (filasEquipos.length ? 90 + altoSeccion(filasEquipos) : 0) + 100;
   const [c, ctx] = lienzo(alto);
-  await cabecera(ctx, 'Tier list de Tenka Ichi', `${filasJugadores.reduce((s, [, l]) => s + l.length, 0)} jugadores${filasEquipos.length ? `  ·  ${equipos.filter(e => e.tier).length} equipos` : ''}`);
+  await cabecera(ctx, titulo, `${filasJugadores.reduce((s, [, l]) => s + l.length, 0)} jugadores${filasEquipos.length ? `  ·  ${equipos.filter(e => e.tier).length} equipos` : ''}`);
 
   // Como en la web: la placa de cada tier se tiñe de su color, la letra va en un bloque cortado en diagonal, la S
   // lleva el filo de oro y cada ficha, el color de su clan en el canto
@@ -357,8 +358,8 @@ export async function imagenTierlist({ jugadores, equipos = [], nombreClan }) {
       ctx.moveTo(MARGEN, y); ctx.lineTo(MARGEN + etiqueta, y); ctx.lineTo(MARGEN + etiqueta - 24, y + altoP); ctx.lineTo(MARGEN, y + altoP);
       ctx.fill();
       ctx.restore();
-      if (t === 'S') { ctx.strokeStyle = C.oroViejo; ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(MARGEN + 1, y + 1, anchoP - 2, altoP - 2, 6); ctx.stroke(); }
-      texto(ctx, t, MARGEN + (etiqueta - 12) / 2, y + altoP / 2, { fuente: `800 56px ${MINCHO}`, color: t === 'S' ? C.washi : C.sumi, alinear: 'center', base: 'middle' });
+      if (t === 'S' || t === 'S+') { ctx.strokeStyle = C.oroViejo; ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(MARGEN + 1, y + 1, anchoP - 2, altoP - 2, 6); ctx.stroke(); }
+      texto(ctx, t, MARGEN + (etiqueta - 12) / 2, y + altoP / 2, { fuente: `800 ${t.length > 1 ? 46 : 56}px ${MINCHO}`, color: t === 'S' || t === 'S+' ? C.washi : C.sumi, alinear: 'center', base: 'middle' });
       for (const [i, x] of lista.entries()) {
         const fx = MARGEN + etiqueta + 12 + (i % porLinea) * (fichaW + hueco), fy = y + relleno + Math.floor(i / porLinea) * (fichaH + hueco);
         ctx.fillStyle = C.sumi;
@@ -389,7 +390,7 @@ export async function imagenTierlist({ jugadores, equipos = [], nombreClan }) {
       texto(ctx, e.nombre, fx + 76, fy + 48, { fuente: `800 28px ${MINCHO}`, ancho: fichaW - 86 });
     }, e => e.id);
   }
-  pie(ctx, alto, '/#tierlist');
+  pie(ctx, alto, ruta);
   return aImagen(c);
 }
 

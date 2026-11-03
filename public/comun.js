@@ -16,6 +16,23 @@ export async function cargarClanes() {
 export const compite = c => !c.invitado && !c.legacy;
 
 // Una fecha del calendario (AAAA-MM-DD) en palabras: «8 nov» o, con largo, «8 de noviembre»
+// Un día y una hora de España (Europe/Madrid) como instante, sea cual sea la zona horaria de quien mira
+export function horaEspana(fecha, hora = '00:00') {
+  const supuesto = new Date(`${fecha}T${hora}:00Z`);
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Madrid', hourCycle: 'h23', year: 'numeric', month: '2-digit',
+    day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(supuesto).map(x => [x.type, x.value]));
+  const enMadrid = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute);
+  return new Date(supuesto.getTime() - (enMadrid - supuesto.getTime()));
+}
+// Las horas de los partidos de un día: el primero a su hora y cada uno, «margen» minutos después del anterior
+export function horasDelDia(cuantos, primera = '19:00', margen = 45) {
+  const [h, m] = primera.split(':').map(Number);
+  return Array.from({ length: cuantos }, (_, i) => {
+    const t = h * 60 + m + i * margen;
+    return `${String(Math.floor(t / 60) % 24).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+  });
+}
+
 export function fechaCorta(fecha, largo = false) {
   if (!fecha) return '';
   const d = new Date(`${fecha}T12:00:00Z`);
