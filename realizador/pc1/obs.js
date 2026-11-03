@@ -106,8 +106,38 @@ export class Obs extends EventEmitter {
     return (await guardado) || (await this.pedir('GetLastReplayBufferReplay')).savedReplayPath;
   }
 
+  // Cambia de escena con una transición concreta de OBS (por ejemplo un «Stinger» rápido) y deja la que había
+  async escenaCon(nombre, transicion) {
+    if (!transicion) return this.escena(nombre);
+    let antes = null;
+    try { antes = (await this.pedir('GetCurrentSceneTransition')).transitionName; } catch { /* sin datos: se deja la nueva */ }
+    try { await this.pedir('SetCurrentSceneTransition', { transitionName: transicion }); } catch { return this.escena(nombre); }
+    await this.escena(nombre);
+    // La transición se queda puesta hasta que acaba; luego se vuelve a la de siempre
+    if (antes && antes !== transicion) setTimeout(() => this.pedir('SetCurrentSceneTransition', { transitionName: antes }).catch(() => {}), 3000).unref?.();
+  }
+
+  // Enciende o apaga una fuente dentro de una escena (por ejemplo el overlay de REPLAY)
+  async fuenteVisible(escena, fuente, visible) {
+    const { sceneItemId } = await this.pedir('GetSceneItemId', { sceneName: escena, sourceName: fuente });
+    await this.pedir('SetSceneItemEnabled', { sceneName: escena, sceneItemId, sceneItemEnabled: visible });
+  }
+
+  // Repetición completa: transición de entrada, overlay de REPLAY, el clip y, al acabar, transición de salida
+  // a la escena de juego. g: opciones de obs.repeticion (transicionEntrada, transicionSalida, overlay).
+  async repeticionCompleta({ ruta, fuente, escena, escenaJuego, segundosAtras, segundos, g = {} }) {
+    if (g.overlay) await this.fuenteVisible(escena, g.overlay, true).catch(() => {});
+    await this.lanzarRepeticion({ ruta, fuente, escena, segundosAtras, transicion: g.transicionEntrada });
+    setTimeout(async () => {
+      try {
+        await this.escenaCon(escenaJuego, g.transicionSalida);
+        if (g.overlay) setTimeout(() => this.fuenteVisible(escena, g.overlay, false).catch(() => {}), 2000).unref?.();
+      } catch { /* OBS cerrado: nada que hacer */ }
+    }, segundos * 1000).unref?.();
+  }
+
   // Pone el clip en la fuente de repetición, salta a su escena y lo arranca unos segundos antes del final
-  async lanzarRepeticion({ ruta, fuente, escena, segundosAtras }) {
+  async lanzarRepeticion({ ruta, fuente, escena, segundosAtras, transicion }) {
     await this.pedir('SetInputSettings', { inputName: fuente, inputSettings: { local_file: ruta, is_local_file: true, restart_on_activate: false } });
     await this.pedir('TriggerMediaInputAction', { inputName: fuente, mediaAction: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_RESTART' });
     await new Promise(r => setTimeout(r, 300));
@@ -115,7 +145,7 @@ export class Obs extends EventEmitter {
       const { mediaDuration } = await this.pedir('GetMediaInputStatus', { inputName: fuente });
       if (mediaDuration > 0) await this.pedir('SetMediaInputCursor', { inputName: fuente, mediaCursor: Math.max(0, mediaDuration - segundosAtras * 1000) });
     } catch { /* si no da la duración, el clip va desde el principio */ }
-    await this.escena(escena);
+    await this.escenaCon(escena, transicion);
   }
 }
 

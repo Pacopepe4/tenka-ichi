@@ -95,9 +95,11 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
           if (estado.manual) { registrar(`[obs] repetición de ${a.jugada}: control manual, se salta`); continue; }
           const clip = estado.clips.get(a.jugada);
           if (!clip?.ruta) { registrar(`[obs] repetición de ${a.jugada}: no hay clip`); continue; }
-          await obs.lanzarRepeticion({ ruta: clip.ruta, fuente: o.obs.fuenteRepeticion, escena: o.obs.escenaRepeticion, segundosAtras: segundosAtras(a, clip) });
+          await (obs.repeticionCompleta
+            ? obs.repeticionCompleta({ ruta: clip.ruta, fuente: o.obs.fuenteRepeticion, escena: o.obs.escenaRepeticion, escenaJuego: o.obs.escenaJuego, segundosAtras: segundosAtras(a, clip), segundos: a.segundos, g: o.obs.repeticion })
+            : obs.lanzarRepeticion({ ruta: clip.ruta, fuente: o.obs.fuenteRepeticion, escena: o.obs.escenaRepeticion, segundosAtras: segundosAtras(a, clip) }));
           registrar(`[obs] repetición de ${a.jugada}`);
-          setTimeout(() => obs.escena(o.obs.escenaJuego).catch(() => {}), a.segundos * 1000).unref?.();
+          if (!obs.repeticionCompleta) setTimeout(() => obs.escena(o.obs.escenaJuego).catch(() => {}), a.segundos * 1000).unref?.();
         }
       } catch (e) { registrar(`[obs] ${a.tipo} ${a.jugada}: ${e.message}`); }
     }
@@ -128,13 +130,14 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
   const clave = p => (p ? `${p.tipo}:${p.objetivo?.campeon || ''}:${p.objetivo?.jugador || ''}` : 'general');
   const suave = x => x * x * (3 - 2 * x);  // smoothstep: arranca y frena despacio
   let animacion = 0;                       // cada transición nueva cancela la anterior
+  let secuencia = 0;                       // y cada plano nuevo cancela el cambio de seguido a medias
   estado.zoom = { ...nivel('general') };   // zoom aplicado ahora mismo
 
-  async function transicion(p, destino) {
+  async function transicion(p, destino, segundos = r.zoom?.transicionSegundos ?? 1.2) {
     const yo = ++animacion;
     const desde = { ...estado.zoom };
     if (desde.fov === destino.fov && desde.distancia === destino.distancia) return;
-    const pasos = Math.max(1, Math.round((r.zoom?.transicionSegundos ?? 1.2) * (r.zoom?.pasosPorSegundo ?? 25)));
+    const pasos = Math.max(1, Math.round(segundos * (r.zoom?.pasosPorSegundo ?? 25)));
     for (let i = 1; i <= pasos; i++) {
       if (yo !== animacion) return;
       const k = suave(i / pasos);
@@ -149,13 +152,32 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
     const z = zoomDe(p);
     if (estado.aplicado === k && estado.zoomAplicado === z) return;
     const destino = nivel(z);
-    if (estado.aplicado !== k) {
-      animacion++;  // un corte para cualquier transición a medias
-      await render(camara(p, estado.zoom));
-    }
+    const sec = ++secuencia;
+    const anterior = estado.planoCamara;
+    const salida = r.zoom?.salidaSegundos ?? 0.5;
+    // Cambio de un jugador a otro: abre el zoom poco a poco, cambia con la cámara abierta y vuelve a cerrar.
+    // Así el salto se nota mucho menos que un corte seco.
+    const previo = estado.aplicado;
+    const cambioDeSeguido = previo !== k && anterior?.tipo === 'seguir' && p?.tipo === 'seguir' && salida > 0;
     estado.aplicado = k;
     estado.zoomAplicado = z;
-    transicion(p, destino);  // sin esperar: el relé sigue con la antena mientras se mueve el zoom
+    estado.planoCamara = p;
+    if (cambioDeSeguido) {
+      (async () => {
+        await transicion(anterior, nivel('general'), salida);
+        if (sec !== secuencia) return;
+        animacion++;
+        await render(camara(p, estado.zoom)).catch(() => {});
+        if (sec !== secuencia) return;
+        await transicion(p, destino);
+      })().catch(() => {});
+    } else {
+      if (previo !== k) {
+        animacion++;  // un corte para cualquier transición a medias
+        await render(camara(p, estado.zoom));
+      }
+      transicion(p, destino);  // sin esperar: el relé sigue con la antena mientras se mueve el zoom
+    }
     registrar(`[cámara] ${motivo}: ${p?.tipo === 'seguir' ? `sigue a ${p.objetivo.campeon}` : 'plano general'} (zoom ${z})`);
   }
 
