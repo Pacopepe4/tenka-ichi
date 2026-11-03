@@ -78,6 +78,7 @@ function pintar() {
   $('#realizadorDirecto').textContent = reloj(f?.tDirecto);
   $('#realizadorAntena').textContent = reloj(f?.tAntena);
   $('#realizadorMargen').textContent = f?.margenReal === null || f?.margenReal === undefined ? '--' : `${Math.round(f.margenReal)} s`;
+  pintarEmision(f);
   $('#realizadorPlano').textContent = '';
   $('#realizadorPlano').innerHTML = !f ? (presentes.pc1 ? 'Esperando datos del PC 1' : 'Esperando al PC 1')
     : f.manual ? 'Control manual' : f.planoActual ? plano(f.planoActual) : (f.tAntena === null ? 'Esperando partida' : 'Sin plano');
@@ -92,9 +93,43 @@ function pintar() {
   lista('#realizadorRegistro', f?.registro?.slice(0, 8), r => `<li><span class="t">${esc(r.hora?.slice(11, 19))}</span><span>${esc(r.quien)} · ${esc(r.que)}${r.motivo ? ' (' + esc(r.motivo) + ')' : ''}</span></li>`, 'Sin decisiones');
 }
 
+// Botón de empezar el directo (lo hace el PC 2 del realizador, que es donde está OBS)
+function pintarEmision(f) {
+  const e = f?.emision;
+  const pendientes = (f?.condiciones || []).filter(c => !c.ok && c.bloquea).map(c => c.texto.toLowerCase());
+  const b = $('#realizadorEmitir');
+  let texto = 'Directo: esperando al PC 1';
+  let boton = { texto: 'Empezar directo', accion: 'armar', activo: false };
+  if (f && !e) texto = 'Directo: falta el PC 2';
+  else if (e?.fase === 'apagada') {
+    texto = f.listo ? 'Directo: todo listo' : `Directo: falta ${pendientes.join(', ')}`;
+    boton = { texto: 'Empezar directo', accion: 'armar', activo: true };
+  } else if (e?.fase === 'armada' && e.enElAire) {
+    texto = `En el aire, entre partidas${f.faltan !== null && f.faltan !== undefined ? ` · la siguiente sale en ${reloj(f.faltan)}` : ''}`;
+    boton = { texto: 'Terminar emisión', accion: 'terminar', activo: true };
+  } else if (e?.fase === 'armada') {
+    texto = !f.listo ? `Directo armado: espera a ${pendientes.join(', ')}` : f.faltan !== null && f.faltan !== undefined ? `Directo armado: la partida sale en ${reloj(f.faltan)}` : 'Directo armado: arrancando OBS';
+    boton = { texto: 'Cancelar', accion: 'cancelar', activo: true };
+  } else if (e?.fase === 'previa' || e?.fase === 'directo') {
+    texto = `${e.modo === 'grabar' ? 'GRABANDO' : 'EN DIRECTO'}${e.fase === 'directo' ? ` · partida en antena ${reloj(f.tAntena)}` : ' · empezamos'}`;
+    boton = { texto: 'Terminar emisión', accion: 'terminar', activo: true };
+  }
+  if (e?.error) texto += ` · ${e.error}`;
+  $('#realizadorEmision').textContent = texto;
+  b.textContent = boton.texto;
+  b.dataset.accion = boton.accion;
+  b.disabled = !boton.activo;
+  b.classList.toggle('manual', boton.accion === 'terminar');
+}
+
 input.addEventListener('change', conectar);
 setInterval(() => { if (claveActual() !== claveUsada) conectar(); }, 1500);
 $('#realizadorControl').onclick = () => mandar({ tipo: 'panelControl', manual: !foto?.manual });
+$('#realizadorEmitir').onclick = () => {
+  const accion = $('#realizadorEmitir').dataset.accion;
+  if (accion === 'terminar' && !window.confirm('¿Terminar la emisión?')) return;
+  mandar({ tipo: 'panelEmision', accion, modo: foto?.emision?.modo || 'emitir' });
+};
 $('#realizadorGeneral').onclick = () => mandar({ tipo: 'panelOrden', orden: { tipo: 'general' } });
 $('#realizadorJugadores').onclick = e => {
   const b = e.target.closest('button');

@@ -56,7 +56,15 @@ export class Ejecutor extends EventEmitter {
     this.clips.clear();
     this.estadoJugadas.clear();
     this.vistas = new Set();
+    this.tFin = null;
     this.cambios = true;
+  }
+
+  // Botón de empezar el directo: lo hace el relé del PC 2, que es donde está OBS
+  async emision(orden, quien = 'persona') {
+    if (!this.releConectado) throw new Error('El PC 2 no está conectado: abre «Realizador PC2» en el PC de emisión');
+    await this.mandar('emision', { accion: orden.accion, modo: orden.modo });
+    this.apuntar(quien, `emisión: ${orden.accion}`, { modo: orden.modo });
   }
 
   hayCambios() { this.cambios = true; }
@@ -100,6 +108,8 @@ export class Ejecutor extends EventEmitter {
           await this.mandar('guion', {
             planos: this.manual ? [] : this.guion.filter(p => tA === null || p.fin === null || p.fin > tA), tDirecto: tD, manual: this.manual,
             obs: this.obs ? [] : this.accionesObs(tA),
+            // Segundo en que acabó la partida (o null): el PC 2 pasa a la escena final al llegar ahí
+            tFin: this.tFin ?? null,
           });
           this.ultimoEnvio = Date.now();
         } catch (e) { this.emit('aviso', `No se pudo mandar el guion al PC 2: ${e.message}`); }

@@ -30,6 +30,19 @@
     "puerto": 4600
   },
 
+  "panelPc2": {
+    "puerto": 4601
+  },
+
+  "emision": {
+    "modo": "emitir",
+    "previaSegundos": 10,
+    "segundosTrasFin": 5,
+    "sinJuegoSegundos": 8,
+    "pararAlAcabar": false,
+    "pararTrasSegundos": 60
+  },
+
   "reglas": {
     "anticipacion": 5,
     "anticipacionObjetivo": 10,

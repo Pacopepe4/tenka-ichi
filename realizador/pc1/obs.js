@@ -78,6 +78,21 @@ export class Obs extends EventEmitter {
     return this.pedir('SetCurrentProgramScene', { sceneName: nombre });
   }
 
+  // Emisión, grabación y búfer de repetición: si están en marcha
+  async salidas() {
+    const [e, g, b] = await Promise.all([
+      this.pedir('GetStreamStatus').catch(() => ({})),
+      this.pedir('GetRecordStatus').catch(() => ({})),
+      this.pedir('GetReplayBufferStatus').catch(() => ({})),
+    ]);
+    return { emitiendo: Boolean(e.outputActive), grabando: Boolean(g.outputActive), bufer: Boolean(b.outputActive) };
+  }
+
+  // modo: 'emitir' (directo en Twitch/YouTube con la clave del perfil) o 'grabar' (prueba, solo en el disco)
+  arrancarSalida(modo) { return this.pedir(modo === 'grabar' ? 'StartRecord' : 'StartStream'); }
+  pararSalida(modo) { return this.pedir(modo === 'grabar' ? 'StopRecord' : 'StopStream'); }
+  arrancarBufer() { return this.pedir('StartReplayBuffer'); }
+
   // Guarda los últimos segundos del búfer de repetición y devuelve la ruta del clip
   async guardarRepeticion() {
     const { outputActive } = await this.pedir('GetReplayBufferStatus');
