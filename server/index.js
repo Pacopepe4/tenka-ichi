@@ -44,6 +44,8 @@ const clanesConPlantilla = () => CLANES.map(c => ({ ...c, ...plantilla(c.id) }))
 
 const PUERTO = Number(process.env.PORT) || 3000;
 const CLAVE = process.env.PANEL_CLAVE || 'tenkaichi';
+// El calendario sorteado queda para siempre: con uno guardado no se puede sortear otro encima, solo ensayar
+const YA_SORTEADO = 'El calendario ya está sorteado y guardado para siempre: solo se pueden hacer ensayos';
 // Freno de la entrada del panel: tras 10 contraseñas malas desde la misma dirección, 10 minutos sin poder probar
 const FRENO_CLAVE = { fallos: 10, ventana: 10 * 60 * 1000 };
 const fallosClave = new Map();
@@ -457,11 +459,13 @@ async function accion(nombre, d = {}) {
       return { ok: true, nombre: u.nombre, gacha: estadoGachaPanel() };
     }
     case 'sortear': {
+      if (calendarioActual()) return { ok: false, error: YA_SORTEADO };
       const cal = await sortearCalendario(d.participantes || [], d.semilla);
       return { ok: true, semilla: cal.semilla };
     }
     // Sorteo en directo: empezar (con los clanes de la temporada), sacar una bola, dejarlas salir solas y cancelar
     case 'sorteoIniciar': {
+      if (!d.ensayo && calendarioActual()) return { ok: false, error: YA_SORTEADO };
       const r = sorteo.iniciar({ participantes: TEMPORADA.clanes, semilla: d.semilla, ensayo: Boolean(d.ensayo) });
       return { ok: true, ...r };
     }
