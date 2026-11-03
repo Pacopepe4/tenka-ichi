@@ -44,6 +44,9 @@ const clanesConPlantilla = () => CLANES.map(c => ({ ...c, ...plantilla(c.id) }))
 
 const PUERTO = Number(process.env.PORT) || 3000;
 const CLAVE = process.env.PANEL_CLAVE || 'tenkaichi';
+// Freno de la entrada del panel: tras 10 contraseñas malas desde la misma dirección, 10 minutos sin poder probar
+const FRENO_CLAVE = { fallos: 10, ventana: 10 * 60 * 1000 };
+const fallosClave = new Map();
 const PUBLICO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
 
 const vacio = () => ({ azul: Array(5).fill(null), rojo: Array(5).fill(null) });
@@ -857,6 +860,21 @@ const servidor = http.createServer(async (req, res) => {
     return res.end(JSON.stringify({ hoja: estadoHoja() }));
   }
   if (url.pathname === '/salud') { res.writeHead(200); return res.end('ok'); }
+  // La entrada del panel (public/panel/entrada.js) pregunta aquí si la contraseña vale. Quien falla muchas seguidas espera
+  if (url.pathname === '/api/clave') {
+    if (req.method !== 'POST') return json(res, { ok: false, error: 'Método no permitido' }, 405);
+    const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+    const ahora = Date.now(), f = fallosClave.get(ip);
+    if (f && ahora - f.desde > FRENO_CLAVE.ventana) fallosClave.delete(ip);
+    if ((fallosClave.get(ip)?.n || 0) >= FRENO_CLAVE.fallos) return json(res, { ok: false, error: 'Demasiados intentos' }, 429);
+    let cuerpo;
+    try { cuerpo = await leerCuerpo(req, 2000); } catch (e) { return json(res, { ok: false, error: e.message }, 400); }
+    if (cuerpo.clave === CLAVE) { fallosClave.delete(ip); return json(res, { ok: true }); }
+    const g = fallosClave.get(ip) || { n: 0, desde: ahora };
+    g.n++;
+    fallosClave.set(ip, g);
+    return json(res, { ok: false, error: 'Contraseña incorrecta' }, 401);
+  }
   // El puente del PC del espectador manda aquí la partida cada segundo (con la contraseña del panel)
   if (url.pathname === '/api/partida') {
     if (req.method === 'GET') return json(res, resumenPartida());

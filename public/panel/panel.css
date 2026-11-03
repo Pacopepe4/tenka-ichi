@@ -37,10 +37,26 @@ section[hidden] { display: none; }
 .version-nueva { margin: 0; padding: 10px clamp(16px, 3vw, 32px); background: #3a2224; color: var(--washi); font-size: 14px; }
 .version-nueva[hidden] { display: none; }
 .version-nueva button { margin-left: 10px; padding: 5px 12px; font-size: 13px; }
-.clave input { width: 150px; }
 .clave button { padding: 6px 12px; font-size: 13px; }
-.clave-estado { font-size: 12px; white-space: nowrap; }
-.clave-estado.bien { color: #9CD9A6; } .clave-estado.mal { color: var(--shu-claro); }
+
+/* Entrada: tapa todo el panel hasta que la contraseña es buena; no se cierra de otra forma */
+.entrada { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 16px; background: rgba(10, 8, 8, .82); backdrop-filter: blur(10px); }
+.entrada[hidden] { display: none; }
+html.bloqueado { overflow: hidden; }
+.entrada-caja { width: min(400px, 100%); display: grid; gap: 10px; justify-items: start; padding: 28px 28px 22px; background: var(--sumi-alzado);
+  border: 1px solid var(--sumi-linea); border-top: 3px solid var(--shu); border-radius: 6px; box-shadow: 0 24px 60px rgba(0, 0, 0, .6); }
+.entrada-caja .sello { width: 44px; height: 44px; font-size: 26px; }
+.entrada-caja h1 { margin: 4px 0 0; font-family: var(--mincho); font-size: 24px; font-weight: 800; }
+.entrada-caja p { margin: 0; color: var(--hai); font-size: 14px; }
+.entrada-caja label { margin-top: 8px; font-size: 13px; color: var(--hai); }
+.entrada-caja input { width: 100%; font-size: 16px; }
+.entrada-caja button { width: 100%; margin-top: 4px; }
+.entrada-caja button:disabled { opacity: .6; cursor: wait; }
+.clave-estado { min-height: 1.5em; font-size: 13px; }
+.clave-estado.mal { color: var(--shu-claro); }
+.entrada.temblor .entrada-caja { animation: temblor .4s; }
+@keyframes temblor { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+@media (prefers-reduced-motion: reduce) { .entrada.temblor .entrada-caja { animation: none; } }
 
 .disposicion { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 44%); gap: 24px; max-width: 1500px; margin: 0 auto; padding: 24px clamp(16px, 3vw, 32px) 64px; }
 aside { position: sticky; top: 118px; align-self: start; }

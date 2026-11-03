@@ -6,10 +6,10 @@ const reloj = t => (t === null || t === undefined ? '--:--' : `${Math.floor(t / 
 const ZOOM = { cerca: ' · zoom in', general: '', abierto: '' };
 const plano = p => (p.tipo === 'general' ? 'Plano general' : `Sigue a ${esc(p.objetivo?.campeon)}${ZOOM[p.zoom] || ''}`);
 
-// La contraseña de arriba del panel. panel.js la rellena después de cargar campeones y clanes (y el navegador
-// puede autocompletarla sin avisar), así que se lee de lo guardado y se vigila por si cambia.
+// La contraseña del panel, la de la entrada (entrada.js la pone en #clave cuando el servidor la da por buena). Se vigila
+// por si cambia.
 const input = $('#clave');
-const claveActual = () => input.value.trim() || (() => { try { return (localStorage.getItem('tenka-clave') || '').trim(); } catch { return ''; } })();
+const claveActual = () => input.value.trim();
 let claveUsada = null;
 
 let ws = null, foto = null, presentes = { pc1: false, pc2: false }, espera = 2000, temporizador = null;
@@ -34,7 +34,7 @@ async function conectar() {
   pintar();
   const clave = claveActual();
   claveUsada = clave;
-  if (!clave) return estadoConexion('Escribe arriba a la derecha la contraseña del panel');
+  if (!clave) return estadoConexion('Falta la contraseña del panel');
   const sala = await huella(clave);
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   const yo = new WebSocket(`${proto}://${location.host}/realizador`);
@@ -93,12 +93,6 @@ function pintar() {
 }
 
 input.addEventListener('change', conectar);
-// «Entrar» (o Intro) junto a la contraseña: la da por escrita sin recargar la página. Va aquí y no en panel.js porque
-// panel.js tarda en arrancar (carga campeones y clanes) y el formulario tiene que funcionar desde el principio.
-$('#formClave').addEventListener('submit', e => {
-  e.preventDefault();
-  input.dispatchEvent(new Event('change'));
-});
 setInterval(() => { if (claveActual() !== claveUsada) conectar(); }, 1500);
 $('#realizadorControl').onclick = () => mandar({ tipo: 'panelControl', manual: !foto?.manual });
 $('#realizadorGeneral').onclick = () => mandar({ tipo: 'panelOrden', orden: { tipo: 'general' } });

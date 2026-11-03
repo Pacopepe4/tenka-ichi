@@ -10,10 +10,9 @@ const ROL_LEGIBLE = { TOP: 'Top', JUNGLA: 'Jungla', MEDIO: 'Medio', ADC: 'ADC', 
 const escapar = t => String(t ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
 let estado = null;
 
-// Contraseña guardada en este navegador
+// La contraseña del panel: la pone entrada.js cuando el servidor la da por buena. Si deja de valer, vuelve la entrada
 const claveInput = $('#clave');
-try { claveInput.value = localStorage.getItem('tenka-clave') || ''; } catch {}
-claveInput.addEventListener('change', () => { try { localStorage.setItem('tenka-clave', claveInput.value); } catch {} });
+const claveMala = () => window.dispatchEvent(new Event('tenka-clave-mala'));
 
 function aviso(texto) {
   const a = $('#aviso');
@@ -47,7 +46,8 @@ async function enviar(accion, datos) {
   boton?.setAttribute('aria-busy', 'true');
   const r = await directo.enviar(accion, datos, claveInput.value);
   boton?.removeAttribute('aria-busy');
-  if (!r.ok) aviso(r.error === 'Contraseña incorrecta' ? 'Contraseña incorrecta: escríbela arriba a la derecha' : (r.error || 'No se pudo hacer'));
+  if (!r.ok && r.error === 'Contraseña incorrecta') claveMala();
+  else if (!r.ok) aviso(r.error || 'No se pudo hacer');
   else if (boton) {
     boton.classList.remove('hecho');
     void boton.offsetWidth;
@@ -432,12 +432,9 @@ function textoTemporada(t) {
 async function actualizarGacha() {
   const r = await directo.enviar('gachaEstado', {}, claveInput.value);
   if (r.sinConexion) { setTimeout(actualizarGacha, 1500); return; } // la conexión aún no está abierta
-  // Junto a la contraseña: si el servidor la da por buena
-  const e = $('#claveEstado');
-  e.textContent = !claveInput.value ? '' : r.ok ? 'Correcta' : 'Incorrecta';
-  e.className = `clave-estado ${r.ok ? 'bien' : 'mal'}`;
-  if (r.ok) pintarGacha(r.gacha);
-  else $('#estadoLoginTwitch').textContent = 'Escribe la contraseña arriba a la derecha para ver el estado del gachapon.';
+  if (r.ok) return pintarGacha(r.gacha);
+  if (claveInput.value && r.error === 'Contraseña incorrecta') claveMala();
+  $('#estadoLoginTwitch').textContent = 'Entra con la contraseña del panel para ver el estado del gachapon.';
 }
 $('#conectarCanal').onclick = async () => {
   const r = await enviar('twitchCanal');

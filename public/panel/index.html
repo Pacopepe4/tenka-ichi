@@ -9,10 +9,24 @@
 <link rel="stylesheet" href="panel.css">
 </head>
 <body>
-<header class="barra">
+<!-- Entrada: tapa el panel hasta que el servidor da por buena la contraseña (entrada.js). Sin botón de cerrar -->
+<div class="entrada" id="entrada" role="dialog" aria-modal="true" aria-labelledby="entradaTitulo">
+  <form class="entrada-caja" id="formClave">
+    <span class="hanko sello" aria-hidden="true">天</span>
+    <h1 id="entradaTitulo">Panel de Tenka Ichi</h1>
+    <p>Escribe la contraseña del panel. Es la misma para el draft, la partida, el puente, el realizador, los directos y el gachapon.</p>
+    <label for="claveEntrada">Contraseña</label>
+    <input id="claveEntrada" type="password" autocomplete="current-password" required>
+    <button type="submit" id="entrar">Entrar</button>
+    <p id="claveEstado" class="clave-estado" aria-live="polite"></p>
+  </form>
+</div>
+<header class="barra" inert>
   <a class="marca" href="/"><span class="hanko sello">天</span><span>Panel de draft</span></a>
   <p id="estadoConexion" class="pastilla">Conectando…</p>
-  <form class="clave" id="formClave"><label for="clave">Contraseña</label> <input id="clave" type="password" autocomplete="current-password"><button type="submit" class="secundario">Entrar</button><span id="claveEstado" class="clave-estado" aria-live="polite"></span></form>
+  <!-- La contraseña buena, la que usan panel.js y realizador.js: la pone entrada.js -->
+  <input id="clave" type="hidden">
+  <div class="clave"><button type="button" id="salir" class="secundario" title="Olvida la contraseña en este navegador y vuelve a la entrada">Salir</button></div>
   <!-- Qué enseña el overlay de OBS: cambia solo (draft, postdraft, partida y pantalla final) y aquí se puede forzar -->
   <div class="vistas" role="group" aria-label="Qué enseña el overlay">
     <span class="vistas-titulo">En el overlay</span>
@@ -33,9 +47,9 @@
     <label class="casilla seguir" title="La fase cambia sola con lo que enseña el overlay"><input type="checkbox" id="seguirFase"> Cambiar sola</label>
   </nav>
 </header>
-<p id="versionNueva" class="version-nueva" hidden>Hay una versión nueva de la web. <button type="button" id="recargar">Recargar el panel</button></p>
+<p id="versionNueva" class="version-nueva" hidden inert>Hay una versión nueva de la web. <button type="button" id="recargar">Recargar el panel</button></p>
 
-<div class="disposicion">
+<div class="disposicion" inert>
   <main>
     <section id="competicion" data-fases="antes">
       <h2>Competición</h2>
@@ -282,7 +296,7 @@
     <section id="codigo" data-fases="draft partida resultado liga">
       <h2>Código de directo</h2>
       <p class="ayuda">Crea un código y sale en el overlay: quien lo escriba en el gachapon mientras vale se lleva los sobres, una vez por persona. No hace falta Twitch ni ser afiliado.</p>
-      <p class="estado" id="estadoCodigo">Escribe la contraseña arriba a la derecha para crear códigos.</p>
+      <p class="estado" id="estadoCodigo">Entra con la contraseña del panel para crear códigos.</p>
       <div class="fila premios">
         <label>Sobres <input id="codigoSobres" type="number" min="1" max="5" value="1"></label>
         <label>Minutos que vale <input id="codigoMinutos" type="number" min="1" max="180" value="10"></label>
@@ -344,6 +358,7 @@
   </aside>
 </div>
 <div id="aviso" role="status" hidden></div>
+<script type="module" src="entrada.js"></script>
 <script type="module" src="panel.js"></script>
 <script type="module" src="realizador.js"></script>
 </body>
