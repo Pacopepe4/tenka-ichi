@@ -15,6 +15,25 @@ import { Emision } from './emision.js';
 import { condiciones } from '../comun/condiciones.js';
 import { arrancarPanel } from '../pc1/panel.js';
 
+// Segundo de partida que veía el PC 1 a la hora «hora», con su historial. Entre dos muestras avanza al ritmo
+// del reloj, pero sin pasar de la siguiente (si el reloj se paró, se queda parado). Antes de la primera muestra,
+// hacia atrás al ritmo del reloj (negativo = la partida aún no había empezado). Sin historial, null.
+export function segundoHace(historial, hora) {
+  if (!historial.length) return null;
+  const primera = historial[0];
+  if (hora <= primera.hora) return primera.t - (primera.hora - hora) / 1000;
+  for (let i = historial.length - 1; i >= 0; i--) {
+    const m = historial[i];
+    if (m.hora > hora) continue;
+    const sig = historial[i + 1];
+    const avance = (hora - m.hora) / 1000;
+    if (!sig) return m.t + avance;
+    if (sig.t < m.t) return m.t;  // partida nueva en el PC 1: la antena sigue con el final de la anterior
+    return m.t + Math.min(avance, Math.max(0, sig.t - m.t));
+  }
+  return null;
+}
+
 // obs: false para no tocar OBS desde el relé (modo de un solo PC, donde lo lleva el agente). En las pruebas,
 // obs y sala pueden ser objetos de mentira.
 export function crearRele(o, { registrar: registrarFuera = console.log, obs: conObs = true, sala: otraSala = null, panel: conPanel = false } = {}) {
@@ -43,6 +62,8 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
     clips: new Map(),       // jugada → { ruta, t }
     meta: null,             // segundo al que va (o irá) la antena; negativo mientras espera el margen
     tFin: null,             // segundo en que acabó la partida (lo dice el PC 1)
+    historial: [],          // { t, hora }: segundo de partida del PC 1 según la hora en que llegó
+    pc1EnPartida: null,
   };
 
   // OBS de este mismo PC: guarda el búfer y lanza las repeticiones cuando la antena llega a su segundo
@@ -139,10 +160,13 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
   }
 
   // Segundo de partida al que debería ir la antena
+  // La antena enseña lo que el PC 1 veía hace «margen» segundos de reloj: así las pausas y el final de la
+  // partida (cuando el reloj del PC 1 se para) salen igual, y no hay que corregir hacia atrás.
   function objetivoAntena(pb) {
-    if (estado.directo && Date.now() - estado.directo.hora < 10000) {
-      return estado.directo.t + (Date.now() - estado.directo.hora) / 1000 - o.margenSegundos;
-    }
+    const h = estado.historial;
+    const fresco = estado.directo && Date.now() - estado.directo.hora < 10000;
+    const meta = segundoHace(h, Date.now() - o.margenSegundos * 1000);
+    if (meta !== null && (fresco || meta <= (h.at(-1)?.t ?? -Infinity))) return Math.min(meta, pb.length);
     return pb.length - o.margenSegundos;
   }
 
@@ -206,7 +230,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
 
   // ---------- emisión con un botón ----------
   const pc1Conectado = () => (sala ? sala.companero : Date.now() - estado.ultimoContacto < 10000);
-  const partidaPc1 = () => Boolean(estado.directo && Date.now() - estado.directo.hora < 10000);
+  const partidaPc1 = () => Boolean(estado.directo && Date.now() - estado.directo.hora < 10000 && estado.pc1EnPartida !== false);
   function condicionesAhora() {
     return condiciones({
       papel: 'pc2', pc1: pc1Conectado(), pc2: true, partidaPc1: partidaPc1(), partidaPc2: Boolean(estado.playback),
@@ -259,7 +283,14 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
   function recibirGuion(d) {
     estado.ultimoContacto = Date.now();
     if (d.tFin === null || Number.isFinite(d.tFin)) estado.tFin = d.tFin;
-    if (Number.isFinite(d.tDirecto)) estado.directo = { t: d.tDirecto, hora: Date.now() };
+    if (Number.isFinite(d.tDirecto)) {
+      estado.directo = { t: d.tDirecto, hora: Date.now() };
+      estado.historial.push({ ...estado.directo });
+      // Solo hace falta lo que cabe en el margen (y un poco más)
+      const corte = Date.now() - (o.margenSegundos + 60) * 1000;
+      while (estado.historial.length > 2 && estado.historial[1].hora < corte) estado.historial.shift();
+    }
+    if (typeof d.enPartida === 'boolean') estado.pc1EnPartida = d.enPartida;
     if (Array.isArray(d.planos)) estado.planos = d.planos.filter(p => Number.isFinite(p.inicio)).sort((a, b) => a.inicio - b.inicio);
     if (Array.isArray(d.obs)) estado.accionesObs = d.obs.filter(a => a && a.id && Number.isFinite(a.t));
     if (typeof d.manual === 'boolean') {

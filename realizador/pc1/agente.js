@@ -104,7 +104,7 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
   });
   explorador.on('fin', info => {
     // El PC 2 pasa a la escena final cuando la antena llegue a este segundo
-    ejecutor.tFin = explorador.tiempo?.t ?? explorador.ahora();
+    ejecutor.tFin = info?.t ?? explorador.tiempo?.t ?? explorador.ahora();
     ejecutor.hayCambios();
     ejecutor.apuntar('realizador', 'fin de la partida', { ...info, t: ejecutor.tFin });
   });

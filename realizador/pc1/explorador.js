@@ -21,6 +21,9 @@ const LIVE_EVENTS = [
   [/atakhan/i, 'AtakhanKill'],
 ];
 
+// Quiénes juegan (para saber si una partida es la misma que acaba de terminar)
+const firma = lista => (Array.isArray(lista) ? lista.map(j => j.riotId || j.riotIdGameName || j.summonerName || '').sort().join('|') : '');
+
 export class Explorador extends EventEmitter {
   constructor(opciones) {
     super();
@@ -64,6 +67,8 @@ export class Explorador extends EventEmitter {
   // Segundos de partida ahora mismo, contando lo que ha pasado desde la última lectura
   ahora() {
     if (!this.tiempo) return null;
+    // Acabada la partida, el reloj se queda en su último segundo
+    if (!this.enPartida) return this.tiempo.t;
     return this.tiempo.t + (Date.now() - this.tiempo.hora) / 1000 * this.velocidad;
   }
 
@@ -73,6 +78,13 @@ export class Explorador extends EventEmitter {
     // Si el reloj vuelve muy atrás sin haber perdido la conexión, es otra partida
     if (this.enPartida && this.tiempo && t < this.tiempo.t - 30) this.sinPartida(new Error('el reloj de partida ha vuelto atrás'));
     if (!this.enPartida) {
+      // Tras acabar una partida, el cliente puede seguir dando datos de esa misma partida (pantalla final, o el
+      // espectador repitiendo el final): no es una partida nueva si son los mismos jugadores y no empieza de 0
+      if (this.terminada) {
+        const lista = await pedirJSON(`${this.url}/liveclientdata/playerlist`, { tiempoMs: 2000 }).catch(() => null);
+        if (t >= 60 && firma(lista) === this.terminada.firma) { this.emit('conexion', false); return; }
+        this.terminada = null;
+      }
       this.enPartida = true;
       this.siguienteId = 0;
       this.vistos.clear();
@@ -93,6 +105,13 @@ export class Explorador extends EventEmitter {
     const datos = await pedirJSON(`${this.url}/liveclientdata/eventdata?eventID=${this.siguienteId}`, { tiempoMs: 2000 });
     for (const ev of datos?.Events || []) {
       this.siguienteId = Math.max(this.siguienteId, (Number(ev.EventID) || 0) + 1);
+      // Fin de la partida (explota el nexo): se acaba aquí aunque el cliente siga respondiendo
+      if (ev.EventName === 'GameEnd') {
+        const tf = Number(ev.EventTime);
+        if (Number.isFinite(tf)) this.tiempo = { t: tf, hora: Date.now() };
+        this.sinPartida(null, 'fin de la partida');
+        return;
+      }
       const normal = this.normalizar(ev, 'lcd');
       if (normal) this.emitirEvento(normal);
     }
@@ -114,15 +133,17 @@ export class Explorador extends EventEmitter {
     this.sinPartida(error);
   }
 
-  sinPartida(error) {
+  sinPartida(error, motivo) {
     if (this.enPartida) {
       this.enPartida = false;
-      this.emit('fin', { motivo: error?.message || 'sin datos del cliente' });
+      this.terminada = { firma: firma(this.jugadoresCliente), t: this.tiempo?.t ?? null };
+      this.emit('fin', { motivo: motivo || error?.message || 'sin datos del cliente', t: this.tiempo?.t ?? null });
     }
     this.emit('conexion', false);
   }
 
   ponerJugadores(lista) {
+    this.jugadoresCliente = lista;
     this.jugadores = lista.map(j => ({
       jugador: j.riotIdGameName || (j.riotId || '').split('#')[0] || j.summonerName,
       campeon: j.championName,

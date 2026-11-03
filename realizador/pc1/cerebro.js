@@ -237,11 +237,19 @@ export class Cerebro {
 
     for (const j of this.jugadas) {
       if (!j.repetir || j.repeticion || j.fin < desde) continue;
+      // Barón: no se repite el Barón, sino la pelea de antes, y solo si el otro equipo quedó entero muerto (ace)
+      let hastaT = j.fin;
+      if (j.objetivos.includes('BaronKill')) {
+        const baron = j.eventos.find(x => x.nombre === 'BaronKill');
+        const ace = j.eventos.find(x => x.nombre === 'Ace' && (!baron || x.t <= baron.t + 1));
+        if (!ace) { j.repeticion = 'baron-sin-ace'; continue; }
+        hastaT = ace.t + 1;
+      }
       const calma = Math.max(r.repeticion.calmaNecesaria, r.repeticion.segundos);
       for (let t = j.fin + 2; t <= j.fin + 60; t += 2) {
         if (t + calma > conocidoHasta) break;  // aún no se sabe
         if (!ocupado(t, t + calma, r.prioridades.objetivo)) {
-          const a = { id: `rep-${j.id}`, tipo: 'repeticion', t: red(t), segundos: r.repeticion.segundos, jugada: j.id, desdeT: red(j.inicio), hastaT: red(j.fin) };
+          const a = { id: `rep-${j.id}`, tipo: 'repeticion', t: red(t), segundos: r.repeticion.segundos, jugada: j.id, desdeT: red(j.inicio), hastaT: red(hastaT) };
           j.repeticion = a.id;
           this.acciones.push(a);
           nuevas.push(a);

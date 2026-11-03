@@ -34,6 +34,7 @@ export class Emision extends EventEmitter {
     this.partidas = 0;       // partidas emitidas desde que se armó
     this.ultimoFin = null;
     this.sinJuegoDesde = null;
+    this.finVisto = null;
     this.pararEn = null;
     this.esperaNueva = false; // tras acabar una partida, no se vuelve a entrar hasta que empiece otra
     this.reintentoEn = 0;
@@ -152,7 +153,10 @@ export class Emision extends EventEmitter {
     }
 
     if (this.fase === 'directo') {
-      const acabada = (Number.isFinite(tFin) && tAntena !== null && tAntena >= tFin + this.c.segundosTrasFin)
+      // La antena se para en el final: desde que llega, se deja ver «segundosTrasFin» y se pasa a la escena final
+      if (Number.isFinite(tFin) && tAntena !== null && tAntena >= tFin - 1) this.finVisto ??= ahora;
+      else this.finVisto = null;
+      const acabada = (this.finVisto !== null && ahora - this.finVisto >= this.c.segundosTrasFin * 1000)
         || (this.sinJuegoDesde && ahora - this.sinJuegoDesde > this.c.sinJuegoSegundos * 1000);
       if (!acabada) return;
       await this.escena(this.escenas.final);
@@ -162,6 +166,7 @@ export class Emision extends EventEmitter {
       // Se queda armada: la siguiente partida entra sola sin cortar la emisión
       this.fase = 'armada';
       this.esperaNueva = true;
+      this.finVisto = null;
       if (this.c.pararAlAcabar) this.pararEn = ahora + this.c.pararTrasSegundos * 1000;
       this.registrar(`[emisión] partida terminada: escena ${this.escenas.final}${this.c.pararAlAcabar ? `; se corta en ${this.c.pararTrasSegundos} s` : '; la siguiente entra sola'}`);
       this.emit('cambio');
