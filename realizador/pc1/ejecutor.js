@@ -110,6 +110,7 @@ export class Ejecutor extends EventEmitter {
             obs: this.obs ? [] : this.accionesObs(tA),
             // Segundo en que acabó la partida (o null): el PC 2 pasa a la escena final al llegar ahí
             tFin: this.tFin ?? null,
+            enPartida: Boolean(this.explorador.enPartida),
           });
           this.ultimoEnvio = Date.now();
         } catch (e) { this.emit('aviso', `No se pudo mandar el guion al PC 2: ${e.message}`); }
