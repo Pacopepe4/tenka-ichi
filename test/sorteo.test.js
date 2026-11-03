@@ -224,3 +224,26 @@ test('el automático lo cambia el panel y se limita entre 5 y 30 segundos', asyn
   await panel.accion('sorteoCancelar');
   for (const c of [panel, portada]) c.ws.close();
 });
+
+test('si la web se reinicia a mitad, el sorteo sigue en la misma bola con el mismo calendario', async () => {
+  const apuntes = [];
+  const fijados = [];
+  const a = crearSorteo({ fijar: async cal => { fijados.push(cal); }, guardar: e => { apuntes.push(e); } });
+  const PARTICIPANTES = ['SARU', 'KAIJU', 'KEMONO', 'ATSUI', 'TORA', 'BUSHI'];
+  a.iniciar({ participantes: PARTICIPANTES, semilla: 4242 });
+  for (let i = 0; i < 7; i++) await a.siguiente();
+  const ultimo = apuntes.at(-1);
+  assert.equal(ultimo.sacadas, 7);
+  assert.equal(ultimo.semilla, 4242);
+  const antes = a.vista().sacadas;
+  // La web nueva: lo apuntado la deja igual
+  const b = crearSorteo({ fijar: async cal => { fijados.push(cal); }, guardar: e => { apuntes.push(e); } });
+  assert.equal(b.reanudar(JSON.parse(JSON.stringify(ultimo))), true);
+  assert.deepEqual(b.vista().sacadas, antes);
+  while (b.vista().estado !== 'terminado') await b.siguiente();
+  assert.equal(fijados.length, 1);
+  assert.equal(apuntes.at(-1), null, 'guardado el calendario, ya no hay sorteo en marcha que reanudar');
+  // El calendario es el mismo que habría salido sin el reinicio
+  while (a.vista().estado !== 'terminado') await a.siguiente();
+  assert.deepEqual(fijados[1].jornadas, fijados[0].jornadas);
+});

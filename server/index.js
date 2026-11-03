@@ -17,7 +17,7 @@ import { CLANES, ROLES } from './clanes.js';
 import { cargarPlantillas, plantilla, guardarPlantilla, refrescarPlantillas } from './plantillas.js';
 import { estadoHoja } from './sheets.js';
 import { cargarTierlist, vistaTierlist, ponerTier } from './tierlist.js';
-import { cargarAjustes } from './ajustes.js';
+import { cargarAjustes, ajuste, guardarAjustes } from './ajustes.js';
 import { aplicarImportaciones } from './importaciones.js';
 import { cargarGacha, catalogo, probabilidades, abrirSobre, darAlta, darSobres, estadoUsuario, buscarUsuario, resumenGacha, fundirRepetidas,
   vincularTwitch, desvincularTwitch, sobresListos, reparto, estrenarTemporada, estadoTemporada,
@@ -114,7 +114,7 @@ function emitir() {
 
 // El sorteo del calendario en directo (server/sorteo.js) llega a todas las pantallas. La portada solo pide este
 // canal (/ws?canal=sorteo): no necesita el estado del draft y así no se lo mandamos a cada visitante
-const sorteo = crearSorteo();
+const sorteo = crearSorteo({ guardar: e => guardarAjustes({ sorteo_en_curso: e ? JSON.stringify(e) : null }) });
 sorteo.alCambiar(v => {
   const msg = JSON.stringify({ tipo: 'sorteo', sorteo: v });
   for (const ws of clientes) if (ws.readyState === 1) ws.send(msg);
@@ -989,6 +989,11 @@ setInterval(() => { for (const ws of clientes) if (ws.readyState === 1) ws.ping(
 
 await Promise.all([cargar(), cargarPlantillas(), cargarCalendario(), cargarAjustes()]);
 await Promise.all([cargarTierlist(), cargarGacha()]);
+// El sorteo que estaba en marcha cuando la web se reinició sigue en la misma bola (si no se guardó ya el calendario)
+try {
+  const enCurso = JSON.parse(ajuste('sorteo_en_curso') || 'null');
+  if (enCurso && !(calendarioActual() && !enCurso.ensayo) && sorteo.reanudar(enCurso)) console.log(`Sorteo reanudado en la bola ${enCurso.sacadas}`);
+} catch (e) { console.error('No se pudo reanudar el sorteo:', e.message); }
 // Plantillas y tiers que el usuario ha dictado para la web publicada (data-proyecto/importaciones.json), una vez cada una
 await aplicarImportaciones().then(h => { if (h.length) console.log(`Importado en la hoja: ${h.join(', ')}`); },
   e => console.error('Importaciones sin hacer:', e.message));

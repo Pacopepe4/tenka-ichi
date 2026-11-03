@@ -4,6 +4,8 @@
 // tiempo. Cada jornada es un bombo de seis bolas, una por clan: salen por parejas (el lado azul y el rojo de cada
 // cruce) y, al acabar la jornada, el bombo se vuelve a llenar. El calendario solo se guarda al sacar la última
 // bola; un ensayo se hace igual, pero no guarda nada.
+// Mientras está en marcha, cada bola que sale se apunta con «guardar» (en la hoja, con la semilla): si la web se
+// reinicia a mitad, «reanudar» lo deja en la misma bola, con el mismo calendario.
 import { randomUUID } from 'node:crypto';
 import { prepararCalendario, fijarCalendario } from './calendario.js';
 
@@ -15,7 +17,7 @@ export function bolasDe(calendario) {
     .map((b, i) => ({ n: i + 1, ...b }));
 }
 
-export function crearSorteo({ preparar = prepararCalendario, fijar = fijarCalendario } = {}) {
+export function crearSorteo({ preparar = prepararCalendario, fijar = fijarCalendario, guardar = () => {} } = {}) {
   let s = null;            // el sorteo en marcha o el último que terminó
   let temporizador = null;
   let escucha = () => {};
@@ -34,6 +36,21 @@ export function crearSorteo({ preparar = prepararCalendario, fijar = fijarCalend
     };
   }
   const avisar = () => escucha(vista());
+  const apuntar = () => {
+    const enCurso = s && s.sacadas < s.bolas.length;
+    Promise.resolve(guardar(enCurso ? { id: s.id, participantes: s.calendario.participantes, semilla: s.calendario.semilla, sacadas: s.sacadas, ensayo: s.ensayo } : null))
+      .catch(e => console.error('No se pudo apuntar el sorteo en marcha:', e.message));
+  };
+
+  // Tras un reinicio: el sorteo que estaba en marcha, en la misma bola
+  function reanudar(r) {
+    if (!r || s) return false;
+    const calendario = preparar(r.participantes, r.semilla);
+    const bolas = bolasDe(calendario);
+    s = { id: r.id || randomUUID(), calendario, bolas, sacadas: Math.max(0, Math.min(Number(r.sacadas) || 0, bolas.length - 1)), ensayo: Boolean(r.ensayo), guardado: null, cadaMs: 0 };
+    avisar();
+    return true;
+  }
 
   function iniciar({ participantes, semilla, ensayo = false }) {
     if (s && s.sacadas < s.bolas.length) throw new Error('Ya hay un sorteo en marcha: termínalo o cancélalo antes de empezar otro');
@@ -41,6 +58,7 @@ export function crearSorteo({ preparar = prepararCalendario, fijar = fijarCalend
     parar();
     s = { id: randomUUID(), calendario, bolas: bolasDe(calendario), sacadas: 0, ensayo: Boolean(ensayo), guardado: null, cadaMs: 0 };
     avisar();
+    apuntar();
     // La semilla solo la ve quien empieza el sorteo (el panel): el resto la recibe al terminar
     return { semilla: calendario.semilla, total: s.bolas.length };
   }
@@ -52,12 +70,15 @@ export function crearSorteo({ preparar = prepararCalendario, fijar = fijarCalend
     const ultima = s.sacadas === s.bolas.length;
     if (ultima) parar();
     avisar();
+    if (!ultima) apuntar();
     if (ultima && !s.ensayo) {
       const actual = s;
       try { await fijar(actual.calendario); actual.guardado = true; }
       catch (e) { console.error('El sorteo ha terminado, pero no se ha podido guardar:', e.message); actual.guardado = false; }
       if (s === actual) avisar();
-    }
+      // Hasta que no está guardado, se sigue apuntando en marcha (en la última bola): un reinicio no lo pierde
+      if (actual.guardado) apuntar();
+    } else if (ultima) apuntar();
     return vista();
   }
 
@@ -79,8 +100,9 @@ export function crearSorteo({ preparar = prepararCalendario, fijar = fijarCalend
     parar();
     s = null;
     avisar();
+    apuntar();
     return vista();
   }
 
-  return { iniciar, siguiente, automatico, cancelar, vista, alCambiar: f => { escucha = f; } };
+  return { iniciar, siguiente, automatico, cancelar, vista, reanudar, alCambiar: f => { escucha = f; } };
 }
