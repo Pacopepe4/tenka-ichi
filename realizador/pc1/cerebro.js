@@ -198,24 +198,42 @@ export class Cerebro {
         t = proxima.inicio;
         continue;
       }
-      activas.sort((a, b) => this.prioridad(b) - this.prioridad(a) || a.inicio - b.inicio);
-      let j = activas[0];
-      // Si algo más importante empieza antes de que este plano llegue al mínimo, se va ya a eso:
-      // mejor llegar un poco antes a la pelea que enseñar un plano de dos segundos
-      const inminente = candidatas
-        .filter(o => o.inicio > t && o.inicio < t + r.planoMinimo && this.prioridad(o) > this.prioridad(j))
-        .sort((a, b) => this.prioridad(b) - this.prioridad(a) || a.inicio - b.inicio)[0];
-      if (inminente) j = inminente;
-      // Hasta cuándo: el fin de la jugada, salvo que entre otra más importante
-      let hasta = j.fin;
-      for (const o of candidatas) {
-        if (o === j || this.prioridad(o) <= this.prioridad(j)) continue;
-        if (o.inicio >= hasta || o.fin <= t) continue;
-        hasta = Math.min(hasta, Math.max(o.inicio, t + r.planoMinimo));
+      let j, hasta;
+      const primera = [...activas].sort((a, b) => a.inicio - b.inicio || this.prioridad(b) - this.prioridad(a))[0];
+      // Una torre o un inhibidor sí cede ante una muerte o una pelea
+      if (r.quedarseConLaPrimera !== false && primera.tipo !== 'estructura') {
+        // La cámara se queda con la jugada que empezó primero hasta que acaba: si dos cosas pasan a la vez,
+        // no salta de una a otra. Al acabar, si la otra sigue, va a ella.
+        activas.sort((a, b) => a.inicio - b.inicio || this.prioridad(b) - this.prioridad(a));
+        j = activas[0];
+        hasta = j.fin;
+      } else {
+        activas.sort((a, b) => this.prioridad(b) - this.prioridad(a) || a.inicio - b.inicio);
+        j = activas[0];
+        // Si algo más importante empieza antes de que este plano llegue al mínimo, se va ya a eso
+        const inminente = candidatas
+          .filter(o => o.inicio > t && o.inicio < t + r.planoMinimo && this.prioridad(o) > this.prioridad(j))
+          .sort((a, b) => this.prioridad(b) - this.prioridad(a) || a.inicio - b.inicio)[0];
+        if (inminente) j = inminente;
+        hasta = j.fin;
+        for (const o of candidatas) {
+          if (o === j || this.prioridad(o) <= this.prioridad(j)) continue;
+          if (o.inicio >= hasta || o.fin <= t) continue;
+          hasta = Math.min(hasta, Math.max(o.inicio, t + r.planoMinimo));
+        }
       }
       if (hasta <= t) hasta = t + r.planoMinimo;
-      // Dentro de la jugada, un plano por cada cambio de foco
-      const focos = j.focos.filter(f => f.t < hasta);
+      // Dentro de la jugada, un plano por cada cambio de foco, pero sin cambiar de seguido más a menudo
+      // que «focoMinimo» segundos: así la cámara no da tumbos cuando caen varios seguidos
+      const minimo = r.focoMinimo ?? 0;
+      const focos = [];
+      for (const f of j.focos) {
+        const desdeF = focos.length ? Math.max(f.t, focos.at(-1).t + minimo) : f.t;
+        if (desdeF >= hasta) break;
+        if (focos.length && focos.at(-1).quien.campeon === f.quien.campeon) continue;
+        if (focos.length && desdeF === focos.at(-1).t) focos[focos.length - 1] = { ...f, t: desdeF };
+        else focos.push({ ...f, t: desdeF });
+      }
       for (let i = 0; i < focos.length; i++) {
         const a = i === 0 ? t : Math.max(t, focos[i].t);
         const b = i + 1 < focos.length ? Math.max(a, focos[i + 1].t) : hasta;

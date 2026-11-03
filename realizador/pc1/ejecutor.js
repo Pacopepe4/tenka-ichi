@@ -195,9 +195,13 @@ export class Ejecutor extends EventEmitter {
       const o = this.o.obs;
       // Se repite el final de la jugada (el remate), no el principio: los últimos «segundos» antes de su fin.
       // El colchón adelanta el arranque por si OBS guardó el clip un poco más tarde de lo calculado.
-      await this.obs.lanzarRepeticion({ ruta: clip.ruta, fuente: o.fuenteRepeticion, escena: o.escenaRepeticion, segundosAtras: segundosAtras(a, clip, this.o.reglas.repeticion.colchon) });
+      const datos = { ruta: clip.ruta, fuente: o.fuenteRepeticion, escena: o.escenaRepeticion, escenaJuego: o.escenaJuego, segundosAtras: segundosAtras(a, clip, this.o.reglas.repeticion.colchon), segundos: a.segundos, g: o.repeticion };
+      if (this.obs.repeticionCompleta) await this.obs.repeticionCompleta(datos);
+      else {
+        await this.obs.lanzarRepeticion(datos);
+        setTimeout(() => this.obs.escena(o.escenaJuego).catch(() => {}), a.segundos * 1000).unref?.();
+      }
       this.apuntar('realizador', 'repeticion', { jugada: a.jugada, t: a.t });
-      setTimeout(() => this.obs.escena(o.escenaJuego).catch(() => {}), a.segundos * 1000).unref?.();
     } else if (a.tipo === 'lineas') {
       if (!this.tenka?.listo) { this.apuntar('realizador', 'salta', { accion: 'lineas', motivo: 'sin panel de TENKA ICHI' }); return; }
       await this.tenka.accion('grafico', { tipo: 'lineas', segundos: a.segundos });

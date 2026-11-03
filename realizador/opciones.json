@@ -22,6 +22,7 @@
       "abierto": { "fov": 56, "distancia": 1.15 },
       "cerca": { "fov": 44, "distancia": 0.8 },
       "transicionSegundos": 1.2,
+      "salidaSegundos": 0.5,
       "pasosPorSegundo": 25
     }
   },
@@ -50,6 +51,8 @@
     "ventanaPelea": 12,
     "planoMinimo": 6,
     "congelarSegundos": 3,
+    "quedarseConLaPrimera": true,
+    "focoMinimo": 4,
     "prioridades": {
       "pelea": 5,
       "objetivo": 4,
@@ -85,6 +88,11 @@
     "fuenteRepeticion": "Repeticion clip",
     "escenaCasters": "Casters",
     "escenaPausa": "Pausa",
+    "repeticion": {
+      "transicionEntrada": "",
+      "transicionSalida": "",
+      "overlay": ""
+    },
     "segundosBufer": 45,
     "codificador": "x264",
     "overlay": ""
