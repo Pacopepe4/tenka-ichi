@@ -1,11 +1,11 @@
 // Publicar en Discord con el webhook de un canal: la colección y la alineación de los coleccionistas, y la tier
 // list y la clasificación de cada jornada del fantasy (el staff), como imagen (la dibuja la página, public/compartir.js) con un texto que pone el servidor.
 // El webhook se crea en Discord (Ajustes del servidor › Integraciones › Webhooks › Nuevo webhook) y su
-// dirección va en Render: DISCORD_WEBHOOK_URL. Si la tier list o la clasificación van en otro canal,
-// DISCORD_WEBHOOK_TIERLIST y DISCORD_WEBHOOK_CLASIFICACION.
+// dirección va en Render: DISCORD_WEBHOOK_URL. Si la alineación, la tier list o la clasificación van en otro canal,
+// DISCORD_WEBHOOK_ALINEACION, DISCORD_WEBHOOK_TIERLIST y DISCORD_WEBHOOK_CLASIFICACION (npm run discord-aplicar los crea).
 const WEBHOOKS = {
   coleccion: process.env.DISCORD_WEBHOOK_URL,
-  alineacion: process.env.DISCORD_WEBHOOK_URL,
+  alineacion: process.env.DISCORD_WEBHOOK_ALINEACION || process.env.DISCORD_WEBHOOK_URL,
   // La tier list que hace cada espectador en la portada: al mismo canal que la del staff
   mitierlist: process.env.DISCORD_WEBHOOK_TIERLIST || process.env.DISCORD_WEBHOOK_URL,
   tierlist: process.env.DISCORD_WEBHOOK_TIERLIST || process.env.DISCORD_WEBHOOK_URL,

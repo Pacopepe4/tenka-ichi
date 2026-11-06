@@ -24,6 +24,8 @@ services:
       # Publicar colección, alineación y tier list en un canal (webhook del canal)
       - key: DISCORD_WEBHOOK_URL
         sync: false
+      - key: DISCORD_WEBHOOK_ALINEACION   # opcional: la alineación en otro canal
+        sync: false
       - key: DISCORD_WEBHOOK_TIERLIST   # opcional: la tier list en otro canal
         sync: false
       - key: DISCORD_WEBHOOK_CLASIFICACION   # opcional: la clasificación del fantasy en otro canal
