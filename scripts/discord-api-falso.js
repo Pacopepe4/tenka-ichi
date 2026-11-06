@@ -14,8 +14,8 @@ export function crearDiscordApiFalso({ nombre = 'Gokudō' } = {}) {
   const BOT = { id: '9', username: 'Gokudō', bot: true };
   const estado = {
     guild: { id: G, name: nombre },
-    roles: [{ id: G, name: '@everyone', color: 0, hoist: false, mentionable: false, managed: false, position: 0 },
-      { id: '2', name: 'Gokudō', color: 0, hoist: false, mentionable: false, managed: true, position: 1 }],
+    roles: [{ id: G, name: '@everyone', color: 0, hoist: false, mentionable: false, managed: false, position: 0, permissions: '1071698660929' },
+      { id: '2', name: 'Gokudō', color: 0, hoist: false, mentionable: false, managed: true, position: 1, permissions: '8', tags: { bot_id: '9' } }],
     canales: [
       { id: '3', type: 4, name: 'Text Channels', position: 0, parent_id: null, permission_overwrites: [] },
       { id: '4', type: 0, name: 'general', position: 0, parent_id: '3', topic: null, permission_overwrites: [] },
@@ -50,8 +50,23 @@ export function crearDiscordApiFalso({ nombre = 'Gokudō' } = {}) {
     if (ruta === `/guilds/${G}/roles`) {
       if (m === 'GET') return responder(200, estado.roles);
       if (m === 'POST') {
-        const r = { id: nuevoId(), name: cuerpo.name || 'new role', color: cuerpo.color || 0, hoist: !!cuerpo.hoist, mentionable: !!cuerpo.mentionable, managed: false, position: 1 };
+        // Como en Discord: el rol nuevo se queda en la posición 1, empatado con los demás
+        const r = { id: nuevoId(), name: cuerpo.name || 'new role', color: cuerpo.color || 0, hoist: !!cuerpo.hoist, mentionable: !!cuerpo.mentionable, managed: false, position: 1,
+          permissions: cuerpo.permissions ?? '1071698660929' };
         estado.roles.push(r); return responder(200, r);
+      }
+      if (m === 'PATCH') {
+        const bot = estado.roles.find(x => x.managed);
+        for (const p of cuerpo) {
+          const r = estado.roles.find(x => x.id === p.id);
+          if (!r) return responder(404, { message: 'Unknown Role', code: 10011 });
+          // Como en Discord: el bot no puede subir nada por encima de su rol, salvo que su rol vaya en la misma lista más arriba
+          const suyo = cuerpo.find(q => q.id === bot.id);
+          const techo = suyo ? Math.max(suyo.position, bot.position) : bot.position;
+          if ((r.managed && r.id !== bot.id) || (r.id !== bot.id && p.position >= techo)) return responder(400, { message: 'Missing Permissions', code: 50013 });
+        }
+        for (const p of cuerpo) estado.roles.find(x => x.id === p.id).position = p.position;
+        return responder(200, estado.roles);
       }
     }
     if ((x = /^\/guilds\/1\/roles\/(\d+)$/.exec(ruta))) {

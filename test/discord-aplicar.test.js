@@ -7,7 +7,7 @@ import { mkdtempSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { crearDiscordApiFalso, TOKEN_FALSO } from '../scripts/discord-api-falso.js';
-import { aplicar, crearApi, leerConfig, leerFamilias, guardarEnEnv, PERMISOS_BOT, nombreCanal } from '../scripts/discord-aplicar.js';
+import { aplicar, crearApi, leerConfig, leerFamilias, guardarEnEnv, PERMISOS, PERMISOS_BOT, nombreCanal } from '../scripts/discord-aplicar.js';
 
 let discord, api, carpeta, opciones;
 const escritas = () => discord.estado.peticiones.filter(p => p.metodo !== 'GET');
@@ -46,7 +46,7 @@ test('la primera vez lo crea todo: categorías en orden, canales, un canal públ
   assert.equal(familias.length, 14);
   assert.deepEqual(familias.slice(0, 4), ['🏮・familia-1', '🔒・familia-1-privado', '🏮・familia-2', '🔒・familia-2-privado']);
   assert.deepEqual(familias.slice(-2), ['🏮・legacy', '🔒・legacy-privado']);
-  for (const n of ['Staff', 'Jefes', 'Jugador', 'Familia 1', 'Familia 6', 'Legacy']) assert.ok(rol(n), `rol ${n}`);
+  for (const n of ['Kumichō', 'Jefes', 'Jugador', 'Familia 1', 'Familia 6', 'Legacy']) assert.ok(rol(n), `rol ${n}`);
   assert.equal(rol('Familia 1').color, 0xC1272D);
   assert.equal(canal('normas').parent_id, canal('Info').id);
   assert.equal(canal('normas').topic, 'Normas del servidor y de la liga.');
@@ -59,7 +59,7 @@ test('los permisos: Info es de solo lectura, Staff es privado y el privado de ca
   const ow = (c, id) => c.permission_overwrites.find(o => o.id === id);
   const todos = ow(canal('anuncios'), '1');
   assert.ok(BigInt(todos.deny) & bit(11), '@everyone no escribe en anuncios');
-  assert.ok(BigInt(ow(canal('anuncios'), rol('Staff').id).allow) & bit(11), 'el staff sí');
+  assert.ok(BigInt(ow(canal('anuncios'), rol('Kumichō').id).allow) & bit(11), 'el staff sí');
   assert.ok(BigInt(ow(canal('staff'), '1').deny) & bit(10), '@everyone no ve el canal del staff');
   assert.ok(BigInt(ow(canal('staff'), '9').allow) & bit(10), 'el bot se deja ver el canal privado para seguir gestionándolo');
   assert.deepEqual(canal('familia-2').permission_overwrites, [], 'el chat público de la familia es de todos');
@@ -148,4 +148,24 @@ test('guardarEnEnv añade y cambia variables, y nombreCanal deja el nombre como 
   guardarEnEnv(f, { B: '2', A: '3' });
   assert.equal(readFileSync(f, 'utf8'), 'A=3\nB=2\n');
   assert.equal(nombreCanal('Yamada Gumi'), 'yamada-gumi');
+});
+
+test('los roles van en orden (cada uno solo da los de debajo) y Jefes puede invitar, mover gente y dar roles', async () => {
+  await aplicar(opciones);
+  const orden = discord.estado.roles.filter(r => r.name !== '@everyone').sort((a, b) => b.position - a.position).map(r => r.name);
+  assert.deepEqual(orden, ['Gokudō', 'Kumichō', 'Jefes', 'Familia 1', 'Familia 2', 'Familia 3', 'Familia 4', 'Familia 5', 'Familia 6', 'Legacy', 'Jugador'],
+    'el bot arriba; el staff por encima de los jefes y los jefes por encima de las familias');
+  const p = BigInt(rol('Jefes').permissions);
+  for (const n of ['CREATE_INSTANT_INVITE', 'MOVE_MEMBERS', 'MANAGE_ROLES']) assert.ok(p & (1n << BigInt(PERMISOS[n])), n);
+  assert.ok(!(p & 8n), 'los jefes no son administradores');
+  assert.equal(rol('Familia 1').permissions, '1071698660929', 'a los roles sin permisos en el archivo no se les tocan');
+  discord.estado.peticiones = [];
+  await aplicar(opciones);
+  assert.deepEqual(escritas(), [], 'la segunda vez no reordena ni cambia permisos');
+  rol('Jefes').position = 1;
+  rol('Jugador').position = 9;
+  await aplicar(opciones);
+  assert.equal(escritas().length, 1);
+  assert.equal(escritas()[0].ruta, '/guilds/1/roles');
+  assert.ok(rol('Jefes').position > rol('Familia 1').position && rol('Jugador').position < rol('Legacy').position);
 });

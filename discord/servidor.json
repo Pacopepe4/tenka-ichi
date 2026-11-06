@@ -1,9 +1,11 @@
 {
-  "_nota": "Cómo es el servidor de Discord de Gokudō. Lo aplica npm run discord-aplicar (primero npm run discord-aplicar -- --prueba para ver qué haría). Las familias salen de data-proyecto/familias.json: en la categoría con 'familias' se crea, por cada familia, un canal por cada tipo (publico, privado). Permisos: 'todos' es @everyone, 'familia' es el rol de la familia del canal y el resto son claves de 'roles'. Los permisos de un canal se suman a los de su categoría (el canal manda si repite un rol). El emoji va delante del nombre y se puede cambiar sin crear canales nuevos.",
+  "_nota": "Cómo es el servidor de Discord de Gokudō. Lo aplica npm run discord-aplicar (primero npm run discord-aplicar -- --prueba para ver qué haría). Los roles van de arriba abajo en el orden de 'roles' ({ \"familias\": true } marca dónde van los de las familias): cada rol solo puede dar los que tiene por debajo. Las familias salen de data-proyecto/familias.json: en la categoría con 'familias' se crea, por cada familia, un canal por cada tipo (publico, privado). Permisos: 'todos' es @everyone, 'familia' es el rol de la familia del canal y el resto son claves de 'roles'. Los permisos de un canal se suman a los de su categoría (el canal manda si repite un rol). El emoji va delante del nombre y se puede cambiar sin crear canales nuevos.",
   "nombre": "Gokudō",
   "roles": [
-    { "clave": "staff", "nombre": "Staff", "color": "#C1272D", "separado": true, "mencionable": true },
-    { "clave": "jefes", "nombre": "Jefes", "color": "#D9A400", "separado": true, "mencionable": true },
+    { "clave": "staff", "nombre": "Kumichō", "color": "#C1272D", "separado": true, "mencionable": true },
+    { "clave": "jefes", "nombre": "Jefes", "color": "#D9A400", "separado": true, "mencionable": true,
+      "permisos": ["CREATE_INSTANT_INVITE", "MOVE_MEMBERS", "MANAGE_ROLES", "VIEW_CHANNEL", "SEND_MESSAGES", "READ_MESSAGE_HISTORY", "ADD_REACTIONS", "EMBED_LINKS", "ATTACH_FILES", "CONNECT", "SPEAK", "CREATE_PUBLIC_THREADS", "SEND_MESSAGES_IN_THREADS"] },
+    { "familias": true },
     { "clave": "jugador", "nombre": "Jugador", "color": "#D9C58A", "separado": true, "mencionable": false }
   ],
   "categorias": [

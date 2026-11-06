@@ -17,7 +17,7 @@ const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const PERMISOS = {
   CREATE_INSTANT_INVITE: 0, MANAGE_CHANNELS: 4, ADD_REACTIONS: 6, VIEW_CHANNEL: 10, SEND_MESSAGES: 11,
   MANAGE_MESSAGES: 13, EMBED_LINKS: 14, ATTACH_FILES: 15, READ_MESSAGE_HISTORY: 16, MENTION_EVERYONE: 17,
-  CONNECT: 20, SPEAK: 21, MANAGE_ROLES: 28, MANAGE_WEBHOOKS: 29, CREATE_PUBLIC_THREADS: 35,
+  CONNECT: 20, SPEAK: 21, MOVE_MEMBERS: 24, MANAGE_ROLES: 28, MANAGE_WEBHOOKS: 29, CREATE_PUBLIC_THREADS: 35,
   SEND_MESSAGES_IN_THREADS: 38,
 };
 const bits = nombres => (nombres || []).reduce((t, n) => {
@@ -38,8 +38,15 @@ const igual = (a, b) => String(a ?? '').toLowerCase() === String(b ?? '').toLowe
 // ---------- Lo que queremos (sin ids de Discord todavía) ----------
 
 export function deseado(config, familias) {
-  const roles = config.roles.map(r => ({ clave: `rol:${r.clave}`, ref: r.clave, nombre: r.nombre, color: color(r.color), separado: !!r.separado, mencionable: !!r.mencionable }));
-  for (const f of familias) roles.push({ clave: `familia:${f.id}`, ref: `familia:${f.id}`, nombre: f.nombre, color: color(f.color), separado: true, mencionable: true });
+  // Los roles van de arriba abajo en el orden del archivo; { "familias": true } marca dónde van los de las familias.
+  // 'permisos' son los permisos del rol en todo el servidor; sin 'permisos', el script no los toca.
+  const roles = [];
+  const deFamilias = () => familias.map(f => ({ clave: `familia:${f.id}`, ref: `familia:${f.id}`, nombre: f.nombre, color: color(f.color), separado: true, mencionable: true, permisos: null }));
+  for (const r of config.roles) {
+    if (r.familias) { roles.push(...deFamilias()); continue; }
+    roles.push({ clave: `rol:${r.clave}`, ref: r.clave, nombre: r.nombre, color: color(r.color), separado: !!r.separado, mencionable: !!r.mencionable, permisos: r.permisos ? String(bits(r.permisos)) : null });
+  }
+  if (!config.roles.some(r => r.familias)) roles.push(...deFamilias());
   // El emoji va delante del nombre («📜・normas»); la clave sale del nombre sin emoji, así que se puede cambiar
   const conEmoji = (emoji, nombre, sep = '・') => (emoji ? `${emoji}${sep}${nombre}` : nombre);
   const categorias = config.categorias.map(c => {
@@ -173,7 +180,7 @@ export async function aplicar({ api, config, familias, prueba = false, borrarSob
   const idDeRol = {};
   for (const r of quiere.roles) {
     const hay = buscar(roles.filter(x => x.id !== guildId && !x.managed), r.clave, x => igual(x.name, r.nombre));
-    const cuerpo = { name: r.nombre, color: r.color, hoist: r.separado, mentionable: r.mencionable };
+    const cuerpo = { name: r.nombre, color: r.color, hoist: r.separado, mentionable: r.mencionable, ...(r.permisos !== null && { permissions: r.permisos }) };
     if (!hay) {
       anotar('crear', 'el rol', r.nombre);
       idDeRol[r.ref] = prueba ? `nuevo:${r.clave}` : (await api.post(`/guilds/${guildId}/roles`, cuerpo)).id;
@@ -184,12 +191,32 @@ export async function aplicar({ api, config, familias, prueba = false, borrarSob
       if (hay.color !== r.color) cambios.push('color');
       if (hay.hoist !== r.separado) cambios.push(r.separado ? 'se ve aparte' : 'no se ve aparte');
       if (hay.mentionable !== r.mencionable) cambios.push(r.mencionable ? 'mencionable' : 'no mencionable');
+      if (r.permisos !== null && String(hay.permissions) !== r.permisos) cambios.push('permisos');
       if (cambios.length) {
         anotar('cambiar', 'el rol', r.nombre, cambios.join(', '));
         if (!prueba) await api.patch(`/guilds/${guildId}/roles/${hay.id}`, cuerpo);
       }
     }
     idsServidor[r.clave] = idDeRol[r.ref];
+  }
+  // Orden de los roles: los nuestros como en el archivo, por debajo del rol del bot (un rol solo puede dar los que
+  // tiene por debajo, así que esto decide qué puede repartir cada uno). Los que no son nuestros quedan debajo.
+  {
+    const posRol = Object.fromEntries(roles.map(x => [x.id, x.position]));
+    const nuestros = quiere.roles.map(r => idDeRol[r.ref]);
+    const tope = Math.min(...roles.filter(x => x.managed).map(x => x.position), Infinity);
+    const mal = nuestros.some(id => !(id in posRol) || posRol[id] >= tope) || nuestros.some((id, i) => i && posRol[nuestros[i - 1]] <= posRol[id]);
+    if (mal) {
+      anotar('cambiar', 'el orden de', 'los roles', quiere.roles.map(r => r.nombre).join(' > '));
+      if (!prueba) {
+        const otros = roles.filter(x => x.id !== guildId && !x.managed && !nuestros.includes(x.id)).sort((a, b) => b.position - a.position).map(x => x.id);
+        // El rol del propio bot va en la lista, arriba del todo: si no, Discord no deja subir los demás por encima
+        // de donde está (al crearlos, Discord los deja todos en la misma posición que el del bot)
+        const delBot = roles.find(x => x.managed && x.tags?.bot_id === yo.id);
+        const lista = [...(delBot ? [delBot.id] : []), ...nuestros, ...otros];
+        await api.patch(`/guilds/${guildId}/roles`, lista.map((id, i) => ({ id, position: lista.length - i })));
+      }
+    }
   }
   const idRol = ref => {
     if (!(ref in idDeRol)) throw new Error(`En los permisos se usa el rol «${ref}», que no está en servidor.json`);
