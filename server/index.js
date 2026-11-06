@@ -7,13 +7,14 @@ import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
 import { crearSalasRealizador } from './realizador.js';
 import { conectar, codigoDeEnlace, destinoDeSlot } from './draftcore.js';
+import { crearEnlaces, porCrear } from './enlaces-draft.js';
 import { cargar, guardarPartida, todas } from './registro.js';
 import { competicion } from './competicion.js';
 import { cargarCalendario, calendarioActual, temporadaSimulada, sortearCalendario } from './calendario.js';
 import { crearSorteo } from './sorteo.js';
 import { TEMPORADA } from './formato.js';
 import { statsCampeon, statsLiga } from './stats.js';
-import { CLANES, ROLES } from './clanes.js';
+import { CLANES, ROLES, clan as datosClan } from './clanes.js';
 import { cargarPlantillas, plantilla, guardarPlantilla, refrescarPlantillas } from './plantillas.js';
 import { estadoHoja } from './sheets.js';
 import { cargarTierlist, vistaTierlist, ponerTier } from './tierlist.js';
@@ -34,7 +35,7 @@ import { loginDiscordActivo, urlAutorizarDiscord, sesionDeDiscord } from './entr
 import crypto from 'node:crypto';
 import { cargarFantasy, infoFantasy, cambiarAlineacion, guardarEstadisticas, cerrarAlineaciones, alineacionesCerradas } from './fantasy.js';
 import { atenderPublicacion, discordActivo } from './discord.js';
-import { cargarPartida, recibir as recibirPartida, resumen as resumenPartida, empezarPrueba, pararPrueba, enPrueba, olvidarPartida,
+import { cargarPartida, recibir as recibirPartida, resumen as resumenPartida, buscarJugador, empezarPrueba, pararPrueba, enPrueba, olvidarPartida,
   ponerContexto, marcarObjetivo, deshacerMarca, ajustarIngame } from './partida.js';
 import { DESCARGAS, zipDescarga } from './descargas.js';
 import { fotoEstado, restaurarEstado, guardarEstadoSiCambia, guardarEstadoYa, estadoYaGuardado, camaraLineas } from './estado-guardado.js';
@@ -102,6 +103,8 @@ const clientes = new Set();
 let quiereDraftCore = false;  // el panel ha pedido estar conectado a DraftCore: tras un reinicio se vuelve a conectar
 const fotoActual = () => fotoEstado(estado, { draftcore: quiereDraftCore });
 function emitir() {
+  // Los enlaces de DraftCore de la partida cargada (creados por adelantado), para compartirlos desde el panel
+  estado.enlacesDraft = partidaDelDraft() ? enlaces().buscar(partidaDelDraft()) : null;
   // La partida necesita los jugadores y los picks del panel para saber quién juega cada línea
   ponerContexto({ nombres: { azul: estado.equipos.azul.jugadores, rojo: estado.equipos.rojo.jugadores }, picks: estado.draft.picks });
   actualizarVista();
@@ -262,6 +265,42 @@ function partidaNueva() {
   fotoViva = null;
 }
 
+// ---------- enlaces de DraftCore creados por adelantado (server/enlaces-draft.js) ----------
+let enlacesDraft = null;
+const enlaces = () => (enlacesDraft ||= crearEnlaces({
+  leer: () => ajuste('enlaces_draft'),
+  guardar: v => guardarAjustes({ enlaces_draft: v }).catch(e => console.error('No se pudieron guardar los enlaces del draft:', e.message)),
+  // En DraftCore cada equipo sale con el nombre del clan y sus jugadores por puesto
+  equipo: id => ({ nombre: datosClan(id).nombre.toUpperCase(), tag: id.slice(0, 4), jugadores: plantilla(id)?.jugadores || [] }),
+}));
+// La partida que tiene cargada el panel, si es entre dos clanes de verdad (no «Por decidir» ni invitados)
+function partidaDelDraft() {
+  const { azul, rojo } = estado.equipos;
+  if (!azul.clan || !rojo.clan || azul.clan === rojo.clan || datosClan(azul.clan).invitado || datosClan(rojo.clan).invitado) return null;
+  return { jornada: estado.config.jornada, azul: azul.clan, rojo: rojo.clan, partida: Number(estado.config.partida) || 1 };
+}
+// Busca (o crea) el draft de la partida cargada y conecta el panel a él como espectador
+async function prepararDraft({ cambiar = true } = {}) {
+  const p = partidaDelDraft();
+  if (!p) return null;
+  const e = await enlaces().asegurar(p);
+  if (e && estado.fuente.codigo !== e.id && (cambiar || !estado.fuente.conectado)) {
+    conectarDraftCore(e.espectador);
+    quiereDraftCore = true;
+  }
+  return e;
+}
+function prepararDraftDeFondo(opciones) {
+  prepararDraft(opciones).then(() => emitir(), e => { estado.fuente = { ...estado.fuente, error: `No se pudo crear el draft en DraftCore: ${e.message}` }; emitir(); });
+}
+// Todas las partidas del calendario que quedan por jugar (las de playoffs, en cuanto se conocen los dos clanes)
+async function precrearDrafts() {
+  if (!calendarioActual()) return { total: 0, creados: 0, fallos: 0, error: 'Aún no hay calendario: los enlaces se crean solos en cuanto se sortee' };
+  const r = await enlaces().precrear(porCrear(competicion(calendarioActual(), todas())));
+  if (r.creados || r.fallos) console.log(`Enlaces de DraftCore: ${r.creados} creados${r.fallos ? `, ${r.fallos} fallidos (${r.error})` : ''}`);
+  return r;
+}
+
 // ---------- DraftCore ----------
 let conexion = null;
 function conectarDraftCore(enlace) {
@@ -359,15 +398,30 @@ async function accion(nombre, d = {}) {
     case 'siguiente':
       estado.config.partida += 1;
       partidaNueva();
+      prepararDraftDeFondo();  // la siguiente de la serie, en fearless con las anteriores
       break;
     case 'nuevaSerie':
       estado.config.partida = 1;
       estado.fearless = [];
       estado.resultados = [];
       partidaNueva();
+      prepararDraftDeFondo({ cambiar: Boolean(d.preparar) });
       break;
     case 'limpiarDraft':
       partidaNueva();
+      prepararDraftDeFondo({ cambiar: Boolean(d.preparar) });
+      break;
+    // Enlaces de DraftCore: el de la partida cargada (y conectarse), los de todo el calendario, u olvidar uno
+    case 'draftPreparar': {
+      if (!partidaDelDraft()) return { ok: false, error: 'Carga primero la partida con sus dos clanes' };
+      try { return { ok: true, enlaces: await prepararDraft() }; } catch (e) { return { ok: false, error: `DraftCore: ${e.message}` }; }
+    }
+    case 'draftPrecrear': {
+      const r = await precrearDrafts();
+      return { ok: !r.fallos && !(r.error && !r.total), ...r };
+    }
+    case 'draftOlvidar':
+      if (!enlaces().olvidar(String(d.clave || ''))) return { ok: false, error: 'No hay enlaces guardados con esa clave' };
       break;
     case 'jornadaAuto':
       if (typeof d.cerrar === 'boolean') estado.jornadaAuto.cerrar = d.cerrar;
@@ -511,7 +565,13 @@ async function accion(nombre, d = {}) {
     case 'grafico': {
       const tipo = ['lineas', 'ficha', 'oro'].includes(d.tipo) ? d.tipo : null;
       // La ficha lleva de quién es: el lado y el puesto (0-4) del enfrentamiento
-      const extra = tipo === 'ficha' ? { lado: ['azul', 'rojo'].includes(d.lado) ? d.lado : null, indice: Number(d.indice) } : {};
+      let extra = tipo === 'ficha' ? { lado: ['azul', 'rojo'].includes(d.lado) ? d.lado : null, indice: Number(d.indice) } : {};
+      // El realizador automático pide la ficha por el jugador o el campeón: se busca su puesto en el marcador
+      if (tipo === 'ficha' && (d.jugador || d.campeon) && !(extra.indice >= 0 && extra.indice <= 4)) {
+        const hueco = buscarJugador(resumenPartida().lineas, d);
+        if (!hueco) return { ok: false, error: `No encuentro a ${d.jugador || d.campeon} en el marcador` };
+        extra = hueco;
+      }
       if (tipo === 'ficha' && (!extra.lado || !(extra.indice >= 0 && extra.indice <= 4))) return { ok: false, error: 'Elige el clan y el jugador de la ficha' };
       ponerGrafico(tipo, Math.min(300, Math.max(0, Math.round(Number(d.segundos) || 0))), extra);
       break;
@@ -1036,6 +1096,13 @@ for (const senal of ['SIGTERM', 'SIGINT']) {
     await Promise.race([guardarEstadoYa(), new Promise(r => setTimeout(r, 4000))]).catch(() => {});
     process.exit(0);
   });
+}
+// Enlaces de DraftCore por adelantado: al arrancar (con un rato de margen) y cada cuarto de hora, por si se ha
+// sorteado el calendario o se han decidido cruces de playoffs. Con DRAFTCORE_PRECREAR=0 no se crean solos
+if (process.env.DRAFTCORE_PRECREAR !== '0') {
+  const precrearSolo = () => precrearDrafts().catch(e => console.error('Enlaces de DraftCore:', e.message));
+  setTimeout(precrearSolo, 30000).unref();
+  setInterval(precrearSolo, 15 * 60 * 1000).unref();
 }
 servidor.listen(PUERTO, () => {
   console.log(`TENKA ICHI Draft en http://localhost:${PUERTO}`);

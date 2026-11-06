@@ -1,6 +1,6 @@
 // Cerebro: agrupa los sucesos en jugadas y decide qué sale en antena en cada momento.
 // No sabe nada de redes ni de LoL: recibe sucesos con su segundo de partida y devuelve un guion de planos
-// y unas acciones (repeticiones, línea por línea). Así se puede probar entero sin el juego.
+// y unas acciones (repeticiones, ficha de un jugador en racha, gráfica de oro). Así se puede probar entero sin el juego.
 //
 // Con 2 minutos de margen, cuando la antena llega a un momento el cerebro ya sabe qué pasó después:
 // la cámara llega antes de que empiece la pelea y una repetición solo se lanza si viene un rato tranquilo.
@@ -15,7 +15,24 @@ export class Cerebro {
     this.jugadas = [];
     this.acciones = [];
     this.siguiente = 1;
-    this.ultimaLineas = -Infinity;
+    this.ultimaOro = -Infinity;
+    // Rachas de asesinatos sin morir (para la ficha del jugador en racha)
+    this.rachas = new Map();       // campeón → asesinatos seguidos sin morir
+    this.hitos = [];               // { t, quien, racha }: alguien llega a una racha que merece ficha
+    this.muertesVistas = new Set();
+    this.ultimaFicha = new Map();  // campeón → segundo de su última ficha
+  }
+
+  // Racha de cada campeón: suma al que mata y se pone a cero al que muere
+  contarRacha(e) {
+    if (e.id && this.muertesVistas.has(e.id)) return;
+    if (e.id) this.muertesVistas.add(e.id);
+    const f = this.r.overlay?.ficha;
+    if (e.victima) this.rachas.set(e.victima.campeon, 0);
+    if (!e.asesino || e.asesino.campeon === e.victima?.campeon) return;
+    const n = (this.rachas.get(e.asesino.campeon) || 0) + 1;
+    this.rachas.set(e.asesino.campeon, n);
+    if (f && (f.rachas || [3, 5, 8]).includes(n)) this.hitos.push({ t: e.t, quien: e.asesino, racha: n });
   }
 
   // ---------- sucesos → jugadas ----------
@@ -65,6 +82,7 @@ export class Cerebro {
   }
 
   agregarMuerte(e) {
+    this.contarRacha(e);
     let j = this.abierta(e.t, ['muerte', 'pelea', 'objetivo']);
     if (!j) {
       j = this.nueva('muerte', e, this.r.anticipacion);
@@ -245,7 +263,7 @@ export class Cerebro {
     return juntar(planos);
   }
 
-  // ---------- acciones: repeticiones y línea por línea ----------
+  // ---------- acciones: repeticiones y lo que se cambia en el overlay (ficha en racha, gráfica de oro) ----------
   // Solo se decide lo que ya se puede saber: hace falta ver «calma» segundos después de cada momento
   planificarAcciones(desde, conocidoHasta) {
     const r = this.r;
@@ -277,16 +295,51 @@ export class Cerebro {
       if (!j.repeticion && j.fin + 60 + calma <= conocidoHasta) j.repeticion = 'sin-hueco';
     }
 
-    const ll = r.lineaPorLinea;
-    // El rato tranquilo tiene que cubrir, como poco, todo lo que el gráfico está en pantalla
-    const ventana = Math.max(ll.calmaNecesaria, 3 + ll.segundos);
-    for (let t = Math.max(desde, ll.desdeSegundo || 0, this.ultimaLineas + ll.cadaSegundosComoMinimo); t + ventana <= conocidoHasta; t += 5) {
-      if (!ocupado(t, t + ventana, 1)) {
-        const a = { id: `lineas-${Math.round(t)}`, tipo: 'lineas', t: red(t + 3), segundos: ll.segundos };
-        this.ultimaLineas = t;
-        this.acciones.push(a);
-        nuevas.push(a);
-        t += ll.cadaSegundosComoMinimo;
+    // ---------- overlay de TENKA ICHI ----------
+    // De base siempre está el línea por línea (y el marcador de arriba): eso lo pone el ejecutor solo. Aquí se
+    // deciden los ratos en que se cambia por otra cosa y luego se vuelve al línea por línea.
+    const ov = r.overlay || {};
+
+    // Ficha de un jugador en racha: poco después de su asesinato, en cuanto haya unos segundos sin nada
+    const f = ov.ficha;
+    if (f?.activo !== false && f) {
+      // Una repetición aún por decidir va antes: la ficha espera a que tenga su sitio
+      const repPendiente = this.jugadas.some(j => j.repetir && !j.repeticion);
+      for (const h of this.hitos) {
+        if (h.hecho || repPendiente) continue;
+        const ultima = this.ultimaFicha.get(h.quien.campeon) ?? -Infinity;
+        if (h.t - ultima < (f.cadaSegundosComoMinimo ?? 120)) { h.hecho = 'reciente'; continue; }
+        const ventana = (f.segundos ?? 10) + 2;
+        for (let t = h.t + (f.retraso ?? 3); t <= h.t + (f.buscarSegundos ?? 45); t += 1) {
+          if (t + ventana > conocidoHasta) break;  // aún no se sabe
+          if (t < desde) continue;
+          if (!ocupado(t, t + ventana, 1)) {
+            const a = { id: `ficha-${h.quien.campeon}-${Math.round(h.t)}`, tipo: 'ficha', t: red(t + 1), segundos: f.segundos ?? 10,
+              campeon: h.quien.campeon, jugador: h.quien.jugador || null, equipo: h.quien.equipo || null, racha: h.racha };
+            h.hecho = a.id;
+            this.ultimaFicha.set(h.quien.campeon, h.t);
+            this.acciones.push(a);
+            nuevas.push(a);
+            break;
+          }
+        }
+        if (!h.hecho && h.t + (f.buscarSegundos ?? 45) + ventana <= conocidoHasta) h.hecho = 'sin-hueco';
+      }
+    }
+
+    // Gráfica de oro en los huecos largos sin nada
+    const g = ov.oro;
+    if (g && g.activo !== false) {
+      // El rato tranquilo tiene que cubrir, como poco, todo lo que la gráfica está en pantalla
+      const ventana = Math.max(g.calmaNecesaria ?? 35, 3 + (g.segundos ?? 15));
+      for (let t = Math.max(desde, g.desdeSegundo ?? 480, this.ultimaOro + (g.cadaSegundosComoMinimo ?? 180)); t + ventana <= conocidoHasta; t += 5) {
+        if (!ocupado(t, t + ventana, 1)) {
+          const a = { id: `oro-${Math.round(t)}`, tipo: 'oro', t: red(t + 3), segundos: g.segundos ?? 15 };
+          this.ultimaOro = t;
+          this.acciones.push(a);
+          nuevas.push(a);
+          t += g.cadaSegundosComoMinimo ?? 180;
+        }
       }
     }
     return nuevas;

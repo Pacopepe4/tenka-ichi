@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Overlay REPLAY</title>
+<!-- Fuente de navegador de OBS (escena Repeticion), fondo transparente. El realizador la enciende al entrar en
+     la repetición y la apaga al salir; OBS la reinicia al encenderla, así que la animación sale cada vez. -->
+<style>
+  :root { --sumi: #161412; --washi: #E7DFD2; --shu: #BE2A2F; }
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
+  .placa {
+    position: absolute; left: 64px; top: 56px; display: flex; align-items: stretch; height: 72px;
+    font-family: 'Yu Mincho', 'Hiragino Mincho ProN', Georgia, serif; font-weight: 800; letter-spacing: .14em;
+    clip-path: polygon(0 0, 100% 0, calc(100% - 22px) 100%, 0 100%);
+    animation: entra .45s cubic-bezier(.2, .8, .2, 1) both;
+  }
+  .sello { width: 72px; background: var(--shu); display: grid; place-items: center; }
+  .punto { width: 20px; height: 20px; border-radius: 50%; background: var(--washi); animation: late 1s ease-in-out infinite; }
+  .texto { background: var(--sumi); color: var(--washi); font-size: 38px; line-height: 72px; padding: 0 48px 0 26px; }
+  .filo { position: absolute; left: 64px; top: 134px; height: 4px; width: 340px; background: var(--shu); transform-origin: left; animation: filo .6s .2s cubic-bezier(.2, .8, .2, 1) both; }
+  @keyframes entra { from { transform: translateX(-120%); } to { transform: none; } }
+  @keyframes filo { from { transform: scaleX(0); } to { transform: none; } }
+  @keyframes late { 50% { opacity: .25; } }
+</style>
+</head>
+<body>
+  <div class="placa"><div class="sello"><div class="punto"></div></div><div class="texto">REPETICIÓN</div></div>
+  <div class="filo"></div>
+</body>
+</html>

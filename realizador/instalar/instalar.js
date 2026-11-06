@@ -29,8 +29,20 @@ export function overlayDeTenka(urlPuente) {
   } catch { return ''; }
 }
 
-export function opcionesLocales(papel, clave, actuales = {}, ruta) {
-  const comun = { papel, clave, ...(ruta ? { rutaLoL: ruta } : {}) };
+// El panel de TENKA ICHI (su WebSocket /ws) también: wss://x/realizador → wss://x/ws
+export function wsDeTenka(urlPuente) {
+  try {
+    const u = new URL(urlPuente);
+    u.pathname = '/ws';
+    return u.href;
+  } catch { return ''; }
+}
+
+export function opcionesLocales(papel, clave, actuales = {}, ruta, urlPuente) {
+  // Los dos PCs hablan con el panel de TENKA ICHI con la misma contraseña: el PC 1 lleva el overlay (línea por
+  // línea, gráfica de oro, ficha) y el PC 2 mira el draft para poner su escena
+  const tenka = wsDeTenka(urlPuente || actuales.puente?.url || 'wss://tenka-ichi.onrender.com/realizador');
+  const comun = { papel, clave, ...(ruta ? { rutaLoL: ruta } : {}), ...(tenka ? { tenkaIchi: { activo: true, url: actuales.tenkaIchi?.url || tenka, clave } } : {}) };
   // Los dos PCs se encuentran en la sala del realizador del servidor de TENKA ICHI. OBS va en el PC 2 y lo
   // maneja su relé: el PC 1 solo le dice qué guardar y qué repetir.
   const puente = { modo: 'tenka' };
@@ -59,7 +71,7 @@ export function instalar({ papel, clave, ruta, rutaLocal = join(RAIZ, 'opciones.
 
   // 1. opciones.local.json
   const actuales = existsSync(rutaLocal) ? JSON.parse(readFileSync(rutaLocal, 'utf8').replace(/^\uFEFF/, '')) : {};
-  writeFileSync(rutaLocal, JSON.stringify(opcionesLocales(papel, clave, actuales, ruta), null, 2) + '\n');
+  writeFileSync(rutaLocal, JSON.stringify(opcionesLocales(papel, clave, actuales, ruta, cargarOpciones().puente?.url), null, 2) + '\n');
   hechos.push('Contraseña guardada');
   const o = cargarOpciones();
 

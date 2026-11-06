@@ -1,7 +1,10 @@
 // Deja OBS listo para el realizador (PC 2, o el mismo PC en las pruebas de un solo PC). Con OBS cerrado:
 //
-//   - Colección de escenas "Realizador": Juego, Repeticion, Casters y Pausa, con sus fuentes
-//     (captura del juego, overlay de TENKA ICHI, "Repeticion clip", cámara, rótulos y audio).
+//   - Colección de escenas "Realizador": Juego, Repeticion, Casters, Pausa y Draft, con sus fuentes
+//     (captura del juego, overlay de TENKA ICHI, "Repeticion clip", cámaras, rótulos y audio). En Draft, cuatro
+//     cámaras debajo del overlay: el relé las encaja en los huecos del draft y les pone la cámara elegida.
+//     Con las transiciones de la repetición (obs/repeticion-entrada.webm y -salida.webm) y el overlay de REPLAY
+//     (obs/replay.html), que se usan desde donde está instalado el realizador.
 //   - Perfil "Realizador": copia del perfil que usas ahora (clave de emisión incluida) con el búfer de
 //     repetición activado y los clips en Vídeos\Realizador.
 //   - Servidor WebSocket activado, con el puerto de opciones.json y una contraseña, que se apunta en
@@ -14,16 +17,21 @@
 // No borra nada tuyo: tus colecciones y perfiles siguen en el menú de OBS, y lo que se cambia se copia antes
 // en obs-studio\realizador-copia\<fecha>\.
 import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { pathToFileURL } from 'node:url';
+import { pathToFileURL, fileURLToPath } from 'node:url';
 import { ponerEnIni } from './configurar-lol.js';
+import { disposicionCamaras, FUENTES as CAMARAS_DRAFT } from '../pc2/camaras.js';
 
 export const NOMBRE = 'Realizador';
 const ANCHO = 1920;
 const ALTO = 1080;
+// Transiciones (stinger) y overlay de REPLAY que vienen con el realizador, en la carpeta obs/
+export const RECURSOS = join(dirname(fileURLToPath(import.meta.url)), '..', 'obs');
+export const TRANSICIONES = { entrada: 'Repeticion entrada', salida: 'Repeticion salida' };
+export const OVERLAY_REPLAY = 'Overlay REPLAY';
 const VENTANA_LOL = 'League of Legends (TM) Client:RiotWindowClass:League of Legends.exe';
 
 export function carpetaObs() {
@@ -64,13 +72,17 @@ function rotulo(nombre, contenido, tam) {
   }, { version: 'text_gdiplus_v2' });
 }
 
-// Elemento de escena: a pantalla completa (por defecto) o a su tamaño, centrado en `centro`
+// Elemento de escena: a pantalla completa (por defecto), a su tamaño centrado en `centro`, o encajado en un
+// recuadro (`centro` con w y h: x, y es la esquina de arriba a la izquierda)
 function elemento(f, n, centro) {
+  const caja = centro && centro.w ? centro : null;
+  if (caja) centro = null;
   return {
-    name: f.name, source_uuid: f.uuid, visible: true, locked: false, rot: 0.0,
-    pos: centro || { x: 0, y: 0 }, scale: { x: 1.0, y: 1.0 },
+    name: f.name, source_uuid: f.uuid, visible: !caja?.oculto, locked: false, rot: 0.0,
+    pos: caja ? { x: caja.x, y: caja.y } : centro || { x: 0, y: 0 }, scale: { x: 1.0, y: 1.0 },
     align: centro ? 0 : 5,  // 0 = centro, 5 = arriba a la izquierda
-    bounds_type: centro ? 0 : 2, bounds_align: 0, bounds: centro ? { x: 0, y: 0 } : { x: ANCHO, y: ALTO },
+    // 2 = ajustar dentro; 3 = cubrir el recuadro (las cámaras llenan su hueco)
+    bounds_type: centro ? 0 : caja ? 3 : 2, bounds_align: 0, bounds: centro ? { x: 0, y: 0 } : caja ? { x: caja.w, y: caja.h } : { x: ANCHO, y: ALTO },
     crop_left: 0, crop_top: 0, crop_right: 0, crop_bottom: 0,
     id: n, group_item_backup: false, scale_filter: 'disable', blend_method: 'default', blend_type: 'normal',
     show_transition: { duration: 0 }, hide_transition: { duration: 0 }, private_settings: {},
@@ -83,7 +95,17 @@ function escena(nombre, partes) {
   return fuente(nombre, 'scene', { custom_size: false, id_counter: items.length, items });
 }
 
-export function crearColeccion({ escenas, fuenteRepeticion, overlay = '' }) {
+const rutaObs = r => r.replace(/\\/g, '/');
+
+// Stinger: el vídeo con transparencia tapa la pantalla a los 400 ms, que es cuando OBS cambia de escena
+function stinger(nombre, archivo) {
+  return {
+    name: nombre, id: 'obs_stinger_transition', versioned_id: 'obs_stinger_transition', uuid: randomUUID(),
+    settings: { path: rutaObs(archivo), tp_type: 0, transition_point: 400, audio_monitoring: 0, audio_fade_style: 0 },
+  };
+}
+
+export function crearColeccion({ escenas, fuenteRepeticion, overlay = '', recursos = null }) {
   const juego = fuente('Juego LoL', 'game_capture', {
     capture_mode: 'window', window: VENTANA_LOL, priority: 2, capture_cursor: false, allow_transparency: false,
   });
@@ -97,15 +119,27 @@ export function crearColeccion({ escenas, fuenteRepeticion, overlay = '' }) {
   }, { audio: true });
   const fondo = fuente('Fondo', 'color_source', { color: 0xFF1A1410, width: ANCHO, height: ALTO }, { version: 'color_source_v3' });
   const camara = fuente('Camara casters', 'dshow_input', {});
-  const rRepeticion = rotulo('Rotulo repeticion', 'REPETICIÓN', 64);
+  // Sin la carpeta obs/ (pruebas antiguas), un rótulo de texto; con ella, el overlay de REPLAY (apagado: lo
+  // enciende el realizador al entrar en la repetición)
+  const rRepeticion = recursos
+    ? fuente(OVERLAY_REPLAY, 'browser_source', {
+      is_local_file: true, local_file: rutaObs(join(recursos, 'replay.html')), width: ANCHO, height: ALTO, fps: 30,
+      shutdown: true, restart_when_active: true, reroute_audio: false,
+      css: 'body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }',
+    })
+    : rotulo('Rotulo repeticion', 'REPETICIÓN', 64);
   const rCasters = rotulo('Rotulo casters', 'TENKA ICHI', 72);
   const rPausa = rotulo('Rotulo pausa', 'PAUSA · volvemos enseguida', 96);
+  // Draft: las cámaras debajo y el overlay (que en el draft pinta su fondo con los huecos recortados) encima
+  const camarasDraft = CAMARAS_DRAFT.map(n => fuente(n, 'dshow_input', {}));
+  const huecos = disposicionCamaras(4);
 
   const lista = [
     escena(escenas.juego, [[juego], [marcador]]),
-    escena(escenas.repeticion, [[clip], [marcador], [rRepeticion, { x: 220, y: 80 }]]),
+    escena(escenas.repeticion, [[clip], [marcador], [rRepeticion, recursos ? { x: 0, y: 0, w: ANCHO, h: ALTO, oculto: true } : { x: 220, y: 80 }]]),
     escena(escenas.casters, [[fondo], [camara], [rCasters, { x: ANCHO / 2, y: 980 }]]),
     escena(escenas.pausa, [[fondo], [rPausa, { x: ANCHO / 2, y: ALTO / 2 }]]),
+    escena(escenas.draft || 'Draft', [[fondo], ...camarasDraft.map((c, i) => [c, { ...huecos[i], oculto: true }]), [marcador]]),
   ];
 
   return {
@@ -113,11 +147,14 @@ export function crearColeccion({ escenas, fuenteRepeticion, overlay = '' }) {
     current_scene: lista[0].name,
     current_program_scene: lista[0].name,
     scene_order: lista.map(e => ({ name: e.name })),
-    sources: [...lista, juego, marcador, clip, fondo, camara, rRepeticion, rCasters, rPausa],
+    sources: [...lista, juego, marcador, clip, fondo, camara, ...camarasDraft, rRepeticion, rCasters, rPausa],
     groups: [],
     DesktopAudioDevice1: fuente('Audio del escritorio', 'wasapi_output_capture', { device_id: 'default' }, { audio: true }),
     AuxAudioDevice1: fuente('Mic/Aux', 'wasapi_input_capture', { device_id: 'default' }, { audio: true }),
-    transitions: [],
+    transitions: recursos ? [
+      stinger(TRANSICIONES.entrada, join(recursos, 'repeticion-entrada.webm')),
+      stinger(TRANSICIONES.salida, join(recursos, 'repeticion-salida.webm')),
+    ] : [],
     current_transition: 'Fade',
     transition_duration: 300,
     quick_transitions: [],
@@ -191,7 +228,7 @@ export function obsAbierto() {
   } catch { return false; }
 }
 
-export function configurarObs({ carpeta, opciones, rutaLocal, overlay, overlayPorDefecto, carpetaClips }) {
+export function configurarObs({ carpeta, opciones, rutaLocal, overlay, overlayPorDefecto, carpetaClips, recursos = RECURSOS }) {
   const o = opciones.obs;
   const hechos = [];
   const fecha = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 19);
@@ -216,11 +253,12 @@ export function configurarObs({ carpeta, opciones, rutaLocal, overlay, overlayPo
   // 2. Colección de escenas
   const escenas = join(carpeta, 'basic', 'scenes');
   const url = overlay ?? (o.overlay || buscarOverlay(escenas) || overlayPorDefecto || '');
-  const nombres = { juego: o.escenaJuego, repeticion: o.escenaRepeticion, casters: o.escenaCasters, pausa: o.escenaPausa };
+  const nombres = { juego: o.escenaJuego, repeticion: o.escenaRepeticion, casters: o.escenaCasters, pausa: o.escenaPausa, draft: o.escenaDraft || 'Draft' };
   const rutaColeccion = join(escenas, `${NOMBRE}.json`);
   guardarCopia(rutaColeccion, `${NOMBRE}.json`);
-  escribir(rutaColeccion, JSON.stringify(crearColeccion({ escenas: nombres, fuenteRepeticion: o.fuenteRepeticion, overlay: url }), null, 4));
+  escribir(rutaColeccion, JSON.stringify(crearColeccion({ escenas: nombres, fuenteRepeticion: o.fuenteRepeticion, overlay: url, recursos: recursos && existsSync(recursos) ? recursos : null }), null, 4));
   hechos.push(`Colección "${NOMBRE}": ${Object.values(nombres).join(', ')}`);
+  if (recursos && existsSync(recursos)) hechos.push(`Transiciones de la repetición ("${TRANSICIONES.entrada}", "${TRANSICIONES.salida}") y "${OVERLAY_REPLAY}"`);
 
   // 3. Perfil: copia del actual (clave de emisión, codificador...) con el búfer de repetición
   const perfiles = join(carpeta, 'basic', 'profiles');

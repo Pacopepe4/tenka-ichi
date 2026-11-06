@@ -14,6 +14,20 @@ import { Obs, segundosAtras } from '../pc1/obs.js';
 import { Emision } from './emision.js';
 import { condiciones } from '../comun/condiciones.js';
 import { arrancarPanel } from '../pc1/panel.js';
+import { Tenka } from '../pc1/tenka.js';
+import { CamarasDraft } from './camaras.js';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { RAIZ } from '../comun/opciones.js';
+
+// Qué enseña el panel de TENKA ICHI: un draft en marcha (DraftCore conectado o con turnos), el draft recién
+// cerrado (postdraft) o nada de draft
+export function draftDeTenka(e) {
+  if (!e) return null;
+  if (e.vistaOverlay === 'postdraft') return 'postdraft';
+  if (e.vistaOverlay === 'draft' && (e.fuente?.conectado || (Number(e.draft?.turno) > 0 && Number(e.draft?.turno) <= 20))) return 'draft';
+  return null;
+}
 
 // Segundo de partida que veía el PC 1 a la hora «hora», con su historial. Entre dos muestras avanza al ritmo
 // del reloj, pero sin pasar de la siguiente (si el reloj se paró, se queda parado). Antes de la primera muestra,
@@ -36,7 +50,7 @@ export function segundoHace(historial, hora) {
 
 // obs: false para no tocar OBS desde el relé (modo de un solo PC, donde lo lleva el agente). En las pruebas,
 // obs y sala pueden ser objetos de mentira.
-export function crearRele(o, { registrar: registrarFuera = console.log, obs: conObs = true, sala: otraSala = null, panel: conPanel = false } = {}) {
+export function crearRele(o, { registrar: registrarFuera = console.log, obs: conObs = true, sala: otraSala = null, panel: conPanel = false, tenka: otroTenka = undefined, rutaLocal = join(RAIZ, 'opciones.local.json') } = {}) {
   const r = o.rele;
   // Lo que se apunta también se guarda para la página del PC 2
   const registro = [];
@@ -76,8 +90,30 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
   // El botón de «Empezar directo»: arranca OBS justo para que la partida salga desde el principio
   const emision = new Emision({
     opciones: o.emision, obs, registrar,
-    escenas: { juego: o.obs?.escenaJuego, previa: o.obs?.escenaPausa, final: o.obs?.escenaCasters },
+    escenas: { juego: o.obs?.escenaJuego, previa: o.obs?.escenaPausa, final: o.obs?.escenaCasters, draft: o.obs?.escenaDraft || 'Draft' },
   });
+
+  // Panel de TENKA ICHI (solo para mirar): si hay draft, y cuántas cámaras tiene puestas
+  const tenka = otroTenka !== undefined ? otroTenka
+    : (o.tenkaIchi?.activo && o.tenkaIchi?.url ? new Tenka({ url: o.tenkaIchi.url, clave: o.tenkaIchi.clave || o.clave || '' }) : null);
+  if (tenka && otroTenka === undefined) {
+    tenka.on('conexion', v => registrar(v ? '[tenka] conectado al panel de TENKA ICHI' : '[tenka] sin conexión con el panel de TENKA ICHI'));
+    tenka.conectar();
+  }
+  // Cámaras de la escena de draft, encajadas en los huecos del overlay
+  const camaras = obs ? new CamarasDraft({ obs, escena: o.obs?.escenaDraft || 'Draft', registrar, elegidos: o.obs?.camarasDraft || [] }) : null;
+  tenka?.on?.('estado', e => camaras?.desdeTenka(e));
+  function elegirCamaras(lista) {
+    if (!camaras) throw new Error('Este PC no lleva OBS');
+    camaras.elegir(lista);
+    // Se guarda en opciones.local.json para la próxima vez
+    try {
+      const local = existsSync(rutaLocal) ? JSON.parse(readFileSync(rutaLocal, 'utf8').replace(/^\uFEFF/, '')) : {};
+      local.obs = { ...(local.obs || {}), camarasDraft: camaras.elegidos };
+      writeFileSync(rutaLocal, JSON.stringify(local, null, 2) + '\n');
+    } catch (e) { registrar(`[cámaras] no se pudo guardar la elección: ${e.message}`); }
+    registrar('[cámaras] cámaras del draft elegidas');
+  }
 
   async function hacerObs(tA) {
     if (!obs) return;
@@ -268,8 +304,10 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
       await emision.paso({
         meta: estado.meta, tAntena: tAntenaAhora(), pausado: estado.playback?.paused ?? true,
         juego: Boolean(estado.playback), listo: condicionesAhora().listo, tFin: estado.tFin,
+        draft: draftDeTenka(tenka?.estado),
       });
     } catch (e) { registrar(`[emisión] ${e.message}`); }
+    camaras?.paso().catch(() => {});
   }
   // Segundos que faltan para que la partida salga en antena (desde el principio)
   const faltan = () => (Number.isFinite(estado.meta) && estado.meta < 0 ? -estado.meta : null);
@@ -293,7 +331,9 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
     const tD = partidaPc1() ? estado.directo.t + (Date.now() - estado.directo.hora) / 1000 : null;
     return {
       papel: 'pc2',
-      conexiones: { ...(sala ? { puente: sala.unido } : {}), pc1: pc1Conectado(), obs: obs ? Boolean(obs.listo) : null },
+      conexiones: { ...(sala ? { puente: sala.unido } : {}), pc1: pc1Conectado(), obs: obs ? Boolean(obs.listo) : null, tenka: tenka ? Boolean(tenka.listo) : null },
+      camaras: camaras ? camaras.publico() : null,
+      draft: draftDeTenka(tenka?.estado),
       condiciones: c.lista, listo: c.listo,
       emision: emision.publico(), faltan: faltan(),
       tDirecto: tD, tAntena: tA, margenReal: tA !== null && tD !== null ? tD - tA : null, margen: o.margenSegundos,
@@ -383,12 +423,18 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
   return {
     estado,
     emision,
+    camaras,
+    elegirCamaras,
     foto,
     arrancar(puerto = r.puerto) {
       if (conPanel) {
         panel = arrancarPanel({
           puerto: o.panelPc2?.puerto ?? 4601, host: '127.0.0.1', foto,
           emision: d => emision.orden(d),
+          camaras: async d => {
+            if (d?.leer) { await camaras?.leerDisponibles(); return; }
+            elegirCamaras(d?.elegidos);
+          },
         });
       }
       servidor.listen(puerto, '0.0.0.0');
@@ -402,6 +448,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
     },
     parar() {
       clearTimeout(temporizador); clearInterval(latido); anuncio?.parar(); sala?.cerrar();
+      if (otroTenka === undefined) tenka?.cerrar();
       if (typeof conObs !== 'object') obs?.cerrar();
       servidor.close();
       if (panel) { panel.parar(); panel = null; }

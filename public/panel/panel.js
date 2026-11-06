@@ -130,6 +130,7 @@ function pintar() {
   // DraftCore numera los turnos del 1 al 20: por encima, ese draft ya ha terminado allí
   const turno = e.draft.turno > 20 ? 'Ese draft ya ha terminado en DraftCore.' : `Turno ${e.draft.turno || 'por empezar'}.`;
   fuente.textContent = f.conectado ? `Conectado al draft ${f.codigo}. ${turno}` : (f.error || 'Sin conectar.');
+  pintarEnlacesDraft(e);
 
   document.querySelectorAll('.draft .hueco').forEach(h => {
     const c = e.draft[h.dataset.tipo][h.dataset.lado][Number(h.dataset.i)];
@@ -153,6 +154,33 @@ function pintar() {
   $('#probarHoja').hidden = !h.configurada || h.ok;
   $('#resultados').innerHTML = e.resultados.map(r => `<li>Partida ${r.partida}: gana <b>${clanes.clan(r.clan).nombre}</b> (lado ${r.ganador})</li>`).join('');
 }
+
+// ---------- Enlaces de DraftCore de la partida cargada ----------
+function textoEnlaces(e) {
+  const l = e.enlacesDraft;
+  if (!l) return '';
+  const az = clanes.clan(e.equipos.azul.clan).nombre, ro = clanes.clan(e.equipos.rojo.clan).nombre;
+  return `Draft de ${e.config.jornada}, partida ${e.config.partida}: ${az} vs ${ro}\n`
+    + `🔵 ${az} (lado azul): ${l.azul}\n🔴 ${ro} (lado rojo): ${l.rojo}\n👀 Espectador: ${l.espectador}`;
+}
+function pintarEnlacesDraft(e) {
+  const l = e.enlacesDraft;
+  const fila = (clase, quien, url) => `<div class="enlace-draft"><b class="${clase}">${quien}</b><code>${url}</code><button class="secundario" data-copiar="${url}">Copiar</button></div>`;
+  $('#enlacesLista').innerHTML = l
+    ? fila('azul', `${clanes.clan(e.equipos.azul.clan).nombre} (azul)`, l.azul) + fila('rojo', `${clanes.clan(e.equipos.rojo.clan).nombre} (rojo)`, l.rojo) + fila('', 'Espectador', l.espectador)
+    : '<p class="ayuda">Esta partida aún no tiene draft creado. «Preparar el draft de esta partida» lo crea y conecta el panel.</p>';
+  $('#enlacesCopiar').disabled = !l;
+}
+async function copiar(texto) {
+  try { await navigator.clipboard.writeText(texto); aviso('Copiado'); } catch { prompt('Cópialo de aquí:', texto); }
+}
+$('#enlacesLista').addEventListener('click', ev => { const b = ev.target.closest('[data-copiar]'); if (b) copiar(b.dataset.copiar); });
+$('#enlacesCopiar').onclick = () => copiar(textoEnlaces(estado));
+$('#draftPreparar').onclick = () => enviar('draftPreparar');
+$('#draftPrecrear').onclick = async () => {
+  const r = await enviar('draftPrecrear');
+  if (r.ok) aviso(r.creados ? `${r.creados} drafts nuevos creados en DraftCore` : `Ya estaban todos (${r.total} partidas por jugar)`);
+};
 
 // ---------- Botones ----------
 $('#conectar').onclick = () => enviar('conectar', { enlace: $('#enlace').value });
@@ -258,7 +286,8 @@ $('#cargarProxima').onclick = async () => {
     if (!r.ok) return;
   }
   // Draft vacío para la partida que se carga; si es la primera de la serie, también sin resultados ni bloqueos fearless
-  await enviar(p.config.partida === 1 ? 'nuevaSerie' : 'limpiarDraft');
+  // y su draft de DraftCore (creado por adelantado, o se crea ahora), con el panel conectado a él
+  await enviar(p.config.partida === 1 ? 'nuevaSerie' : 'limpiarDraft', { preparar: true });
   rellenado = false;
   pintar();
   $('#notaProxima').textContent = p.nota || '';

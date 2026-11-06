@@ -7,6 +7,11 @@
 //  3. Cuando la antena arranca en el segundo 0, salta a la escena de juego: la emisión empieza desde el principio.
 //  4. Cuando la antena llega al final de la partida, pone la escena final (casters) y se queda armada para la
 //     siguiente partida, sin cortar la emisión. «Terminar» la corta.
+//  Draft: si el panel de TENKA ICHI tiene un draft en marcha (DraftCore conectado), pone la escena de draft (con
+//  las cámaras); si aún no se emitía, el botón empieza a emitir ya, con el draft. Al acabar el draft y salir de
+//  su pantalla, pasa a la escena de previa hasta que la partida llegue a la antena.
+//  Lo único que no hace solo es empezar: el botón «Empezar directo», o empezar a emitir a mano en OBS (entonces
+//  se arma sola). Si se corta la emisión en OBS, se apaga también aquí.
 import { EventEmitter } from 'node:events';
 
 export const POR_DEFECTO = {
@@ -16,13 +21,14 @@ export const POR_DEFECTO = {
   sinJuegoSegundos: 8,       // si el LoL del PC 2 deja de responder este rato en directo, la partida ha acabado
   pararAlAcabar: false,      // cortar la emisión sola al acabar la partida (si no, sigue en la escena final)
   pararTrasSegundos: 60,
+  armarSiEmiteAMano: true,   // empezar a emitir en OBS a mano también arma el realizador
 };
 
 export class Emision extends EventEmitter {
   constructor({ opciones = {}, escenas = {}, obs = null, registrar = () => {} }) {
     super();
     this.c = { ...POR_DEFECTO, ...opciones };
-    this.escenas = { juego: 'Juego', previa: 'Pausa', final: 'Casters', ...escenas };
+    this.escenas = { juego: 'Juego', previa: 'Pausa', final: 'Casters', draft: 'Draft', ...escenas };
     this.obs = obs;
     this.registrar = registrar;
     this.fase = 'apagada';   // apagada | armada | previa | directo
@@ -39,6 +45,9 @@ export class Emision extends EventEmitter {
     this.esperaNueva = false; // tras acabar una partida, no se vuelve a entrar hasta que empiece otra
     this.reintentoEn = 0;
     this.ultimasSalidas = 0;
+    this.escenaAuto = null;   // la última escena que puso esto solo: draft | previa | juego | final
+    this.estabaEnAire = false;
+    this.parando = false;
   }
 
   get salidaActiva() {
@@ -50,7 +59,7 @@ export class Emision extends EventEmitter {
     return {
       fase: this.fase, modo: this.modo, error: this.error, salidas: this.salidas, enElAire: this.salidaActiva,
       inicio: this.inicio, desdeSegundo: this.desdeSegundo, partidas: this.partidas, ultimoFin: this.ultimoFin,
-      previaSegundos: this.c.previaSegundos,
+      previaSegundos: this.c.previaSegundos, draft: this.draft || null,
     };
   }
 
@@ -65,6 +74,7 @@ export class Emision extends EventEmitter {
       this.ultimoFin = null;
       this.esperaNueva = false;
       this.reintentoEn = 0;
+      this.escenaAuto = null;
       this.registrar(`[emisión] armada (${this.modo === 'grabar' ? 'solo grabar' : 'emitir en directo'}): empieza sola cuando la antena llegue al principio de la partida`);
     } else if (accion === 'cancelar' || accion === 'terminar') {
       const estaba = this.fase;
@@ -82,11 +92,21 @@ export class Emision extends EventEmitter {
 
   async parar() {
     if (!this.obs?.listo) return;
+    this.parando = true;
     try {
       await this.leerSalidas(true);
       if (this.salidaActiva) await this.obs.pararSalida(this.modo);
       await this.leerSalidas(true);
     } catch (e) { this.error = `No se pudo parar OBS: ${e.message}`; }
+    finally { this.parando = false; this.estabaEnAire = this.salidaActiva; }
+  }
+
+  // Pone una escena que decide esto solo, una vez por cambio (si alguien la cambia a mano, no se le pelea)
+  async escenaSola(clave) {
+    if (this.escenaAuto === clave) return false;
+    this.escenaAuto = clave;
+    await this.escena(this.escenas[clave]);
+    return true;
   }
 
   async leerSalidas(ya = false) {
@@ -103,9 +123,27 @@ export class Emision extends EventEmitter {
   // Cada vuelta del relé. meta: segundo de partida al que va (o irá) la antena; negativo mientras espera el margen.
   // tAntena: segundo que se ve en la antena. juego: el LoL del PC 2 responde. listo: todas las condiciones.
   // tFin: segundo de partida en que acabó (lo manda el PC 1), o null.
-  async paso({ meta, tAntena, pausado, juego, listo, tFin = null }) {
+  // draft: 'draft' | 'postdraft' | null, lo que enseña el panel de TENKA ICHI (draft en marcha o recién cerrado).
+  async paso({ meta, tAntena, pausado, juego, listo, tFin = null, draft = null }) {
     await this.leerSalidas();
     const ahora = Date.now();
+    if ((this.draft || null) !== (draft || null)) { this.draft = draft || null; this.emit('cambio'); }
+    // Lo que pasa en OBS a mano: empezar a emitir arma el realizador; cortar la emisión lo apaga
+    if (this.salidas && !this.parando) {
+      const enAire = Boolean(this.salidas.emitiendo || (this.modo === 'grabar' && this.salidas.grabando));
+      if (this.fase === 'apagada' && this.salidas.emitiendo && !this.estabaEnAire && this.c.armarSiEmiteAMano) {
+        this.modo = 'emitir';
+        await this.orden({ accion: 'armar', modo: 'emitir' });
+        this.registrar('[emisión] has empezado a emitir en OBS: el realizador se encarga de las escenas');
+      } else if (this.fase !== 'apagada' && this.estabaEnAire && !enAire) {
+        this.fase = 'apagada';
+        this.inicio = null;
+        this.pararEn = null;
+        this.registrar('[emisión] la emisión se ha cortado en OBS: el realizador deja de cambiar escenas');
+        this.emit('cambio');
+      }
+      this.estabaEnAire = enAire;
+    }
     if (this.pararEn && ahora >= this.pararEn) {
       this.pararEn = null;
       if (this.fase === 'armada') { this.fase = 'apagada'; await this.parar(); this.registrar('[emisión] cortada al acabar la partida'); this.emit('cambio'); }
@@ -114,6 +152,33 @@ export class Emision extends EventEmitter {
     this.sinJuegoDesde = juego ? null : (this.sinJuegoDesde ?? ahora);
 
     if (this.fase === 'armada') {
+      // Draft en el panel de TENKA ICHI: su escena (y, si aún no se emitía, se empieza ya, con el draft)
+      if (draft) {
+        if (!this.salidaActiva && this.obs?.arrancarSalida && ahora >= this.reintentoEn) {
+          try {
+            this.escenaAuto = 'draft';
+            await this.escena(this.escenas.draft);
+            await this.obs.arrancarSalida(this.modo);
+            await this.leerSalidas(true);
+            this.estabaEnAire = this.salidaActiva;
+            this.error = null;
+            this.registrar(`[emisión] ${this.modo === 'grabar' ? 'grabando' : 'emitiendo'} con el draft`);
+          } catch (e) {
+            this.error = `OBS no ha podido ${this.modo === 'grabar' ? 'grabar' : 'emitir'}: ${e.message}`;
+            this.reintentoEn = ahora + 10000;
+            this.registrar(`[emisión] ${this.error}`);
+          }
+          this.emit('cambio');
+        } else if (this.salidaActiva && await this.escenaSola('draft')) {
+          this.registrar(`[emisión] draft en marcha: escena ${this.escenas.draft}`);
+          this.emit('cambio');
+        }
+      } else if (this.escenaAuto === 'draft' && this.salidaActiva) {
+        // Se acabó el draft (y su pantalla): a la previa hasta que llegue la partida
+        await this.escenaSola('previa');
+        this.registrar(`[emisión] draft terminado: escena ${this.escenas.previa} hasta que empiece la partida`);
+        this.emit('cambio');
+      }
       // Otra partida: el LoL del PC 2 se cerró, o la antena vuelve a esperar el margen desde el principio
       if (this.esperaNueva && (!juego || (Number.isFinite(meta) && meta < -this.c.previaSegundos))) this.esperaNueva = false;
       if (this.esperaNueva) return;
@@ -126,8 +191,13 @@ export class Emision extends EventEmitter {
           await this.escena(meta < 0 ? this.escenas.previa : this.escenas.juego);
           await this.obs.arrancarSalida(this.modo);
           await this.leerSalidas(true);
+          this.estabaEnAire = this.salidaActiva;
           this.registrar(`[emisión] ${this.modo === 'grabar' ? 'grabando' : 'emitiendo'}${meta < 0 ? ` (previa: la partida sale en ${Math.round(-meta)} s)` : ''}`);
+        } else if (meta < 0) {
+          // Ya se emitía (el draft, los casters): a la previa unos segundos antes de que salga la partida
+          if (await this.escenaSola('previa')) this.registrar(`[emisión] la partida sale en ${Math.round(-meta)} s: escena ${this.escenas.previa}`);
         }
+        this.escenaAuto = meta < 0 ? 'previa' : 'juego';
         this.error = null;
         this.pararEn = null;
         this.fase = 'previa';
@@ -144,6 +214,7 @@ export class Emision extends EventEmitter {
     if (this.fase === 'previa') {
       if (meta === null || meta === undefined || meta < 0 || pausado) return;
       await this.escena(this.escenas.juego);
+      this.escenaAuto = 'juego';
       this.fase = 'directo';
       this.inicio = new Date().toISOString();
       this.desdeSegundo = Math.max(0, Math.round(tAntena ?? meta));
@@ -160,6 +231,7 @@ export class Emision extends EventEmitter {
         || (this.sinJuegoDesde && ahora - this.sinJuegoDesde > this.c.sinJuegoSegundos * 1000);
       if (!acabada) return;
       await this.escena(this.escenas.final);
+      this.escenaAuto = 'final';
       this.partidas++;
       this.ultimoFin = new Date().toISOString();
       this.inicio = null;
