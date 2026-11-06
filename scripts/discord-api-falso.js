@@ -79,7 +79,7 @@ export function crearDiscordApiFalso({ nombre = 'Gokudō' } = {}) {
       if (m === 'GET') return responder(200, estado.canales.map(normal));
       if (m === 'POST') {
         const hermanos = estado.canales.filter(c => (c.type === 4) === (cuerpo.type === 4) && c.parent_id === (cuerpo.parent_id || null));
-        const c = { id: nuevoId(), type: cuerpo.type, name: cuerpo.type === 4 ? cuerpo.name : cuerpo.name.toLowerCase().replace(/\s+/g, '-'),
+        const c = { id: nuevoId(), type: cuerpo.type, name: cuerpo.type === 0 ? cuerpo.name.toLowerCase().replace(/\s+/g, '-') : cuerpo.name,
           position: hermanos.length, parent_id: cuerpo.parent_id || null, topic: cuerpo.topic ?? null, permission_overwrites: cuerpo.permission_overwrites || [] };
         estado.canales.push(c); return responder(200, normal(c));
       }

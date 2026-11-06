@@ -29,7 +29,8 @@ export const PERMISOS_BOT = bits(['MANAGE_CHANNELS', 'MANAGE_ROLES', 'MANAGE_WEB
 // En los canales que @everyone no ve, el bot se da permiso a sí mismo para poder seguir gestionándolos
 const PERMISOS_BOT_CANAL = bits(['VIEW_CHANNEL', 'MANAGE_CHANNELS', 'MANAGE_WEBHOOKS']);
 
-const TEXTO = 0, CATEGORIA = 4;
+const TEXTO = 0, VOZ = 2, CATEGORIA = 4;
+const TIPOS = { texto: TEXTO, voz: VOZ };
 const color = c => (c ? parseInt(String(c).replace('#', ''), 16) : 0);
 // Nombre de canal como lo deja Discord: minúsculas y guiones
 export const nombreCanal = n => String(n).trim().toLowerCase().replace(/\s+/g, '-');
@@ -47,23 +48,32 @@ export function deseado(config, familias) {
     roles.push({ clave: `rol:${r.clave}`, ref: r.clave, nombre: r.nombre, color: color(r.color), separado: !!r.separado, mencionable: !!r.mencionable, permisos: r.permisos ? String(bits(r.permisos)) : null });
   }
   if (!config.roles.some(r => r.familias)) roles.push(...deFamilias());
-  // El emoji va delante del nombre («📜・normas»); la clave sale del nombre sin emoji, así que se puede cambiar
+  // El emoji va delante del nombre («📜・normas»); la clave sale del nombre sin emoji, así que se puede cambiar.
+  // Los de texto van en minúsculas y con guiones (como los deja Discord); los de voz, tal cual.
   const conEmoji = (emoji, nombre, sep = '・') => (emoji ? `${emoji}${sep}${nombre}` : nombre);
+  const tipoDe = x => {
+    const tipo = x.tipo || 'texto';
+    if (!(tipo in TIPOS)) throw new Error(`Tipo de canal desconocido: ${tipo} (texto o voz)`);
+    return tipo;
+  };
+  const nombreDe = (tipo, emoji, nombre) => (tipo === 'voz' ? conEmoji(emoji, nombre.trim()) : nombreCanal(conEmoji(emoji, nombre)));
   const categorias = config.categorias.map(c => {
     const canales = [];
     if (c.familias) {
       // Por cada familia, un canal por cada tipo (público, privado...) en el orden de servidor.json
       for (const f of familias) {
         for (const [tipo, t] of Object.entries(c.familias)) {
-          const base = nombreCanal(f.nombre) + (t.sufijo ? `-${t.sufijo}` : '');
-          canales.push({ clave: `canal:familia:${f.id}${tipo === 'publico' ? '' : `:${tipo}`}`, nombre: nombreCanal(conEmoji(t.emoji, base)),
+          const tipoK = tipoDe(t);
+          const base = f.nombre + (t.sufijo ? ` ${t.sufijo}` : '');
+          canales.push({ clave: `canal:familia:${f.id}${tipo === 'publico' ? '' : `:${tipo}`}`, tipo: tipoK, nombre: nombreDe(tipoK, t.emoji, base),
             tema: (t.tema || 'La familia {familia}.').replace('{familia}', `${f.nombre}${f.legacy ? ' (Legacy)' : ''}`),
             permisos: { ...(c.permisos || {}), ...(t.permisos || {}) }, familia: f.id });
         }
       }
     } else {
       for (const k of c.canales || []) {
-        canales.push({ clave: `canal:${k.clave || nombreCanal(k.nombre)}`, nombre: nombreCanal(conEmoji(k.emoji, k.nombre)), tema: k.tema || '', permisos: { ...(c.permisos || {}), ...(k.permisos || {}) } });
+        const tipoK = tipoDe(k);
+        canales.push({ clave: `canal:${k.clave || nombreCanal(k.nombre)}`, tipo: tipoK, nombre: nombreDe(tipoK, k.emoji, k.nombre), tema: tipoK === 'voz' ? '' : (k.tema || ''), permisos: { ...(c.permisos || {}), ...(k.permisos || {}) } });
       }
     }
     return { clave: `categoria:${c.clave || c.nombre.toLowerCase()}`, nombre: conEmoji(c.emoji, c.nombre, ' '), permisos: c.permisos || {}, canales };
@@ -166,6 +176,7 @@ export async function aplicar({ api, config, familias, prueba = false, borrarSob
 
   const ids = existsSync(archivoIds) ? JSON.parse(readFileSync(archivoIds, 'utf8')) : {};
   const idsServidor = ids[guildId] || {};
+  const nuevosIds = {};  // los ids de esta pasada: lo que ya no está en el archivo desaparece de ids.json
   const usados = new Set();
   // Busca lo que ya hay: primero por el id guardado, luego por el nombre
   const buscar = (lista, clave, cumple) => {
@@ -197,7 +208,7 @@ export async function aplicar({ api, config, familias, prueba = false, borrarSob
         if (!prueba) await api.patch(`/guilds/${guildId}/roles/${hay.id}`, cuerpo);
       }
     }
-    idsServidor[r.clave] = idDeRol[r.ref];
+    nuevosIds[r.clave] = idDeRol[r.ref];
   }
   // Orden de los roles: los nuestros como en el archivo, por debajo del rol del bot (un rol solo puede dar los que
   // tiene por debajo, así que esto decide qué puede repartir cada uno). Los que no son nuestros quedan debajo.
@@ -243,29 +254,32 @@ export async function aplicar({ api, config, familias, prueba = false, borrarSob
         if (!prueba) await api.patch(`/channels/${hay.id}`, { name: c.nombre, permission_overwrites: ows });
       }
     }
-    idsServidor[c.clave] = idCat;
+    nuevosIds[c.clave] = idCat;
     const hijos = [];
     for (const k of c.canales) {
       const owsK = overwrites(k.permisos, { idRol, everyone: guildId, botId: yo.id, familia: k.familia });
-      const textos = canales.filter(x => x.type === TEXTO);
-      const hayK = buscar(textos, k.clave, x => x.name === k.nombre && x.parent_id === idCat) || buscar(textos, k.clave, x => x.name === k.nombre);
+      const tipo = TIPOS[k.tipo];
+      const marca = k.tipo === 'voz' ? '' : '#';
+      const mismos = canales.filter(x => x.type === tipo);
+      const hayK = buscar(mismos, k.clave, x => x.name === k.nombre && x.parent_id === idCat) || buscar(mismos, k.clave, x => x.name === k.nombre);
+      const cuerpo = { name: k.nombre, parent_id: idCat, permission_overwrites: owsK, ...(tipo === TEXTO && { topic: k.tema }) };
       let idK;
       if (!hayK) {
-        anotar('crear', 'el canal', `#${k.nombre}`, `en ${c.nombre}`);
-        idK = prueba ? `nuevo:${k.clave}` : (await api.post(`/guilds/${guildId}/channels`, { name: k.nombre, type: TEXTO, topic: k.tema, parent_id: idCat, permission_overwrites: owsK })).id;
+        anotar('crear', 'el canal', `${marca}${k.nombre}`, `en ${c.nombre}`);
+        idK = prueba ? `nuevo:${k.clave}` : (await api.post(`/guilds/${guildId}/channels`, { ...cuerpo, type: tipo })).id;
       } else {
         idK = hayK.id;
         const cambios = [];
-        if (hayK.name !== k.nombre) cambios.push(`nombre #${hayK.name} → #${k.nombre}`);
-        if ((hayK.topic || '') !== k.tema) cambios.push('descripción');
+        if (hayK.name !== k.nombre) cambios.push(`nombre ${marca}${hayK.name} → ${marca}${k.nombre}`);
+        if (tipo === TEXTO && (hayK.topic || '') !== k.tema) cambios.push('descripción');
         if (hayK.parent_id !== idCat) cambios.push(`pasa a ${c.nombre}`);
         if (firma(hayK.permission_overwrites) !== firma(owsK)) cambios.push('permisos');
         if (cambios.length) {
-          anotar('cambiar', 'el canal', `#${k.nombre}`, cambios.join(', '));
-          if (!prueba) await api.patch(`/channels/${hayK.id}`, { name: k.nombre, topic: k.tema, parent_id: idCat, permission_overwrites: owsK });
+          anotar('cambiar', 'el canal', `${marca}${k.nombre}`, cambios.join(', '));
+          if (!prueba) await api.patch(`/channels/${hayK.id}`, cuerpo);
         }
       }
-      idsServidor[k.clave] = idK;
+      nuevosIds[k.clave] = idK;
       hijos.push(idK);
     }
     orden.push({ id: idCat, hijos });
@@ -289,7 +303,7 @@ export async function aplicar({ api, config, familias, prueba = false, borrarSob
   // Lo que hay en Discord y no está en el archivo
   const sobrantes = canales.filter(x => !usados.has(x.id)).sort((a, b) => (a.type === CATEGORIA) - (b.type === CATEGORIA));
   for (const x of sobrantes) {
-    const nombre = x.type === CATEGORIA ? x.name : `#${x.name}`;
+    const nombre = x.type === CATEGORIA ? x.name : `${x.type === VOZ ? '' : '#'}${x.name}`;
     const que = x.type === CATEGORIA ? 'la categoría' : 'el canal';
     if (!borrarSobrantes) { anotar('sobra', que, nombre); continue; }
     anotar('borrar', que, nombre);
@@ -305,7 +319,7 @@ export async function aplicar({ api, config, familias, prueba = false, borrarSob
   const env = {};
   for (const w of quiere.webhooks) {
     const clave = `canal:${nombreCanal(w.canal)}`;
-    const idCanal = idsServidor[clave];
+    const idCanal = nuevosIds[clave];
     if (!idCanal) throw new Error(`El webhook ${w.variable} es del canal #${w.canal}, que no está en servidor.json`);
     let hook = null;
     if (!String(idCanal).startsWith('nuevo:')) {
@@ -325,7 +339,7 @@ export async function aplicar({ api, config, familias, prueba = false, borrarSob
   }
 
   if (!prueba) {
-    ids[guildId] = idsServidor;
+    ids[guildId] = nuevosIds;
     writeFileSync(archivoIds, JSON.stringify(ids, null, 2) + '\n');
   }
   const cuenta = a => acciones.filter(x => x.accion === a).length;
