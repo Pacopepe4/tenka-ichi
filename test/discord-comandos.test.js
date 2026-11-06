@@ -93,3 +93,17 @@ test('sin DISCORD_PUBLIC_KEY ni token, la ruta no hace nada', async () => {
   assert.equal(apagado.activo, false);
   assert.equal((await apagado.atender({})).estado, 404);
 });
+
+test('una DISCORD_PUBLIC_KEY mal copiada no tumba la web: se aceptan espacios y comillas, y si no vale se apaga el comando', () => {
+  const errores = [];
+  const original = console.error;
+  console.error = m => errores.push(m);
+  try {
+    assert.equal(crearComandos({ clave: `  "${CLAVE}"  `, token: 't' }).activo, true);
+    assert.equal(crearComandos({ clave: `DISCORD_PUBLIC_KEY = ${CLAVE}`, token: 't' }).activo, true);
+    assert.equal(crearComandos({ clave: 'esto no es una clave', token: 't' }).activo, false);
+  } finally {
+    console.error = original;
+  }
+  assert.ok(errores.length >= 1 && errores.every(e => /DISCORD_PUBLIC_KEY no es válida/.test(e)));
+});

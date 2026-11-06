@@ -20,6 +20,19 @@ function clavePublica(hex) {
   return crypto.createPublicKey({ key: Buffer.concat([prefijo, Buffer.from(hex, 'hex')]), format: 'der', type: 'spki' });
 }
 
+// La Public Key se copia a mano en Render: se aceptan espacios, comillas o el nombre de la variable delante, y si
+// no hay una clave válida se apagan los comandos (con un aviso en el registro) en vez de tumbar toda la web
+export function leerClave(texto) {
+  const hex = /[0-9a-f]{64}/i.exec(String(texto))?.[0];
+  try {
+    if (!hex) throw new Error('no son 64 caracteres hexadecimales');
+    return clavePublica(hex);
+  } catch (e) {
+    console.error(`DISCORD_PUBLIC_KEY no es válida (${e.message}): /reclutar queda apagado. Cópiala de discord.com/developers › General Information › Public Key`);
+    return null;
+  }
+}
+
 // Discord firma cada petición: si la firma no cuadra, no es Discord y no se hace nada
 export function firmaValida(clave, firma, momento, cuerpo) {
   if (!firma || !momento || !/^[0-9a-f]{128}$/i.test(firma)) return false;
@@ -79,8 +92,8 @@ export function crearComandos({ clave = process.env.DISCORD_PUBLIC_KEY, token = 
   urlApi = process.env.DISCORD_URL_API || 'https://discord.com/api/v10',
   ids = () => JSON.parse(readFileSync(path.join(RAIZ, 'discord/ids.json'), 'utf8')),
   familias = () => JSON.parse(readFileSync(path.join(RAIZ, 'data-proyecto/familias.json'), 'utf8')).familias } = {}) {
-  const activo = Boolean(clave && token);
-  const publica = activo ? clavePublica(clave) : null;
+  const publica = clave && token ? leerClave(clave) : null;
+  const activo = Boolean(publica);
   const base = urlApi.replace(/\/$/, '');
 
   async function darRol(guildId, usuario, rol, motivo) {
