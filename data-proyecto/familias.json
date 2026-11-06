@@ -1,12 +1,48 @@
 {
-  "_nota": "Familias de Gokudō: el único sitio con sus nombres. Los nombres aún no están decididos; cambia 'nombre' (y si quieres 'id', 'kanji' y 'color') y vuelve a ejecutar npm run discord-aplicar. 'legacy': true es la familia de la organización que no compite.",
+  "_nota": "Familias de Gokudō: el único sitio con sus nombres. El 'id' no se cambia (con él se encuentran sus canales y roles en Discord); 'nombre', 'kanji' y 'color' sí, y luego npm run discord-aplicar renombra canales y roles. 'legacy': true es la familia de la organización que no compite.",
   "familias": [
-    { "id": "familia-1", "nombre": "Familia 1", "kanji": "", "color": "#C1272D" },
-    { "id": "familia-2", "nombre": "Familia 2", "kanji": "", "color": "#EE7B2B" },
-    { "id": "familia-3", "nombre": "Familia 3", "kanji": "", "color": "#D9A400" },
-    { "id": "familia-4", "nombre": "Familia 4", "kanji": "", "color": "#5FA341" },
-    { "id": "familia-5", "nombre": "Familia 5", "kanji": "", "color": "#39C6F0" },
-    { "id": "familia-6", "nombre": "Familia 6", "kanji": "", "color": "#8E5BD0" },
-    { "id": "legacy", "nombre": "Legacy", "kanji": "", "color": "#D9D3C7", "legacy": true }
+    {
+      "id": "familia-1",
+      "nombre": "Ryūjin",
+      "kanji": "竜神",
+      "color": "#39C6F0"
+    },
+    {
+      "id": "familia-2",
+      "nombre": "Kitsune",
+      "kanji": "狐",
+      "color": "#EE7B2B"
+    },
+    {
+      "id": "familia-3",
+      "nombre": "Tengu",
+      "kanji": "天狗",
+      "color": "#2E6B45"
+    },
+    {
+      "id": "familia-4",
+      "nombre": "Tsuki",
+      "kanji": "月",
+      "color": "#A9722F"
+    },
+    {
+      "id": "familia-5",
+      "nombre": "Yasha",
+      "kanji": "夜叉",
+      "color": "#5FA341"
+    },
+    {
+      "id": "familia-6",
+      "nombre": "Akuma",
+      "kanji": "悪魔",
+      "color": "#C1272D"
+    },
+    {
+      "id": "legacy",
+      "nombre": "Ashura",
+      "kanji": "阿修羅",
+      "color": "#EBD28A",
+      "legacy": true
+    }
   ]
 }
