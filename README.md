@@ -339,9 +339,23 @@ La colección y la alineación (botones en el gachapon) y la tier list (panel, a
 1. En el servidor de Discord: **Ajustes del servidor › Integraciones › Webhooks › Nuevo webhook**, elige el canal y pulsa **Copiar URL del webhook**. No la pegues en ningún chat: quien la tenga puede publicar en ese canal.
 2. En Render, en Environment: `DISCORD_WEBHOOK_URL` con esa dirección. Si la tier list (la del staff y las de los espectadores) o la clasificación del fantasy van en otro canal, crea otro webhook ahí y ponlo en `DISCORD_WEBHOOK_TIERLIST` o `DISCORD_WEBHOOK_CLASIFICACION`; sin ellos, todo va al canal de `DISCORD_WEBHOOK_URL`.
 
+Con el servidor montado por el bot (ver «El servidor de Discord de Gokudō» abajo), los webhooks los crea `npm run discord-aplicar`, que deja sus direcciones en el `.env`: de ahí se copian a Render. `DISCORD_WEBHOOK_ALINEACION` (opcional) manda la alineación a su propio canal.
+
 El texto lo pone la web (menciona a quien publica sin enviarle aviso y no deja colar menciones a todo el servidor), y cada persona puede publicar su colección y su alineación una vez cada 10 minutos. Sin webhook, el botón de publicar no sale y la imagen se puede descargar igual.
 
 Sin las variables de Discord, la página del gachapon dice que abre muy pronto. En local se puede probar sin Discord entrando en `/auth/prueba?nombre=Alguien`; esa entrada de prueba no existe en Render.
+
+### El servidor de Discord de Gokudō
+
+Cómo es el servidor (roles, categorías, canales, permisos y webhooks) está en `discord/servidor.json`; las familias (un canal y un rol por familia, y Legacy) salen de `data-proyecto/familias.json`, que es el único sitio con sus nombres. El bot lo aplica con la API de Discord:
+
+1. En https://discord.com/developers/applications, la aplicación **Gokudō** › **Bot** › **Reset Token**, y el token en el `.env` (nunca en el repo): `DISCORD_BOT_TOKEN=...`. El bot no necesita ningún *intent*.
+2. Invitar el bot al servidor con Gestionar canales, Gestionar roles y Gestionar webhooks: si no está en ningún servidor, `npm run discord-aplicar` da el enlace. El rol del bot tiene que estar por encima de los roles que gestiona (al crearlos él, ya lo está). Si está en más de un servidor, `DISCORD_GUILD_ID` en el `.env`.
+3. `npm run discord-aplicar -- --prueba` enseña lo que haría sin cambiar nada.
+4. `npm run discord-aplicar` crea lo que falta y cambia lo que es distinto; lanzarlo otra vez no hace nada. No borra nada: lo que sobra (por ejemplo los canales que trae Discord de serie) solo lo avisa, y se borra con `npm run discord-aplicar -- --borrar-sobrantes`.
+5. Las direcciones de los webhooks van al `.env` (`DISCORD_WEBHOOK_URL`, `DISCORD_WEBHOOK_ALINEACION`, `DISCORD_WEBHOOK_TIERLIST`, `DISCORD_WEBHOOK_CLASIFICACION`); se copian a mano a Render. Los ids de lo creado se guardan en `discord/ids.json`, así que al cambiar el nombre de una familia se renombran su canal y su rol en vez de crear otros.
+
+Todo lo automático va con el bot, nunca con la cuenta de una persona. Para probar sin Discord: `npm run discord-api-falso` y `DISCORD_URL_API=http://localhost:4060/api/v10 DISCORD_BOT_TOKEN=token-prueba`.
 
 ### Puntos del canal de Twitch
 

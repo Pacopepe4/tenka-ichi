@@ -14,7 +14,9 @@
     "entrada-discord-falso": "node scripts/entrada-discord-falso.js",
     "sheets-falso": "node scripts/sheets-falso.js",
     "vista-previa": "node scripts/vista-previa.js",
-    "prueba-directo": "node scripts/prueba-directo.js"
+    "prueba-directo": "node scripts/prueba-directo.js",
+    "discord-aplicar": "node scripts/discord-aplicar.js",
+    "discord-api-falso": "node scripts/discord-api-falso.js"
   },
   "engines": {
     "node": ">=20"

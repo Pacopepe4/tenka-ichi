@@ -1,0 +1,64 @@
+{
+  "_nota": "Cómo es el servidor de Discord de Gokudō. Lo aplica npm run discord-aplicar (primero npm run discord-aplicar -- --prueba para ver qué haría). Las familias salen de data-proyecto/familias.json. Permisos: 'todos' es @everyone, 'familia' es el rol de la familia del canal y el resto son claves de 'roles'. Los permisos de un canal se suman a los de su categoría (el canal manda si repite un rol).",
+  "nombre": "Gokudō",
+  "roles": [
+    { "clave": "staff", "nombre": "Staff", "color": "#C1272D", "separado": true, "mencionable": true },
+    { "clave": "jugador", "nombre": "Jugador", "color": "#D9C58A", "separado": true, "mencionable": false }
+  ],
+  "categorias": [
+    {
+      "nombre": "Info",
+      "permisos": { "todos": { "denegar": ["SEND_MESSAGES", "CREATE_PUBLIC_THREADS"] }, "staff": { "permitir": ["SEND_MESSAGES"] } },
+      "canales": [
+        { "nombre": "normas", "tema": "Normas del servidor y de la liga." },
+        { "nombre": "anuncios", "tema": "Anuncios de Gokudō." },
+        { "nombre": "calendario", "tema": "Jornadas y horarios de la temporada." }
+      ]
+    },
+    {
+      "nombre": "Liga",
+      "permisos": { "todos": { "denegar": ["SEND_MESSAGES", "CREATE_PUBLIC_THREADS"] }, "staff": { "permitir": ["SEND_MESSAGES"] } },
+      "canales": [
+        { "nombre": "resultados", "tema": "Resultados de cada partida." },
+        { "nombre": "clasificacion", "tema": "Clasificación de la liga." },
+        { "nombre": "tier-list", "tema": "La tier list del staff y las de los espectadores." },
+        { "nombre": "fantasy", "tema": "Clasificación del fantasy." }
+      ]
+    },
+    {
+      "nombre": "Gachapón",
+      "permisos": { "todos": { "denegar": ["SEND_MESSAGES", "CREATE_PUBLIC_THREADS"] }, "staff": { "permitir": ["SEND_MESSAGES"] } },
+      "canales": [
+        { "nombre": "colecciones", "tema": "Las colecciones de cartas que enseñáis desde la web." },
+        { "nombre": "alineaciones", "tema": "Las alineaciones que enseñáis desde la web." }
+      ]
+    },
+    {
+      "nombre": "Familias",
+      "familias": true,
+      "permisos": { "todos": { "denegar": ["SEND_MESSAGES"] }, "staff": { "permitir": ["SEND_MESSAGES"] }, "familia": { "permitir": ["SEND_MESSAGES"] } },
+      "canales": []
+    },
+    {
+      "nombre": "Directo",
+      "canales": [
+        { "nombre": "avisos-directo", "tema": "Aviso cuando empieza el directo.", "permisos": { "todos": { "denegar": ["SEND_MESSAGES", "CREATE_PUBLIC_THREADS"] }, "staff": { "permitir": ["SEND_MESSAGES"] } } },
+        { "nombre": "clips", "tema": "Los mejores momentos del directo." }
+      ]
+    },
+    {
+      "nombre": "Staff",
+      "permisos": { "todos": { "denegar": ["VIEW_CHANNEL"] }, "staff": { "permitir": ["VIEW_CHANNEL", "SEND_MESSAGES"] } },
+      "canales": [
+        { "nombre": "staff", "tema": "Solo staff." },
+        { "nombre": "registro-bot", "tema": "Lo que hace el bot." }
+      ]
+    }
+  ],
+  "webhooks": [
+    { "canal": "colecciones", "nombre": "Gokudō", "variable": "DISCORD_WEBHOOK_URL" },
+    { "canal": "alineaciones", "nombre": "Gokudō", "variable": "DISCORD_WEBHOOK_ALINEACION" },
+    { "canal": "tier-list", "nombre": "Gokudō", "variable": "DISCORD_WEBHOOK_TIERLIST" },
+    { "canal": "fantasy", "nombre": "Gokudō", "variable": "DISCORD_WEBHOOK_CLASIFICACION" }
+  ]
+}
