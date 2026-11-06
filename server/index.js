@@ -34,6 +34,7 @@ import { loginDiscordActivo, urlAutorizarDiscord, sesionDeDiscord } from './entr
 import crypto from 'node:crypto';
 import { cargarFantasy, infoFantasy, cambiarAlineacion, guardarEstadisticas, cerrarAlineaciones, alineacionesCerradas } from './fantasy.js';
 import { atenderPublicacion, discordActivo } from './discord.js';
+import { crearComandos } from './discord-comandos.js';
 import { cargarPartida, recibir as recibirPartida, resumen as resumenPartida, empezarPrueba, pararPrueba, enPrueba, olvidarPartida,
   ponerContexto, marcarObjetivo, deshacerMarca, ajustarIngame } from './partida.js';
 import { DESCARGAS, zipDescarga } from './descargas.js';
@@ -839,8 +840,20 @@ async function huella(archivo, s) {
   return { etag, datos };
 }
 
+// Los comandos del bot en el servidor de Discord (/reclutar): Discord los manda aquí firmados
+const comandosDiscord = crearComandos();
+
 const servidor = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
+  if (url.pathname === '/discord/interacciones' && req.method === 'POST') {
+    try {
+      const r = await comandosDiscord.atender(req);
+      return json(res, r.cuerpo, r.estado);
+    } catch (e) {
+      console.error(url.pathname, e);
+      return json(res, { error: 'Algo ha fallado' }, 500);
+    }
+  }
   const rutaSesion = url.pathname.startsWith('/auth/') || url.pathname.startsWith('/api/gacha') || url.pathname.startsWith('/api/fantasy') || url.pathname === '/api/tierlist' || url.pathname === '/api/mitierlist'
     || url.pathname.startsWith('/api/discord');
   try {

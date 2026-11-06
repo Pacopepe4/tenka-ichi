@@ -158,13 +158,14 @@ test('guardarEnEnv añade y cambia variables, y nombreCanal deja el nombre como 
   assert.equal(nombreCanal('Yamada Gumi'), 'yamada-gumi');
 });
 
-test('los roles van en orden (cada uno solo da los de debajo) y Oyabun puede invitar, mover gente y dar roles', async () => {
+test('los roles van en orden (cada uno solo da los de debajo) y Oyabun puede invitar y mover gente, pero no dar roles (para eso está /reclutar)', async () => {
   await aplicar(opciones);
   const orden = discord.estado.roles.filter(r => r.name !== '@everyone').sort((a, b) => b.position - a.position).map(r => r.name);
   assert.deepEqual(orden, ['Gokudō', 'Kumichō', 'Oyabun', 'Familia 1', 'Familia 2', 'Familia 3', 'Familia 4', 'Familia 5', 'Familia 6', 'Legacy', 'Kobun'],
     'el bot arriba; el staff por encima de los jefes y los jefes por encima de las familias');
   const p = BigInt(rol('Oyabun').permissions);
-  for (const n of ['CREATE_INSTANT_INVITE', 'MOVE_MEMBERS', 'MANAGE_ROLES']) assert.ok(p & (1n << BigInt(PERMISOS[n])), n);
+  for (const n of ['CREATE_INSTANT_INVITE', 'MOVE_MEMBERS']) assert.ok(p & (1n << BigInt(PERMISOS[n])), n);
+  assert.ok(!(p & (1n << BigInt(PERMISOS.MANAGE_ROLES))), 'sin «Gestionar roles»: reclutan con /reclutar, solo para su familia');
   assert.ok(!(p & 8n), 'los Oyabun no son administradores');
   assert.equal(rol('Familia 1').permissions, '1071698660929', 'a los roles sin permisos en el archivo no se les tocan');
   discord.estado.peticiones = [];
@@ -190,4 +191,18 @@ test('ids.json solo guarda lo que está en el archivo, y un canal adoptado por s
   const despues = JSON.parse(readFileSync(opciones.archivoIds, 'utf8'))['1'];
   assert.equal(despues['canal:izakaya'], '77');
   assert.ok(!('canal:viejo' in despues));
+});
+
+test('registra los comandos del bot una vez, y no quita los que no son suyos sin --borrar-sobrantes', async () => {
+  await aplicar(opciones);
+  assert.deepEqual(discord.estado.comandos.map(c => c.name), ['reclutar']);
+  assert.equal(discord.estado.comandos[0].options[0].type, 6, 'la opción es un usuario');
+  discord.estado.peticiones = [];
+  await aplicar(opciones);
+  assert.deepEqual(escritas(), [], 'la segunda vez no los vuelve a registrar');
+  discord.estado.comandos.push({ id: '5', name: 'otro', description: 'de otra cosa', options: [] });
+  await aplicar(opciones);
+  assert.deepEqual(escritas(), []);
+  await aplicar({ ...opciones, borrarSobrantes: true });
+  assert.deepEqual(discord.estado.comandos.map(c => c.name), ['reclutar']);
 });
