@@ -43,18 +43,19 @@ test('el modo de prueba enseña lo que haría y no cambia nada en Discord ni en 
   assert.match(lineas.join('\n'), /Crearía el canal «#📜・normas»/);
 });
 
-test('la primera vez lo crea todo: categorías en orden, canales, y por cada familia y Legacy un rol, un chat y dos canales de voz', async () => {
+test('la primera vez lo crea todo: categorías en orden, canales, y por cada familia y Legacy un rol y su categoría con un chat y dos canales de voz', async () => {
   await aplicar(opciones);
   const cats = discord.estado.canales.filter(c => c.type === 4 && !/Channels/.test(c.name)).sort((a, b) => a.position - b.position).map(c => c.name);
-  assert.deepEqual(cats, ['🏯 Staff', '🔴 Directo', '📜 Info', '🏆 Liga', '🎰 Gachapón', '🏮 Familias', '🍶 Izakaya']);
-  // Como los enseña Discord: primero los de texto y luego los de voz, cada uno por su posición
-  const familias = discord.estado.canales.filter(c => c.parent_id === canal('Familias').id).sort((a, b) => a.type - b.type || a.position - b.position).map(c => c.name);
-  assert.equal(familias.length, 21);
-  assert.deepEqual(familias.slice(0, 7), ['🏮・familia-1', '🏮・familia-2', '🏮・familia-3', '🏮・familia-4', '🏮・familia-5', '🏮・familia-6', '🏮・legacy']);
-  assert.deepEqual(familias.slice(7, 10), ['🔊・Familia 1', '🔒・Familia 1 privado', '🔊・Familia 2']);
-  assert.deepEqual(familias.slice(-2), ['🔊・Legacy', '🔒・Legacy privado']);
-  assert.equal(canal('Familia 1').type, 2, 'los de voz son de voz');
-  assert.equal(canal('Familia 1').topic, null, 'y sin descripción');
+  const deFamilias = ['Familia 1', 'Familia 2', 'Familia 3', 'Familia 4', 'Familia 5', 'Familia 6', 'Legacy'].map(n => `🏮 ${n}`);
+  assert.deepEqual(cats, ['🏯 Staff', '🔴 Directo', '📜 Info', '🏆 Liga', '🎰 Gachapón', ...deFamilias, '🍶 Izakaya'], 'una categoría por familia, donde estaba la de Familias');
+  // Cada familia en su categoría, como los enseña Discord: primero el de texto y luego los de voz
+  for (const [i, n] of ['Familia 1', 'Familia 6', 'Legacy'].entries()) {
+    const cat = categoria(n);
+    const dentro = discord.estado.canales.filter(c => c.parent_id === cat.id).sort((a, b) => a.type - b.type || a.position - b.position).map(c => c.name);
+    assert.deepEqual(dentro, [`🏮・${nombreCanal(n)}`, `🔊・${n}`, `🔒・${n} privado`], `canales de ${n} (${i})`);
+  }
+  assert.equal(voz('Familia 1').type, 2, 'los de voz son de voz');
+  assert.equal(voz('Familia 1').topic, null, 'y sin descripción');
   assert.equal(voz('Izakaya').parent_id, categoria('Izakaya').id, 'Izakaya: su categoría y su canal de voz');
   for (const n of ['Kumichō', 'Oyabun', 'Kobun', 'Familia 1', 'Familia 6', 'Legacy']) assert.ok(rol(n), `rol ${n}`);
   assert.equal(rol('Familia 1').color, 0xC1272D);
@@ -73,7 +74,7 @@ test('los permisos: Info es de solo lectura, Staff es privado y la voz privada d
   assert.ok(BigInt(ow(canal('staff'), '1').deny) & bit(10), '@everyone no ve el canal del staff');
   assert.ok(BigInt(ow(canal('staff'), '9').allow) & bit(10), 'el bot se deja ver el canal privado para seguir gestionándolo');
   assert.deepEqual(canal('familia-2').permission_overwrites, [], 'el chat público de la familia es de todos');
-  assert.deepEqual(canal('Familia 2').permission_overwrites, [], 'la voz abierta es de todos');
+  assert.deepEqual(voz('Familia 2').permission_overwrites, [], 'la voz abierta es de todos');
   const privado = canal('Familia 2 privado');
   assert.ok(BigInt(ow(privado, '1').deny) & bit(10) && BigInt(ow(privado, '1').deny) & bit(20), '@everyone ni lo ve ni entra');
   assert.ok(BigInt(ow(privado, rol('Familia 2').id).allow) & bit(20), 'su familia sí entra');
