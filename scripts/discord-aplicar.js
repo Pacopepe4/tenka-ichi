@@ -280,21 +280,23 @@ export async function aplicar({ api, config, familias, prueba = false, borrarSob
         }
       }
       nuevosIds[k.clave] = idK;
-      hijos.push(idK);
+      hijos.push({ id: idK, tipo });
     }
     orden.push({ id: idCat, hijos });
   }
 
-  // Orden: las categorías como en el archivo, y dentro de cada una sus canales
+  // Orden: las categorías como en el archivo, y dentro de cada una sus canales. Discord numera aparte los de texto
+  // y los de voz (y siempre enseña primero los de texto), así que el orden se mira y se pone por cada tipo.
   const posicion = Object.fromEntries(canales.map(x => [x.id, x.position]));
   const desordenado = ids => ids.some(id => !(id in posicion)) || ids.some((id, i) => i && posicion[ids[i - 1]] >= posicion[id]);
   const cats = orden.map(o => o.id);
   const sobrantesCat = canales.filter(x => x.type === CATEGORIA && !cats.includes(x.id)).sort((a, b) => a.position - b.position);
-  if (desordenado(cats) || orden.some(o => desordenado(o.hijos))) {
+  const porTipo = hijos => Object.values(Object.groupBy(hijos, h => h.tipo)).map(g => g.map(h => h.id));
+  if (desordenado(cats) || orden.some(o => porTipo(o.hijos).some(desordenado))) {
     anotar('cambiar', 'el orden de', 'categorías y canales', 'como en servidor.json');
     if (!prueba) {
       const lista = [];
-      orden.forEach((o, i) => { lista.push({ id: o.id, position: i }); o.hijos.forEach((h, j) => lista.push({ id: h, position: j })); });
+      orden.forEach((o, i) => { lista.push({ id: o.id, position: i }); for (const g of porTipo(o.hijos)) g.forEach((h, j) => lista.push({ id: h, position: j })); });
       sobrantesCat.forEach((x, i) => lista.push({ id: x.id, position: cats.length + i }));
       await api.patch(`/guilds/${guildId}/channels`, lista);
     }

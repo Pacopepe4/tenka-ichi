@@ -43,15 +43,17 @@ test('el modo de prueba enseña lo que haría y no cambia nada en Discord ni en 
 test('la primera vez lo crea todo: categorías en orden, canales, y por cada familia y Legacy un rol, un chat y dos canales de voz', async () => {
   await aplicar(opciones);
   const cats = discord.estado.canales.filter(c => c.type === 4 && !/Channels/.test(c.name)).sort((a, b) => a.position - b.position).map(c => c.name);
-  assert.deepEqual(cats, ['📜 Info', '🏆 Liga', '🎰 Gachapón', '🏮 Familias', '🍶 Izakaya', '🔴 Directo', '🏯 Staff']);
-  const familias = discord.estado.canales.filter(c => c.parent_id === canal('Familias').id).sort((a, b) => a.position - b.position).map(c => c.name);
+  assert.deepEqual(cats, ['🏯 Staff', '🔴 Directo', '📜 Info', '🏆 Liga', '🎰 Gachapón', '🏮 Familias', '🍶 Izakaya']);
+  // Como los enseña Discord: primero los de texto y luego los de voz, cada uno por su posición
+  const familias = discord.estado.canales.filter(c => c.parent_id === canal('Familias').id).sort((a, b) => a.type - b.type || a.position - b.position).map(c => c.name);
   assert.equal(familias.length, 21);
-  assert.deepEqual(familias.slice(0, 4), ['🏮・familia-1', '🔊・Familia 1', '🔒・Familia 1 privado', '🏮・familia-2']);
-  assert.deepEqual(familias.slice(-3), ['🏮・legacy', '🔊・Legacy', '🔒・Legacy privado']);
+  assert.deepEqual(familias.slice(0, 7), ['🏮・familia-1', '🏮・familia-2', '🏮・familia-3', '🏮・familia-4', '🏮・familia-5', '🏮・familia-6', '🏮・legacy']);
+  assert.deepEqual(familias.slice(7, 10), ['🔊・Familia 1', '🔒・Familia 1 privado', '🔊・Familia 2']);
+  assert.deepEqual(familias.slice(-2), ['🔊・Legacy', '🔒・Legacy privado']);
   assert.equal(canal('Familia 1').type, 2, 'los de voz son de voz');
   assert.equal(canal('Familia 1').topic, null, 'y sin descripción');
   assert.equal(voz('Izakaya').parent_id, categoria('Izakaya').id, 'Izakaya: su categoría y su canal de voz');
-  for (const n of ['Kumichō', 'Jefes', 'Jugador', 'Familia 1', 'Familia 6', 'Legacy']) assert.ok(rol(n), `rol ${n}`);
+  for (const n of ['Kumichō', 'Oyabun', 'Kobun', 'Familia 1', 'Familia 6', 'Legacy']) assert.ok(rol(n), `rol ${n}`);
   assert.equal(rol('Familia 1').color, 0xC1272D);
   assert.equal(canal('normas').parent_id, canal('Info').id);
   assert.equal(canal('normas').topic, 'Normas del servidor y de la liga.');
@@ -88,11 +90,11 @@ test('la segunda vez no hace nada', async () => {
 test('cambia solo lo que es distinto', async () => {
   await aplicar(opciones);
   canal('anuncios').topic = 'otra cosa';
-  rol('Jugador').color = 0;
+  rol('Kobun').color = 0;
   discord.estado.peticiones = [];
   await aplicar(opciones);
   assert.deepEqual(escritas().map(p => `${p.metodo} ${p.ruta}`).sort(),
-    [`PATCH /channels/${canal('anuncios').id}`, `PATCH /guilds/1/roles/${rol('Jugador').id}`].sort());
+    [`PATCH /channels/${canal('anuncios').id}`, `PATCH /guilds/1/roles/${rol('Kobun').id}`].sort());
   assert.equal(canal('anuncios').topic, 'Anuncios de Gokudō.');
 });
 
@@ -156,24 +158,24 @@ test('guardarEnEnv añade y cambia variables, y nombreCanal deja el nombre como 
   assert.equal(nombreCanal('Yamada Gumi'), 'yamada-gumi');
 });
 
-test('los roles van en orden (cada uno solo da los de debajo) y Jefes puede invitar, mover gente y dar roles', async () => {
+test('los roles van en orden (cada uno solo da los de debajo) y Oyabun puede invitar, mover gente y dar roles', async () => {
   await aplicar(opciones);
   const orden = discord.estado.roles.filter(r => r.name !== '@everyone').sort((a, b) => b.position - a.position).map(r => r.name);
-  assert.deepEqual(orden, ['Gokudō', 'Kumichō', 'Jefes', 'Familia 1', 'Familia 2', 'Familia 3', 'Familia 4', 'Familia 5', 'Familia 6', 'Legacy', 'Jugador'],
+  assert.deepEqual(orden, ['Gokudō', 'Kumichō', 'Oyabun', 'Familia 1', 'Familia 2', 'Familia 3', 'Familia 4', 'Familia 5', 'Familia 6', 'Legacy', 'Kobun'],
     'el bot arriba; el staff por encima de los jefes y los jefes por encima de las familias');
-  const p = BigInt(rol('Jefes').permissions);
+  const p = BigInt(rol('Oyabun').permissions);
   for (const n of ['CREATE_INSTANT_INVITE', 'MOVE_MEMBERS', 'MANAGE_ROLES']) assert.ok(p & (1n << BigInt(PERMISOS[n])), n);
-  assert.ok(!(p & 8n), 'los jefes no son administradores');
+  assert.ok(!(p & 8n), 'los Oyabun no son administradores');
   assert.equal(rol('Familia 1').permissions, '1071698660929', 'a los roles sin permisos en el archivo no se les tocan');
   discord.estado.peticiones = [];
   await aplicar(opciones);
   assert.deepEqual(escritas(), [], 'la segunda vez no reordena ni cambia permisos');
-  rol('Jefes').position = 1;
-  rol('Jugador').position = 9;
+  rol('Oyabun').position = 1;
+  rol('Kobun').position = 9;
   await aplicar(opciones);
   assert.equal(escritas().length, 1);
   assert.equal(escritas()[0].ruta, '/guilds/1/roles');
-  assert.ok(rol('Jefes').position > rol('Familia 1').position && rol('Jugador').position < rol('Legacy').position);
+  assert.ok(rol('Oyabun').position > rol('Familia 1').position && rol('Kobun').position < rol('Legacy').position);
 });
 
 test('ids.json solo guarda lo que está en el archivo, y un canal adoptado por su id se renombra y se coloca', async () => {

@@ -2,75 +2,273 @@
   "_nota": "Cómo es el servidor de Discord de Gokudō. Lo aplica npm run discord-aplicar (primero npm run discord-aplicar -- --prueba para ver qué haría). Los roles van de arriba abajo en el orden de 'roles' ({ \"familias\": true } marca dónde van los de las familias): cada rol solo puede dar los que tiene por debajo. Las familias salen de data-proyecto/familias.json: en la categoría con 'familias' se crea, por cada familia, un canal por cada tipo (publico, voz, voz-privado). Un canal es de texto salvo que lleve \"tipo\": \"voz\". Permisos: 'todos' es @everyone, 'familia' es el rol de la familia del canal y el resto son claves de 'roles'. Los permisos de un canal se suman a los de su categoría (el canal manda si repite un rol). El emoji va delante del nombre y se puede cambiar sin crear canales nuevos.",
   "nombre": "Gokudō",
   "roles": [
-    { "clave": "staff", "nombre": "Kumichō", "color": "#C1272D", "separado": true, "mencionable": true },
-    { "clave": "jefes", "nombre": "Jefes", "color": "#D9A400", "separado": true, "mencionable": true,
-      "permisos": ["CREATE_INSTANT_INVITE", "MOVE_MEMBERS", "MANAGE_ROLES", "VIEW_CHANNEL", "SEND_MESSAGES", "READ_MESSAGE_HISTORY", "ADD_REACTIONS", "EMBED_LINKS", "ATTACH_FILES", "CONNECT", "SPEAK", "CREATE_PUBLIC_THREADS", "SEND_MESSAGES_IN_THREADS"] },
-    { "familias": true },
-    { "clave": "jugador", "nombre": "Jugador", "color": "#D9C58A", "separado": true, "mencionable": false }
+    {
+      "clave": "staff",
+      "nombre": "Kumichō",
+      "color": "#C1272D",
+      "separado": true,
+      "mencionable": true
+    },
+    {
+      "clave": "jefes",
+      "nombre": "Oyabun",
+      "color": "#D9A400",
+      "separado": true,
+      "mencionable": true,
+      "permisos": [
+        "CREATE_INSTANT_INVITE",
+        "MOVE_MEMBERS",
+        "MANAGE_ROLES",
+        "VIEW_CHANNEL",
+        "SEND_MESSAGES",
+        "READ_MESSAGE_HISTORY",
+        "ADD_REACTIONS",
+        "EMBED_LINKS",
+        "ATTACH_FILES",
+        "CONNECT",
+        "SPEAK",
+        "CREATE_PUBLIC_THREADS",
+        "SEND_MESSAGES_IN_THREADS"
+      ]
+    },
+    {
+      "familias": true
+    },
+    {
+      "clave": "jugador",
+      "nombre": "Kobun",
+      "color": "#D9C58A",
+      "separado": true,
+      "mencionable": false
+    }
   ],
   "categorias": [
     {
-      "nombre": "Info", "emoji": "📜",
-      "permisos": { "todos": { "denegar": ["SEND_MESSAGES", "CREATE_PUBLIC_THREADS"] }, "staff": { "permitir": ["SEND_MESSAGES"] } },
+      "nombre": "Staff",
+      "emoji": "🏯",
+      "permisos": {
+        "todos": {
+          "denegar": [
+            "VIEW_CHANNEL"
+          ]
+        },
+        "staff": {
+          "permitir": [
+            "VIEW_CHANNEL",
+            "SEND_MESSAGES"
+          ]
+        }
+      },
       "canales": [
-        { "nombre": "normas", "emoji": "📜", "tema": "Normas del servidor y de la liga." },
-        { "nombre": "anuncios", "emoji": "📢", "tema": "Anuncios de Gokudō." },
-        { "nombre": "calendario", "emoji": "📅", "tema": "Jornadas y horarios de la temporada." }
+        {
+          "nombre": "staff",
+          "emoji": "🔑",
+          "tema": "Solo staff."
+        },
+        {
+          "nombre": "registro-bot",
+          "emoji": "🤖",
+          "tema": "Lo que hace el bot."
+        }
       ]
     },
     {
-      "nombre": "Liga", "emoji": "🏆",
-      "permisos": { "todos": { "denegar": ["SEND_MESSAGES", "CREATE_PUBLIC_THREADS"] }, "staff": { "permitir": ["SEND_MESSAGES"] } },
+      "nombre": "Directo",
+      "emoji": "🔴",
       "canales": [
-        { "nombre": "resultados", "emoji": "🎯", "tema": "Resultados de cada partida." },
-        { "nombre": "clasificacion", "emoji": "🏆", "tema": "Clasificación de la liga." },
-        { "nombre": "tier-list", "emoji": "📊", "tema": "La tier list del staff y las de los espectadores." },
-        { "nombre": "fantasy", "emoji": "🔮", "tema": "Clasificación del fantasy." }
+        {
+          "nombre": "avisos-directo",
+          "emoji": "🔴",
+          "tema": "Aviso cuando empieza el directo.",
+          "permisos": {
+            "todos": {
+              "denegar": [
+                "SEND_MESSAGES",
+                "CREATE_PUBLIC_THREADS"
+              ]
+            },
+            "staff": {
+              "permitir": [
+                "SEND_MESSAGES"
+              ]
+            }
+          }
+        },
+        {
+          "nombre": "clips",
+          "emoji": "🎬",
+          "tema": "Los mejores momentos del directo."
+        }
       ]
     },
     {
-      "nombre": "Gachapón", "emoji": "🎰",
-      "permisos": { "todos": { "denegar": ["SEND_MESSAGES", "CREATE_PUBLIC_THREADS"] }, "staff": { "permitir": ["SEND_MESSAGES"] } },
+      "nombre": "Info",
+      "emoji": "📜",
+      "permisos": {
+        "todos": {
+          "denegar": [
+            "SEND_MESSAGES",
+            "CREATE_PUBLIC_THREADS"
+          ]
+        },
+        "staff": {
+          "permitir": [
+            "SEND_MESSAGES"
+          ]
+        }
+      },
       "canales": [
-        { "nombre": "colecciones", "emoji": "🃏", "tema": "Las colecciones de cartas que enseñáis desde la web." },
-        { "nombre": "alineaciones", "emoji": "🎴", "tema": "Las alineaciones que enseñáis desde la web." }
+        {
+          "nombre": "normas",
+          "emoji": "📜",
+          "tema": "Normas del servidor y de la liga."
+        },
+        {
+          "nombre": "anuncios",
+          "emoji": "📢",
+          "tema": "Anuncios de Gokudō."
+        },
+        {
+          "nombre": "calendario",
+          "emoji": "📅",
+          "tema": "Jornadas y horarios de la temporada."
+        }
       ]
     },
     {
-      "nombre": "Familias", "emoji": "🏮",
+      "nombre": "Liga",
+      "emoji": "🏆",
+      "permisos": {
+        "todos": {
+          "denegar": [
+            "SEND_MESSAGES",
+            "CREATE_PUBLIC_THREADS"
+          ]
+        },
+        "staff": {
+          "permitir": [
+            "SEND_MESSAGES"
+          ]
+        }
+      },
+      "canales": [
+        {
+          "nombre": "resultados",
+          "emoji": "🎯",
+          "tema": "Resultados de cada partida."
+        },
+        {
+          "nombre": "clasificacion",
+          "emoji": "🏆",
+          "tema": "Clasificación de la liga."
+        },
+        {
+          "nombre": "tier-list",
+          "emoji": "📊",
+          "tema": "La tier list del staff y las de los espectadores."
+        },
+        {
+          "nombre": "fantasy",
+          "emoji": "🔮",
+          "tema": "Clasificación del fantasy."
+        }
+      ]
+    },
+    {
+      "nombre": "Gachapón",
+      "emoji": "🎰",
+      "permisos": {
+        "todos": {
+          "denegar": [
+            "SEND_MESSAGES",
+            "CREATE_PUBLIC_THREADS"
+          ]
+        },
+        "staff": {
+          "permitir": [
+            "SEND_MESSAGES"
+          ]
+        }
+      },
+      "canales": [
+        {
+          "nombre": "colecciones",
+          "emoji": "🃏",
+          "tema": "Las colecciones de cartas que enseñáis desde la web."
+        },
+        {
+          "nombre": "alineaciones",
+          "emoji": "🎴",
+          "tema": "Las alineaciones que enseñáis desde la web."
+        }
+      ]
+    },
+    {
+      "nombre": "Familias",
+      "emoji": "🏮",
       "familias": {
-        "publico": { "emoji": "🏮", "tema": "Chat de la familia {familia}: abierto a todos." },
-        "voz": { "tipo": "voz", "emoji": "🔊" },
-        "voz-privado": { "tipo": "voz", "emoji": "🔒", "sufijo": "privado",
-          "permisos": { "todos": { "denegar": ["VIEW_CHANNEL", "CONNECT"] }, "familia": { "permitir": ["VIEW_CHANNEL", "CONNECT", "SPEAK"] } } }
+        "publico": {
+          "emoji": "🏮",
+          "tema": "Chat de la familia {familia}: abierto a todos."
+        },
+        "voz": {
+          "tipo": "voz",
+          "emoji": "🔊"
+        },
+        "voz-privado": {
+          "tipo": "voz",
+          "emoji": "🔒",
+          "sufijo": "privado",
+          "permisos": {
+            "todos": {
+              "denegar": [
+                "VIEW_CHANNEL",
+                "CONNECT"
+              ]
+            },
+            "familia": {
+              "permitir": [
+                "VIEW_CHANNEL",
+                "CONNECT",
+                "SPEAK"
+              ]
+            }
+          }
+        }
       }
     },
     {
-      "nombre": "Izakaya", "emoji": "🍶",
+      "nombre": "Izakaya",
+      "emoji": "🍶",
       "canales": [
-        { "nombre": "Izakaya", "tipo": "voz", "emoji": "🍶" }
-      ]
-    },
-    {
-      "nombre": "Directo", "emoji": "🔴",
-      "canales": [
-        { "nombre": "avisos-directo", "emoji": "🔴", "tema": "Aviso cuando empieza el directo.", "permisos": { "todos": { "denegar": ["SEND_MESSAGES", "CREATE_PUBLIC_THREADS"] }, "staff": { "permitir": ["SEND_MESSAGES"] } } },
-        { "nombre": "clips", "emoji": "🎬", "tema": "Los mejores momentos del directo." }
-      ]
-    },
-    {
-      "nombre": "Staff", "emoji": "🏯",
-      "permisos": { "todos": { "denegar": ["VIEW_CHANNEL"] }, "staff": { "permitir": ["VIEW_CHANNEL", "SEND_MESSAGES"] } },
-      "canales": [
-        { "nombre": "staff", "emoji": "🔑", "tema": "Solo staff." },
-        { "nombre": "registro-bot", "emoji": "🤖", "tema": "Lo que hace el bot." }
+        {
+          "nombre": "Izakaya",
+          "tipo": "voz",
+          "emoji": "🍶"
+        }
       ]
     }
   ],
   "webhooks": [
-    { "canal": "colecciones", "nombre": "Gokudō", "variable": "DISCORD_WEBHOOK_URL" },
-    { "canal": "alineaciones", "nombre": "Gokudō", "variable": "DISCORD_WEBHOOK_ALINEACION" },
-    { "canal": "tier-list", "nombre": "Gokudō", "variable": "DISCORD_WEBHOOK_TIERLIST" },
-    { "canal": "fantasy", "nombre": "Gokudō", "variable": "DISCORD_WEBHOOK_CLASIFICACION" }
+    {
+      "canal": "colecciones",
+      "nombre": "Gokudō",
+      "variable": "DISCORD_WEBHOOK_URL"
+    },
+    {
+      "canal": "alineaciones",
+      "nombre": "Gokudō",
+      "variable": "DISCORD_WEBHOOK_ALINEACION"
+    },
+    {
+      "canal": "tier-list",
+      "nombre": "Gokudō",
+      "variable": "DISCORD_WEBHOOK_TIERLIST"
+    },
+    {
+      "canal": "fantasy",
+      "nombre": "Gokudō",
+      "variable": "DISCORD_WEBHOOK_CLASIFICACION"
+    }
   ]
 }

@@ -10,6 +10,12 @@
     "familia:familia-6": "1568343015423213749",
     "familia:legacy": "1568343016370995290",
     "rol:jugador": "1568343006426435657",
+    "categoria:staff": "1568343068783149116",
+    "canal:staff": "1568343069856764015",
+    "canal:registro-bot": "1568343071005999224",
+    "categoria:directo": "1568343065150627981",
+    "canal:avisos-directo": "1568343066375356426",
+    "canal:clips": "1568343067617136760",
     "categoria:info": "1568343018472345713",
     "canal:normas": "1568343019973902338",
     "canal:anuncios": "1568343022054281266",
@@ -45,12 +51,6 @@
     "canal:familia:legacy:voz": "1568348420740223037",
     "canal:familia:legacy:voz-privado": "1568348421838995507",
     "categoria:izakaya": "1568348423126786048",
-    "canal:izakaya": "1568343235607134270",
-    "categoria:directo": "1568343065150627981",
-    "canal:avisos-directo": "1568343066375356426",
-    "canal:clips": "1568343067617136760",
-    "categoria:staff": "1568343068783149116",
-    "canal:staff": "1568343069856764015",
-    "canal:registro-bot": "1568343071005999224"
+    "canal:izakaya": "1568343235607134270"
   }
 }

@@ -355,7 +355,7 @@ Cómo es el servidor (roles, categorías, canales con su emoji, permisos y webho
 4. `npm run discord-aplicar` crea lo que falta y cambia lo que es distinto; lanzarlo otra vez no hace nada. No borra nada: lo que sobra (por ejemplo los canales que trae Discord de serie) solo lo avisa, y se borra con `npm run discord-aplicar -- --borrar-sobrantes`.
 5. Las direcciones de los webhooks van al `.env` (`DISCORD_WEBHOOK_URL`, `DISCORD_WEBHOOK_ALINEACION`, `DISCORD_WEBHOOK_TIERLIST`, `DISCORD_WEBHOOK_CLASIFICACION`); se copian a mano a Render. Los ids de lo creado se guardan en `discord/ids.json`, así que al cambiar el nombre de una familia se renombran su canal y su rol en vez de crear otros.
 
-Los roles quedan en el orden de `roles` (Kumichō, el staff, arriba; luego Jefes, las familias y Jugador): cada rol solo puede dar los que tiene por debajo, así que los Jefes (pueden invitar, mover gente y dar roles) reparten los de las familias y Jugador, pero no el de Kumichō. Todo lo automático va con el bot, nunca con la cuenta de una persona. Para probar sin Discord: `npm run discord-api-falso` y `DISCORD_URL_API=http://localhost:4060/api/v10 DISCORD_BOT_TOKEN=token-prueba`.
+Los roles quedan en el orden de `roles` (Kumichō, el staff, arriba; luego Oyabun (los jefes de familia), las familias y Kobun): cada rol solo puede dar los que tiene por debajo, así que los Oyabun (pueden invitar, mover gente y dar roles) reparten los de las familias y Kobun, pero no el de Kumichō. Todo lo automático va con el bot, nunca con la cuenta de una persona. Para probar sin Discord: `npm run discord-api-falso` y `DISCORD_URL_API=http://localhost:4060/api/v10 DISCORD_BOT_TOKEN=token-prueba`.
 
 ### Puntos del canal de Twitch
 
