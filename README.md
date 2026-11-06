@@ -347,7 +347,7 @@ Sin las variables de Discord, la página del gachapon dice que abre muy pronto. 
 
 ### El servidor de Discord de Gokudō
 
-Cómo es el servidor (roles, categorías, canales, permisos y webhooks) está en `discord/servidor.json`; las familias (un canal y un rol por familia, y Legacy) salen de `data-proyecto/familias.json`, que es el único sitio con sus nombres. El bot lo aplica con la API de Discord:
+Cómo es el servidor (roles, categorías, canales con su emoji, permisos y webhooks) está en `discord/servidor.json`; las familias (por cada familia y Legacy: un rol, un chat público y un chat privado que solo ve su rol) salen de `data-proyecto/familias.json`, que es el único sitio con sus nombres. El bot lo aplica con la API de Discord:
 
 1. En https://discord.com/developers/applications, la aplicación **Gokudō** › **Bot** › **Reset Token**, y el token en el `.env` (nunca en el repo): `DISCORD_BOT_TOKEN=...`. El bot no necesita ningún *intent*.
 2. Invitar el bot al servidor con Gestionar canales, Gestionar roles y Gestionar webhooks: si no está en ningún servidor, `npm run discord-aplicar` da el enlace. El rol del bot tiene que estar por encima de los roles que gestiona (al crearlos él, ya lo está). Si está en más de un servidor, `DISCORD_GUILD_ID` en el `.env`.

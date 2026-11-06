@@ -1,57 +1,60 @@
 {
-  "_nota": "Cómo es el servidor de Discord de Gokudō. Lo aplica npm run discord-aplicar (primero npm run discord-aplicar -- --prueba para ver qué haría). Las familias salen de data-proyecto/familias.json. Permisos: 'todos' es @everyone, 'familia' es el rol de la familia del canal y el resto son claves de 'roles'. Los permisos de un canal se suman a los de su categoría (el canal manda si repite un rol).",
+  "_nota": "Cómo es el servidor de Discord de Gokudō. Lo aplica npm run discord-aplicar (primero npm run discord-aplicar -- --prueba para ver qué haría). Las familias salen de data-proyecto/familias.json: en la categoría con 'familias' se crea, por cada familia, un canal por cada tipo (publico, privado). Permisos: 'todos' es @everyone, 'familia' es el rol de la familia del canal y el resto son claves de 'roles'. Los permisos de un canal se suman a los de su categoría (el canal manda si repite un rol). El emoji va delante del nombre y se puede cambiar sin crear canales nuevos.",
   "nombre": "Gokudō",
   "roles": [
     { "clave": "staff", "nombre": "Staff", "color": "#C1272D", "separado": true, "mencionable": true },
+    { "clave": "jefes", "nombre": "Jefes", "color": "#D9A400", "separado": true, "mencionable": true },
     { "clave": "jugador", "nombre": "Jugador", "color": "#D9C58A", "separado": true, "mencionable": false }
   ],
   "categorias": [
     {
-      "nombre": "Info",
+      "nombre": "Info", "emoji": "📜",
       "permisos": { "todos": { "denegar": ["SEND_MESSAGES", "CREATE_PUBLIC_THREADS"] }, "staff": { "permitir": ["SEND_MESSAGES"] } },
       "canales": [
-        { "nombre": "normas", "tema": "Normas del servidor y de la liga." },
-        { "nombre": "anuncios", "tema": "Anuncios de Gokudō." },
-        { "nombre": "calendario", "tema": "Jornadas y horarios de la temporada." }
+        { "nombre": "normas", "emoji": "📜", "tema": "Normas del servidor y de la liga." },
+        { "nombre": "anuncios", "emoji": "📢", "tema": "Anuncios de Gokudō." },
+        { "nombre": "calendario", "emoji": "📅", "tema": "Jornadas y horarios de la temporada." }
       ]
     },
     {
-      "nombre": "Liga",
+      "nombre": "Liga", "emoji": "🏆",
       "permisos": { "todos": { "denegar": ["SEND_MESSAGES", "CREATE_PUBLIC_THREADS"] }, "staff": { "permitir": ["SEND_MESSAGES"] } },
       "canales": [
-        { "nombre": "resultados", "tema": "Resultados de cada partida." },
-        { "nombre": "clasificacion", "tema": "Clasificación de la liga." },
-        { "nombre": "tier-list", "tema": "La tier list del staff y las de los espectadores." },
-        { "nombre": "fantasy", "tema": "Clasificación del fantasy." }
+        { "nombre": "resultados", "emoji": "🎯", "tema": "Resultados de cada partida." },
+        { "nombre": "clasificacion", "emoji": "🏆", "tema": "Clasificación de la liga." },
+        { "nombre": "tier-list", "emoji": "📊", "tema": "La tier list del staff y las de los espectadores." },
+        { "nombre": "fantasy", "emoji": "🔮", "tema": "Clasificación del fantasy." }
       ]
     },
     {
-      "nombre": "Gachapón",
+      "nombre": "Gachapón", "emoji": "🎰",
       "permisos": { "todos": { "denegar": ["SEND_MESSAGES", "CREATE_PUBLIC_THREADS"] }, "staff": { "permitir": ["SEND_MESSAGES"] } },
       "canales": [
-        { "nombre": "colecciones", "tema": "Las colecciones de cartas que enseñáis desde la web." },
-        { "nombre": "alineaciones", "tema": "Las alineaciones que enseñáis desde la web." }
+        { "nombre": "colecciones", "emoji": "🃏", "tema": "Las colecciones de cartas que enseñáis desde la web." },
+        { "nombre": "alineaciones", "emoji": "🎴", "tema": "Las alineaciones que enseñáis desde la web." }
       ]
     },
     {
-      "nombre": "Familias",
-      "familias": true,
-      "permisos": { "todos": { "denegar": ["SEND_MESSAGES"] }, "staff": { "permitir": ["SEND_MESSAGES"] }, "familia": { "permitir": ["SEND_MESSAGES"] } },
-      "canales": []
+      "nombre": "Familias", "emoji": "🏮",
+      "familias": {
+        "publico": { "emoji": "🏮", "tema": "Chat público de la familia {familia}." },
+        "privado": { "emoji": "🔒", "sufijo": "privado", "tema": "Chat privado de la familia {familia}: solo sus miembros.",
+          "permisos": { "todos": { "denegar": ["VIEW_CHANNEL"] }, "familia": { "permitir": ["VIEW_CHANNEL", "SEND_MESSAGES"] } } }
+      }
     },
     {
-      "nombre": "Directo",
+      "nombre": "Directo", "emoji": "🔴",
       "canales": [
-        { "nombre": "avisos-directo", "tema": "Aviso cuando empieza el directo.", "permisos": { "todos": { "denegar": ["SEND_MESSAGES", "CREATE_PUBLIC_THREADS"] }, "staff": { "permitir": ["SEND_MESSAGES"] } } },
-        { "nombre": "clips", "tema": "Los mejores momentos del directo." }
+        { "nombre": "avisos-directo", "emoji": "🔴", "tema": "Aviso cuando empieza el directo.", "permisos": { "todos": { "denegar": ["SEND_MESSAGES", "CREATE_PUBLIC_THREADS"] }, "staff": { "permitir": ["SEND_MESSAGES"] } } },
+        { "nombre": "clips", "emoji": "🎬", "tema": "Los mejores momentos del directo." }
       ]
     },
     {
-      "nombre": "Staff",
+      "nombre": "Staff", "emoji": "🏯",
       "permisos": { "todos": { "denegar": ["VIEW_CHANNEL"] }, "staff": { "permitir": ["VIEW_CHANNEL", "SEND_MESSAGES"] } },
       "canales": [
-        { "nombre": "staff", "tema": "Solo staff." },
-        { "nombre": "registro-bot", "tema": "Lo que hace el bot." }
+        { "nombre": "staff", "emoji": "🔑", "tema": "Solo staff." },
+        { "nombre": "registro-bot", "emoji": "🤖", "tema": "Lo que hace el bot." }
       ]
     }
   ],

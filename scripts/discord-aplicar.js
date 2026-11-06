@@ -40,11 +40,26 @@ const igual = (a, b) => String(a ?? '').toLowerCase() === String(b ?? '').toLowe
 export function deseado(config, familias) {
   const roles = config.roles.map(r => ({ clave: `rol:${r.clave}`, ref: r.clave, nombre: r.nombre, color: color(r.color), separado: !!r.separado, mencionable: !!r.mencionable }));
   for (const f of familias) roles.push({ clave: `familia:${f.id}`, ref: `familia:${f.id}`, nombre: f.nombre, color: color(f.color), separado: true, mencionable: true });
+  // El emoji va delante del nombre («📜・normas»); la clave sale del nombre sin emoji, así que se puede cambiar
+  const conEmoji = (emoji, nombre, sep = '・') => (emoji ? `${emoji}${sep}${nombre}` : nombre);
   const categorias = config.categorias.map(c => {
-    const canales = c.familias
-      ? familias.map(f => ({ clave: `canal:familia:${f.id}`, nombre: nombreCanal(f.nombre), tema: `La familia ${f.nombre}${f.legacy ? ' (Legacy)' : ''}.`, permisos: c.permisos || {}, familia: f.id }))
-      : (c.canales || []).map(k => ({ clave: `canal:${k.clave || nombreCanal(k.nombre)}`, nombre: nombreCanal(k.nombre), tema: k.tema || '', permisos: { ...(c.permisos || {}), ...(k.permisos || {}) } }));
-    return { clave: `categoria:${c.clave || c.nombre.toLowerCase()}`, nombre: c.nombre, permisos: c.permisos || {}, canales };
+    const canales = [];
+    if (c.familias) {
+      // Por cada familia, un canal por cada tipo (público, privado...) en el orden de servidor.json
+      for (const f of familias) {
+        for (const [tipo, t] of Object.entries(c.familias)) {
+          const base = nombreCanal(f.nombre) + (t.sufijo ? `-${t.sufijo}` : '');
+          canales.push({ clave: `canal:familia:${f.id}${tipo === 'publico' ? '' : `:${tipo}`}`, nombre: nombreCanal(conEmoji(t.emoji, base)),
+            tema: (t.tema || 'La familia {familia}.').replace('{familia}', `${f.nombre}${f.legacy ? ' (Legacy)' : ''}`),
+            permisos: { ...(c.permisos || {}), ...(t.permisos || {}) }, familia: f.id });
+        }
+      }
+    } else {
+      for (const k of c.canales || []) {
+        canales.push({ clave: `canal:${k.clave || nombreCanal(k.nombre)}`, nombre: nombreCanal(conEmoji(k.emoji, k.nombre)), tema: k.tema || '', permisos: { ...(c.permisos || {}), ...(k.permisos || {}) } });
+      }
+    }
+    return { clave: `categoria:${c.clave || c.nombre.toLowerCase()}`, nombre: conEmoji(c.emoji, c.nombre, ' '), permisos: c.permisos || {}, canales };
   });
   return { nombre: config.nombre, roles, categorias, webhooks: config.webhooks || [] };
 }

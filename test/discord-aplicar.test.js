@@ -11,7 +11,9 @@ import { aplicar, crearApi, leerConfig, leerFamilias, guardarEnEnv, PERMISOS_BOT
 
 let discord, api, carpeta, opciones;
 const escritas = () => discord.estado.peticiones.filter(p => p.metodo !== 'GET');
-const canal = nombre => discord.estado.canales.find(c => c.name === nombre);
+// Busca por el nombre sin el emoji de delante («📜・normas» → normas, «📜 Info» → Info)
+const sinEmoji = n => n.replace(/^.*?[・ ]/u, '');
+const canal = nombre => discord.estado.canales.find(c => c.name === nombre) || discord.estado.canales.find(c => /[・ ]/u.test(c.name) && sinEmoji(c.name) === nombre);
 const rol = nombre => discord.estado.roles.find(r => r.name === nombre);
 
 beforeEach(async () => {
@@ -28,28 +30,30 @@ test('el modo de prueba enseña lo que haría y no cambia nada en Discord ni en 
   const { acciones } = await aplicar({ ...opciones, prueba: true, log: l => lineas.push(l) });
   assert.deepEqual(escritas(), [], 'solo lee');
   assert.ok(!existsSync(opciones.archivoEnv) && !existsSync(opciones.archivoIds));
-  assert.ok(acciones.some(a => a.accion === 'crear' && a.que === 'el canal' && a.nombre === '#normas'));
+  assert.ok(acciones.some(a => a.accion === 'crear' && a.que === 'el canal' && a.nombre === '#📜・normas'));
   assert.ok(acciones.some(a => a.accion === 'crear' && a.que === 'el rol' && a.nombre === 'Familia 1'));
   assert.ok(acciones.some(a => a.accion === 'crear' && a.que === 'el webhook'));
   assert.ok(acciones.some(a => a.accion === 'sobra' && a.nombre === '#general'), 'avisa de lo que sobra, sin borrarlo');
   assert.match(lineas[0], /MODO DE PRUEBA/);
-  assert.match(lineas.join('\n'), /Crearía el canal «#normas»/);
+  assert.match(lineas.join('\n'), /Crearía el canal «#📜・normas»/);
 });
 
-test('la primera vez lo crea todo: categorías en orden, canales, un canal y un rol por familia y Legacy', async () => {
+test('la primera vez lo crea todo: categorías en orden, canales, un canal público y otro privado y un rol por familia, y Legacy', async () => {
   await aplicar(opciones);
   const cats = discord.estado.canales.filter(c => c.type === 4 && !/Channels/.test(c.name)).sort((a, b) => a.position - b.position).map(c => c.name);
-  assert.deepEqual(cats, ['Info', 'Liga', 'Gachapón', 'Familias', 'Directo', 'Staff']);
+  assert.deepEqual(cats, ['📜 Info', '🏆 Liga', '🎰 Gachapón', '🏮 Familias', '🔴 Directo', '🏯 Staff']);
   const familias = discord.estado.canales.filter(c => c.parent_id === canal('Familias').id).sort((a, b) => a.position - b.position).map(c => c.name);
-  assert.deepEqual(familias, ['familia-1', 'familia-2', 'familia-3', 'familia-4', 'familia-5', 'familia-6', 'legacy']);
-  for (const n of ['Staff', 'Jugador', 'Familia 1', 'Familia 6', 'Legacy']) assert.ok(rol(n), `rol ${n}`);
+  assert.equal(familias.length, 14);
+  assert.deepEqual(familias.slice(0, 4), ['🏮・familia-1', '🔒・familia-1-privado', '🏮・familia-2', '🔒・familia-2-privado']);
+  assert.deepEqual(familias.slice(-2), ['🏮・legacy', '🔒・legacy-privado']);
+  for (const n of ['Staff', 'Jefes', 'Jugador', 'Familia 1', 'Familia 6', 'Legacy']) assert.ok(rol(n), `rol ${n}`);
   assert.equal(rol('Familia 1').color, 0xC1272D);
   assert.equal(canal('normas').parent_id, canal('Info').id);
   assert.equal(canal('normas').topic, 'Normas del servidor y de la liga.');
   assert.ok(canal('general'), 'no borra lo que ya había');
 });
 
-test('los permisos: Info es de solo lectura, Staff es privado y en cada familia escribe su familia', async () => {
+test('los permisos: Info es de solo lectura, Staff es privado y el privado de cada familia solo lo ve su familia', async () => {
   await aplicar(opciones);
   const bit = n => 1n << BigInt(n);
   const ow = (c, id) => c.permission_overwrites.find(o => o.id === id);
@@ -58,8 +62,12 @@ test('los permisos: Info es de solo lectura, Staff es privado y en cada familia 
   assert.ok(BigInt(ow(canal('anuncios'), rol('Staff').id).allow) & bit(11), 'el staff sí');
   assert.ok(BigInt(ow(canal('staff'), '1').deny) & bit(10), '@everyone no ve el canal del staff');
   assert.ok(BigInt(ow(canal('staff'), '9').allow) & bit(10), 'el bot se deja ver el canal privado para seguir gestionándolo');
-  assert.ok(BigInt(ow(canal('familia-2'), rol('Familia 2').id).allow) & bit(11));
-  assert.equal(ow(canal('familia-2'), rol('Familia 1').id), undefined, 'otra familia no tiene permiso especial');
+  assert.deepEqual(canal('familia-2').permission_overwrites, [], 'el chat público de la familia es de todos');
+  const privado = canal('familia-2-privado');
+  assert.ok(BigInt(ow(privado, '1').deny) & bit(10), '@everyone no ve el privado');
+  assert.ok(BigInt(ow(privado, rol('Familia 2').id).allow) & bit(10), 'su familia sí');
+  assert.equal(ow(privado, rol('Familia 1').id), undefined, 'otra familia no');
+  assert.ok(BigInt(ow(privado, '9').allow) & bit(10), 'y el bot, para gestionarlo');
   assert.ok(!ow(canal('clips'), '1'), 'en clips escribe todo el mundo');
 });
 
@@ -88,6 +96,7 @@ test('al renombrar una familia se renombran su canal y su rol, no se crean otros
   const familias = leerFamilias().map(f => (f.id === 'familia-1' ? { ...f, nombre: 'Yamada Gumi' } : f));
   await aplicar({ ...opciones, familias });
   assert.equal(canal('yamada-gumi').id, antes.canal);
+  assert.ok(canal('yamada-gumi-privado'), 'también su privado');
   assert.equal(rol('Yamada Gumi').id, antes.rol);
   assert.equal(discord.estado.canales.length, antes.total);
 });
