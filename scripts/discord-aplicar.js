@@ -340,6 +340,24 @@ export async function aplicar({ api, config, familias, prueba = false, borrarSob
     if (!prueba) guardarEnEnv(archivoEnv, env);
   }
 
+  // Comandos del bot (/reclutar...): se registran en este servidor si faltan o han cambiado. Los que haya y no
+  // estén en el archivo se dejan, salvo con --borrar-sobrantes.
+  if (config.comandos) {
+    const ruta = `/applications/${yo.id}/guilds/${guildId}/commands`;
+    const hay = await api.get(ruta);
+    const forma = c => JSON.stringify({ name: c.name, description: c.description,
+      options: (c.options || []).map(o => ({ type: o.type, name: o.name, description: o.description, required: !!o.required })) });
+    const sobran = hay.filter(c => !config.comandos.some(q => q.name === c.name));
+    let cambia = false;
+    for (const c of config.comandos) {
+      const ya = hay.find(x => x.name === c.name);
+      if (!ya) { anotar('crear', 'el comando', `/${c.name}`); cambia = true; } else if (forma(ya) !== forma(c)) { anotar('cambiar', 'el comando', `/${c.name}`); cambia = true; }
+    }
+    for (const c of sobran) { anotar(borrarSobrantes ? 'borrar' : 'sobra', 'el comando', `/${c.name}`); if (borrarSobrantes) cambia = true; }
+    const quedan = borrarSobrantes ? [] : sobran.map(c => ({ name: c.name, description: c.description, options: c.options }));
+    if (cambia && !prueba) await api.pedir('PUT', ruta, [...config.comandos, ...quedan]);
+  }
+
   if (!prueba) {
     ids[guildId] = nuevosIds;
     writeFileSync(archivoIds, JSON.stringify(ids, null, 2) + '\n');

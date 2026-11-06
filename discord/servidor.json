@@ -1,5 +1,5 @@
 {
-  "_nota": "Cómo es el servidor de Discord de Gokudō. Lo aplica npm run discord-aplicar (primero npm run discord-aplicar -- --prueba para ver qué haría). Los roles van de arriba abajo en el orden de 'roles' ({ \"familias\": true } marca dónde van los de las familias): cada rol solo puede dar los que tiene por debajo. Las familias salen de data-proyecto/familias.json: en la categoría con 'familias' se crea, por cada familia, un canal por cada tipo (publico, voz, voz-privado). Un canal es de texto salvo que lleve \"tipo\": \"voz\". Permisos: 'todos' es @everyone, 'familia' es el rol de la familia del canal y el resto son claves de 'roles'. Los permisos de un canal se suman a los de su categoría (el canal manda si repite un rol). El emoji va delante del nombre y se puede cambiar sin crear canales nuevos.",
+  "_nota": "Cómo es el servidor de Discord de Gokudō. Lo aplica npm run discord-aplicar (primero npm run discord-aplicar -- --prueba para ver qué haría). Los roles van de arriba abajo en el orden de 'roles' ({ \"familias\": true } marca dónde van los de las familias): cada rol solo puede dar los que tiene por debajo. Las familias salen de data-proyecto/familias.json: en la categoría con 'familias' se crea, por cada familia, un canal por cada tipo (publico, voz, voz-privado). Un canal es de texto salvo que lleve \"tipo\": \"voz\". Permisos: 'todos' es @everyone, 'familia' es el rol de la familia del canal y el resto son claves de 'roles'. Los permisos de un canal se suman a los de su categoría (el canal manda si repite un rol). El emoji va delante del nombre y se puede cambiar sin crear canales nuevos. 'comandos' son los comandos del bot (los atiende la web: server/discord-comandos.js). Los Oyabun no tienen «Gestionar roles»: reclutan con /reclutar, que solo deja meter gente en su familia.",
   "nombre": "Gokudō",
   "roles": [
     {
@@ -18,7 +18,6 @@
       "permisos": [
         "CREATE_INSTANT_INVITE",
         "MOVE_MEMBERS",
-        "MANAGE_ROLES",
         "VIEW_CHANNEL",
         "SEND_MESSAGES",
         "READ_MESSAGE_HISTORY",
@@ -269,6 +268,20 @@
       "canal": "fantasy",
       "nombre": "Gokudō",
       "variable": "DISCORD_WEBHOOK_CLASIFICACION"
+    }
+  ],
+  "comandos": [
+    {
+      "name": "reclutar",
+      "description": "Mete a alguien en tu familia (solo para Oyabun)",
+      "options": [
+        {
+          "type": 6,
+          "name": "quien",
+          "description": "A quién reclutas",
+          "required": true
+        }
+      ]
     }
   ]
 }

@@ -355,7 +355,13 @@ Cómo es el servidor (roles, categorías, canales con su emoji, permisos y webho
 4. `npm run discord-aplicar` crea lo que falta y cambia lo que es distinto; lanzarlo otra vez no hace nada. No borra nada: lo que sobra (por ejemplo los canales que trae Discord de serie) solo lo avisa, y se borra con `npm run discord-aplicar -- --borrar-sobrantes`.
 5. Las direcciones de los webhooks van al `.env` (`DISCORD_WEBHOOK_URL`, `DISCORD_WEBHOOK_ALINEACION`, `DISCORD_WEBHOOK_TIERLIST`, `DISCORD_WEBHOOK_CLASIFICACION`); se copian a mano a Render. Los ids de lo creado se guardan en `discord/ids.json`, así que al cambiar el nombre de una familia se renombran su canal y su rol en vez de crear otros.
 
-Los roles quedan en el orden de `roles` (Kumichō, el staff, arriba; luego Oyabun (los jefes de familia), las familias y Kobun): cada rol solo puede dar los que tiene por debajo, así que los Oyabun (pueden invitar, mover gente y dar roles) reparten los de las familias y Kobun, pero no el de Kumichō. Todo lo automático va con el bot, nunca con la cuenta de una persona. Para probar sin Discord: `npm run discord-api-falso` y `DISCORD_URL_API=http://localhost:4060/api/v10 DISCORD_BOT_TOKEN=token-prueba`.
+Los roles quedan en el orden de `roles` (Kumichō, el staff, arriba; luego Oyabun (los jefes de familia), las familias y Kobun): cada rol solo puede dar los que tiene por debajo, así que los Oyabun (pueden invitar, mover gente y dar roles) reparten los de las familias y Kobun, pero no el de Kumichō. **/reclutar** (comando del bot): un Oyabun escribe `/reclutar quien:@alguien` y el bot le da a esa persona el rol de la familia del Oyabun y el de Kobun, y lo anuncia en el canal. Solo deja reclutar para la familia propia, a quien no es de ninguna otra (sacarlo de una familia lo hace el staff). Por eso los Oyabun no tienen «Gestionar roles». Lo atiende la web (`server/discord-comandos.js`, ruta `POST /discord/interacciones`), que comprueba la firma de Discord con la Public Key; no hace falta tener el bot conectado. Para activarlo:
+
+1. En Render: `DISCORD_PUBLIC_KEY` (discord.com/developers › Gokudō › General Information › Public Key; no es secreta) y `DISCORD_BOT_TOKEN` (el mismo del `.env`; secreto).
+2. Con la web ya desplegada, en General Information › **Interactions Endpoint URL**: `https://tenka-ichi.onrender.com/discord/interacciones` y guardar (Discord la prueba en ese momento).
+3. `npm run discord-aplicar` registra el comando en el servidor (los comandos están en `comandos` de `discord/servidor.json`).
+
+Todo lo automático va con el bot, nunca con la cuenta de una persona. Para probar sin Discord: `npm run discord-api-falso` y `DISCORD_URL_API=http://localhost:4060/api/v10 DISCORD_BOT_TOKEN=token-prueba`.
 
 ### Puntos del canal de Twitch
 

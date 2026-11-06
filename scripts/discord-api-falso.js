@@ -23,6 +23,9 @@ export function crearDiscordApiFalso({ nombre = 'Gokudō' } = {}) {
       { id: '6', type: 2, name: 'General', position: 0, parent_id: '5', permission_overwrites: [] },
     ],
     webhooks: [],
+    comandos: [],
+    // Los miembros del servidor: id → { user, roles }
+    miembros: {},
     peticiones: [],
     responder: null,
   };
@@ -106,6 +109,22 @@ export function crearDiscordApiFalso({ nombre = 'Gokudō' } = {}) {
         const w = { id: nuevoId(), type: 1, name: cuerpo.name, channel_id: x[1], token: `secreto-${siguiente}`, user: BOT };
         estado.webhooks.push(w); return responder(200, w);
       }
+    }
+    if (ruta === `/applications/${BOT.id}/guilds/${G}/commands`) {
+      if (m === 'GET') return responder(200, estado.comandos);
+      if (m === 'PUT') {
+        // Como Discord: los que no tienen 'required' lo pierden en la respuesta
+        estado.comandos = cuerpo.map(c => ({ id: nuevoId(), application_id: BOT.id, ...c,
+          options: (c.options || []).map(o => { const { required, ...resto } = o; return required ? o : resto; }) }));
+        return responder(200, estado.comandos);
+      }
+    }
+    if ((x = /^\/guilds\/1\/members\/(\d+)\/roles\/(\d+)$/.exec(ruta)) && m === 'PUT') {
+      const miembro = estado.miembros[x[1]];
+      if (!miembro) return responder(404, { message: 'Unknown Member', code: 10007 });
+      if (!estado.roles.some(r => r.id === x[2])) return responder(404, { message: 'Unknown Role', code: 10011 });
+      if (!miembro.roles.includes(x[2])) miembro.roles.push(x[2]);
+      return responder(204);
     }
     responder(404, { message: '404: Not Found', code: 0 });
   });
