@@ -57,26 +57,24 @@ export function deseado(config, familias) {
     return tipo;
   };
   const nombreDe = (tipo, emoji, nombre) => (tipo === 'voz' ? conEmoji(emoji, nombre.trim()) : nombreCanal(conEmoji(emoji, nombre)));
-  const categorias = config.categorias.map(c => {
-    const canales = [];
-    if (c.familias) {
-      // Por cada familia, un canal por cada tipo (público, privado...) en el orden de servidor.json
-      for (const f of familias) {
-        for (const [tipo, t] of Object.entries(c.familias)) {
-          const tipoK = tipoDe(t);
-          const base = f.nombre + (t.sufijo ? ` ${t.sufijo}` : '');
-          canales.push({ clave: `canal:familia:${f.id}${tipo === 'publico' ? '' : `:${tipo}`}`, tipo: tipoK, nombre: nombreDe(tipoK, t.emoji, base),
-            tema: (t.tema || 'La familia {familia}.').replace('{familia}', `${f.nombre}${f.legacy ? ' (Legacy)' : ''}`),
-            permisos: { ...(c.permisos || {}), ...(t.permisos || {}) }, familia: f.id });
-        }
-      }
-    } else {
-      for (const k of c.canales || []) {
-        const tipoK = tipoDe(k);
-        canales.push({ clave: `canal:${k.clave || nombreCanal(k.nombre)}`, tipo: tipoK, nombre: nombreDe(tipoK, k.emoji, k.nombre), tema: tipoK === 'voz' ? '' : (k.tema || ''), permisos: { ...(c.permisos || {}), ...(k.permisos || {}) } });
-      }
+  // Los canales de una familia: uno por cada tipo (público, voz, voz privada...) en el orden de servidor.json
+  const deFamilia = (c, f) => Object.entries(c.familias).map(([tipo, t]) => {
+    const tipoK = tipoDe(t);
+    const base = f.nombre + (t.sufijo ? ` ${t.sufijo}` : '');
+    return { clave: `canal:familia:${f.id}${tipo === 'publico' ? '' : `:${tipo}`}`, tipo: tipoK, nombre: nombreDe(tipoK, t.emoji, base),
+      tema: (t.tema || 'La familia {familia}.').replace('{familia}', `${f.nombre}${f.legacy ? ' (Legacy)' : ''}`),
+      permisos: { ...(c.permisos || {}), ...(t.permisos || {}) }, familia: f.id };
+  });
+  const categorias = config.categorias.flatMap(c => {
+    // "porFamilia": true → una categoría para cada familia (con su nombre), en vez de todas juntas en una
+    if (c.familias && c.porFamilia) {
+      return familias.map(f => ({ clave: `categoria:familia:${f.id}`, nombre: conEmoji(c.emoji, f.nombre, ' '), permisos: c.permisos || {}, canales: deFamilia(c, f) }));
     }
-    return { clave: `categoria:${c.clave || c.nombre.toLowerCase()}`, nombre: conEmoji(c.emoji, c.nombre, ' '), permisos: c.permisos || {}, canales };
+    const canales = c.familias ? familias.flatMap(f => deFamilia(c, f)) : (c.canales || []).map(k => {
+      const tipoK = tipoDe(k);
+      return { clave: `canal:${k.clave || nombreCanal(k.nombre)}`, tipo: tipoK, nombre: nombreDe(tipoK, k.emoji, k.nombre), tema: tipoK === 'voz' ? '' : (k.tema || ''), permisos: { ...(c.permisos || {}), ...(k.permisos || {}) } };
+    });
+    return [{ clave: `categoria:${c.clave || c.nombre.toLowerCase()}`, nombre: conEmoji(c.emoji, c.nombre, ' '), permisos: c.permisos || {}, canales }];
   });
   return { nombre: config.nombre, roles, categorias, webhooks: config.webhooks || [] };
 }

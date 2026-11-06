@@ -10,6 +10,9 @@ import { crearDiscordApiFalso, TOKEN_FALSO } from '../scripts/discord-api-falso.
 import { aplicar, crearApi, leerConfig, leerFamilias, guardarEnEnv, PERMISOS, PERMISOS_BOT, nombreCanal } from '../scripts/discord-aplicar.js';
 
 let discord, api, carpeta, opciones;
+// Familias de prueba (fijas, para que los tests no dependan de los nombres de verdad de data-proyecto/familias.json)
+const FAMILIAS = [1, 2, 3, 4, 5, 6].map(n => ({ id: `familia-${n}`, nombre: `Familia ${n}`, kanji: '', color: ['#C1272D', '#EE7B2B', '#D9A400', '#5FA341', '#39C6F0', '#8E5BD0'][n - 1] }))
+  .concat({ id: 'legacy', nombre: 'Legacy', kanji: '', color: '#D9D3C7', legacy: true });
 const escritas = () => discord.estado.peticiones.filter(p => p.metodo !== 'GET');
 // Busca por el nombre sin el emoji de delante («📜・normas» → normas, «📜 Info» → Info)
 const sinEmoji = n => n.replace(/^.*?[・ ]/u, '');
@@ -23,7 +26,7 @@ beforeEach(async () => {
   await new Promise(r => discord.servidor.listen(0, '127.0.0.1', r));
   api = crearApi({ token: TOKEN_FALSO, base: `http://127.0.0.1:${discord.servidor.address().port}/api/v10`, esperar: async () => {} });
   carpeta = mkdtempSync(path.join(tmpdir(), 'discord-aplicar-'));
-  opciones = { api, config: leerConfig(), familias: leerFamilias(), archivoEnv: path.join(carpeta, '.env'), archivoIds: path.join(carpeta, 'ids.json'), log: () => {} };
+  opciones = { api, config: leerConfig(), familias: FAMILIAS, archivoEnv: path.join(carpeta, '.env'), archivoIds: path.join(carpeta, 'ids.json'), log: () => {} };
 });
 afterEach(() => discord.servidor.close());
 
@@ -40,18 +43,19 @@ test('el modo de prueba enseña lo que haría y no cambia nada en Discord ni en 
   assert.match(lineas.join('\n'), /Crearía el canal «#📜・normas»/);
 });
 
-test('la primera vez lo crea todo: categorías en orden, canales, y por cada familia y Legacy un rol, un chat y dos canales de voz', async () => {
+test('la primera vez lo crea todo: categorías en orden, canales, y por cada familia y Legacy un rol y su categoría con un chat y dos canales de voz', async () => {
   await aplicar(opciones);
   const cats = discord.estado.canales.filter(c => c.type === 4 && !/Channels/.test(c.name)).sort((a, b) => a.position - b.position).map(c => c.name);
-  assert.deepEqual(cats, ['🏯 Staff', '🔴 Directo', '📜 Info', '🏆 Liga', '🎰 Gachapón', '🏮 Familias', '🍶 Izakaya']);
-  // Como los enseña Discord: primero los de texto y luego los de voz, cada uno por su posición
-  const familias = discord.estado.canales.filter(c => c.parent_id === canal('Familias').id).sort((a, b) => a.type - b.type || a.position - b.position).map(c => c.name);
-  assert.equal(familias.length, 21);
-  assert.deepEqual(familias.slice(0, 7), ['🏮・familia-1', '🏮・familia-2', '🏮・familia-3', '🏮・familia-4', '🏮・familia-5', '🏮・familia-6', '🏮・legacy']);
-  assert.deepEqual(familias.slice(7, 10), ['🔊・Familia 1', '🔒・Familia 1 privado', '🔊・Familia 2']);
-  assert.deepEqual(familias.slice(-2), ['🔊・Legacy', '🔒・Legacy privado']);
-  assert.equal(canal('Familia 1').type, 2, 'los de voz son de voz');
-  assert.equal(canal('Familia 1').topic, null, 'y sin descripción');
+  const deFamilias = ['Familia 1', 'Familia 2', 'Familia 3', 'Familia 4', 'Familia 5', 'Familia 6', 'Legacy'].map(n => `🏮 ${n}`);
+  assert.deepEqual(cats, ['🏯 Staff', '🔴 Directo', '📜 Info', '🏆 Liga', '🎰 Gachapón', ...deFamilias, '🍶 Izakaya'], 'una categoría por familia, donde estaba la de Familias');
+  // Cada familia en su categoría, como los enseña Discord: primero el de texto y luego los de voz
+  for (const [i, n] of ['Familia 1', 'Familia 6', 'Legacy'].entries()) {
+    const cat = categoria(n);
+    const dentro = discord.estado.canales.filter(c => c.parent_id === cat.id).sort((a, b) => a.type - b.type || a.position - b.position).map(c => c.name);
+    assert.deepEqual(dentro, [`🏮・${nombreCanal(n)}`, `🔊・${n}`, `🔒・${n} privado`], `canales de ${n} (${i})`);
+  }
+  assert.equal(voz('Familia 1').type, 2, 'los de voz son de voz');
+  assert.equal(voz('Familia 1').topic, null, 'y sin descripción');
   assert.equal(voz('Izakaya').parent_id, categoria('Izakaya').id, 'Izakaya: su categoría y su canal de voz');
   for (const n of ['Kumichō', 'Oyabun', 'Kobun', 'Familia 1', 'Familia 6', 'Legacy']) assert.ok(rol(n), `rol ${n}`);
   assert.equal(rol('Familia 1').color, 0xC1272D);
@@ -70,7 +74,7 @@ test('los permisos: Info es de solo lectura, Staff es privado y la voz privada d
   assert.ok(BigInt(ow(canal('staff'), '1').deny) & bit(10), '@everyone no ve el canal del staff');
   assert.ok(BigInt(ow(canal('staff'), '9').allow) & bit(10), 'el bot se deja ver el canal privado para seguir gestionándolo');
   assert.deepEqual(canal('familia-2').permission_overwrites, [], 'el chat público de la familia es de todos');
-  assert.deepEqual(canal('Familia 2').permission_overwrites, [], 'la voz abierta es de todos');
+  assert.deepEqual(voz('Familia 2').permission_overwrites, [], 'la voz abierta es de todos');
   const privado = canal('Familia 2 privado');
   assert.ok(BigInt(ow(privado, '1').deny) & bit(10) && BigInt(ow(privado, '1').deny) & bit(20), '@everyone ni lo ve ni entra');
   assert.ok(BigInt(ow(privado, rol('Familia 2').id).allow) & bit(20), 'su familia sí entra');
@@ -101,7 +105,7 @@ test('cambia solo lo que es distinto', async () => {
 test('al renombrar una familia se renombran su canal y su rol, no se crean otros', async () => {
   await aplicar(opciones);
   const antes = { canal: canal('familia-1').id, rol: rol('Familia 1').id, total: discord.estado.canales.length };
-  const familias = leerFamilias().map(f => (f.id === 'familia-1' ? { ...f, nombre: 'Yamada Gumi' } : f));
+  const familias = FAMILIAS.map(f => (f.id === 'familia-1' ? { ...f, nombre: 'Yamada Gumi' } : f));
   await aplicar({ ...opciones, familias });
   assert.equal(canal('yamada-gumi').id, antes.canal);
   assert.ok(canal('Yamada Gumi privado'), 'también su voz privada');
@@ -205,4 +209,16 @@ test('registra los comandos del bot una vez, y no quita los que no son suyos sin
   assert.deepEqual(escritas(), []);
   await aplicar({ ...opciones, borrarSobrantes: true });
   assert.deepEqual(discord.estado.comandos.map(c => c.name), ['reclutar']);
+});
+
+test('el archivo de familias de verdad: seis familias y una Legacy, con id, nombre y color, y nombres que valen como canal', () => {
+  const familias = leerFamilias();
+  assert.equal(familias.length, 7);
+  assert.deepEqual(familias.map(f => f.id), ['familia-1', 'familia-2', 'familia-3', 'familia-4', 'familia-5', 'familia-6', 'legacy'], 'los ids no se cambian: con ellos se encuentran canales y roles');
+  assert.equal(familias.filter(f => f.legacy).length, 1);
+  for (const f of familias) {
+    assert.ok(f.nombre && f.nombre.length <= 20, f.id);
+    assert.match(f.color, /^#[0-9A-F]{6}$/i, f.id);
+  }
+  assert.equal(new Set(familias.map(f => nombreCanal(f.nombre))).size, 7, 'dos familias no pueden dar el mismo canal');
 });
