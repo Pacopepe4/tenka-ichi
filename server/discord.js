@@ -62,7 +62,7 @@ export async function publicarEnDiscord({ tipo, imagen, texto, quien, avatar = n
   const archivo = `${tipo}.${formato.extension}`;
   const formulario = new FormData();
   formulario.append('payload_json', JSON.stringify({
-    content: texto, username: 'Tenka Ichi', ...(avatar ? { avatar_url: avatar } : {}),
+    content: texto, username: 'Gokudō', ...(avatar ? { avatar_url: avatar } : {}),
     allowed_mentions: { parse: [] }, attachments: [{ id: 0, filename: archivo }],
   }));
   formulario.append('files[0]', new Blob([imagen], { type: formato.mime }), archivo);
@@ -94,15 +94,15 @@ export function textoDiscord(tipo, { usuario, tiene = 0, total = 0, puntos = 0, 
     // Los tres primeros de la jornada, con los sobres que se lleva cada uno
     const lineas = ganadores.map(g => `${g.puesto}.º ${autorDiscord(g)}: ${numero(g.puntos)} ${g.puntos === 1 ? 'punto' : 'puntos'}`
       + (g.sobres ? ` (+${g.sobres} ${g.sobres === 1 ? 'sobre' : 'sobres'})` : ''));
-    return `**Clasificación del fantasy de Tenka Ichi${jornada ? `: ${escaparMarkdown(jornada)}` : ''}**${lineas.length ? `\n${lineas.join('\n')}` : ''}${pie}`;
+    return `**Clasificación del fantasy de Gokudō${jornada ? `: ${escaparMarkdown(jornada)}` : ''}**${lineas.length ? `\n${lineas.join('\n')}` : ''}${pie}`;
   }
-  if (tipo === 'mitierlist') return `${autorDiscord(usuario)} comparte su tier list de Tenka Ichi. ¿Estás de acuerdo? Haz la tuya:${pie}`;
-  if (tipo === 'coleccion') return `${autorDiscord(usuario)} enseña su colección de Tenka Ichi: ${numero(tiene)} de ${numero(total)} cartas.${pie}`;
+  if (tipo === 'mitierlist') return `${autorDiscord(usuario)} comparte su tier list de Gokudō. ¿Estás de acuerdo? Haz la tuya:${pie}`;
+  if (tipo === 'coleccion') return `${autorDiscord(usuario)} enseña su colección de Gokudō: ${numero(tiene)} de ${numero(total)} cartas.${pie}`;
   if (tipo === 'alineacion') {
-    return `${autorDiscord(usuario)} presenta su alineación del fantasy de Tenka Ichi: ${numero(puntos)} ${puntos === 1 ? 'punto' : 'puntos'}`
+    return `${autorDiscord(usuario)} presenta su alineación del fantasy de Gokudō: ${numero(puntos)} ${puntos === 1 ? 'punto' : 'puntos'}`
       + `${puesto ? `, ${puesto}.º en la clasificación` : ''}.${pie}`;
   }
-  return `Tier list de Tenka Ichi.${pie}`;
+  return `Tier list de Gokudō.${pie}`;
 }
 
 // POST /api/discord/publicar?tipo=…: la página manda la imagen y aquí se comprueba quién publica (el coleccionista

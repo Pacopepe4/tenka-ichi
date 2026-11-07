@@ -11,9 +11,9 @@ export function crearDiscordApiFalso({ nombre = 'Gokudō' } = {}) {
   let siguiente = 100;
   const nuevoId = () => String(siguiente++);
   const G = '1';
-  const BOT = { id: '9', username: 'Gokudō', bot: true };
+  const BOT = { id: '9', username: 'Gokudō', bot: true, avatar: null };
   const estado = {
-    guild: { id: G, name: nombre },
+    guild: { id: G, name: nombre, icon: null, features: [] },
     roles: [{ id: G, name: '@everyone', color: 0, hoist: false, mentionable: false, managed: false, position: 0, permissions: '1071698660929' },
       { id: '2', name: 'Gokudō', color: 0, hoist: false, mentionable: false, managed: true, position: 1, permissions: '8', tags: { bot_id: '9' } }],
     canales: [
@@ -23,6 +23,7 @@ export function crearDiscordApiFalso({ nombre = 'Gokudō' } = {}) {
       { id: '6', type: 2, name: 'General', position: 0, parent_id: '5', permission_overwrites: [] },
     ],
     webhooks: [],
+    emojis: [],
     comandos: [],
     // Los miembros del servidor: id → { user, roles }
     miembros: {},
@@ -47,7 +48,31 @@ export function crearDiscordApiFalso({ nombre = 'Gokudō' } = {}) {
     const normal = c => ({ ...c, permission_overwrites: (c.permission_overwrites || []).map(o => ({ ...o, allow: String(o.allow), deny: String(o.deny) })) });
     let x;
 
+    // Las imágenes (icono, avatar...) llegan como data:image/...;base64: aquí se guarda un «hash» inventado
+    const hashDe = uri => (uri ? `h${uri.length}` : null);
     if (m === 'GET' && ruta === '/users/@me') return responder(200, BOT);
+    if (m === 'PATCH' && ruta === '/users/@me') { if ('avatar' in cuerpo) BOT.avatar = hashDe(cuerpo.avatar); return responder(200, BOT); }
+    if (m === 'PATCH' && ruta === `/guilds/${G}`) { if ('icon' in cuerpo) estado.guild.icon = hashDe(cuerpo.icon); return responder(200, estado.guild); }
+    if (ruta === `/guilds/${G}/emojis`) {
+      if (m === 'GET') return responder(200, estado.emojis);
+      if (m === 'POST') {
+        if (!/^data:image\//.test(cuerpo.image || '')) return responder(400, { message: 'Invalid Form Body', code: 50035 });
+        const e = { id: nuevoId(), name: cuerpo.name, imagen: cuerpo.image, animated: false };
+        estado.emojis.push(e); return responder(201, e);
+      }
+    }
+    if ((x = /^\/guilds\/1\/emojis\/(\d+)$/.exec(ruta))) {
+      const i = estado.emojis.findIndex(e => e.id === x[1]);
+      if (i < 0) return responder(404, { message: 'Unknown Emoji', code: 10014 });
+      if (m === 'PATCH') { estado.emojis[i].name = cuerpo.name; return responder(200, estado.emojis[i]); }
+      if (m === 'DELETE') { estado.emojis.splice(i, 1); return responder(204); }
+    }
+    if ((x = /^\/webhooks\/(\d+)$/.exec(ruta)) && m === 'PATCH') {
+      const w = estado.webhooks.find(h => h.id === x[1]);
+      if (!w) return responder(404, { message: 'Unknown Webhook', code: 10015 });
+      if ('avatar' in cuerpo) w.avatar = hashDe(cuerpo.avatar);
+      return responder(200, w);
+    }
     if (m === 'GET' && ruta === '/users/@me/guilds') return responder(200, [{ id: G, name: estado.guild.name }]);
     if (m === 'GET' && ruta === `/guilds/${G}`) return responder(200, estado.guild);
     if (ruta === `/guilds/${G}/roles`) {
@@ -75,7 +100,7 @@ export function crearDiscordApiFalso({ nombre = 'Gokudō' } = {}) {
     if ((x = /^\/guilds\/1\/roles\/(\d+)$/.exec(ruta))) {
       const i = estado.roles.findIndex(r => r.id === x[1]);
       if (i < 0) return responder(404, { message: 'Unknown Role', code: 10011 });
-      if (m === 'PATCH') { Object.assign(estado.roles[i], cuerpo); return responder(200, estado.roles[i]); }
+      if (m === 'PATCH') { const { icon, ...resto } = cuerpo; Object.assign(estado.roles[i], resto, icon !== undefined && { icon: hashDe(icon) }); return responder(200, estado.roles[i]); }
       if (m === 'DELETE') { estado.roles.splice(i, 1); return responder(204); }
     }
     if (ruta === `/guilds/${G}/channels`) {
@@ -106,7 +131,7 @@ export function crearDiscordApiFalso({ nombre = 'Gokudō' } = {}) {
       if (!canal(x[1])) return responder(404, { message: 'Unknown Channel', code: 10003 });
       if (m === 'GET') return responder(200, estado.webhooks.filter(w => w.channel_id === x[1]));
       if (m === 'POST') {
-        const w = { id: nuevoId(), type: 1, name: cuerpo.name, channel_id: x[1], token: `secreto-${siguiente}`, user: BOT };
+        const w = { id: nuevoId(), type: 1, name: cuerpo.name, avatar: hashDe(cuerpo.avatar), channel_id: x[1], token: `secreto-${siguiente}`, user: BOT };
         estado.webhooks.push(w); return responder(200, w);
       }
     }

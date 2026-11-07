@@ -1,47 +1,61 @@
 {
-  "_nota": "Familias de Gokudō: el único sitio con sus nombres. El 'id' no se cambia (con él se encuentran sus canales y roles en Discord); 'nombre', 'kanji' y 'color' sí, y luego npm run discord-aplicar renombra canales y roles. 'legacy': true es la familia de la organización que no compite.",
+  "_nota": "Familias de Gokudō: el único sitio con sus nombres. El 'id' no se cambia (con él se encuentran sus canales y roles en Discord); 'nombre', 'kanji' y 'color' sí, y luego npm run discord-aplicar renombra canales y roles. 'legacy': true es la familia de la organización que no compite. 'emoji' es el distintivo de la familia en Discord (emoji normal: va delante del nombre de su categoría y de su chat). 'insignia' es el nombre de su emoji propio del servidor (:ryujin:), que sale de discord/imagenes/emojis/<insignia>.png.",
   "familias": [
     {
       "id": "familia-1",
       "nombre": "Ryūjin",
       "kanji": "竜神",
-      "color": "#39C6F0"
+      "color": "#39C6F0",
+      "emoji": "🐉",
+      "insignia": "ryujin"
     },
     {
       "id": "familia-2",
       "nombre": "Kitsune",
       "kanji": "狐",
-      "color": "#EE7B2B"
+      "color": "#EE7B2B",
+      "emoji": "🦊",
+      "insignia": "kitsune"
     },
     {
       "id": "familia-3",
       "nombre": "Tengu",
       "kanji": "天狗",
-      "color": "#2E6B45"
+      "color": "#2E6B45",
+      "emoji": "🦅",
+      "insignia": "tengu"
     },
     {
       "id": "familia-4",
       "nombre": "Tsuki",
       "kanji": "月",
-      "color": "#A9722F"
+      "color": "#A9722F",
+      "emoji": "🐺",
+      "insignia": "tsuki"
     },
     {
       "id": "familia-5",
       "nombre": "Yasha",
       "kanji": "夜叉",
-      "color": "#5FA341"
+      "color": "#5FA341",
+      "emoji": "🧌",
+      "insignia": "yasha"
     },
     {
       "id": "familia-6",
       "nombre": "Akuma",
       "kanji": "悪魔",
-      "color": "#C1272D"
+      "color": "#C1272D",
+      "emoji": "👹",
+      "insignia": "akuma"
     },
     {
       "id": "legacy",
       "nombre": "Shinigami",
       "kanji": "死神",
       "color": "#EBD28A",
+      "emoji": "💀",
+      "insignia": "shinigami",
       "legacy": true
     }
   ]
