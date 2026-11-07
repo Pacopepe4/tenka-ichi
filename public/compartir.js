@@ -142,12 +142,12 @@ function rayaDeNeon(ctx, x, y, ancho, grosor) {
   ctx.restore();
 }
 
-// Cabecera: título en letra de rótulo, línea de datos, el komainu de Gokudō (tal cual) y la raya de neón
+// Cabecera: título en letra de rótulo, línea de datos, el logo de Gokudō (el sol cortado, tal cual) y la raya de neón
 async function cabecera(ctx, titulo, subtitulo) {
   textoInclinado(ctx, titulo, MARGEN, 118, { fuente: `400 60px ${ROTULO}`, ancho: ANCHO - 2 * MARGEN - 200 });
   texto(ctx, subtitulo, MARGEN, 166, { fuente: `400 28px ${GOTHIC}`, color: C.hai, ancho: ANCHO - 2 * MARGEN - 190 });
-  const komainu = await imagen('/marca/gokudo.png');
-  if (komainu) kamon(ctx, komainu, ANCHO - MARGEN - 72, 108, 68, C.shu);
+  const logoGokudo = await imagen('/marca/gokudo.png');
+  if (logoGokudo) kamon(ctx, logoGokudo, ANCHO - MARGEN - 72, 108, 68, C.shu);
   rayaDeNeon(ctx, MARGEN, 198, ANCHO - 2 * MARGEN, 3);
 }
 

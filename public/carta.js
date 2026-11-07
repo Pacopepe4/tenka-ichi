@@ -10,7 +10,7 @@ export const TIERS = ['LEGACY', 'S+', 'S', 'A', 'B', 'C', 'D'];
 export const claveTier = t => (t === 'S+' ? 'SP' : t);
 export const ROL = { TOP: 'Top', JUNGLA: 'Jungla', MEDIO: 'Medio', ADC: 'ADC', SUPPORT: 'Support' };
 export const escapar = s => String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
-// Las BOOST no son de ninguna familia: en el círculo del emblema llevan el de Gokudō (el komainu)
+// Las BOOST no son de ninguna familia: en el círculo del emblema llevan el de Gokudō (el sol cortado)
 export const EMBLEMA_BOOST = '/marca/gokudo.png';
 export const emblemaDe = c => (c.clan ? logo(c.clan) : c.tipo === 'boost' ? EMBLEMA_BOOST : null);
 
