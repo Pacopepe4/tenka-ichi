@@ -39,8 +39,8 @@
     },
     {
       "id": "legacy",
-      "nombre": "Ashura",
-      "kanji": "阿修羅",
+      "nombre": "Shinigami",
+      "kanji": "死神",
       "color": "#EBD28A",
       "legacy": true
     }
