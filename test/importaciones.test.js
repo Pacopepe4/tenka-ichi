@@ -130,3 +130,19 @@ test('en local y en las pruebas no se aplica ninguna, salvo que se pida', async 
     assert.deepEqual(hechas(hoja), []);
   } finally { await pararWeb(); await falso.cerrar(); }
 });
+
+test('«fichas» cambia el lema y la descripción de un clan (paso a las familias de Gokudō) y deja lo demás', async () => {
+  await plantillasDeAntes();
+  const archivo = path.join(carpeta, 'importaciones.json');
+  await writeFile(archivo, JSON.stringify([{ nombre: 'prueba familias', fichas: { TORA: { lema: 'Los tigres blancos', descripcion: 'Guardianes del oeste.' }, SARU: { lema: 'Los lobos de la luna' } } }]));
+  const falso = crearSheetsFalso(), hoja = falso.estado;
+  const url = await falso.abrir();
+  try {
+    await arrancarWeb(url);
+    assert.deepEqual(fila(hoja, 'TORA').slice(7, 9), ['Los tigres blancos', 'Guardianes del oeste.']);
+    assert.equal(fila(hoja, 'SARU')[7], 'Los lobos de la luna');
+    assert.ok(fila(hoja, 'SARU')[8], 'sin descripción en la ficha, se queda la que tenía');
+    assert.deepEqual(fila(hoja, 'TORA').slice(1, 6), ['', 'LUCASLOL', 'SPORFU', 'NARCISO', 'REXITO'], 'los jugadores no cambian');
+    assert.deepEqual(hechas(hoja), ['prueba familias']);
+  } finally { await pararWeb(); await falso.cerrar(); await writeFile(archivo, JSON.stringify(IMPORTACIONES)); }
+});

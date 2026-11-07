@@ -66,7 +66,7 @@ export function prepararCalendario(participantes, semilla) {
   const clanes = [...new Set(participantes)];
   // Solo los clanes que compiten: ni invitados ni equipos Legacy
   const fuera = clanes.filter(id => !CLANES.some(c => c.id === id && enCompeticion(c)));
-  if (fuera.length) throw new Error(`No compiten en Tenka Ichi: ${fuera.join(', ')}`);
+  if (fuera.length) throw new Error(`No compiten en Gokudō: ${fuera.join(', ')}`);
   if (clanes.length !== TEMPORADA.clanes.length) throw new Error(`Hacen falta ${TEMPORADA.clanes.length} clanes y hay ${clanes.length}`);
   return sortear(clanes, Number(semilla) || Math.floor(Math.random() * 1e6));
 }

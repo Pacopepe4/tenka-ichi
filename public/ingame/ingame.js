@@ -471,7 +471,7 @@ function pintarCamarasLineas(mostrar) {
     const el = document.createElement('div');
     el.className = `camara-lineas ${cam.clave}`;
     el.innerHTML = '<div class="ventana-cam"><div class="medidas-cam"><span></span></div></div>'
-      + '<div class="placa-cam"><span class="sello-cam"><img src="/marca/koryu-budo.png" alt=""></span><span class="nombre-cam"></span><span class="detalle-cam"></span></div>';
+      + '<div class="placa-cam"><span class="sello-cam"><img src="/marca/gokudo.png" alt=""></span><span class="nombre-cam"></span><span class="detalle-cam"></span></div>';
     return el;
   }, (el, cam) => {
     const h = huecos[cam.i];

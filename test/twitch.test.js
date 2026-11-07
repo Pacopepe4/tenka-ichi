@@ -149,7 +149,7 @@ test('el staff conecta el canal y la web crea la recompensa en Twitch', async ()
   assert.match(html, /Canal conectado/);
   const e = await estadoTwitch();
   assert.equal(e.recompensas.length, 1);
-  assert.equal(e.recompensas[0].title, 'Sobre de Tenka Ichi');
+  assert.equal(e.recompensas[0].title, 'Sobre de Gokudō');
   const g = await accion('gachaEstado');
   assert.equal(g.gacha.canal.conectado, true);
   assert.equal(g.gacha.canal.error, null);

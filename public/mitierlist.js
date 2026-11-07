@@ -121,7 +121,7 @@ const imagen = () => {
     jugadores: (deRol ? lista() : info.jugadores).map(j => ({ ...j, tier: mia.jugadores[j.id] || null })),
     equipos: deRol ? [] : info.equipos.map(e => ({ ...e, tier: mia.equipos[e.id] || null })),
     nombreClan: id => clan(id).nombre, tiers: TIERS, ruta: '/#mitierlist',
-    titulo: `${info.entrado ? `Tier list de ${info.nombre}` : 'Mi tier list de Tenka Ichi'}${deRol ? ` · ${ROL[rol]}` : ''}`,
+    titulo: `${info.entrado ? `Tier list de ${info.nombre}` : 'Mi tier list de Gokudō'}${deRol ? ` · ${ROL[rol]}` : ''}`,
   });
 };
 async function hacer(boton, fn) {
@@ -130,7 +130,7 @@ async function hacer(boton, fn) {
   try { decir(await fn(await imagen())); } catch { decir('No se ha podido hacer la imagen', true); }
   boton.removeAttribute('aria-busy');
 }
-caja.querySelector('.mi-descargar').addEventListener('click', e => hacer(e.currentTarget, async img => { descargar(img, 'mi-tier-list-tenka-ichi.jpg'); return 'Imagen descargada.'; }));
+caja.querySelector('.mi-descargar').addEventListener('click', e => hacer(e.currentTarget, async img => { descargar(img, 'mi-tier-list-gokudo.jpg'); return 'Imagen descargada.'; }));
 botonPublicar.addEventListener('click', e => hacer(e.currentTarget, async img => {
   const r = await publicar('mitierlist', img);
   return r.ok ? '¡Publicada en Discord!' : r.error;

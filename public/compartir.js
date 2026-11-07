@@ -119,7 +119,7 @@ async function cabecera(ctx, titulo, subtitulo) {
 }
 
 function pie(ctx, alto, ruta) {
-  texto(ctx, '天下一 · Tenka Ichi', MARGEN, alto - 32, { fuente: `800 24px ${MINCHO}`, color: C.hai });
+  texto(ctx, '極道 · Gokudō', MARGEN, alto - 32, { fuente: `800 24px ${MINCHO}`, color: C.hai });
   texto(ctx, `${DIRECCION}${ruta}`, ANCHO - MARGEN, alto - 32, { fuente: `400 22px ${GOTHIC}`, color: C.hai, alinear: 'right' });
 }
 
@@ -288,7 +288,7 @@ export async function imagenAlineacion({ nombre, alineacion, puntos = {}, boosts
   const alto = ARRIBA + 58 + h + 72 + (hayBoost ? altoBoost + 16 : 0) + 100;
   const [c, ctx] = lienzo(alto);
   const n = x => Number(x || 0).toLocaleString('es-ES');
-  await cabecera(ctx, `Alineación de ${nombre}`, `Fantasy de Tenka Ichi  ·  ${n(total)} ${total === 1 ? 'punto' : 'puntos'}${puesto ? `  ·  ${puesto}.º en la clasificación` : ''}`);
+  await cabecera(ctx, `Alineación de ${nombre}`, `Fantasy de Gokudō  ·  ${n(total)} ${total === 1 ? 'punto' : 'puntos'}${puesto ? `  ·  ${puesto}.º en la clasificación` : ''}`);
   for (const [i, rol] of ROLES.entries()) {
     const x = MARGEN + i * (w + hueco), y = ARRIBA + 58;
     texto(ctx, ROL[rol], x + w / 2, ARRIBA + 38, { fuente: `800 32px ${MINCHO}`, alinear: 'center' });
@@ -327,7 +327,7 @@ export async function imagenAlineacion({ nombre, alineacion, puntos = {}, boosts
 // ---------- tier list ----------
 // jugadores: [{ id, clan, rol, nombre, tier }]; equipos: [{ id, nombre, tier }]
 // La del staff va de S a D; la que hace cada espectador en la portada, de S+ a D y con su nombre en el título
-export async function imagenTierlist({ jugadores, equipos = [], nombreClan, titulo = 'Tier list de Tenka Ichi', tiers = ['S', 'A', 'B', 'C', 'D'], ruta = '/#tierlist' }) {
+export async function imagenTierlist({ jugadores, equipos = [], nombreClan, titulo = 'Tier list de Gokudō', tiers = ['S', 'A', 'B', 'C', 'D'], ruta = '/#tierlist' }) {
   await fuentes();
   const conTier = lista => tiers.map(t => [t, lista.filter(x => x.tier === t)]).filter(([, l]) => l.length);
   const filasJugadores = conTier(jugadores.filter(j => j.nombre)), filasEquipos = conTier(equipos);

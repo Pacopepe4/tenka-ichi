@@ -10,8 +10,8 @@ export const TIERS = ['LEGACY', 'S+', 'S', 'A', 'B', 'C', 'D'];
 export const claveTier = t => (t === 'S+' ? 'SP' : t);
 export const ROL = { TOP: 'Top', JUNGLA: 'Jungla', MEDIO: 'Medio', ADC: 'ADC', SUPPORT: 'Support' };
 export const escapar = s => String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
-// Las BOOST no son de ningún clan: en el círculo del emblema llevan el de Koryu Budo
-export const EMBLEMA_BOOST = '/marca/koryu-budo.png';
+// Las BOOST no son de ningún clan: en el círculo del emblema llevan el de Gokudō
+export const EMBLEMA_BOOST = '/marca/gokudo.png';
 export const emblemaDe = c => (c.clan ? logo(c.clan) : c.tipo === 'boost' ? EMBLEMA_BOOST : null);
 
 // El arte es el dibujo de la carta si ya existe (si no, el splash de su campeón o la imagen del clan) y el marco,

@@ -65,5 +65,39 @@
     "SARU"
    ]
   }
+ },
+ {
+  "nombre": "2026-11-07 familias de Gokudō",
+  "dicho": "Pacopepe: «Lanza la web actualizada y el gachapón también». Cada clan pasa a la familia de su color: lema y descripción nuevos",
+  "fichas": {
+   "SARU": {
+    "lema": "Los lobos de la luna",
+    "descripcion": "Cazan de noche y en manada. Nadie los ve llegar hasta que la luna ya está encima."
+   },
+   "KAIJU": {
+    "lema": "Los demonios guardianes",
+    "descripcion": "Guardan su calle como un templo. Quien entra sin permiso no vuelve a salir igual."
+   },
+   "KEMONO": {
+    "lema": "Los espíritus de la montaña",
+    "descripcion": "Bajan de la montaña cuando quieren. Orgullosos, rápidos y siempre un paso por encima."
+   },
+   "ATSUI": {
+    "lema": "El dios dragón del mar",
+    "descripcion": "Dueños del puerto y de la marea. Su fuerza llega como el oleaje: sin avisar y sin parar."
+   },
+   "TORA": {
+    "lema": "Los tigres blancos",
+    "descripcion": "Guardianes del oeste. Pacientes y orgullosos: acechan en silencio y atacan cuando ya es tarde para huir."
+   },
+   "BUSHI": {
+    "lema": "Los demonios rojos",
+    "descripcion": "La familia más temida del barrio. No negocian: golpean primero y preguntan después."
+   },
+   "AMATERATSU": {
+    "lema": "Los dioses de la muerte",
+    "descripcion": "Los veteranos de la organización. Ya no compiten: vigilan desde la sombra a quien se atreva a reinar."
+   }
+  }
  }
 ]
