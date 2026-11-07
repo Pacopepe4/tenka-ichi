@@ -222,3 +222,52 @@ test('el archivo de familias de verdad: seis familias y una Legacy, con id, nomb
   }
   assert.equal(new Set(familias.map(f => nombreCanal(f.nombre))).size, 7, 'dos familias no pueden dar el mismo canal');
 });
+
+test('la marca: icono del servidor, avatar del bot y de los webhooks, y un emoji por familia; la segunda vez no sube nada', async () => {
+  const familias = leerFamilias();
+  await aplicar({ ...opciones, familias });
+  assert.ok(discord.estado.guild.icon, 'icono del servidor');
+  assert.ok(discord.estado.webhooks.every(w => w.avatar), 'los webhooks con su imagen');
+  assert.deepEqual(discord.estado.emojis.map(e => e.name).sort(), familias.map(f => f.insignia).sort(), 'un emoji por familia');
+  assert.ok(discord.estado.emojis.every(e => e.imagen.startsWith('data:image/png;base64,')));
+  // El distintivo de cada familia delante de su categoría y de su chat
+  for (const f of familias) {
+    assert.ok(discord.estado.canales.some(c => c.type === 4 && c.name === `${f.emoji} ${f.nombre}`), `categoría de ${f.nombre}`);
+    assert.ok(discord.estado.canales.some(c => c.type === 0 && c.name === `${f.emoji}・${nombreCanal(f.nombre)}`), `chat de ${f.nombre}`);
+  }
+  const ids = JSON.parse(readFileSync(opciones.archivoIds, 'utf8'))['1'];
+  assert.match(ids['imagen:servidor'], /^[0-9a-f]{16}$/);
+  const antes = discord.estado.peticiones.length;
+  const { acciones } = await aplicar({ ...opciones, familias });
+  assert.deepEqual(acciones.filter(a => !['sobra', 'guardar'].includes(a.accion)), [], 'la segunda vez no hace nada');
+  assert.ok(discord.estado.peticiones.slice(antes).every(p => p.metodo === 'GET'));
+});
+
+test('si cambia la imagen de una insignia, su emoji se borra y se sube otra vez; con nivel 2 de mejoras, los roles llevan la insignia', async () => {
+  const familias = leerFamilias();
+  await aplicar({ ...opciones, familias });
+  const ids = JSON.parse(readFileSync(opciones.archivoIds, 'utf8'));
+  const viejo = ids['1']['emoji:familia-1'];
+  ids['1']['imagen:emoji:familia-1'] = 'otra';
+  writeFileSync(opciones.archivoIds, JSON.stringify(ids));
+  discord.estado.guild.features = ['ROLE_ICONS'];
+  const { acciones } = await aplicar({ ...opciones, familias });
+  assert.ok(acciones.some(a => a.que === 'el emoji' && a.accion === 'cambiar' && a.nombre === ':ryujin:'));
+  assert.ok(!discord.estado.emojis.some(e => e.id === viejo) && discord.estado.emojis.some(e => e.name === 'ryujin'));
+  assert.equal(discord.estado.emojis.length, 7);
+  for (const f of familias) assert.ok(rol(f.nombre).icon, `icono del rol ${f.nombre}`);
+});
+
+test('si Discord no deja cambiar el avatar del bot (muchas veces seguidas), avisa y sigue con lo demás', async () => {
+  discord.estado.responder = null;
+  const lineas = [];
+  const original = api.patch;
+  api.patch = (r, c) => (r === '/users/@me' ? Promise.reject(new (class extends Error {})('x')) : original(r, c));
+  await assert.rejects(aplicar({ ...opciones, log: () => {} }), /x/, 'un error que no es de Discord sí para');
+  const { ErrorDiscord } = await import('../scripts/discord-aplicar.js');
+  api.patch = (r, c) => (r === '/users/@me' ? Promise.reject(new ErrorDiscord('Discord respondió 400: You are changing your avatar too fast')) : original(r, c));
+  await aplicar({ ...opciones, log: l => lineas.push(l) });
+  assert.match(lineas.join('\n'), /No se ha podido cambiar el avatar del bot/);
+  assert.ok(discord.estado.guild.icon, 'lo demás sí se hace');
+  assert.ok(!('imagen:bot' in JSON.parse(readFileSync(opciones.archivoIds, 'utf8'))['1']), 'la próxima vez lo intenta otra vez');
+});

@@ -1,11 +1,13 @@
 {
-  "_nota": "Familias de Gokudō: el único sitio con sus nombres. El 'id' no se cambia (con él se encuentran sus canales y roles en Discord); 'nombre', 'kanji' y 'color' sí, y luego npm run discord-aplicar renombra canales y roles. 'legacy': true es la familia de la organización que no compite. 'clan' es el id del clan de Tenka Ichi que pasa a ser esa familia en la web (server/clanes.js): sus plantillas, tiers, cartas y resultados siguen guardados con ese id.",
+  "_nota": "Familias de Gokudō: el único sitio con sus nombres. El 'id' no se cambia (con él se encuentran sus canales y roles en Discord); 'nombre', 'kanji' y 'color' sí, y luego npm run discord-aplicar renombra canales y roles. 'legacy': true es la familia de la organización que no compite. 'emoji' es el distintivo de la familia en Discord (emoji normal: va delante del nombre de su categoría y de su chat). 'insignia' es el nombre de su emoji propio del servidor (:ryujin:), que sale de discord/imagenes/emojis/<insignia>.png. 'clan' es el id del clan de Tenka Ichi que pasa a ser esa familia en la web (server/clanes.js): sus plantillas, tiers, cartas y resultados siguen guardados con ese id.",
   "familias": [
     {
       "id": "familia-1",
       "nombre": "Ryūjin",
       "kanji": "竜神",
       "color": "#39C6F0",
+      "emoji": "🐉",
+      "insignia": "ryujin",
       "clan": "ATSUI"
     },
     {
@@ -13,6 +15,8 @@
       "nombre": "Byakko",
       "kanji": "白虎",
       "color": "#EE7B2B",
+      "emoji": "🐯",
+      "insignia": "byakko",
       "clan": "TORA"
     },
     {
@@ -20,6 +24,8 @@
       "nombre": "Tengu",
       "kanji": "天狗",
       "color": "#2E6B45",
+      "emoji": "🦅",
+      "insignia": "tengu",
       "clan": "KEMONO"
     },
     {
@@ -27,6 +33,8 @@
       "nombre": "Tsuki",
       "kanji": "月",
       "color": "#A9722F",
+      "emoji": "🐺",
+      "insignia": "tsuki",
       "clan": "SARU"
     },
     {
@@ -34,6 +42,8 @@
       "nombre": "Yasha",
       "kanji": "夜叉",
       "color": "#5FA341",
+      "emoji": "🧌",
+      "insignia": "yasha",
       "clan": "KAIJU"
     },
     {
@@ -41,6 +51,8 @@
       "nombre": "Akuma",
       "kanji": "悪魔",
       "color": "#C1272D",
+      "emoji": "👹",
+      "insignia": "akuma",
       "clan": "BUSHI"
     },
     {
@@ -48,6 +60,8 @@
       "nombre": "Shinigami",
       "kanji": "死神",
       "color": "#EBD28A",
+      "emoji": "💀",
+      "insignia": "shinigami",
       "clan": "AMATERATSU",
       "legacy": true
     }

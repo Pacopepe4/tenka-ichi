@@ -7,7 +7,11 @@
 // Es idempotente: si lo lanzas dos veces seguidas, la segunda no hace nada. Las direcciones de los webhooks
 // (son secretas) se guardan en el .env, nunca se enseñan. Los ids de lo creado van a discord/ids.json para
 // que, si cambias el nombre de una familia, se renombre su canal y su rol en vez de crear otros.
+// La marca: el icono del servidor, el avatar del bot y de los webhooks ('marca' en servidor.json) y un emoji
+// propio por familia (su 'insignia' en familias.json). De cada imagen puesta se guarda una huella en ids.json,
+// así que solo se vuelve a subir si cambias el archivo.
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -61,14 +65,16 @@ export function deseado(config, familias) {
   const deFamilia = (c, f) => Object.entries(c.familias).map(([tipo, t]) => {
     const tipoK = tipoDe(t);
     const base = f.nombre + (t.sufijo ? ` ${t.sufijo}` : '');
-    return { clave: `canal:familia:${f.id}${tipo === 'publico' ? '' : `:${tipo}`}`, tipo: tipoK, nombre: nombreDe(tipoK, t.emoji, base),
+    const emoji = t.emojiFamilia && f.emoji ? f.emoji : t.emoji;
+    return { clave: `canal:familia:${f.id}${tipo === 'publico' ? '' : `:${tipo}`}`, tipo: tipoK, nombre: nombreDe(tipoK, emoji, base),
       tema: (t.tema || 'La familia {familia}.').replace('{familia}', `${f.nombre}${f.legacy ? ' (Legacy)' : ''}`),
       permisos: { ...(c.permisos || {}), ...(t.permisos || {}) }, familia: f.id };
   });
   const categorias = config.categorias.flatMap(c => {
     // "porFamilia": true → una categoría para cada familia (con su nombre), en vez de todas juntas en una
     if (c.familias && c.porFamilia) {
-      return familias.map(f => ({ clave: `categoria:familia:${f.id}`, nombre: conEmoji(c.emoji, f.nombre, ' '), permisos: c.permisos || {}, canales: deFamilia(c, f) }));
+      // "emojiFamilia": true → el distintivo de cada familia (su 'emoji') en vez del de la categoría
+      return familias.map(f => ({ clave: `categoria:familia:${f.id}`, nombre: conEmoji(c.emojiFamilia && f.emoji ? f.emoji : c.emoji, f.nombre, ' '), permisos: c.permisos || {}, canales: deFamilia(c, f) }));
     }
     const canales = c.familias ? familias.flatMap(f => deFamilia(c, f)) : (c.canales || []).map(k => {
       const tipoK = tipoDe(k);
@@ -76,7 +82,12 @@ export function deseado(config, familias) {
     });
     return [{ clave: `categoria:${c.clave || c.nombre.toLowerCase()}`, nombre: conEmoji(c.emoji, c.nombre, ' '), permisos: c.permisos || {}, canales }];
   });
-  return { nombre: config.nombre, roles, categorias, webhooks: config.webhooks || [] };
+  // Un emoji propio del servidor por familia (:ryujin:), con la imagen de discord/imagenes/emojis/<insignia>.png
+  const emojis = familias.filter(f => f.insignia).map(f => {
+    if (!/^[A-Za-z0-9_]{2,32}$/.test(f.insignia)) throw new Error(`La insignia «${f.insignia}» no vale como nombre de emoji (letras, números y _; de 2 a 32)`);
+    return { clave: `emoji:${f.id}`, nombre: f.insignia, archivo: `discord/imagenes/emojis/${f.insignia}.png`, familia: f.id };
+  });
+  return { nombre: config.nombre, roles, categorias, webhooks: config.webhooks || [], marca: config.marca || {}, emojis };
 }
 
 // De { todos: {permitir, denegar}, staff: {...}, familia: {...} } a los permission_overwrites de Discord
@@ -121,7 +132,8 @@ export function crearApi({ token, base = 'https://discord.com/api/v10', esperar 
       if (!res.ok) {
         const extra = res.status === 401 ? ' (¿el DISCORD_BOT_TOKEN está bien?)'
           : datos?.code === 50013 ? ' (al bot le faltan permisos: Gestionar canales, roles y webhooks, y su rol tiene que estar por encima de los que gestiona)'
-            : '';
+            : datos?.code === 30008 ? ' (el servidor no tiene más huecos de emojis)'
+              : '';
         throw new ErrorDiscord(`Discord respondió ${res.status} a ${metodo} ${ruta}: ${datos?.message || 'error'}${extra}`);
       }
       return datos;
@@ -151,6 +163,14 @@ export function guardarEnEnv(archivo, valores) {
   writeFileSync(archivo, texto);
 }
 
+// Una imagen del repositorio lista para mandarla a Discord, con su huella para saber si ya está puesta
+export function leerImagen(archivo, raiz = RAIZ) {
+  const datos = readFileSync(path.join(raiz, archivo));
+  const tipo = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif' }[path.extname(archivo).toLowerCase()];
+  if (!tipo) throw new Error(`${archivo}: la imagen tiene que ser PNG, JPG o GIF`);
+  return { uri: `data:${tipo};base64,${datos.toString('base64')}`, huella: createHash('sha256').update(datos).digest('hex').slice(0, 16), bytes: datos.length };
+}
+
 export async function aplicar({ api, config, familias, prueba = false, borrarSobrantes = false, guildId = null,
   archivoEnv = path.join(RAIZ, '.env'), archivoIds = path.join(RAIZ, 'discord/ids.json'), log = console.log }) {
   const quiere = deseado(config, familias);
@@ -175,6 +195,33 @@ export async function aplicar({ api, config, familias, prueba = false, borrarSob
   const ids = existsSync(archivoIds) ? JSON.parse(readFileSync(archivoIds, 'utf8')) : {};
   const idsServidor = ids[guildId] || {};
   const nuevosIds = {};  // los ids de esta pasada: lo que ya no está en el archivo desaparece de ids.json
+  // ¿Está ya puesta esta imagen? (lo dice la huella guardada en la pasada anterior)
+  const puesta = (clave, img) => idsServidor[`imagen:${clave}`] === img.huella;
+  const marcar = (clave, img) => { nuevosIds[`imagen:${clave}`] = img.huella; };
+
+  // Marca: icono del servidor y avatar del bot
+  if (quiere.marca.servidor) {
+    const img = leerImagen(quiere.marca.servidor);
+    if (!servidor.icon || !puesta('servidor', img)) {
+      anotar('cambiar', 'el icono del servidor', servidor.name, quiere.marca.servidor);
+      if (!prueba) await api.patch(`/guilds/${guildId}`, { icon: img.uri });
+    }
+    marcar('servidor', img);
+  }
+  if (quiere.marca.bot) {
+    const img = leerImagen(quiere.marca.bot);
+    if (!yo.avatar || !puesta('bot', img)) {
+      anotar('cambiar', 'el avatar del bot', yo.username, quiere.marca.bot);
+      try {
+        if (!prueba) await api.patch('/users/@me', { avatar: img.uri });
+        marcar('bot', img);
+      } catch (e) {
+        // Discord solo deja cambiar el avatar unas pocas veces por hora: no paramos todo por eso
+        if (!(e instanceof ErrorDiscord)) throw e;
+        log(`No se ha podido cambiar el avatar del bot (${e.message}). Discord deja cambiarlo pocas veces por hora: vuelve a lanzarlo más tarde.`);
+      }
+    } else marcar('bot', img);
+  }
   const usados = new Set();
   // Busca lo que ya hay: primero por el id guardado, luego por el nombre
   const buscar = (lista, clave, cumple) => {
@@ -326,10 +373,19 @@ export async function aplicar({ api, config, familias, prueba = false, borrarSob
       const hooks = await api.get(`/channels/${idCanal}/webhooks`);
       hook = hooks.find(h => h.type === 1 && h.name === w.nombre && h.token);
     }
+    const img = quiere.marca.webhooks ? leerImagen(quiere.marca.webhooks) : null;
+    const claveImg = `webhook:${w.variable}`;
     if (!hook) {
       anotar('crear', 'el webhook', `${w.nombre} en #${w.canal}`, w.variable);
+      if (img) marcar(claveImg, img);
       if (prueba) continue;
-      hook = await api.post(`/channels/${idCanal}/webhooks`, { name: w.nombre });
+      hook = await api.post(`/channels/${idCanal}/webhooks`, { name: w.nombre, ...(img && { avatar: img.uri }) });
+    } else if (img) {
+      if (!hook.avatar || !puesta(claveImg, img)) {
+        anotar('cambiar', 'la imagen del webhook', `${w.nombre} en #${w.canal}`);
+        if (!prueba) await api.patch(`/webhooks/${hook.id}`, { avatar: img.uri });
+      }
+      marcar(claveImg, img);
     }
     env[w.variable] = `${api.base}/webhooks/${hook.id}/${hook.token}`;
   }
@@ -354,6 +410,48 @@ export async function aplicar({ api, config, familias, prueba = false, borrarSob
     for (const c of sobran) { anotar(borrarSobrantes ? 'borrar' : 'sobra', 'el comando', `/${c.name}`); if (borrarSobrantes) cambia = true; }
     const quedan = borrarSobrantes ? [] : sobran.map(c => ({ name: c.name, description: c.description, options: c.options }));
     if (cambia && !prueba) await api.pedir('PUT', ruta, [...config.comandos, ...quedan]);
+  }
+
+  // Emojis de las familias: se suben si faltan; si cambia la imagen se borra y se sube otra vez (Discord no deja
+  // cambiar la imagen de un emoji). Los emojis que no son de las familias no se tocan.
+  if (quiere.emojis.length) {
+    const hay = await api.get(`/guilds/${guildId}/emojis`);
+    for (const e of quiere.emojis) {
+      const img = leerImagen(e.archivo);
+      if (img.bytes > 256 * 1024) throw new Error(`${e.archivo} pesa más de 256 KB, el máximo de Discord para un emoji`);
+      let ya = hay.find(x => x.id === idsServidor[e.clave]) || hay.find(x => x.name === e.nombre);
+      const huellaVieja = idsServidor[`imagen:${e.clave}`];
+      if (ya && huellaVieja && huellaVieja !== img.huella) {
+        anotar('cambiar', 'el emoji', `:${e.nombre}:`, 'imagen nueva');
+        if (!prueba) await api.borrar(`/guilds/${guildId}/emojis/${ya.id}`);
+        ya = null;
+      } else if (!ya) anotar('crear', 'el emoji', `:${e.nombre}:`);
+      if (!ya) {
+        nuevosIds[e.clave] = prueba ? `nuevo:${e.clave}` : (await api.post(`/guilds/${guildId}/emojis`, { name: e.nombre, image: img.uri })).id;
+      } else {
+        nuevosIds[e.clave] = ya.id;
+        if (ya.name !== e.nombre) {
+          anotar('cambiar', 'el emoji', `:${e.nombre}:`, `nombre :${ya.name}: → :${e.nombre}:`);
+          if (!prueba) await api.patch(`/guilds/${guildId}/emojis/${ya.id}`, { name: e.nombre });
+        }
+      }
+      marcar(e.clave, img);
+    }
+    // La misma insignia al lado del nombre de cada miembro (icono del rol): solo con nivel 2 de mejoras
+    if ((servidor.features || []).includes('ROLE_ICONS')) {
+      for (const e of quiere.emojis) {
+        const img = leerImagen(e.archivo);
+        const idR = idDeRol[`familia:${e.familia}`];
+        const clave = `rol:${e.familia}`;
+        if (!puesta(clave, img)) {
+          anotar('cambiar', 'el icono del rol', familias.find(f => f.id === e.familia).nombre);
+          if (!prueba) await api.patch(`/guilds/${guildId}/roles/${idR}`, { icon: img.uri });
+        }
+        marcar(clave, img);
+      }
+    } else {
+      log('Iconos de rol: el servidor no tiene nivel 2 de mejoras, así que los roles de familia se quedan sin insignia al lado del nombre (cuando lo tenga, lánzalo otra vez y se ponen solos).');
+    }
   }
 
   if (!prueba) {
