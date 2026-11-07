@@ -1,5 +1,7 @@
 {
   "1568332093199622245": {
+    "imagen:servidor": "d5b4b630d47a7b41",
+    "imagen:bot": "d5b4b630d47a7b41",
     "rol:staff": "1568343003519783006",
     "rol:jefes": "1568343005004439683",
     "familia:familia-1": "1568343008129196082",
@@ -57,6 +59,24 @@
     "canal:familia:legacy:voz": "1568348420740223037",
     "canal:familia:legacy:voz-privado": "1568348421838995507",
     "categoria:izakaya": "1568348423126786048",
-    "canal:izakaya": "1568343235607134270"
+    "canal:izakaya": "1568343235607134270",
+    "imagen:webhook:DISCORD_WEBHOOK_URL": "d5b4b630d47a7b41",
+    "imagen:webhook:DISCORD_WEBHOOK_ALINEACION": "d5b4b630d47a7b41",
+    "imagen:webhook:DISCORD_WEBHOOK_TIERLIST": "d5b4b630d47a7b41",
+    "imagen:webhook:DISCORD_WEBHOOK_CLASIFICACION": "d5b4b630d47a7b41",
+    "emoji:familia-1": "1568702288623837326",
+    "imagen:emoji:familia-1": "ee9edba638edb2d6",
+    "emoji:familia-2": "1568702290335105176",
+    "imagen:emoji:familia-2": "7a0f3030e002a60b",
+    "emoji:familia-3": "1568702292138524866",
+    "imagen:emoji:familia-3": "8980ed136381423c",
+    "emoji:familia-4": "1568702293870776471",
+    "imagen:emoji:familia-4": "b1c08dc9bd8b396f",
+    "emoji:familia-5": "1568702295267475547",
+    "imagen:emoji:familia-5": "34710a4ae335c4f4",
+    "emoji:familia-6": "1568702297507111020",
+    "imagen:emoji:familia-6": "a10b1e4f4c2113ce",
+    "emoji:legacy": "1568702298765393921",
+    "imagen:emoji:legacy": "0abd21946dd660e2"
   }
 }
