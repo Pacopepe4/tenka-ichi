@@ -1,0 +1,113 @@
+/* Estilo Gokudō (07/11/2026): el de la ficha «Gokudō 極道». Va después de marca.css, inicio.css y la hoja de cada página
+   y solo pisa lo que cambia: la noche azulada en vez de la tinta y el papel, Dela Gothic One en los títulos, Yuji Boku
+   (pincel) en los kanji de sello, el bermellón #E0303A con halo de neón, el oro solo en los enlaces y placas de 8 px con
+   filo fino en lugar de los filos de oro y los cortes en diagonal de Tenka Ichi. */
+@import url('https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Yuji+Boku&display=swap');
+
+:root {
+  --sumi: #0C0D13; --sumi-alzado: #15161F; --sumi-linea: #2A2B38;
+  --noche: #0C0D13; --hai: #8D8A99;
+  --shu: #E0303A; --shu-claro: #FF4C56; --shu-hondo: #BE2A2F;
+  --oro: #EBD28A; --oro-viejo: #6F6650;
+  --papel: #15161F; --tinta-papel: #E7DFD2; --hai-papel: #8D8A99;
+  --grano: linear-gradient(transparent, transparent); --grano-papel: linear-gradient(transparent, transparent);
+  --filo: none; --sesgo: 0px;
+  --dela: 'Dela Gothic One', 'Zen Kaku Gothic New', sans-serif;
+  --pincel: 'Yuji Boku', 'Shippori Mincho B1', serif;
+  /* Todo lo que iba en Shippori Mincho (títulos, cifras, nombres) pasa a Dela Gothic One, que también tiene kanji */
+  --mincho: var(--dela);
+  --neon: 0 0 6px #FF3B46, 0 0 18px #E0303A, 0 0 36px #BE2A2F;
+}
+body { background: var(--sumi); font-synthesis-weight: none; }
+::selection { background: var(--shu); color: #fff; }
+
+/* Títulos: Dela Gothic One (solo tiene un peso: sin negrita inventada) */
+:is(.portada h1, .cabecera-seccion h2, .directo-texto h2, .bloque h3, .cabeza-gacha h1, .titulo-seccion h2, .titulo-reglas, .fantasy h3,
+  .elegir h3, .fundir h3, .carta .nombre, .marca, .titulo-guia h1, .ficha h2, .ficha h3, .camino h3, .playoffs-cabecera h3, .mi-tier-cabecera h3) {
+  font-family: var(--dela); font-weight: 400; letter-spacing: .01em; font-synthesis: none; }
+.portada h1, .cabeza-gacha h1 { line-height: 1; letter-spacing: 0; text-shadow: none; }
+.portada h1 { font-size: clamp(48px, 6.4vw, 104px); }
+.cabeza-gacha h1 { font-size: clamp(48px, 6.4vw, 96px); }
+.cabecera-seccion h2 { font-size: clamp(32px, 4.4vw, 60px); }
+.camino h3 { font-size: clamp(20px, 1.8vw, 24px); overflow-wrap: anywhere; }
+.sobre-texto { font-family: var(--dela); font-weight: 400; }
+
+/* Sellos con kanji: pincel bermellón con halo de neón, sin el cuadrado de laca */
+.marca-seccion, .tategaki { background: transparent; box-shadow: none; transform: none; color: #FF5A63; font-family: var(--pincel); font-weight: 400; text-shadow: var(--neon); }
+.marca-seccion { border: 1px solid var(--sumi-linea); border-radius: 8px; background: var(--sumi-alzado); }
+.tategaki { padding: 0; font-size: clamp(44px, 5vw, 76px); letter-spacing: .05em; animation-name: aparecer; }
+.cabecera-seccion[data-kanji]::after, .titulo-seccion[data-kanji]::after { font-family: var(--pincel); font-weight: 400; -webkit-text-stroke-color: rgba(224, 48, 58, .12); }
+.traduccion { font-family: var(--gothic); font-weight: 500; font-size: 13px; letter-spacing: .18em; text-transform: uppercase; color: var(--hai); }
+.carta .kanji, .sobre-kanji, .cierre-kanji { font-family: var(--pincel); font-weight: 400; }
+
+/* Barra */
+.barra { background: rgba(12, 13, 19, .92); border-bottom: 1px solid var(--sumi-linea); }
+.marca { font-size: 19px; }
+.marca img { width: 34px; height: 34px; }
+.barra nav a::after { background: var(--shu); }
+.barra nav .enlace-gachapon::after, .enlace-kbstats::before { transform: none; border-radius: 999px; }
+.barra nav .enlace-gachapon[aria-current]::after { transform: none; box-shadow: 0 0 14px rgba(224, 48, 58, .55); }
+.enlace-kbstats { margin-left: 14px; }
+
+/* Botones: placas redondeadas, sin diagonal ni sombra dura */
+.boton::before, .boton-entrar::before, .boton-claro::before { transform: none; border-radius: 8px; box-shadow: none; }
+.boton:hover::before, .boton-entrar:hover::before, .boton-claro:not(:disabled):hover::before { box-shadow: 0 0 18px rgba(224, 48, 58, .45); }
+.boton:hover { transform: translateY(-1px); }
+.boton-secundario { border-radius: 8px; border-color: var(--sumi-linea); background: var(--sumi-alzado); }
+.boton-secundario:hover { border-color: var(--oro); }
+.filtros button::before { transform: none; border-radius: 999px; }
+
+/* Portada: el sol en neón sobre la noche, a la derecha del título, en una placa */
+.portada { background: radial-gradient(60% 70% at 26% 50%, rgba(224, 48, 58, .14), transparent 70%), var(--sumi); }
+.portada::before { display: none; }
+.portada::after { border: 1px solid var(--sumi-linea); border-radius: 8px; box-shadow: none; }
+.papel { clip-path: none; background: transparent; animation: aparecer 1s var(--curva) both; }
+.papel::after { display: none; }
+.papel img { object-fit: contain; padding: clamp(32px, 6vw, 90px); }
+.lore { color: var(--washi); }
+
+/* Bandas: sin cortes en diagonal; secciones rectas separadas por una línea fina */
+.clanes, .formato, .fantasy-portada, .fantasy, .puntos-jugadores { margin: 0; clip-path: none; padding-top: calc(var(--aire-seccion) * .7); padding-bottom: calc(var(--aire-seccion) * .7); }
+:is(.clanes, .formato, .fantasy-portada, .cierre, .fantasy, .puntos-jugadores)::before,
+:is(.formato, .fantasy-portada, .fantasy, .puntos-jugadores)::after { display: none; }
+:is(.directo, .clanes, .formato, .liga, .fantasy-portada, .tierlist, .cierre, .fantasy, .puntos-jugadores) { border-top: 1px solid var(--sumi-linea); }
+.formato, .fantasy-portada, .fantasy { background: var(--sumi-alzado); }
+.clanes { background: radial-gradient(70% 60% at 50% 100%, color-mix(in srgb, var(--color-activo) 30%, transparent), transparent 72%), var(--sumi); }
+
+/* El camino: pasos como placas */
+.camino li { background: var(--sumi); border: 1px solid var(--sumi-linea); border-radius: 8px; padding: 20px; }
+.camino li:not(:last-child)::after { display: none; }
+.paso { background: transparent; color: #FF5A63; font-family: var(--pincel); font-weight: 400; text-shadow: var(--neon); border: 1px solid var(--sumi-linea); border-radius: 8px; }
+.camino .final { border-color: color-mix(in srgb, var(--shu) 60%, transparent); }
+.camino .final .paso { transform: none; background: transparent; box-shadow: none; }
+
+/* Placas: tablas, bloques, legado */
+.bloque { background: var(--sumi-alzado); border: 1px solid var(--sumi-linea); border-radius: 8px; padding: clamp(16px, 2vw, 24px); }
+.tabla td { background: var(--sumi); }
+.equipo-legado { border-color: var(--sumi-linea); border-radius: 8px; border-top: 4px solid var(--oro); background: linear-gradient(180deg, color-mix(in srgb, var(--oro) 8%, var(--sumi-alzado)), var(--sumi-alzado)); }
+.etiqueta-legacy { transform: none; border-radius: 999px; }
+
+/* Cartas de familia en la baraja: filo fino del color de la familia en lugar del oro */
+.carta { border: 1px solid var(--sumi-linea); }
+.carta::after { border: 1px solid color-mix(in srgb, var(--color) 70%, transparent); box-shadow: none; }
+.carta .velo { background: linear-gradient(180deg, rgba(12, 13, 19, 0) 45%, rgba(12, 13, 19, .96) 84%); }
+.carta .nombre { font-size: 22px; }
+
+/* Cierre y pie */
+.cierre-kanji { color: #FF5A63; text-shadow: var(--neon); }
+footer { border-top: 1px solid var(--sumi-linea); background: var(--sumi); }
+
+/* Gachapon */
+.cabeza-gacha { background: radial-gradient(50% 70% at 75% 50%, rgba(224, 48, 58, .12), transparent 70%), var(--sumi); padding-bottom: clamp(56px, 8vw, 112px); }
+.cabeza-gacha::after { border: 1px solid var(--sumi-linea); border-radius: 8px; box-shadow: none; bottom: clamp(8px, 1.3vw, 18px); }
+.sobre::after, .sobre-abriendo .mitad::before { border-color: rgba(235, 210, 138, .6); box-shadow: none; }
+.sobre-papel { background: #0C0D13; }
+.sobre-papel img { content: url('/marca/gokudo-neon.png'); object-fit: contain; }
+.reglas li { border-left-color: var(--shu); border-radius: 8px; }
+.apertura::before { border-color: var(--sumi-linea); border-radius: 8px; }
+.volteable .dorso { background: var(--sumi-alzado); box-shadow: inset 0 0 0 1px var(--sumi-linea), 0 12px 26px rgba(0, 0, 0, .5); }
+
+@media (max-width: 760px) {
+  .papel { height: 70vw; }
+  .papel img { padding: 24px; }
+}

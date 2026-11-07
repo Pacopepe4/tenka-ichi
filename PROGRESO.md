@@ -358,3 +358,8 @@ Diseño aprobado en `docs/superpowers/specs/2026-10-04-ingame-mejoras-design.md`
 - **Twitch:** el canal es `gokudo_zoku` (reproductor de la portada y `CANAL_TWITCH` por defecto). La recompensa de puntos se llama «Sobre de Gokudō»: hay que conectar el canal nuevo desde el panel, y los puntos del canal solo existen si el canal es afiliado.
 - Sin tocar: la dirección tenka-ichi.onrender.com (la usan Discord y los inicios de sesión), el overlay del draft (fase 3) y `data-proyecto/familias.json` (lo lleva el PR de Discord).
 - Pruebas: 211.
+
+## 07/11 (noche): la web con el estilo de la ficha «Gokudō 極道»
+
+- **Lo que pidió el usuario:** «está publicado pero no con el estilo del artifact» (el bueno: https://claude.ai/artifact/5e248ciTVwkpEGHwCb9JsZ).
+- `public/gokudo.css`, cargada la última en portada, gachapon y guía: noche #0C0D13, placas #15161F con filo #2A2B38 y 8 px de radio, bermellón #E0303A con halo de neón, oro solo en enlaces; Dela Gothic One en títulos y cifras (pisa `--mincho`), Yuji Boku en los kanji de sello; fuera los filos de oro y los cortes en diagonal. Portada y sobre con el sol en neón (`public/marca/gokudo-neon.png`). Overlay y panel sin tocar (fase 3).
