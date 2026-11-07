@@ -119,7 +119,8 @@ export function crearApi({ token, base = 'https://discord.com/api/v10', esperar 
     for (let intento = 0; ; intento++) {
       const res = await fetch(base + ruta, {
         method: metodo,
-        headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json', 'User-Agent': 'DiscordBot (gokudo, 1.0)', 'X-Audit-Log-Reason': 'discord-aplicar' },
+        // Sin cuerpo no se manda Content-Type: Discord responde 400 («invalid JSON») a un DELETE que lo lleva vacío.
+        headers: { Authorization: `Bot ${token}`, ...(cuerpo === undefined ? {} : { 'Content-Type': 'application/json' }), 'User-Agent': 'DiscordBot (gokudo, 1.0)', 'X-Audit-Log-Reason': 'discord-aplicar' },
         body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo),
       });
       if (res.status === 429 && intento < 5) {
