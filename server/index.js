@@ -805,7 +805,7 @@ async function rutasSesion(req, res, url) {
       tipo, req, usuario: u, staff: req.headers['x-clave-panel'] === CLAVE,
       datos: tipo === 'clasificacion' ? { jornada, ganadores }
         : tipo === 'coleccion' && u ? { tiene: estadoUsuario(u.id).cartas.length, total: catalogo().length } : yo ? { puntos: yo.puntos, puesto: yo.puesto } : {},
-      avatar: `${origen(req)}/marca/tenka-ichi-cuadro.png`, enlace: tipo === 'mitierlist' ? `${origen(req)}/#mitierlist` : `${origen(req)}/gachapon/`,
+      avatar: `${origen(req)}/marca/gokudo-cuadro.png`, enlace: tipo === 'mitierlist' ? `${origen(req)}/#mitierlist` : `${origen(req)}/gachapon/`,
     });
     return json(res, r.cuerpo, r.estado);
   }

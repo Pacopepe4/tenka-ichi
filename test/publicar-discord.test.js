@@ -21,13 +21,13 @@ after(() => discord?.servidor.close());
 
 const ultimo = () => discord.estado.mensajes.at(-1);
 
-test('publica la imagen con su texto, a nombre de Tenka Ichi y sin menciones', async () => {
+test('publica la imagen con su texto, a nombre de Gokudō y sin menciones', async () => {
   await d.publicarEnDiscord({ tipo: 'coleccion', imagen: PNG, texto: '**Ana** enseña su colección', quien: 'ana', avatar: 'https://tenka/logo.png' });
   const m = ultimo();
   assert.equal(m.canal, 'general');
   assert.equal(m.wait, 'true');
   assert.equal(m.payload.content, '**Ana** enseña su colección');
-  assert.equal(m.payload.username, 'Tenka Ichi');
+  assert.equal(m.payload.username, 'Gokudō');
   assert.equal(m.payload.avatar_url, 'https://tenka/logo.png');
   assert.deepEqual(m.payload.allowed_mentions, { parse: [] }, 'nadie puede colar un @everyone');
   assert.equal(m.archivo, 'coleccion.png');
@@ -83,10 +83,10 @@ test('con los webhooks puestos, las tres cosas se pueden publicar', () => {
 
 test('el texto lo pone el servidor: a quien entró con Discord se le menciona y a los demás, en negrita', () => {
   assert.equal(d.textoDiscord('coleccion', { usuario: { id: 'discord-300000000000000001', nombre: 'Ana' }, tiene: 12, total: 20, enlace: 'https://tenka/gachapon/' }),
-    '<@300000000000000001> enseña su colección de Tenka Ichi: 12 de 20 cartas.\n<https://tenka/gachapon/>');
+    '<@300000000000000001> enseña su colección de Gokudō: 12 de 20 cartas.\n<https://tenka/gachapon/>');
   assert.equal(d.textoDiscord('alineacion', { usuario: { id: '123', nombre: 'beto_lol' }, puntos: 43.5, puesto: 2 }),
-    '**beto\\_lol** presenta su alineación del fantasy de Tenka Ichi: 43,5 puntos, 2.º en la clasificación.');
-  assert.equal(d.textoDiscord('tierlist', {}), 'Tier list de Tenka Ichi.');
+    '**beto\\_lol** presenta su alineación del fantasy de Gokudō: 43,5 puntos, 2.º en la clasificación.');
+  assert.equal(d.textoDiscord('tierlist', {}), 'Tier list de Gokudō.');
 });
 
 // Una petición de la página: la imagen tal cual en el cuerpo
@@ -101,7 +101,7 @@ test('la ruta comprueba quién publica: la colección con sesión y la tier list
   assert.match(r.cuerpo.error, /solo la publica el staff/);
   r = await d.atenderPublicacion({ tipo: 'coleccion', req: peticion(PNG), usuario: ana, datos: { tiene: 3, total: 20 }, enlace: 'https://tenka/gachapon/' });
   assert.deepEqual(r, { estado: 200, cuerpo: { ok: true } });
-  assert.equal(ultimo().payload.content, '<@300000000000000009> enseña su colección de Tenka Ichi: 3 de 20 cartas.\n<https://tenka/gachapon/>');
+  assert.equal(ultimo().payload.content, '<@300000000000000009> enseña su colección de Gokudō: 3 de 20 cartas.\n<https://tenka/gachapon/>');
   r = await d.atenderPublicacion({ tipo: 'tierlist', req: peticion(JPEG), staff: true });
   assert.equal(r.estado, 200);
   assert.equal(ultimo().canal, 'tierlist');

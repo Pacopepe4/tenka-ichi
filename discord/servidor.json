@@ -1,6 +1,11 @@
 {
-  "_nota": "Cómo es el servidor de Discord de Gokudō. Lo aplica npm run discord-aplicar (primero npm run discord-aplicar -- --prueba para ver qué haría). Los roles van de arriba abajo en el orden de 'roles' ({ \"familias\": true } marca dónde van los de las familias): cada rol solo puede dar los que tiene por debajo. Las familias salen de data-proyecto/familias.json: en la categoría con 'familias' se crea, por cada familia (y con \\\"porFamilia\\\": true, cada una en su propia categoría con su nombre), un canal por cada tipo (publico, voz, voz-privado). Un canal es de texto salvo que lleve \"tipo\": \"voz\". Permisos: 'todos' es @everyone, 'familia' es el rol de la familia del canal y el resto son claves de 'roles'. Los permisos de un canal se suman a los de su categoría (el canal manda si repite un rol). El emoji va delante del nombre y se puede cambiar sin crear canales nuevos. 'comandos' son los comandos del bot (los atiende la web: server/discord-comandos.js). Los Oyabun no tienen «Gestionar roles»: reclutan con /reclutar, que solo deja meter gente en su familia.",
+  "_nota": "Cómo es el servidor de Discord de Gokudō. Lo aplica npm run discord-aplicar (primero npm run discord-aplicar -- --prueba para ver qué haría). Los roles van de arriba abajo en el orden de 'roles' ({ \"familias\": true } marca dónde van los de las familias): cada rol solo puede dar los que tiene por debajo. Las familias salen de data-proyecto/familias.json: en la categoría con 'familias' se crea, por cada familia (y con \\\"porFamilia\\\": true, cada una en su propia categoría con su nombre), un canal por cada tipo (publico, voz, voz-privado). Un canal es de texto salvo que lleve \"tipo\": \"voz\". Permisos: 'todos' es @everyone, 'familia' es el rol de la familia del canal y el resto son claves de 'roles'. Los permisos de un canal se suman a los de su categoría (el canal manda si repite un rol). El emoji va delante del nombre y se puede cambiar sin crear canales nuevos. 'comandos' son los comandos del bot (los atiende la web: server/discord-comandos.js). Los Oyabun no tienen «Gestionar roles»: reclutan con /reclutar, que solo deja meter gente en su familia. 'marca' son las imágenes del icono del servidor, del avatar del bot y de los webhooks. Con \"emojiFamilia\": true, la categoría (o el canal) de cada familia lleva delante su distintivo ('emoji' en familias.json) en vez del emoji fijo. Cada familia con 'insignia' tiene además su emoji propio del servidor.",
   "nombre": "Gokudō",
+  "marca": {
+    "servidor": "discord/imagenes/gokudo.png",
+    "bot": "discord/imagenes/gokudo.png",
+    "webhooks": "discord/imagenes/gokudo.png"
+  },
   "roles": [
     {
       "clave": "staff",
@@ -205,9 +210,11 @@
     {
       "nombre": "Familias",
       "emoji": "🏮",
+      "emojiFamilia": true,
       "familias": {
         "publico": {
           "emoji": "🏮",
+          "emojiFamilia": true,
           "tema": "Chat de la familia {familia}: abierto a todos."
         },
         "voz": {
