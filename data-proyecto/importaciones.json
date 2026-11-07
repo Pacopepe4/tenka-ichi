@@ -87,8 +87,8 @@
     "descripcion": "Manda en el puerto y en las olas. Paciente como la marea, implacable cuando sube."
    },
    "TORA": {
-    "lema": "El zorro de nueve colas",
-    "descripcion": "Engaña, se esconde y vuelve con fuego. Nunca pelea donde lo esperan."
+    "lema": "El tigre blanco del oeste",
+    "descripcion": "Guardián del oeste. Acecha en silencio y, cuando salta, no suelta la presa."
    },
    "BUSHI": {
     "lema": "El demonio de la máscara",
@@ -102,7 +102,7 @@
  },
  {
   "nombre": "2026-11-07 Kitsune completa",
-  "dicho": "Kitsune (TORA): PABLO top (Varus, B), EL 64 jungla (Viego, C), SPORFU y MANU medio (Anivia y Yone, carta mitad y mitad, A), NARCISO adc (Kai'Sa), JEEDA support (Thresh, C). Lo dio el usuario el 07/11/2026",
+  "dicho": "Kitsune, desde el mismo día Byakko (TORA): PABLO top (Varus, B), EL 64 jungla (Viego, C), SPORFU y MANU medio (Anivia y Yone, carta mitad y mitad, A), NARCISO adc (Kai'Sa), JEEDA support (Thresh, C). Lo dio el usuario el 07/11/2026",
   "plantillas": {
    "TORA": [
     "PABLO",

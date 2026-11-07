@@ -42,5 +42,5 @@ test('los nombres, kanji y colores de las familias salen de data-proyecto/famili
     assert.ok(c, `${f.id} apunta a un clan que existe`);
     assert.deepEqual([c.nombre, c.kanji, c.color, Boolean(c.legacy)], [f.nombre, f.kanji, f.color, Boolean(f.legacy)], f.id);
   }
-  assert.deepEqual(CLANES.filter(enCompeticion).map(c => c.nombre), ['Tsuki', 'Yasha', 'Tengu', 'Ryūjin', 'Kitsune', 'Akuma']);
+  assert.deepEqual(CLANES.filter(enCompeticion).map(c => c.nombre), ['Tsuki', 'Yasha', 'Tengu', 'Ryūjin', 'Byakko', 'Akuma']);
 });
