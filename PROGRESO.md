@@ -359,3 +359,8 @@ Diseño aprobado en `docs/superpowers/specs/2026-10-04-ingame-mejoras-design.md`
 - **Textos:** clan → familia, samurái/Tenka Ichi → Gokudō en la portada, el gachapon, la tier list y los mensajes de Discord.
 - **Sin tocar:** la recompensa de Twitch sigue llamándose «Sobre de Tenka Ichi» (renombrarla crea otra y deja la vieja sin atender: va con la fase 6), la guía, el panel y el overlay (cogen los nombres y logos nuevos, pero no `neon.css`), y la dirección tenka-ichi.onrender.com.
 - Pruebas: 208.
+
+## 07/11: Kitsune completa
+- El usuario dio la plantilla de Kitsune (TORA): PABLO top (Varus, B), EL 64 jungla (Viego, C), SPORFU y MANU medio (Anivia y Yone en una sola carta mitad y mitad, A; en la plantilla «SPORFU / MANU»), NARCISO adc (Kai'Sa, A) y JEEDA support (Thresh, C). Va en una importación de una vez (importaciones.json) y en plantillas.json.
+- Dibujos nuevos en Flow (proyecto «Tenka Ichi · cartas», mismo método y maestra TORA.jpeg): TORA-TOP Varus, TORA-SUPPORT Thresh y TORA-MEDIO Anivia + Yone partida en diagonal. TORA-JUNGLA (Viego) se reutiliza. Los de Aatrox, Nautilus y la Anivia sola quedan en koryu-budo/gachapón/descartes/.
+- Los nombres largos (más de 10 letras) van en letra más pequeña en la carta, en la web y en Discord.

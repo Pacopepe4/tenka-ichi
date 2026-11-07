@@ -18,6 +18,7 @@
 .carta-g .pie { position: absolute; left: 6cqw; right: 6cqw; top: 101cqw; bottom: 4cqw; display: flex; flex-direction: column; justify-content: center; gap: .6cqw; }
 .carta-g .nick { font-family: var(--rotulo); font-weight: 400; font-size: 10.5cqw; line-height: 1.1; color: #E7DFD2; transform: skewX(-10deg); transform-origin: left;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.carta-g.nombre-largo .nick { font-size: 7.6cqw; }
 .carta-g .rol { font-size: 4.6cqw; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #A7A3B3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .carta-g .bonus { font-size: 4.6cqw; font-weight: 800; color: #E7DFD2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .carta-g .cantidad { position: absolute; right: 5cqw; bottom: 5cqw; padding: .6cqw 2.4cqw; background: #E0303A; color: #07080C; font-family: var(--rotulo); font-size: 5.4cqw; transform: skewX(-12deg); }

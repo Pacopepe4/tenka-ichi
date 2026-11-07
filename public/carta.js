@@ -25,7 +25,8 @@ export function cartaHTML(c, { cantidad = null, nombreClan = id => id } = {}) {
   const completa = Boolean(c.fullart) || legado;
   const quien = boost || legado ? escapar(c.subtitulo) : `${ROL[c.rol] || c.rol} · ${escapar(nombreClan(c.clan))}`;
   // Las BOOST llevan su multiplicador bajo el apodo y la frase entera al pasar el ratón
-  return `<div class="carta-g${falta ? ' falta' : ''}${completa ? ' fullart' : ''}${boost ? ' boost' : ''}${legado ? ' legacy' : ''}" data-tier="${k}" style="--color-tier: var(--tier-${k})"${c.bonus ? ` title="${escapar(c.bonus.texto)}"` : ''}>
+  // Los nombres largos (FROZENRONIN, o dos jugadores que comparten carta: «SPORFU / MANU») van en letra más pequeña
+  return `<div class="carta-g${falta ? ' falta' : ''}${completa ? ' fullart' : ''}${String(c.nombre).length > 10 ? ' nombre-largo' : ''}${boost ? ' boost' : ''}${legado ? ' legacy' : ''}" data-tier="${k}" style="--color-tier: var(--tier-${k})"${c.bonus ? ` title="${escapar(c.bonus.texto)}"` : ''}>
     <img class="arte" src="${escapar(c.fullart || c.arte || logo(c.clan))}" alt="" loading="lazy"><span class="velo"></span>
     <span class="hanko rareza" title="${legado ? 'Carta LEGACY' : `Tier ${c.tier}`}">${c.tier}</span>${emblema ? `<img class="logo" src="${emblema}" alt="">` : ''}
     <div class="pie"><b class="nick">${escapar(c.nombre)}</b><span class="rol">${quien}</span>${c.bonus ? `<b class="bonus">${escapar(c.bonus.etiqueta)}</b>` : ''}</div>

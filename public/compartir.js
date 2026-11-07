@@ -202,7 +202,9 @@ export async function dibujarCarta(ctx, c, x, y, w, { cantidad = 1, nombreClan =
     if (emblema) kamon(ctx, emblema, x + w - 11.5 * u, y + 11.5 * u, 7.5 * u, color);
     // Debajo: el nombre en letra de rótulo, inclinado, y el rol con su familia (o lo que hace la BOOST)
     const lineas = c.bonus ? [106, 119, 130] : [107, 122];
-    textoInclinado(ctx, c.nombre, x + 6 * u, y + lineas[0] * u, { fuente: `400 ${10.5 * u}px ${ROTULO}`, base: 'middle', ancho: w * 0.86 });
+    // Los nombres largos, en letra más pequeña (como .nombre-largo en carta.css)
+    const tamano = String(c.nombre).length > 10 ? 7.6 : 10.5;
+    textoInclinado(ctx, c.nombre, x + 6 * u, y + lineas[0] * u, { fuente: `400 ${tamano * u}px ${ROTULO}`, base: 'middle', ancho: w * 0.86 });
     texto(ctx, quien.toUpperCase(), x + 6 * u, y + lineas[1] * u, { fuente: `700 ${4.6 * u}px ${GOTHIC}`, color: C.gris, base: 'middle', ancho: w * 0.88 });
     if (c.bonus) texto(ctx, c.bonus.etiqueta, x + 6 * u, y + lineas[2] * u, { fuente: `800 ${4.6 * u}px ${GOTHIC}`, base: 'middle', ancho: w * 0.88 });
     // El brillo de la tier en el borde: D y C mate, B con canto de color, A y S con neón, S+ en oro
