@@ -9,7 +9,7 @@ import { sortearCalendario } from '../server/calendario.js';
 test('Amateratsu es Legacy: lo conserva todo, pero no compite', () => {
   const a = CLANES.find(c => c.id === 'AMATERATSU');
   assert.equal(a.legacy, true);
-  assert.deepEqual([a.nombre, a.kanji, a.lema], ['Amateratsu', '天照', 'La Reina del Sol']);
+  assert.deepEqual([a.nombre, a.kanji, a.lema], ['Shinigami', '死神', 'Los dioses de la muerte']);
   assert.ok(a.color && a.texto && a.descripcion);
   const compiten = CLANES.filter(enCompeticion).map(c => c.id);
   assert.deepEqual(compiten, ['SARU', 'KAIJU', 'KEMONO', 'ATSUI', 'TORA', 'BUSHI'], 'los seis de la temporada');
@@ -29,6 +29,6 @@ test('un equipo Legacy no está en la tier list: no tiene tier, ni cartas, ni fa
 
 test('un equipo Legacy no entra en el sorteo del calendario', async () => {
   const cinco = CLANES.filter(enCompeticion).slice(0, 5).map(c => c.id);
-  await assert.rejects(sortearCalendario([...cinco, 'AMATERATSU'], 7), /No compiten en Tenka Ichi: AMATERATSU/);
+  await assert.rejects(sortearCalendario([...cinco, 'AMATERATSU'], 7), /No compiten en Gokudō: AMATERATSU/);
   await assert.rejects(sortearCalendario([...cinco, 'NONAME'], 7), /No compiten/);
 });

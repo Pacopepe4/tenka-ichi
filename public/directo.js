@@ -1,8 +1,8 @@
-// Reproductor de Twitch de koryubudo. Detecta solo si hay directo (eventos del propio reproductor).
+// Reproductor de Twitch de gokudo_zoku. Detecta solo si hay directo (eventos del propio reproductor).
 // - Con un marco en la página: el reproductor vive dentro y, si hay directo y el marco sale de la vista,
 //   el vídeo pasa a una ventanita flotante en la esquina sin recargarse; el marco guarda el sitio.
 // - Sin marco: crea la ventanita flotante, que solo aparece cuando hay directo.
-export const CANAL = 'koryubudo';
+export const CANAL = 'gokudo_zoku';
 const SCRIPT = 'https://player.twitch.tv/js/embed/v1.js';
 
 function cargarScript() {

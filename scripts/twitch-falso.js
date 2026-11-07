@@ -11,7 +11,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 export const CLIENTE = { id: 'cliente-prueba', secreto: 'secreto-prueba' };
-const TITULO_RECOMPENSA = 'Sobre de Tenka Ichi';
+const TITULO_RECOMPENSA = 'Sobre de Gokudō';
 
 export function crearTwitchFalso() {
   const usuarios = new Map([

@@ -433,7 +433,7 @@ document.querySelectorAll('.compartir').forEach(caja => {
     boton.disabled = false;
     setTimeout(() => { estado.textContent = ''; }, 6000);
   };
-  caja.querySelector('.descargar').onclick = e => hacer(e.currentTarget, async img => { descargar(img, `tenka-ichi-${que}.jpg`); return 'Imagen descargada'; });
+  caja.querySelector('.descargar').onclick = e => hacer(e.currentTarget, async img => { descargar(img, `gokudo-${que}.jpg`); return 'Imagen descargada'; });
   caja.querySelector('.publicar').onclick = e => hacer(e.currentTarget, async img => { const r = await publicar(que, img); return r.ok ? '¡Publicada en Discord!' : r.error; });
 });
 

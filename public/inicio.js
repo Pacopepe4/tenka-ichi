@@ -83,7 +83,7 @@ cajaLegado.innerHTML = legado.map(c => `<article class="equipo-legado" style="--
       <span class="etiqueta-legacy">Legacy</span>
       <h3>${c.nombre}</h3>
       <p>${c.descripcion}</p>
-      <p class="legado-nota">Equipo de Koryu Budo, apartado de la nueva competición de Tenka Ichi: conserva su estandarte y su plantilla, pero no lucha por el trono.</p>
+      <p class="legado-nota">Familia veterana de Gokudō, apartada de la competición: conserva su kamon y su plantilla, pero no lucha por la ciudad.</p>
     </div>
   </article>`).join('');
 cajaLegado.querySelectorAll('.carta').forEach(b => b.addEventListener('click', () => abrirFicha(legado.find(c => c.id === b.dataset.clan))));
@@ -140,7 +140,7 @@ function abrirFicha(c) {
       if (!d.partidas) return;
       // Sin calendario sorteado no hay puesto en la liguilla, pero sí su balance
       if (!fila?.jugadas) {
-        ficha.querySelector('.ficha-record').textContent = `${d.victorias} ${d.victorias === 1 ? 'victoria' : 'victorias'} y ${d.derrotas} ${d.derrotas === 1 ? 'derrota' : 'derrotas'} en Tenka Ichi.`;
+        ficha.querySelector('.ficha-record').textContent = `${d.victorias} ${d.victorias === 1 ? 'victoria' : 'victorias'} y ${d.derrotas} ${d.derrotas === 1 ? 'derrota' : 'derrotas'} en Gokudō.`;
       }
       if (!d.campeones.length) return;
       cajaCampeones.innerHTML = '<h4>Lo que más juega</h4>' + d.campeones.map(x =>
@@ -148,9 +148,9 @@ function abrirFicha(c) {
     }).catch(() => {});
   }
   ficha.querySelector('.ficha-suplentes').textContent = c.suplentes ? `Suplentes: ${c.suplentes}` : '';
-  ficha.querySelector('.ficha-record').textContent = c.legacy ? 'Equipo Legacy de Koryu Budo: está apartado de la competición de Tenka Ichi.'
+  ficha.querySelector('.ficha-record').textContent = c.legacy ? 'Familia Legacy de Gokudō: está apartada de la competición.'
     : !participa ? 'No participa en esta temporada.'
-    : fila?.jugadas ? `${fila.puesto}.º en la liguilla, con ${fila.victorias} victorias y ${fila.derrotas} derrotas.` : 'Aún no ha jugado en Tenka Ichi.';
+    : fila?.jugadas ? `${fila.puesto}.º en la liguilla, con ${fila.victorias} victorias y ${fila.derrotas} derrotas.` : 'Aún no ha jugado en Gokudō.';
   ficha.showModal();
 }
 
@@ -163,7 +163,7 @@ const tinte = id => `style="--color:${clan(id).color}; --color-texto:${clan(id).
 
 if (simulacion) {
   $('.aviso-simulacion').hidden = false;
-  document.title = 'Simulación · Tenka Ichi';
+  document.title = 'Simulación · Gokudō';
 }
 
 // Todo lo que depende del calendario y de los resultados: se vuelve a pintar cuando el sorteo en directo fija el calendario
@@ -176,7 +176,7 @@ function pintarLiga() {
   if (!comp.calendario) {
     $('.resumen-liga').textContent = `El sorteo de los cruces aún no se ha hecho. ${fechasTemporada}`;
   } else if (cls.completa && comp.cuadro?.campeon) {
-    $('.resumen-liga').textContent = `Temporada terminada. ${nombre(comp.cuadro.campeon)} reina bajo el cielo.`;
+    $('.resumen-liga').textContent = `Temporada terminada. ${nombre(comp.cuadro.campeon)} manda en la noche.`;
   } else if (cls.completa) {
     $('.resumen-liga').textContent = 'Liguilla terminada. Se juegan los playoffs.';
   } else {
@@ -338,7 +338,7 @@ async function abrirCarta(id) {
   fichaCarta.querySelector('.ficha-carta-campeones').innerHTML = j.campeones.length
     ? j.campeones.map(x => `<li><img src="${icono(x.id)}" alt=""><span><b>${escapar(campeones.nombre(x.id))}</b>
         <small>${x.partidas} ${x.partidas === 1 ? 'partida' : 'partidas'}, ${x.victorias}–${x.derrotas}${x.kda ? ` · KDA ${cifra(x.kda.ratio)}` : ''}</small></span></li>`).join('')
-    : '<li class="vacio">Aún no ha jugado en Tenka Ichi.</li>';
+    : '<li class="vacio">Aún no ha jugado en Gokudō.</li>';
   if (!fichaCarta.open) fichaCarta.showModal();
 }
 
@@ -350,7 +350,7 @@ function abrirCartaLegacy(x) {
   fichaCarta.querySelector('.ficha-carta-quien').textContent = `Carta Legacy · ${x.subtitulo}`;
   fichaCarta.querySelector('.ficha-carta-datos').innerHTML = '';
   fichaCarta.querySelector('h4').hidden = true;
-  fichaCarta.querySelector('.ficha-carta-campeones').innerHTML = `<li class="vacio">Carta de colección de ${escapar(nombre(x.clan))}, el equipo Legacy de Koryu Budo. No está entre las cartas normales de los sobres: de vez en cuando sale una de regalo, como carta extra. No se alinea en el fantasy.</li>`;
+  fichaCarta.querySelector('.ficha-carta-campeones').innerHTML = `<li class="vacio">Carta de colección de ${escapar(nombre(x.clan))}, la familia Legacy de Gokudō. No está entre las cartas normales de los sobres: de vez en cuando sale una de regalo, como carta extra. No se alinea en el fantasy.</li>`;
   if (!fichaCarta.open) fichaCarta.showModal();
 }
 

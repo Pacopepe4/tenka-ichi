@@ -348,3 +348,13 @@ Diseño aprobado en `docs/superpowers/specs/2026-10-04-ingame-mejoras-design.md`
 - Pruebas: 180 (`test/importaciones.test.js` nueva, contra la hoja de mentira; y en `test/cartas.test.js` la de la tier list entera).
 - **Dibujos de KEMONO** (en Flow, proyecto «Tenka Ichi · cartas», como los demás; referencias: el splash de cada campeón y la maestra KEMONO.jpeg, verde bosque #2E6B45): JAAVAA/Gwen, VASKOÑITO/Wukong, KUCHAUU/Elise, DOMENACHE/Samira y FROZENRONIN/Bardo. Originales en 2K en `koryu-budo/gachapón/`, versión web en `public/cartas/KEMONO-*.webp` y campeones en `data-proyecto/campeones-cartas.json`. Comprobadas en la carta de la web y en la imagen de Discord.
 - **Pendiente:** las tiers de SARU, KAIJU, ATSUI, TORA y BUSHI, y el top de TORA (y su carta, que se rehace con su campeón).
+
+## 07/11: la web y el gachapon pasan a Gokudō
+
+- **Lo que pidió el usuario:** «Lanza la web actualizada y el gachapón también».
+- **Familias en lugar de clanes** (`server/clanes.js`): cada clan es la familia de su color (ATSUI→Ryūjin, TORA→Byakko, KEMONO→Tengu, SARU→Tsuki, KAIJU→Yasha, BUSHI→Akuma, AMATERATSU→Shinigami). El id no cambia: con él están en la hoja las plantillas, la tier list, las cartas y las colecciones del gachapon. Logos (`public/logos/`) sacados de los iconos de familia y arte (`public/clanes/`) de los kamon (Byakko, con su icono nuevo hasta que tenga kamon).
+- **Lema y descripción nuevos en la hoja publicada:** importación «2026-11-07 familias de Gokudō» con el campo nuevo `fichas` (`server/importaciones.js`), que cambia lema y descripción sin tocar a los jugadores.
+- **Marca:** logo de Gokudō (`public/marca/gokudo.png`) en la barra, el pie, el favicon, el emblema de las BOOST y la placa de cámara del ingame; textos de la portada, el gachapon, la guía y las imágenes para Discord con Gokudō y familias; sobre «Sobre de Gokudō» con 極道.
+- **Twitch:** el canal es `gokudo_zoku` (reproductor de la portada y `CANAL_TWITCH` por defecto). La recompensa de puntos se llama «Sobre de Gokudō»: hay que conectar el canal nuevo desde el panel, y los puntos del canal solo existen si el canal es afiliado.
+- Sin tocar: la dirección tenka-ichi.onrender.com (la usan Discord y los inicios de sesión), el overlay del draft (fase 3) y `data-proyecto/familias.json` (lo lleva el PR de Discord).
+- Pruebas: 211.

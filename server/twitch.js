@@ -4,7 +4,7 @@ import { sesionesActivas } from './sesion.js';
 
 const ID = process.env.TWITCH_CLIENT_ID;
 const SECRETO = process.env.TWITCH_CLIENT_SECRET;
-export const CANAL = (process.env.CANAL_TWITCH || 'koryubudo').toLowerCase();
+export const CANAL = (process.env.CANAL_TWITCH || 'gokudo_zoku').toLowerCase();
 // Direcciones de Twitch; las pruebas las cambian por las de un Twitch falso (scripts/twitch-falso.js)
 const URL_ID = (process.env.TWITCH_URL_ID || 'https://id.twitch.tv').replace(/\/$/, '');
 const URL_API = (process.env.TWITCH_URL_API || 'https://api.twitch.tv/helix').replace(/\/$/, '');

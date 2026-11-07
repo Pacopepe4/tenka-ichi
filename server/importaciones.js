@@ -2,6 +2,7 @@
 // escribir en la hoja desde fuera sin la contraseña del panel: va en data-proyecto/importaciones.json, con un nombre.
 // Cada importación se aplica una sola vez, al arrancar la web publicada, y queda apuntada en Ajustes
 // («importaciones_hechas»): lo que el staff cambie después desde el panel no se vuelve a pisar.
+// Con «fichas» se cambian el lema y la descripción de un clan (lo que falte se queda como esté).
 // En una plantilla, un hueco que venga a null se queda como esté (para cambiar solo un puesto).
 // Con «quitarPartidas» saca de la hoja partidas de prueba (las de esos clanes jugadas antes de un día): sus filas de
 // «Registro» y «Estadisticas» pasan antes a «RegistroQuitadas» y «EstadisticasQuitadas», así que no se borra nada.
@@ -65,6 +66,11 @@ export async function aplicarImportaciones() {
       const antes = plantilla(clan)?.jugadores;
       if (!antes) throw new Error(`${imp.nombre}: no existe el clan ${clan}`);
       await guardarPlantilla(clan, { jugadores: antes.map((j, i) => (jugadores[i] == null ? j : String(jugadores[i]))) });
+    }
+    // «fichas»: el lema y la descripción de un clan (p. ej. al pasar los clanes a las familias de Gokudō)
+    for (const [clan, ficha] of Object.entries(imp.fichas || {})) {
+      if (!plantilla(clan)) throw new Error(`${imp.nombre}: no existe el clan ${clan}`);
+      await guardarPlantilla(clan, { lema: ficha?.lema, descripcion: ficha?.descripcion });
     }
     const tiers = Object.entries(imp.tiers || {});
     for (const [id, tier] of tiers) ponerTier('jugador', id, tier);
