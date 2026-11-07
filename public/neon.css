@@ -1,0 +1,148 @@
+/* Gokudō · diseño B, «callejón de neón» (elegido por el usuario el 07/11/2026): la noche de Tokio y el drift.
+   Va encima de inicio.css (y de gachapon.css) en la portada y el gachapon: cambia los tokens de marca a la noche
+   (asfalto, callejón y el bermellón encendido como un neón), pone la letra de rótulo inclinada en los títulos y
+   rehace la portada con la calle mojada y el letrero 極道. Quitar el <link> devuelve el diseño de Tenka Ichi.
+   El panel, la guía y el overlay no lo cargan. */
+:root {
+  --sumi: #07080C;          /* asfalto de noche: fondo */
+  --sumi-alzado: #12131A;   /* callejón: placas */
+  --sumi-linea: #23242F;
+  --hai: #8D8A99;           /* ceniza con tinte índigo */
+  --shu: #E0303A;           /* bermellón de neón */
+  --shu-claro: #FF4D57;
+  --oro: #FF4D57;           /* los remates que eran de oro pasan a neón; el oro de verdad queda para Shinigami y las S+ */
+  --oro-viejo: #8E2229;
+  --noche: #07080C;
+  --papel: #0C0D13; --tinta-papel: #E7DFD2; --hai-papel: #A7A3B3;
+  /* La lluvia: rayas finas en diagonal en lugar del grano de papel */
+  --grano: repeating-linear-gradient(105deg, rgba(231, 223, 210, .028) 0 1px, transparent 1px 9px);
+  --grano-papel: linear-gradient(transparent, transparent);
+  --filo: 0 0 0 1px rgba(7, 8, 12, .8);
+  --brillo-neon: 0 0 6px #FF4D57, 0 0 18px #E0303A, 0 0 40px #E0303A;
+  --kin: #EBD28A;           /* el oro de Shinigami (Legacy) */
+}
+::selection { background: var(--shu); color: #07080C; }
+
+/* ---------- Títulos: letra de rótulo, inclinada ---------- */
+.portada h1, .cabecera-seccion h2, .directo-texto h2, .titulo-seccion h2, .titulo-reglas, .cabeza-gacha h1 {
+  font-family: var(--rotulo); font-weight: 400; letter-spacing: .01em; transform: skewX(-12deg); transform-origin: left bottom; }
+.legado-texto h3, .bloque h3, .camino h3, .fantasy h3, .elegir h3, .fundir h3, .mi-tier-cabecera h3, .ficha h3, .ficha-carta h3 {
+  font-family: var(--rotulo); font-weight: 400; letter-spacing: .01em; }
+.cabecera-seccion h2, .titulo-seccion h2 { text-transform: uppercase; }
+/* El resto de rótulos, cifras y nombres que iban en mincho (los kanji de sellos y letreros siguen en mincho) */
+:is(.playoffs-cabecera h3, .ronda h4, .fila-serie b, .campeon b, .ficha h4, .ficha-carta h4, .ficha-carta-datos dd, .cierre p,
+  .clasificacion-fantasy .cuanto, .clasificacion-fantasy .puesto, .ranking-fantasy .puesto, .ranking-fantasy .puntos, .elegir .opcion-rol b,
+  .fila-prob .cifra, .fila-prob .letra, .hueco-ali .rol-ali, .opcion-fundir output, .reglas b, .sorteo-cabecera h3, .sorteo-cuenta b,
+  .tab-jornada h4, .tabla-puntos .letra-tier, .tabla-puntos .total, .titulo-boost, .foco-nombre, .cuenta-numeros b) {
+  font-family: var(--rotulo); font-weight: 400; }
+/* El sello con el kanji de cada sección pasa a ser un letrero de neón */
+.marca-seccion { background: transparent; color: #FFE9EA; border: 2px solid var(--shu-claro); border-radius: 8px; transform: none;
+  box-shadow: 0 0 14px rgba(224, 48, 58, .6), inset 0 0 10px rgba(224, 48, 58, .4); text-shadow: var(--brillo-neon); }
+.cabecera-seccion[data-kanji]::after, .titulo-seccion[data-kanji]::after { -webkit-text-stroke-color: rgba(224, 48, 58, .13); }
+/* Las líneas de las bandas en diagonal: neón en vez de oro */
+.clanes::before, .formato::before, .formato::after, .fantasy-portada::before, .fantasy-portada::after, .cierre::before { background: var(--shu); }
+
+/* ---------- Barra ---------- */
+.barra { background: rgba(7, 8, 12, .9); border-bottom-color: var(--sumi-linea); }
+.marca { font-family: var(--rotulo); font-weight: 400; font-size: 21px; letter-spacing: .03em; }
+.marca span { display: inline-block; transform: skewX(-12deg); }
+.marca img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 2px var(--shu), 0 0 16px rgba(224, 48, 58, .6); }
+.barra nav a { font-size: 14px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.barra nav .enlace-gachapon { color: #07080C; font-weight: 900; }
+.barra nav .enlace-gachapon::after { box-shadow: 0 0 18px rgba(224, 48, 58, .55); }
+.enlace-kbstats { color: var(--hai); font-weight: 700; }
+.enlace-kbstats::before { border-color: var(--sumi-linea); }
+.enlace-kbstats:hover { color: #07080C; }
+.enlace-kbstats:hover::before { background: var(--washi); }
+
+/* ---------- Botones ---------- */
+.boton { color: #07080C; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.boton::before { box-shadow: 0 0 24px rgba(224, 48, 58, .55); }
+.boton:hover::before { box-shadow: 0 0 34px rgba(255, 77, 87, .75); }
+.boton-secundario { border: 2px solid var(--washi); border-radius: 0; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+.boton-secundario:hover { border-color: var(--shu-claro); color: var(--shu-claro); }
+.enlace-texto { color: var(--washi); text-decoration-color: var(--shu); }
+
+/* ---------- Portada: la calle mojada, el letrero 極道 y GOKUDŌ con líneas de velocidad ---------- */
+.portada { display: block; min-height: clamp(560px, calc(100svh - 64px), 900px);
+  background: linear-gradient(90deg, #07080C 0%, rgba(7, 8, 12, .9) 34%, rgba(7, 8, 12, .25) 72%, rgba(7, 8, 12, .55) 100%),
+    linear-gradient(0deg, #07080C 0%, transparent 32%), url(/marca/gokudo-calle.jpg) center right / cover no-repeat, #07080C; }
+.portada::before, .portada::after { display: none; }
+.portada-texto { display: flex; align-items: stretch; gap: clamp(24px, 4vw, 48px); max-width: 1320px; margin: 0 auto;
+  padding: clamp(72px, 10vw, 128px) var(--margen) clamp(80px, 11vw, 140px); }
+.letrero { flex: none; width: clamp(76px, 8vw, 104px); padding: 18px 0; border: 3px solid var(--shu-claro); border-radius: 14px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  box-shadow: 0 0 22px rgba(224, 48, 58, .75), inset 0 0 18px rgba(224, 48, 58, .45); animation: encender 2.4s .3s both; }
+.letrero span { font-family: var(--mincho); font-weight: 800; font-size: clamp(52px, 6vw, 72px); line-height: 1.05; color: #FFE9EA; text-shadow: var(--brillo-neon); }
+.titulo-neon { min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 20px; }
+.antetitulo { font-size: 13px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: var(--shu-claro); }
+.portada h1 { font-size: clamp(72px, 11vw, 150px); line-height: .9; text-transform: uppercase; text-shadow: 0 6px 30px rgba(0, 0, 0, .6); }
+.velocidad { display: flex; flex-direction: column; gap: 7px; width: min(520px, 100%); }
+.velocidad span { height: 5px; background: var(--shu); box-shadow: 0 0 10px rgba(224, 48, 58, .6); }
+.velocidad span:nth-child(2) { width: 82%; margin-left: 18%; }
+.velocidad span:nth-child(3) { width: 64%; margin-left: 36%; }
+.portada .lore { max-width: 30em; margin: 0; font-size: var(--t-entrada); color: #DDD5C8; }
+@keyframes encender { 0%, 8% { opacity: .15; } 10% { opacity: 1; } 12% { opacity: .3; } 16%, 100% { opacity: 1; } }
+@media (max-width: 760px) {
+  .portada { background-position: 70% center; min-height: 0; }
+  .portada-texto { flex-direction: column; gap: 18px; padding-top: 36px; }
+  /* En el móvil el letrero va encima, en horizontal, y el nombre ocupa todo el ancho */
+  .letrero { flex-direction: row; align-self: flex-start; width: auto; padding: 6px 16px; gap: 6px; border-width: 2px; border-radius: 10px; }
+  .letrero span { font-size: 34px; }
+  .portada h1 { font-size: 16.5vw; }
+  .cabeza-gacha h1 { font-size: 10.5vw; }
+  .canje-fila input { min-width: 0; }
+  .canje-fila .boton-secundario { padding-left: 14px; padding-right: 14px; }
+}
+@media (prefers-reduced-motion: reduce) { .letrero { animation: none; } }
+
+/* ---------- Familias: la baraja lleva el kamon de cada una ---------- */
+.carta { background: radial-gradient(90% 70% at 50% 38%, color-mix(in srgb, var(--color) 30%, #12131A), #0C0D13 72%); border-radius: 4px; }
+.carta::before { height: 3px; box-shadow: 0 0 14px var(--color); }
+.carta::after { border-color: var(--color); border-radius: 2px; }
+.carta img.arte.kamon { inset: 26px 20px auto; width: auto; height: auto; aspect-ratio: 1; border-radius: 50%; object-fit: cover;
+  box-shadow: 0 0 0 2px var(--color), 0 0 28px color-mix(in srgb, var(--color) 55%, transparent); }
+.carta .velo { background: linear-gradient(180deg, rgba(7, 8, 12, 0) 55%, rgba(7, 8, 12, .95) 86%); }
+.carta .nombre { font-family: var(--rotulo); font-weight: 400; font-size: 21px; transform: skewX(-10deg); transform-origin: left; white-space: nowrap; }
+.carta .lema { font-size: 13px; }
+.carta .kanji { color: color-mix(in srgb, var(--color) 60%, #E7DFD2); top: auto; bottom: 74px; right: 14px; font-size: 22px; }
+.carta.activa .lema { color: var(--washi); }
+.equipo-legado { border-color: rgba(235, 210, 138, .35); background: linear-gradient(100deg, rgba(235, 210, 138, .1), transparent 60%), rgba(18, 19, 26, .8); }
+.etiqueta-legacy { background: var(--kin); color: #07080C; }
+.ficha-arte img.kamon { object-fit: contain; padding: 12%; background: radial-gradient(circle, color-mix(in srgb, var(--color) 28%, #12131A), #07080C 70%); }
+.campeon img.kamon { object-fit: contain; padding: 10%; background: #07080C; }
+img.sin-carta { object-fit: contain; padding: 14%; }
+
+/* ---------- Liga ---------- */
+.tabla .puesto, .tabla .record { font-family: var(--rotulo); font-weight: 400; }
+.tabla tbody tr:first-child td { background: linear-gradient(180deg, rgba(224, 48, 58, .12), rgba(224, 48, 58, .03)), var(--sumi-alzado); }
+.tabla .clan-celda img, .lado-cruce img, .fila-serie img, .ficha-tier img, .jugador-celda img { border-radius: 50%; object-fit: cover; }
+.hora-cruce { color: var(--shu-claro); font-family: var(--rotulo); font-weight: 400; text-shadow: 0 0 12px rgba(224, 48, 58, .6); }
+.jornadas button, .tier-pestanas button, .filtros button { text-transform: uppercase; letter-spacing: .06em; }
+.cuenta-titulo { color: var(--shu-claro); }
+.cuenta-numeros > span { border-top-color: var(--shu); border-radius: 0; }
+.cuenta-numeros b { color: var(--shu-claro); text-shadow: 0 0 14px rgba(224, 48, 58, .6); }
+.camino .paso { font-family: var(--rotulo); font-weight: 400; }
+.camino .final .paso { box-shadow: 0 0 0 2px var(--papel), 0 0 18px rgba(224, 48, 58, .7); }
+
+/* ---------- Tier list ---------- */
+.tier-letra { font-family: var(--rotulo); font-weight: 400; }
+.tier-fila[data-tier="S"] .tier-letra { color: #07080C; }
+.tier-fila[data-tier="S"] { box-shadow: inset 0 0 0 1.5px var(--shu); }
+.filtro-rol button[aria-pressed="true"] { background: var(--shu); border-color: var(--shu); color: #07080C; }
+
+/* ---------- Cierre y pie ---------- */
+.cierre-kanji { color: transparent; -webkit-text-stroke: 2px var(--shu-claro); text-shadow: 0 0 30px rgba(224, 48, 58, .45); }
+footer img { border-radius: 50%; }
+
+/* ---------- Gachapon ---------- */
+.cabeza-gacha h1 { text-transform: uppercase; }
+.sobre::after { border-color: var(--shu-claro); box-shadow: 0 0 16px rgba(224, 48, 58, .6), inset 0 0 12px rgba(224, 48, 58, .35); }
+.sobre:not(:disabled):hover { filter: drop-shadow(0 0 34px rgba(224, 48, 58, .45)) drop-shadow(0 24px 40px rgba(0, 0, 0, .6)); }
+.sobre-papel { background: radial-gradient(circle at 50% 36%, #1A1B24, #07080C 70%); place-items: center; }
+.sobre-papel img { width: 66%; margin: 0 0 22%; border-radius: 50%; box-shadow: 0 0 0 3px #07080C, 0 0 0 5px var(--shu), 0 0 30px rgba(224, 48, 58, .5); }
+.sobre-banda { background: var(--shu); }
+.sobre-kanji, .sobre-texto { color: #07080C; }
+.sobre-texto { font-family: var(--rotulo); font-weight: 400; text-transform: uppercase; }
+.sobre-abriendo .mitad::before { border-color: var(--shu-claro); }
+.sobre-abriendo { filter: drop-shadow(0 0 40px rgba(224, 48, 58, .3)) drop-shadow(0 24px 40px rgba(0, 0, 0, .6)); }

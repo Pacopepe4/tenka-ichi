@@ -121,7 +121,7 @@ const imagen = () => {
     jugadores: (deRol ? lista() : info.jugadores).map(j => ({ ...j, tier: mia.jugadores[j.id] || null })),
     equipos: deRol ? [] : info.equipos.map(e => ({ ...e, tier: mia.equipos[e.id] || null })),
     nombreClan: id => clan(id).nombre, tiers: TIERS, ruta: '/#mitierlist',
-    titulo: `${info.entrado ? `Tier list de ${info.nombre}` : 'Mi tier list de Tenka Ichi'}${deRol ? ` · ${ROL[rol]}` : ''}`,
+    titulo: `${info.entrado ? `Tier list de ${info.nombre}` : 'Mi tier list de Gokudō'}${deRol ? ` · ${ROL[rol]}` : ''}`,
   });
 };
 async function hacer(boton, fn) {

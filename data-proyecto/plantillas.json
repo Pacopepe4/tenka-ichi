@@ -1,7 +1,7 @@
 {
  "SARU": {
-  "lema": "El Rey Mono",
-  "descripcion": "Fuerza y agilidad infinitas. Arrogante: lucha por diversión, no por honor.",
+  "lema": "El lobo de la luna",
+  "descripcion": "Caza de noche y en manada. Cuando sale la luna llena, nadie le cierra el paso.",
   "jugadores": [
    "KINGKAI",
    "MITSU",
@@ -13,8 +13,8 @@
   "opgg": ""
  },
  "ATSUI": {
-  "lema": "El Samurái del Fuego Azul",
-  "descripcion": "Llama pura. Rápido y pasional: su fuego consume energía, no carne.",
+  "lema": "El dios dragón del mar",
+  "descripcion": "Manda en el puerto y en las olas. Paciente como la marea, implacable cuando sube.",
   "jugadores": [
    "GAATSU",
    "SOLET",
@@ -26,8 +26,8 @@
   "opgg": ""
  },
  "KAIJU": {
-  "lema": "El Samurái Berserker",
-  "descripcion": "Transformación bestial. Su fuerza crece con cada golpe que recibe.",
+  "lema": "El demonio guardián",
+  "descripcion": "Guarda su territorio con furia: cuanto más le golpean, más fuerte devuelve.",
   "jugadores": [
    "DESPO",
    "JLEGEND",
@@ -39,8 +39,8 @@
   "opgg": ""
  },
  "KEMONO": {
-  "lema": "El Rey de las Bestias",
-  "descripcion": "Mimetismo animal. Astucia, camuflaje y hambre.",
+  "lema": "El cuervo de las montañas",
+  "descripcion": "Vigila desde lo alto y cae en picado. Disciplina de montaña y ojos en todas partes.",
   "jugadores": [
    "JAAVAA",
    "VASKOÑITO",
@@ -52,8 +52,8 @@
   "opgg": "https://op.gg/es/lol/multisearch/euw?summoners=Vascoñito%23EUW%2CGC+Daidak%23EUW%2CDoB+Domenache%23DoB%2CFrozenRonin%23EMEA%2C331+JAAVAA%23FTV%2CDusked%23ttv%2Cenm+taz%23enm%2CKuchau%231000%2C%2C"
  },
  "TORA": {
-  "lema": "El Samurái Tigre",
-  "descripcion": "Garras de espíritu. Orgulloso y felino: ataca solo con ventaja.",
+  "lema": "El zorro de nueve colas",
+  "descripcion": "Engaña, se esconde y vuelve con fuego. Nunca pelea donde lo esperan.",
   "jugadores": [
    "",
    "",
@@ -65,8 +65,8 @@
   "opgg": "https://op.gg/es/lol/multisearch/euw?summoners=Manu%23zzzx%2CTHC+Jeeda%23ESP%2CPablosky15%238888%2CNarcïso%23ADC%2Cel+64%236969%2Csporfu%23LPS%2CUnleashed+Power%23EUW2%2CDavanyr%23KILL"
  },
  "BUSHI": {
-  "lema": "El Rey Guerrero",
-  "descripcion": "Aura de guerra y dominio técnico absoluto. Combate tradicional puro.",
+  "lema": "El demonio de la máscara",
+  "descripcion": "La máscara hannya y el bermellón: la familia más agresiva de la ciudad.",
   "jugadores": [
    "PROMETEO",
    "TUSKY",
@@ -78,8 +78,8 @@
   "opgg": ""
  },
  "AMATERATSU": {
-  "lema": "La Reina del Sol",
-  "descripcion": "Luz y fuego negro. Busca vencer en equilibrio, nunca por la espalda.",
+  "lema": "El dios de la muerte",
+  "descripcion": "Los veteranos de la casa. Ya no pelean por el territorio: lo vigilan desde el otro lado.",
   "jugadores": [
    "GAATSU",
    "DEXTYLE",

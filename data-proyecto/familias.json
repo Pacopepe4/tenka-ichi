@@ -1,47 +1,54 @@
 {
-  "_nota": "Familias de Gokudō: el único sitio con sus nombres. El 'id' no se cambia (con él se encuentran sus canales y roles en Discord); 'nombre', 'kanji' y 'color' sí, y luego npm run discord-aplicar renombra canales y roles. 'legacy': true es la familia de la organización que no compite.",
+  "_nota": "Familias de Gokudō: el único sitio con sus nombres. El 'id' no se cambia (con él se encuentran sus canales y roles en Discord); 'nombre', 'kanji' y 'color' sí, y luego npm run discord-aplicar renombra canales y roles. 'legacy': true es la familia de la organización que no compite. 'clan' es el id del clan de Tenka Ichi que pasa a ser esa familia en la web (server/clanes.js): sus plantillas, tiers, cartas y resultados siguen guardados con ese id.",
   "familias": [
     {
       "id": "familia-1",
       "nombre": "Ryūjin",
       "kanji": "竜神",
-      "color": "#39C6F0"
+      "color": "#39C6F0",
+      "clan": "ATSUI"
     },
     {
       "id": "familia-2",
       "nombre": "Kitsune",
       "kanji": "狐",
-      "color": "#EE7B2B"
+      "color": "#EE7B2B",
+      "clan": "TORA"
     },
     {
       "id": "familia-3",
       "nombre": "Tengu",
       "kanji": "天狗",
-      "color": "#2E6B45"
+      "color": "#2E6B45",
+      "clan": "KEMONO"
     },
     {
       "id": "familia-4",
       "nombre": "Tsuki",
       "kanji": "月",
-      "color": "#A9722F"
+      "color": "#A9722F",
+      "clan": "SARU"
     },
     {
       "id": "familia-5",
       "nombre": "Yasha",
       "kanji": "夜叉",
-      "color": "#5FA341"
+      "color": "#5FA341",
+      "clan": "KAIJU"
     },
     {
       "id": "familia-6",
       "nombre": "Akuma",
       "kanji": "悪魔",
-      "color": "#C1272D"
+      "color": "#C1272D",
+      "clan": "BUSHI"
     },
     {
       "id": "legacy",
       "nombre": "Shinigami",
       "kanji": "死神",
       "color": "#EBD28A",
+      "clan": "AMATERATSU",
       "legacy": true
     }
   ]

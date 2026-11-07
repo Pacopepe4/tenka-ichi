@@ -5,9 +5,11 @@
 import { logo, cargarClanes } from '/comun.js';
 import { emblemaDe } from '/carta.js';
 
-const MINCHO = "'Shippori Mincho B1', 'Yu Mincho', serif";
 const GOTHIC = "'Zen Kaku Gothic New', 'Yu Gothic', 'Segoe UI', sans-serif";
-const C = { sumi: '#161412', alzado: '#221E1A', linea: '#353029', washi: '#E7DFD2', hai: '#8E8676', shu: '#BE2A2F', tinta: '#1D1A17', oro: '#EBD28A', oroViejo: '#B39A5E' };
+// La letra de rótulo de Gokudō (títulos y nombres de las cartas), como --rotulo en marca.css
+const ROTULO = "'Dela Gothic One', 'Zen Kaku Gothic New', sans-serif";
+// La noche de Gokudō: asfalto, callejón y el bermellón de neón (diseño B, 07/11/2026)
+const C = { sumi: '#07080C', alzado: '#12131A', linea: '#23242F', washi: '#E7DFD2', hai: '#8D8A99', shu: '#E0303A', tinta: '#1D1A17', oro: '#EBD28A', oroViejo: '#B39A5E', panel: '#0C0D13', gris: '#A7A3B3' };
 // El podio del fantasy: oro, plata y bronce, como en la web
 const METAL = { 1: C.oro, 2: '#B9C1C8', 3: '#B5814F' };
 const COLOR_TIER = { LEGACY: '#EBD28A', 'S+': '#9A6AD0', S: '#BE2A2F', A: '#D9A441', B: '#A9B3BC', C: '#7FA36B', D: '#8A8175' };
@@ -33,7 +35,7 @@ function imagen(src) {
 }
 
 async function fuentes() {
-  await Promise.all([`800 40px ${MINCHO}`, `700 20px ${GOTHIC}`, `400 20px ${GOTHIC}`].map(f => document.fonts.load(f)));
+  await Promise.all([`400 40px ${ROTULO}`, `700 20px ${GOTHIC}`, `400 20px ${GOTHIC}`].map(f => document.fonts.load(f)));
 }
 
 function lienzo(alto) {
@@ -78,14 +80,6 @@ function mezclar(a, b, cuanto) {
   return `rgb(${x.map((v, i) => Math.round(v * cuanto + y[i] * (1 - cuanto))).join(', ')})`;
 }
 
-// El filo de oro: una raya que va del oro viejo al oro y vuelve, como los cortes de la web
-function rayaDeOro(ctx, x, y, ancho, grosor) {
-  const oro = ctx.createLinearGradient(x, 0, x + ancho, 0);
-  oro.addColorStop(0, C.oroViejo); oro.addColorStop(0.5, C.oro); oro.addColorStop(1, C.oroViejo);
-  ctx.fillStyle = oro;
-  ctx.fillRect(x, y, ancho, grosor);
-}
-
 // El color de cada clan, para el canto de las fichas. Si no se pueden pedir, las fichas van sin color
 let coloresDeClan = null;
 const colorDeClan = async id => {
@@ -93,33 +87,72 @@ const colorDeClan = async id => {
   return (await coloresDeClan).get(id) || C.linea;
 };
 
-// Las repetidas: una pastilla de oro con cuántas hay, abajo a la derecha, como en el álbum de la web
-function pastillaCantidad(ctx, cantidad, x, y, w, h) {
-  if (!(cantidad > 1)) return;
-  const u = w / 100, t = `×${cantidad}`, fuente = `800 ${7.5 * u}px ${MINCHO}`;
-  ctx.font = fuente;
-  const ancho = ctx.measureText(t).width + 6 * u, alto = 11 * u, px = x + w - 5 * u - ancho, py = y + h - 5 * u - alto;
+// Texto inclinado como la letra de rótulo de la web (transform: skewX(-10deg))
+function textoInclinado(ctx, t, x, y, opciones, grados = -10) {
   ctx.save();
-  ctx.shadowColor = 'rgba(0, 0, 0, .5)'; ctx.shadowBlur = 2 * u; ctx.shadowOffsetY = u;
-  ctx.fillStyle = C.oro;
-  ctx.beginPath();
-  ctx.roundRect(px, py, ancho, alto, alto / 2);
-  ctx.fill();
+  ctx.translate(x, y);
+  ctx.transform(1, 0, Math.tan(grados * Math.PI / 180), 1, 0, 0);
+  texto(ctx, t, 0, 0, opciones);
   ctx.restore();
-  texto(ctx, t, px + ancho / 2, py + alto / 2 + 0.4 * u, { fuente, color: C.sumi, alinear: 'center', base: 'middle' });
 }
 
-// Cabecera: título, línea de datos, el sol partido (tal cual) y la raya de oro
+// Una placa inclinada con un texto en oscuro: la tier de las cartas y las repetidas, como en la web
+function placa(ctx, t, x, y, { alto, fondo, fuente, minimo = 0 }) {
+  ctx.font = fuente;
+  const ancho = Math.max(minimo, ctx.measureText(t).width + alto * 0.5), sesgo = Math.tan(12 * Math.PI / 180) * alto;
+  ctx.save();
+  ctx.shadowColor = 'rgba(0, 0, 0, .55)'; ctx.shadowBlur = alto * 0.25; ctx.shadowOffsetY = alto * 0.08;
+  ctx.fillStyle = fondo;
+  ctx.beginPath();
+  ctx.moveTo(x + sesgo, y); ctx.lineTo(x + ancho + sesgo, y); ctx.lineTo(x + ancho, y + alto); ctx.lineTo(x, y + alto);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+  texto(ctx, t, x + sesgo / 2 + ancho / 2, y + alto / 2 + alto * 0.04, { fuente, color: C.sumi, alinear: 'center', base: 'middle' });
+  return ancho + sesgo;
+}
+
+// Las repetidas: una placa de neón con cuántas hay, abajo a la derecha, como en el álbum de la web
+function pastillaCantidad(ctx, cantidad, x, y, w, h) {
+  if (!(cantidad > 1)) return;
+  const u = w / 100, t = `×${cantidad}`, fuente = `400 ${5.4 * u}px ${ROTULO}`, alto = 8.4 * u;
+  ctx.font = fuente;
+  const ancho = ctx.measureText(t).width + 4.2 * u + Math.tan(12 * Math.PI / 180) * alto;
+  placa(ctx, t, x + w - 5 * u - ancho, y + h - 5 * u - alto, { alto, fondo: C.shu, fuente });
+}
+
+// Un kamon redondo con su aro de color, como .carta-g .logo
+function kamon(ctx, img, cx, cy, r, aro) {
+  ctx.save();
+  ctx.fillStyle = aro;
+  ctx.beginPath(); ctx.arc(cx, cy, r * 1.16, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = C.sumi;
+  ctx.beginPath(); ctx.arc(cx, cy, r * 1.08, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.clip();
+  ctx.drawImage(img, cx - r, cy - r, 2 * r, 2 * r);
+  ctx.restore();
+}
+
+// La raya de neón bermellón, con su brillo
+function rayaDeNeon(ctx, x, y, ancho, grosor) {
+  ctx.save();
+  ctx.shadowColor = 'rgba(224, 48, 58, .8)'; ctx.shadowBlur = 14;
+  ctx.fillStyle = C.shu;
+  ctx.fillRect(x, y, ancho, grosor);
+  ctx.restore();
+}
+
+// Cabecera: título en letra de rótulo, línea de datos, el komainu de Gokudō (tal cual) y la raya de neón
 async function cabecera(ctx, titulo, subtitulo) {
-  texto(ctx, titulo, MARGEN, 118, { fuente: `800 64px ${MINCHO}`, ancho: ANCHO - 2 * MARGEN - 190 });
+  textoInclinado(ctx, titulo, MARGEN, 118, { fuente: `400 60px ${ROTULO}`, ancho: ANCHO - 2 * MARGEN - 200 });
   texto(ctx, subtitulo, MARGEN, 166, { fuente: `400 28px ${GOTHIC}`, color: C.hai, ancho: ANCHO - 2 * MARGEN - 190 });
-  const sol = await imagen('/marca/sol-partido-sin-fondo.png');
-  if (sol) contener(ctx, sol, ANCHO - MARGEN - 150, 34, 150, 150);
-  rayaDeOro(ctx, MARGEN, 198, ANCHO - 2 * MARGEN, 3);
+  const komainu = await imagen('/marca/gokudo.png');
+  if (komainu) kamon(ctx, komainu, ANCHO - MARGEN - 72, 108, 68, C.shu);
+  rayaDeNeon(ctx, MARGEN, 198, ANCHO - 2 * MARGEN, 3);
 }
 
 function pie(ctx, alto, ruta) {
-  texto(ctx, '天下一 · Tenka Ichi', MARGEN, alto - 32, { fuente: `800 24px ${MINCHO}`, color: C.hai });
+  texto(ctx, '極道 · Gokudō', MARGEN, alto - 32, { fuente: `400 24px ${ROTULO}`, color: C.hai });
   texto(ctx, `${DIRECCION}${ruta}`, ANCHO - MARGEN, alto - 32, { fuente: `400 22px ${GOTHIC}`, color: C.hai, alinear: 'right' });
 }
 
@@ -129,43 +162,57 @@ const aImagen = (c, tipo = 'image/jpeg') => new Promise(ok => c.toBlob(ok, tipo,
 // La carta se dibuja dos veces: en la web con carta.js y carta.css, y aquí en un lienzo para las imágenes de Discord.
 // Lo que cambie en un sitio se cambia en el otro en el mismo cambio: tienen que verse igual
 export async function dibujarCarta(ctx, c, x, y, w, { cantidad = 1, nombreClan = id => id } = {}) {
-  const h = Math.round(w * 1.4);
+  const h = Math.round(w * 1.4), u = w / 100;
   const boost = c.tipo === 'boost', legado = c.tipo === 'legacy';
-  const quien = boost || legado ? (c.subtitulo || (legado ? 'Legacy' : 'Boost')) : `${ROL[c.rol] || c.rol} de ${nombreClan(c.clan)}`;
-  // Las «full art» van a carta completa, como en la web; si su dibujo no carga, salen con su marco de siempre.
-  // Las LEGACY van siempre a carta completa: con su dibujo vertical o, mientras no lo tengan, con el que haya
-  const [arte, marco, emblema, vertical] = await Promise.all([imagen(c.arte), imagen(c.marco), imagen(emblemaDe(c)), imagen(c.fullart)]);
+  const quien = boost || legado ? (c.subtitulo || (legado ? 'Legacy' : 'Boost')) : `${ROL[c.rol] || c.rol} · ${nombreClan(c.clan)}`;
+  // Las «full art» van a carta completa, como en la web. Las LEGACY van siempre a carta completa: con su dibujo
+  // vertical o, mientras no lo tengan, con el que haya
+  const [arte, emblema, vertical] = await Promise.all([imagen(c.arte || (c.clan ? logo(c.clan) : null)), imagen(emblemaDe(c)), imagen(c.fullart)]);
   const completa = vertical || (legado ? arte : null);
   ctx.save();
   ctx.beginPath();
-  ctx.roundRect(x, y, w, h, w * 0.04);
+  ctx.roundRect(x, y, w, h, u);
   ctx.clip();
-  ctx.fillStyle = C.sumi;
+  ctx.fillStyle = C.panel;
   ctx.fillRect(x, y, w, h);
   if (completa) {
     dibujarCompleta(ctx, c, { x, y, w, h, completa, emblema, quien, cantidad, alto: vertical ? 0.5 : 0.3 });
-  } else if (marco) {
-    // Con marco: el dibujo en su ventana y los textos en tinta sobre las placas de papel
-    if (arte) cubrir(ctx, arte, x + w * 0.125, y + h * 0.2014, w * 0.75, h * 0.5357);
-    ctx.drawImage(marco, x, y, w, h);
-    if (emblema) contener(ctx, emblema, x + w * 0.83, y + h * 0.046, w * 0.09, h * 0.084);
-    texto(ctx, c.nombre, x + w * 0.08, y + h * 0.088, { fuente: `800 ${w * 0.072}px ${MINCHO}`, color: C.tinta, base: 'middle', ancho: w * 0.72 });
-    texto(ctx, quien, x + w * 0.1, y + h * 0.764, { fuente: `700 ${w * 0.05}px ${GOTHIC}`, color: C.tinta, base: 'top', ancho: w * 0.8 });
-    if (c.bonus) texto(ctx, c.bonus.etiqueta, x + w * 0.1, y + h * 0.764 + w * 0.08, { fuente: `800 ${w * 0.05}px ${GOTHIC}`, color: C.tinta, base: 'top', ancho: w * 0.8 });
   } else {
-    // Sin marco: el dibujo a sangre con un velo, el sello de la tier y los textos en claro
-    if (arte) cubrir(ctx, arte, x, y, w, h);
-    const velo = ctx.createLinearGradient(0, y + h * 0.4, 0, y + h * 0.84);
-    velo.addColorStop(0, 'rgba(22,20,18,0)');
-    velo.addColorStop(1, 'rgba(22,20,18,0.94)');
+    // El dibujo arriba, en cuadrado, con un velo hacia el panel de abajo
+    if (arte) cubrir(ctx, arte, x, y, w, w);
+    const velo = ctx.createLinearGradient(0, y + w * 0.7, 0, y + w);
+    velo.addColorStop(0, 'rgba(7,8,12,0)');
+    velo.addColorStop(1, 'rgba(12,13,19,0.9)');
     ctx.fillStyle = velo;
-    ctx.fillRect(x, y, w, h);
-    ctx.fillStyle = COLOR_TIER[c.tier] || C.hai;
-    ctx.fillRect(x + w * 0.05, y + w * 0.05, w * 0.2, w * 0.2);
-    texto(ctx, c.tier, x + w * 0.15, y + w * 0.15, { fuente: `800 ${w * 0.12}px ${MINCHO}`, color: ['S', 'S+'].includes(c.tier) ? C.washi : C.sumi, alinear: 'center', base: 'middle' });
-    if (emblema) contener(ctx, emblema, x + w * 0.74, y + w * 0.05, w * 0.2, w * 0.19);
-    texto(ctx, c.nombre, x + w * 0.06, y + h * 0.86, { fuente: `800 ${w * 0.11}px ${MINCHO}`, ancho: w * 0.86 });
-    texto(ctx, quien, x + w * 0.06, y + h * 0.94, { fuente: `400 ${w * 0.06}px ${GOTHIC}`, color: '#CFC6B6', ancho: w * 0.86 });
+    ctx.fillRect(x, y, w, w);
+    // Las S y S+, holográficas: un reflejo que cruza el dibujo
+    if (['S', 'S+'].includes(c.tier)) {
+      const reflejo = ctx.createLinearGradient(x, y, x + w, y + w * 0.6);
+      reflejo.addColorStop(0.22, 'rgba(255,255,255,0)');
+      reflejo.addColorStop(0.38, 'rgba(255,255,255,0.16)');
+      reflejo.addColorStop(0.46, 'rgba(120,220,255,0.14)');
+      reflejo.addColorStop(0.54, 'rgba(255,120,200,0.12)');
+      reflejo.addColorStop(0.7, 'rgba(255,255,255,0)');
+      ctx.fillStyle = reflejo;
+      ctx.fillRect(x, y, w, w);
+    }
+    // La tier en su placa inclinada y el kamon de la familia en su círculo
+    const color = c.tier === 'S' ? C.shu : c.tier === 'S+' ? C.oro : COLOR_TIER[c.tier] || C.hai;
+    placa(ctx, c.tier, x + 4.5 * u, y + 4.5 * u, { alto: 11 * u, fondo: color, fuente: `400 ${(c.tier === 'S+' ? 6.4 : 7.4) * u}px ${ROTULO}`, minimo: 17 * u });
+    if (emblema) kamon(ctx, emblema, x + w - 11.5 * u, y + 11.5 * u, 7.5 * u, color);
+    // Debajo: el nombre en letra de rótulo, inclinado, y el rol con su familia (o lo que hace la BOOST)
+    const lineas = c.bonus ? [106, 119, 130] : [107, 122];
+    textoInclinado(ctx, c.nombre, x + 6 * u, y + lineas[0] * u, { fuente: `400 ${10.5 * u}px ${ROTULO}`, base: 'middle', ancho: w * 0.86 });
+    texto(ctx, quien.toUpperCase(), x + 6 * u, y + lineas[1] * u, { fuente: `700 ${4.6 * u}px ${GOTHIC}`, color: C.gris, base: 'middle', ancho: w * 0.88 });
+    if (c.bonus) texto(ctx, c.bonus.etiqueta, x + 6 * u, y + lineas[2] * u, { fuente: `800 ${4.6 * u}px ${GOTHIC}`, base: 'middle', ancho: w * 0.88 });
+    // El brillo de la tier en el borde: D y C mate, B con canto de color, A y S con neón, S+ en oro
+    ctx.save();
+    if (c.tier === 'B') { ctx.fillStyle = COLOR_TIER.B; ctx.fillRect(x, y + h - 1.6 * u, w, 1.6 * u); }
+    ctx.strokeStyle = { A: COLOR_TIER.A, S: C.shu, 'S+': C.oro }[c.tier] || C.linea;
+    ctx.lineWidth = ['A', 'S', 'S+'].includes(c.tier) ? 1.6 * u : Math.max(1, 0.4 * u);
+    if (['S', 'S+'].includes(c.tier)) { ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 3 * u; }
+    ctx.strokeRect(x, y, w, h);
+    ctx.restore();
   }
   pastillaCantidad(ctx, cantidad, x, y, w, h);
   ctx.restore();
@@ -207,7 +254,7 @@ function dibujarCompleta(ctx, c, { x, y, w, h, completa, emblema, quien, cantida
   ctx.save();
   if (c.tier === 'LEGACY') {
     // Las letras van espaciadas, así que se pintan una a una
-    ctx.font = `800 ${4.4 * u}px ${MINCHO}`;
+    ctx.font = `400 ${4.4 * u}px ${ROTULO}`;
     const letras = [...'LEGACY'], espacio = 0.6 * u;
     const largo = letras.reduce((s, l) => s + ctx.measureText(l).width + espacio, 0), ancho = largo + 7 * u, altoPlaca = 9 * u;
     ctx.translate(x + 6 * u + ancho / 2, y + 6 * u + altoPlaca / 2);
@@ -221,18 +268,12 @@ function dibujarCompleta(ctx, c, { x, y, w, h, completa, emblema, quien, cantida
     let px = -largo / 2 + espacio / 2;
     for (const l of letras) { texto(ctx, l, px, 0.3 * u, { fuente: ctx.font, color: C.sumi, base: 'middle' }); px += ctx.measureText(l).width + espacio; }
   } else {
-    ctx.translate(x + 12.5 * u, y + 12.5 * u);
-    ctx.rotate(-4 * Math.PI / 180);
-    sombra(2.4, 0.5);
-    ctx.fillStyle = COLOR_TIER[c.tier] || C.hai;
-    ctx.beginPath();
-    ctx.roundRect(-6.5 * u, -6.5 * u, 13 * u, 13 * u, 0.9 * u);
-    ctx.fill();
-    sinSombra();
-    texto(ctx, c.tier, 0, 0.3 * u, { fuente: `800 ${6.2 * u}px ${MINCHO}`, color: ['S', 'S+'].includes(c.tier) ? C.washi : C.sumi, alinear: 'center', base: 'middle' });
+    // La tier en su placa inclinada, como en la carta con el dibujo arriba
+    const color = c.tier === 'S' ? C.shu : c.tier === 'S+' ? C.oro : COLOR_TIER[c.tier] || C.hai;
+    placa(ctx, c.tier, x + 6 * u, y + 6 * u, { alto: 11 * u, fondo: color, fuente: `400 ${(c.tier === 'S+' ? 6.4 : 7.4) * u}px ${ROTULO}`, minimo: 17 * u });
   }
   ctx.restore();
-  if (emblema) { sombra(1.2, 0.7); contener(ctx, emblema, x + w - 18.5 * u, y + 6 * u, 12.5 * u, 12.5 * u); sinSombra(); }
+  if (emblema) kamon(ctx, emblema, x + w - 12.5 * u, y + 12.5 * u, 6.5 * u, ORO_CARTA);
 
   // Abajo, de abajo arriba: el multiplicador, lo que hace, el nombre y las estrellas
   const izquierda = x + 8 * u, ancho = w - 16 * u;
@@ -242,7 +283,7 @@ function dibujarCompleta(ctx, c, { x, y, w, h, completa, emblema, quien, cantida
   if (c.bonus) renglon(7.7, medio => texto(ctx, c.bonus.etiqueta, izquierda, medio, { fuente: `800 ${4.8 * u}px ${GOTHIC}`, color: CLARO_CARTA, base: 'middle', ancho }));
   renglon(7.7, medio => texto(ctx, quien, izquierda, medio, { fuente: `700 ${4.8 * u}px ${GOTHIC}`, color: ORO_CARTA, base: 'middle', ancho }));
   sombra(1.4, 0.95);
-  renglon(11, medio => texto(ctx, c.nombre, izquierda, medio, { fuente: `800 ${10 * u}px ${MINCHO}`, color: CLARO_CARTA, base: 'middle', ancho }));
+  renglon(11, medio => textoInclinado(ctx, c.nombre, izquierda, medio, { fuente: `400 ${10 * u}px ${ROTULO}`, color: CLARO_CARTA, base: 'middle', ancho }));
   sombra(0.8, 0.9);
   if (ESTRELLAS[c.tier]) renglon(6.4, medio => {
     ctx.font = `400 ${4 * u}px ${GOTHIC}`;
@@ -268,7 +309,7 @@ export async function imagenColeccion({ nombre, cartas, total, nombreClan }) {
   const [c, ctx] = lienzo(alto);
   const porTier = TIERS.map(t => [t, orden.filter(x => x.tier === t).length]).filter(([, n]) => n).map(([t, n]) => `${t} ×${n}`).join('  ·  ');
   await cabecera(ctx, `Colección de ${nombre}`, `${orden.length} de ${total} cartas${porTier ? `  ·  ${porTier}` : ''}`);
-  if (!mostradas.length) texto(ctx, 'Todavía no tiene cartas: ¡a abrir sobres!', ANCHO / 2, ARRIBA + h / 2, { fuente: `800 40px ${MINCHO}`, color: C.hai, alinear: 'center' });
+  if (!mostradas.length) texto(ctx, 'Todavía no tiene cartas: ¡a abrir sobres!', ANCHO / 2, ARRIBA + h / 2, { fuente: `400 40px ${ROTULO}`, color: C.hai, alinear: 'center' });
   for (let i = 0; i < mostradas.length; i++) {
     await dibujarCarta(ctx, mostradas[i], MARGEN + (i % columnas) * (w + hueco), ARRIBA + Math.floor(i / columnas) * (h + hueco), w,
       { cantidad: mostradas[i].cantidad, nombreClan });
@@ -288,10 +329,10 @@ export async function imagenAlineacion({ nombre, alineacion, puntos = {}, boosts
   const alto = ARRIBA + 58 + h + 72 + (hayBoost ? altoBoost + 16 : 0) + 100;
   const [c, ctx] = lienzo(alto);
   const n = x => Number(x || 0).toLocaleString('es-ES');
-  await cabecera(ctx, `Alineación de ${nombre}`, `Fantasy de Tenka Ichi  ·  ${n(total)} ${total === 1 ? 'punto' : 'puntos'}${puesto ? `  ·  ${puesto}.º en la clasificación` : ''}`);
+  await cabecera(ctx, `Alineación de ${nombre}`, `Fantasy de Gokudō  ·  ${n(total)} ${total === 1 ? 'punto' : 'puntos'}${puesto ? `  ·  ${puesto}.º en la clasificación` : ''}`);
   for (const [i, rol] of ROLES.entries()) {
     const x = MARGEN + i * (w + hueco), y = ARRIBA + 58;
-    texto(ctx, ROL[rol], x + w / 2, ARRIBA + 38, { fuente: `800 32px ${MINCHO}`, alinear: 'center' });
+    texto(ctx, ROL[rol], x + w / 2, ARRIBA + 38, { fuente: `400 32px ${ROTULO}`, alinear: 'center' });
     const carta = alineacion[rol];
     if (carta) {
       await dibujarCarta(ctx, carta, x, y, w, { nombreClan });
@@ -305,7 +346,7 @@ export async function imagenAlineacion({ nombre, alineacion, puntos = {}, boosts
         ctx.roundRect(x, by, w, altoBoost, 8);
         ctx.fill();
         await dibujarCarta(ctx, boost, x + 8, by + (altoBoost - mini * 1.4) / 2, mini, { nombreClan });
-        texto(ctx, boost.nombre, x + mini + 20, by + 40, { fuente: `800 26px ${MINCHO}`, ancho: w - mini - 30 });
+        texto(ctx, boost.nombre, x + mini + 20, by + 40, { fuente: `400 26px ${ROTULO}`, ancho: w - mini - 30 });
         texto(ctx, boost.bonus?.etiqueta || 'BOOST', x + mini + 20, by + 68, { fuente: `700 19px ${GOTHIC}`, color: C.hai, ancho: w - mini - 30 });
       }
     } else {
@@ -327,7 +368,7 @@ export async function imagenAlineacion({ nombre, alineacion, puntos = {}, boosts
 // ---------- tier list ----------
 // jugadores: [{ id, clan, rol, nombre, tier }]; equipos: [{ id, nombre, tier }]
 // La del staff va de S a D; la que hace cada espectador en la portada, de S+ a D y con su nombre en el título
-export async function imagenTierlist({ jugadores, equipos = [], nombreClan, titulo = 'Tier list de Tenka Ichi', tiers = ['S', 'A', 'B', 'C', 'D'], ruta = '/#tierlist' }) {
+export async function imagenTierlist({ jugadores, equipos = [], nombreClan, titulo = 'Tier list de Gokudō', tiers = ['S', 'A', 'B', 'C', 'D'], ruta = '/#tierlist' }) {
   await fuentes();
   const conTier = lista => tiers.map(t => [t, lista.filter(x => x.tier === t)]).filter(([, l]) => l.length);
   const filasJugadores = conTier(jugadores.filter(j => j.nombre)), filasEquipos = conTier(equipos);
@@ -359,7 +400,7 @@ export async function imagenTierlist({ jugadores, equipos = [], nombreClan, titu
       ctx.fill();
       ctx.restore();
       if (t === 'S' || t === 'S+') { ctx.strokeStyle = C.oroViejo; ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(MARGEN + 1, y + 1, anchoP - 2, altoP - 2, 6); ctx.stroke(); }
-      texto(ctx, t, MARGEN + (etiqueta - 12) / 2, y + altoP / 2, { fuente: `800 ${t.length > 1 ? 46 : 56}px ${MINCHO}`, color: t === 'S' || t === 'S+' ? C.washi : C.sumi, alinear: 'center', base: 'middle' });
+      texto(ctx, t, MARGEN + (etiqueta - 12) / 2, y + altoP / 2, { fuente: `400 ${t.length > 1 ? 46 : 56}px ${ROTULO}`, color: t === 'S' || t === 'S+' ? C.washi : C.sumi, alinear: 'center', base: 'middle' });
       for (const [i, x] of lista.entries()) {
         const fx = MARGEN + etiqueta + 12 + (i % porLinea) * (fichaW + hueco), fy = y + relleno + Math.floor(i / porLinea) * (fichaH + hueco);
         ctx.fillStyle = C.sumi;
@@ -379,15 +420,15 @@ export async function imagenTierlist({ jugadores, equipos = [], nombreClan, titu
   let y = await seccion(filasJugadores, ARRIBA, async (j, fx, fy) => {
     const e = await imagen(logo(j.clan));
     if (e) contener(ctx, e, fx + 14, fy + 12, 52, 52);
-    texto(ctx, j.nombre, fx + 76, fy + 36, { fuente: `800 26px ${MINCHO}`, ancho: fichaW - 86 });
+    texto(ctx, j.nombre, fx + 76, fy + 36, { fuente: `400 26px ${ROTULO}`, ancho: fichaW - 86 });
     texto(ctx, `${ROL[j.rol] || j.rol} · ${nombreClan(j.clan)}`, fx + 76, fy + 62, { fuente: `400 18px ${GOTHIC}`, color: C.hai, ancho: fichaW - 86 });
   }, j => j.clan);
   if (filasEquipos.length) {
-    texto(ctx, 'Equipos', MARGEN, y + 50, { fuente: `800 40px ${MINCHO}` });
+    texto(ctx, 'Familias', MARGEN, y + 50, { fuente: `400 40px ${ROTULO}` });
     await seccion(filasEquipos, y + 80, async (e, fx, fy) => {
       const img = await imagen(logo(e.id));
       if (img) contener(ctx, img, fx + 14, fy + 12, 52, 52);
-      texto(ctx, e.nombre, fx + 76, fy + 48, { fuente: `800 28px ${MINCHO}`, ancho: fichaW - 86 });
+      texto(ctx, e.nombre, fx + 76, fy + 48, { fuente: `400 28px ${ROTULO}`, ancho: fichaW - 86 });
     }, e => e.id);
   }
   pie(ctx, alto, ruta);
@@ -427,7 +468,7 @@ export async function imagenClasificacion({ jornada, filas, ganadores = [] }) {
   const [c, ctx] = lienzo(alto);
   const n = x => Number(x || 0).toLocaleString('es-ES');
   await cabecera(ctx, 'Clasificación del fantasy', `${jornada}  ·  ${filas.length} ${filas.length === 1 ? 'coleccionista' : 'coleccionistas'}`);
-  if (!mostradas.length) texto(ctx, 'Nadie ha puntuado todavía', ANCHO / 2, ARRIBA + 50, { fuente: `800 40px ${MINCHO}`, color: C.hai, alinear: 'center' });
+  if (!mostradas.length) texto(ctx, 'Nadie ha puntuado todavía', ANCHO / 2, ARRIBA + 50, { fuente: `400 40px ${ROTULO}`, color: C.hai, alinear: 'center' });
   mostradas.forEach((f, i) => {
     const y = ARRIBA + i * (altoFila + hueco), podio = f.puesto <= 3, sobres = ganadores.find(g => g.puesto === f.puesto)?.sobres || 0;
     const anchoF = ANCHO - 2 * MARGEN, metal = METAL[f.puesto] || C.linea;
@@ -448,10 +489,10 @@ export async function imagenClasificacion({ jornada, filas, ganadores = [] }) {
     ctx.fillRect(MARGEN, y, 7, altoFila);
     ctx.restore();
     if (f.puesto === 1) { ctx.strokeStyle = C.oroViejo; ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(MARGEN + 1, y + 1, anchoF - 2, altoFila - 2, 6); ctx.stroke(); }
-    texto(ctx, String(f.puesto), MARGEN + 50, y + 45, { fuente: `800 44px ${MINCHO}`, color: podio ? metal : C.hai, alinear: 'center', base: 'middle' });
-    texto(ctx, f.nombre, MARGEN + 100, y + 45, { fuente: `800 ${podio ? 40 : 34}px ${MINCHO}`, base: 'middle', ancho: ANCHO - 2 * MARGEN - 100 - 520 });
+    texto(ctx, String(f.puesto), MARGEN + 50, y + 45, { fuente: `400 44px ${ROTULO}`, color: podio ? metal : C.hai, alinear: 'center', base: 'middle' });
+    texto(ctx, f.nombre, MARGEN + 100, y + 45, { fuente: `400 ${podio ? 40 : 34}px ${ROTULO}`, base: 'middle', ancho: ANCHO - 2 * MARGEN - 100 - 520 });
     if (sobres) texto(ctx, `+${sobres} ${sobres === 1 ? 'sobre' : 'sobres'}`, ANCHO - MARGEN - 300, y + 45, { fuente: `700 28px ${GOTHIC}`, color: C.oro, alinear: 'right', base: 'middle' });
-    texto(ctx, n(f.puntos), ANCHO - MARGEN - 130, y + 45, { fuente: `800 44px ${MINCHO}`, alinear: 'right', base: 'middle' });
+    texto(ctx, n(f.puntos), ANCHO - MARGEN - 130, y + 45, { fuente: `400 44px ${ROTULO}`, alinear: 'right', base: 'middle' });
     texto(ctx, f.puntos === 1 ? 'punto' : 'puntos', ANCHO - MARGEN - 24, y + 47, { fuente: `400 24px ${GOTHIC}`, color: C.hai, alinear: 'right', base: 'middle' });
   });
   pie(ctx, alto, '/gachapon/');

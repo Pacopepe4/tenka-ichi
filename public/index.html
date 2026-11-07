@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tenka Ichi · Koryu Budo League</title>
-<meta name="description" content="Tenka Ichi, la liga de League of Legends de Koryu Budo: seis clanes samuráis expulsados del cielo luchan por el único trono que queda: el de quien reina bajo él.">
-<link rel="icon" href="/marca/koryu-budo.png">
+<title>Gokudō · Liga de familias</title>
+<meta name="description" content="Gokudō, la liga de familias de League of Legends: seis familias yakuza se juegan la ciudad cada domingo.">
+<link rel="icon" href="/marca/gokudo-64.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="/marca.css">
@@ -13,29 +13,28 @@
 <link rel="stylesheet" href="/inicio.css">
 <link rel="stylesheet" href="/directo.css">
 <link rel="stylesheet" href="/sorteo.css">
+<link rel="stylesheet" href="/neon.css">
 </head>
 <body>
 <header class="barra">
-  <a class="marca" href="#inicio"><img src="/marca/koryu-budo.png" alt=""><span>Koryu Budo League</span></a>
-  <nav><a href="#directo" class="enlace-directo">Directo</a><a href="#clanes">Clanes</a><a href="#formato">Formato</a><a href="#liga">Liga</a><a href="#fantasy">Fantasy</a><a href="#tierlist">Tier list</a><a href="/gachapon/" class="enlace-gachapon">Gachapon</a></nav>
+  <a class="marca" href="#inicio"><img src="/marca/gokudo.png" alt=""><span>GOKUDŌ</span></a>
+  <nav><a href="#directo" class="enlace-directo">Directo</a><a href="#clanes">Familias</a><a href="#formato">Formato</a><a href="#liga">Liga</a><a href="#fantasy">Fantasy</a><a href="#tierlist">Tier list</a><a href="/gachapon/" class="enlace-gachapon">Gachapon</a></nav>
   <a class="enlace-kbstats" href="https://kbstats.es/" target="_blank" rel="noopener">KB Stats<span aria-hidden="true">↗</span></a>
 </header>
 
 <main>
   <section id="inicio" class="portada">
-    <div class="papel"><img src="/marca/sol-partido.jpg" alt="El sol partido, emblema de Tenka Ichi"></div>
     <div class="portada-texto">
-      <div class="titulo">
-        <span class="tategaki" aria-hidden="true">天下一</span>
-        <div>
-          <h1>Tenka Ichi</h1>
-          <p class="traduccion">El que reina bajo el cielo</p>
+      <div class="letrero" aria-hidden="true"><span>極</span><span>道</span></div>
+      <div class="titulo-neon">
+        <span class="antetitulo">Liga de familias · League of Legends</span>
+        <h1>Gokudō</h1>
+        <div class="velocidad" aria-hidden="true"><span></span><span></span><span></span></div>
+        <p class="lore">Seis familias. Una ciudad. Cada domingo se la juegan en la Grieta, y solo una acabará la temporada mandando.</p>
+        <div class="portada-acciones">
+          <a class="boton" href="#clanes">Conoce a las familias</a>
+          <a class="boton-secundario" href="/gachapon/">Abrir sobres</a>
         </div>
-      </div>
-      <p class="lore">Tras la cuarta Pelea de Cinturones, el cielo expulsó a los samuráis y cerró sus puertas. Arriba ya no hay sitio para ellos; abajo hay un trono vacío. Seis clanes, un solo reino. Quien gane, reinará bajo el cielo.</p>
-      <div class="portada-acciones">
-        <a class="boton" href="#clanes">Conoce a los clanes</a>
-        <a class="enlace-texto" href="#liga">Ver la liga</a>
       </div>
     </div>
   </section>
@@ -47,7 +46,7 @@
         <span class="marca-seccion" aria-hidden="true">生</span>
         <h2>Directo</h2>
         <p class="directo-estado">Sin directo ahora mismo.</p>
-        <p>Las jornadas de Tenka Ichi se emiten en el canal de Twitch de Koryu Budo, con el draft en directo y los casters.</p>
+        <p>Las jornadas de Gokudō se emiten en Twitch, con el draft en directo y los casters.</p>
         <div class="directo-acciones">
           <a class="boton" href="https://twitch.tv/koryubudo" target="_blank" rel="noopener">Ver en Twitch</a>
           <a class="boton-secundario" href="https://www.twitch.tv/popout/koryubudo/chat" target="_blank" rel="noopener">Abrir el chat</a>
@@ -57,29 +56,29 @@
   </section>
 
   <section id="clanes" class="clanes">
-    <div class="cabecera-seccion" data-kanji="族">
-      <span class="marca-seccion" aria-hidden="true">族</span>
-      <h2>Los seis clanes</h2>
+    <div class="cabecera-seccion" data-kanji="家">
+      <span class="marca-seccion" aria-hidden="true">家</span>
+      <h2>Las seis familias</h2>
       <p class="solo-raton">Pasa el ratón por la baraja para sacar una carta. Haz clic para ver su plantilla.</p>
       <p class="solo-tactil">Desliza para ver las cartas y toca una para ver su plantilla.</p>
     </div>
     <div class="baraja" role="list"></div>
-    <!-- Equipos Legacy: de la organización, pero apartados de la competición -->
+    <!-- La familia Legacy (Shinigami): de la organización, pero apartada de la competición -->
     <div class="legado" hidden></div>
   </section>
 
   <section id="formato" class="formato">
     <div class="cabecera-seccion" data-kanji="道">
       <span class="marca-seccion" aria-hidden="true">道</span>
-      <h2>El camino al trono</h2>
-      <p>Seis clanes, una temporada. Así se decide quién reina.</p>
+      <h2>El camino a la ciudad</h2>
+      <p>Seis familias, una temporada. Así se decide quién manda.</p>
     </div>
     <ol class="camino">
       <li>
         <span class="paso" aria-hidden="true">一</span>
         <h3>Liguilla</h3>
         <p class="formato-partida">Bo1, cuatro jornadas</p>
-        <p>Un solo grupo. Cada clan se enfrenta a cuatro de sus cinco rivales, sorteados, y la clasificación decide el cuadro de los playoffs.</p>
+        <p>Un solo grupo. Cada familia se enfrenta a cuatro de sus cinco rivales, sorteados, y la clasificación decide el cuadro de los playoffs.</p>
       </li>
       <li>
         <span class="paso" aria-hidden="true">二</span>
@@ -94,10 +93,10 @@
         <p>Entran los seis. El 1.º y el 2.º se saltan los cuartos, donde juegan 4.º contra 5.º y 3.º contra 6.º. En semifinales, el 1.º contra el ganador del 4-5 y el 2.º contra el del 3-6. El mejor clasificado elige lado en la primera partida; después elige quien perdió la anterior.</p>
       </li>
       <li class="final">
-        <span class="paso" aria-hidden="true">天</span>
-        <h3>Tenka Ichi</h3>
-        <p class="formato-partida">El que reina bajo el cielo</p>
-        <p>El campeón ocupa el trono hasta la temporada siguiente.</p>
+        <span class="paso" aria-hidden="true">極</span>
+        <h3>Gokudō</h3>
+        <p class="formato-partida">La familia que manda</p>
+        <p>La campeona se queda con la ciudad hasta la temporada siguiente.</p>
       </li>
     </ol>
   </section>
@@ -117,9 +116,9 @@
     <div class="liga-rejilla">
       <div class="bloque">
         <h3>Clasificación</h3>
-        <p class="nota-bloque">Liguilla a Bo1: cuatro partidas por clan. Pasan los seis; los dos primeros se saltan los cuartos.</p>
+        <p class="nota-bloque">Liguilla a Bo1: cuatro partidas por familia. Pasan las seis; las dos primeras se saltan los cuartos.</p>
         <table class="tabla">
-          <thead><tr><th scope="col"><span class="oculto">Puesto</span></th><th scope="col">Clan</th><th scope="col" title="Partidas jugadas">PJ</th><th scope="col" title="Victorias y derrotas">V–D</th><th scope="col" title="Fuerza de calendario: suma de victorias de los rivales">Fuerza</th></tr></thead>
+          <thead><tr><th scope="col"><span class="oculto">Puesto</span></th><th scope="col">Familia</th><th scope="col" title="Partidas jugadas">PJ</th><th scope="col" title="Victorias y derrotas">V–D</th><th scope="col" title="Fuerza de calendario: suma de victorias de los rivales">Fuerza</th></tr></thead>
           <tbody></tbody>
         </table>
         <p class="desempate-nota"></p>
@@ -164,7 +163,7 @@
     </div>
     <div class="tier-pestanas" role="tablist" aria-label="Tier list">
       <button role="tab" aria-selected="true" data-tipo="jugadores">Jugadores</button>
-      <button role="tab" aria-selected="false" data-tipo="equipos">Equipos</button>
+      <button role="tab" aria-selected="false" data-tipo="equipos">Familias</button>
     </div>
     <div class="filtro-rol oficial" role="group" aria-label="Rol">
         <button type="button" data-rol="" aria-pressed="true">Todos</button><button type="button" data-rol="TOP" aria-pressed="false">Top</button><button type="button" data-rol="JUNGLA" aria-pressed="false">Jungla</button><button type="button" data-rol="MEDIO" aria-pressed="false">Medio</button><button type="button" data-rol="ADC" aria-pressed="false">ADC</button><button type="button" data-rol="SUPPORT" aria-pressed="false">Support</button>
@@ -175,11 +174,11 @@
     <div class="mi-tier" id="mitierlist">
       <div class="mi-tier-cabecera">
         <h3>Haz tu tier list</h3>
-        <p>Coloca a los jugadores y a los equipos a tu gusto: arrástralos a su tier o, en el móvil, toca uno y después la tier. Luego publícala en Discord.</p>
+        <p>Coloca a los jugadores y a las familias a tu gusto: arrástralos a su tier o, en el móvil, toca uno y después la tier. Luego publícala en Discord.</p>
       </div>
       <div class="tier-pestanas mi-tier-pestanas" role="tablist" aria-label="Tu tier list">
         <button role="tab" aria-selected="true" data-tipo="jugadores">Jugadores</button>
-        <button role="tab" aria-selected="false" data-tipo="equipos">Equipos</button>
+        <button role="tab" aria-selected="false" data-tipo="equipos">Familias</button>
       </div>
       <div class="filtro-rol mia" role="group" aria-label="Rol">
         <button type="button" data-rol="" aria-pressed="true">Todos</button><button type="button" data-rol="TOP" aria-pressed="false">Top</button><button type="button" data-rol="JUNGLA" aria-pressed="false">Jungla</button><button type="button" data-rol="MEDIO" aria-pressed="false">Medio</button><button type="button" data-rol="ADC" aria-pressed="false">ADC</button><button type="button" data-rol="SUPPORT" aria-pressed="false">Support</button>
@@ -195,16 +194,16 @@
       <p class="mi-tier-estado" role="status"></p>
     </div>
   </section>
-  <section class="cierre" aria-label="El lema de Tenka Ichi">
-    <span class="cierre-kanji" aria-hidden="true">天下一</span>
-    <p>El cielo nos cerró sus puertas.<br>Reinaremos bajo él.</p>
+  <section class="cierre" aria-label="El lema de Gokudō">
+    <span class="cierre-kanji" aria-hidden="true">極道</span>
+    <p>El camino extremo.<br>Seis familias, una sola ciudad.</p>
   </section>
 </main>
 
 <footer>
-  <img src="/marca/koryu-budo.png" alt="">
-  <p>Tenka Ichi es la liga de League of Legends de Koryu Budo.</p>
-  <nav aria-label="Más de Tenka Ichi"><a href="/gachapon/">Gachapon</a><a href="https://twitch.tv/koryubudo" target="_blank" rel="noopener">Twitch</a><a href="https://kbstats.es/" target="_blank" rel="noopener">KB Stats</a></nav>
+  <img src="/marca/gokudo.png" alt="">
+  <p>Gokudō es la liga de familias de League of Legends.</p>
+  <nav aria-label="Más de Gokudō"><a href="/gachapon/">Gachapon</a><a href="https://twitch.tv/koryubudo" target="_blank" rel="noopener">Twitch</a><a href="https://kbstats.es/" target="_blank" rel="noopener">KB Stats</a></nav>
 </footer>
 
 <dialog class="ficha" aria-labelledby="ficha-nombre">
