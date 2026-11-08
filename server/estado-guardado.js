@@ -70,6 +70,7 @@ export function restaurarEstado(e, texto = ajuste(CLAVE), ahora = Date.now()) {
   if (reciente) {
     if (typeof g.buscarPartida?.activa === 'boolean') e.buscarPartida.activa = g.buscarPartida.activa;
     if (g.vista && typeof g.vista === 'object') {
+      // 'replay' no se restaura a propósito: tras un reinicio el directo no puede quedarse con solo el cartel
       e.vista.forzada = ['draft', 'postdraft', 'partida', 'final'].includes(g.vista.forzada) ? g.vista.forzada : null;
       e.vista.enPartida = Boolean(g.vista.enPartida);
     }

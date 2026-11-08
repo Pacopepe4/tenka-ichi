@@ -819,7 +819,7 @@ $('#publicarTier').onclick = async () => {
 // ---------- Qué enseña el overlay: automático o forzado ----------
 // El overlay cambia solo (draft, postdraft, partida y pantalla final). Aquí se fuerza una vista, por si algo falla,
 // y «Automático» lo suelta. El punto marca lo que se está viendo ahora
-const VISTA_LEGIBLE = { draft: 'el draft', postdraft: 'el postdraft', partida: 'el marcador de la partida', final: 'la pantalla final' };
+const VISTA_LEGIBLE = { draft: 'el draft', postdraft: 'el postdraft', partida: 'el marcador de la partida', final: 'la pantalla final', replay: 'el cartel REPLAY' };
 function pintarVistas() {
   const forzada = estado?.vista?.forzada || null, actual = estado?.vistaOverlay;
   document.querySelectorAll('.vistas button').forEach(b => {
@@ -832,7 +832,9 @@ document.querySelectorAll('.vistas button').forEach(b => b.addEventListener('cli
   const vista = b.dataset.vista;
   if (vista === 'final' && !estado?.final) return aviso('Todavía no hay pantalla final: sale al acabar la partida o al marcar el ganador');
   const r = await enviar('vistaOverlay', { vista });
-  if (r.ok) aviso(vista === 'auto' ? 'El overlay vuelve a cambiar solo' : `El overlay se queda en ${VISTA_LEGIBLE[vista]} hasta que pulses «Automático»`);
+  if (r.ok) aviso(vista === 'auto' ? 'El overlay vuelve a cambiar solo'
+    : vista === 'replay' ? 'Solo el cartel REPLAY en el overlay: vuelve solo a los 30 segundos o al pulsar «Automático»'
+    : `El overlay se queda en ${VISTA_LEGIBLE[vista]} hasta que pulses «Automático»`);
 }));
 $('#quitarFinal').onclick = async () => { const r = await enviar('finalQuitar'); if (r.ok) aviso('Pantalla final quitada'); };
 
@@ -846,6 +848,7 @@ if (FASES.includes(fasePedida)) { fase = fasePedida; seguirFase = false; }
 // La fase que toca según lo que enseña el overlay
 function faseDelOverlay() {
   const v = estado?.vistaOverlay;
+  if (v === 'replay') return fase;  // el cartel no cambia de fase: el staff sigue donde estaba
   if (v === 'final') return 'resultado';
   if (v === 'partida' || v === 'postdraft') return 'partida';
   const d = estado?.draft;

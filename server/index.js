@@ -170,8 +170,10 @@ setInterval(() => {
 const draftCompleto = d => ['azul', 'rojo'].every(l => d.picks[l].every(Boolean));
 const ESPERA_POSTDRAFT_MS = Number(process.env.ESPERA_VISTA_MS) || 10000;  // el último pick se queda un momento antes del postdraft
 const ESPERA_FINAL_MS = Number(process.env.ESPERA_VISTA_MS) || 10000;      // y el final de la partida, antes de la pantalla final
+const REPLAY_MAX_MS = Number(process.env.REPLAY_MAX_MS) || 30000;          // REPLAY forzada desde el panel: se suelta sola
+let soltarReplay = null;
 let draftCompletoDesde = 0;
-let fotoViva = null;                         // último resumen de la partida mientras estaba en marcha
+let fotoViva = null;                        // último resumen de la partida mientras estaba en marcha
 let terminada = { numero: null, desde: 0 };  // la partida que ya ha dado su fin
 let numeroDespachado = null;                 // la partida de la que el panel ya ha pasado página: no vuelve a dejar su final
 const revisarEn = ms => { setTimeout(emitir, ms + 50).unref?.(); };
@@ -366,10 +368,16 @@ async function accion(nombre, d = {}) {
       return { ok: true, enHoja: r.enHoja };
     }
     case 'vistaOverlay':
-      // El panel fuerza lo que enseña el overlay ('draft', 'postdraft', 'partida' o 'final') o lo deja en automático.
-      // Forzar la partida también pone al puente a buscarla, haya draft o no
+      // El panel fuerza lo que enseña el overlay ('draft', 'postdraft', 'partida', 'final' o 'replay') o lo deja en
+      // automático. Forzar la partida también pone al puente a buscarla, haya draft o no
       estado.vista.forzada = VISTAS.includes(d.vista) ? d.vista : null;
       if (estado.vista.forzada === 'partida') { estado.buscarPartida.activa = true; busquedaTocada = true; }
+      // REPLAY lo quita todo: si nadie la suelta, vuelve sola a la vista automática (y no se guarda entre reinicios)
+      clearTimeout(soltarReplay);
+      if (estado.vista.forzada === 'replay') {
+        soltarReplay = setTimeout(() => { if (estado.vista.forzada === 'replay') { estado.vista.forzada = null; emitir(); } }, REPLAY_MAX_MS);
+        soltarReplay.unref?.();
+      }
       break;
     case 'finalQuitar':
       estado.final = null;

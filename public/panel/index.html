@@ -35,6 +35,7 @@
     <button type="button" data-vista="postdraft" title="El draft cerrado con las estadísticas de cada jugador y de los dos clanes">Postdraft</button>
     <button type="button" data-vista="partida" title="El marcador de la partida; el puente se pone a buscarla, haya draft o no">Partida</button>
     <button type="button" data-vista="final" title="La pantalla de fin de partida">Final</button>
+    <button type="button" data-vista="replay" title="Lo quita todo y deja solo el cartel REPLAY (se suelta sola a los 30 segundos)">Replay</button>
   </div>
   <!-- Fases de la retransmisión: en cada una, solo los apartados que tocan -->
   <nav class="fases" aria-label="Fase de la retransmisión">
@@ -198,11 +199,11 @@
       <div class="fila">
         <span class="etiqueta">Estilo del marcador</span>
         <div class="estilos" role="radiogroup" aria-label="Estilo del marcador">
-          <button type="button" class="estilo" data-estilo="a" title="La composición de siempre, pulida y con más color">A · Retoque</button>
-          <button type="button" class="estilo" data-estilo="b" title="La versión más atrevida, al estilo de las cartas full art">B · Full art</button>
+          <button type="button" class="estilo" data-estilo="a" title="Gokudō: placas de noche con el tubo de neón de cada familia en el borde">A · Placas</button>
+          <button type="button" class="estilo" data-estilo="b" title="Gokudō: cada familia es un rótulo de neón encendido con su color">B · Neón</button>
         </div>
       </div>
-      <p class="ayuda">Las dos versiones enseñan lo mismo; cambia el aspecto. Para compararlas a la vez, abre <code>/overlay/?estilo=a</code> y <code>/overlay/?estilo=b</code> en dos pestañas o dos fuentes de OBS.</p>
+      <p class="ayuda">Las dos están en el estilo de Gokudō y enseñan lo mismo; cambia el aspecto. Para compararlas a la vez, abre <code>/overlay/?estilo=a</code> y <code>/overlay/?estilo=b</code> en dos pestañas o dos fuentes de OBS.</p>
       <div class="fila"><label class="casilla"><input type="checkbox" id="avisosPropios"> Avisos propios de objetivos, con el logo del clan (si no, se ven los del propio LoL)</label></div>
       <div class="fila"><label class="casilla"><input type="checkbox" id="resumenPelea"> Resumen de pelea (al cerrarse una pelea de tres muertes o más, el marcador de la pelea por clan)</label></div>
       <div class="fila"><label class="casilla"><input type="checkbox" id="puntosFantasy"> Puntos del fantasy provisionales en el línea por línea y en la ficha</label></div>

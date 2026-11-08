@@ -40,7 +40,7 @@ const escapar = s => String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', 
 const tiempoAhora = () => (partida ? partida.tiempo + Math.min(3, (Date.now() - recibidaEn) / 1000) * (partida.velocidad || 1) : 0);
 const clanDe = lado => clanes.clan(estado?.equipos?.[lado]?.clan || 'NONAME');
 const nombreClan = lado => { const c = clanDe(lado); return c.id === 'NONAME' ? (lado === 'azul' ? 'Lado azul' : 'Lado rojo') : c.nombre; };
-const enso = () => `<svg class="enso" viewBox="0 0 40 40" aria-hidden="true"><circle class="pista" cx="20" cy="20" r="16"/><circle class="trazo" cx="20" cy="20" r="16" pathLength="100" filter="url(#pincel)"/></svg>`;
+const enso = () => `<svg class="enso" viewBox="0 0 40 40" aria-hidden="true"><circle class="pista" cx="20" cy="20" r="16"/><circle class="trazo" cx="20" cy="20" r="16" pathLength="100"/></svg>`;
 const trazar = (el, p) => { el.querySelector('.trazo').style.strokeDashoffset = String(100 - Math.max(0, Math.min(1, p)) * 100); };
 const interruptor = k => estado?.ingame?.[k] !== false;  // lo nuevo viene encendido: solo se apaga a propósito
 

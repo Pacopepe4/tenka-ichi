@@ -2,20 +2,26 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<title>Overlay de draft · Tenka Ichi</title>
+<title>Overlay del directo · Gokudō</title>
+<link rel="icon" href="/marca/gokudo.png">
 <link rel="stylesheet" href="/marca.css">
+<link rel="stylesheet" href="/obs-gokudo.css">
 <link rel="stylesheet" href="/carta.css">
 <link rel="stylesheet" href="overlay.css">
+<link rel="stylesheet" href="replay.css">
 </head>
 <body data-vista="draft" class="cargando">
-<!-- Esta es la única fuente de OBS: enseña el draft, el postdraft, el marcador de la partida o la pantalla final.
-     Cambia sola según lo que va pasando y el panel puede forzar cualquiera de las cuatro -->
+<!-- ?vista=replay (la fuente de OBS de las repeticiones) arranca ya en REPLAY: sin esto, hasta que llega el primer estado
+     se vería un momento el lienzo del draft encima del vídeo -->
+<script>if (new URLSearchParams(location.search).get('vista') === 'replay') document.body.dataset.vista = 'replay';</script>
+<!-- Esta es la única fuente de OBS: enseña el draft, el postdraft, el marcador de la partida, la pantalla final o,
+     sola, la de REPLAY. Cambia sola según lo que va pasando y el panel puede forzar cualquiera -->
 <iframe class="vista-partida" title="Marcador de la partida"></iframe>
 
 <!-- Draft y postdraft: el mismo lienzo; en el postdraft los picks se ensanchan con las estadísticas de cada jugador
      y el centro enseña a los dos clanes frente a frente -->
 <div id="lienzo">
-  <!-- Fondo de tinta con los huecos de las cámaras recortados -->
+  <!-- Fondo de noche con los huecos de las cámaras recortados -->
   <div class="fondo"></div>
 
   <header class="placa azul">
@@ -40,8 +46,9 @@
 
   <div class="escenario">
     <figure class="kakemono">
-      <img src="/marca/sol-partido.jpg" alt="">
-      <figcaption>El que reina bajo el cielo</figcaption>
+      <img src="/marca/gokudo-neon.png" alt="">
+      <span class="kanji-neon" aria-hidden="true">極道</span>
+      <figcaption>Liga de familias</figcaption>
     </figure>
     <div class="camaras"></div>
     <section class="versus">
@@ -59,7 +66,7 @@
 
   <div class="franja">
     <div class="reposo">
-      <div class="liga"><span class="hanko">天</span><span class="jornada"></span></div>
+      <div class="liga"><span class="hanko">極</span><span class="jornada"></span></div>
       <div class="fearless" hidden><span class="titulo">Bloqueados en la serie</span><div class="iconos"></div></div>
     </div>
     <div class="tarjeta" hidden></div>
@@ -85,6 +92,15 @@
   </footer>
 </section>
 
+<!-- REPLAY: lo único que se ve en la vista «replay» (estilos y animación en replay.css y replay.js) -->
+<section id="replay" aria-hidden="true">
+  <div class="replay-cartel">
+    <span class="replay-sello" aria-hidden="true">再</span>
+    <div class="replay-texto"><b class="replay-palabra">REPLAY</b><small class="replay-pie">Gokudō · repetición</small></div>
+    <img class="replay-sol" src="/marca/gokudo-neon.png" alt="">
+  </div>
+</section>
+
 <!-- Código de directo: quien lo canjea en el gachapon se lleva sobres. Lo saca el panel -->
 <aside class="codigo-directo" hidden>
   <span class="hanko" aria-hidden="true">札</span>
@@ -92,5 +108,6 @@
   <span class="codigo-cuenta"></span>
 </aside>
 <script type="module" src="overlay.js"></script>
+<script type="module" src="replay.js"></script>
 </body>
 </html>
