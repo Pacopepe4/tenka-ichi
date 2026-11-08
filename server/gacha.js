@@ -470,12 +470,12 @@ const ganada = (mias, c, mas = {}) => { mias.set(c.id, (mias.get(c.id) || 0) + 1
 //   premios: [{ tipo: 'familia', clan, sobres: 1, carta }] }]
 export const abrirSobres = (u, cuantas = 1) => enCola(async () => {
   const yo = usuarios.get(u.id);
-  if (!yo || yo.sobres < 1) throw new Error('No te quedan sobres');
+  if (!yo || yo.sobres < 1) throw new Error('No te quedan tiradas');
   const cat = catalogo(), normales = cat.filter(c => !esEstetica(c)), legados = cat.filter(c => c.tipo === 'legacy');
-  if (!sobresListos(cat)) throw new Error('Los sobres se abren cuando estén las cartas de los jugadores: el staff tiene que poner su tier');
+  if (!sobresListos(cat)) throw new Error('La tragaperras se abre cuando estén las cartas de los jugadores: el staff tiene que poner su tier');
   const n = cuantas === 'todos' ? Math.min(yo.sobres, MAXIMO_TIRADAS) : Math.round(Number(cuantas));
-  if (!Number.isInteger(n) || n < 1 || n > MAXIMO_TIRADAS) throw new Error(`Se pueden abrir de 1 a ${MAXIMO_TIRADAS} sobres de una vez`);
-  if (n > yo.sobres) throw new Error(yo.sobres === 1 ? 'Solo te queda 1 sobre' : `Solo te quedan ${yo.sobres} sobres`);
+  if (!Number.isInteger(n) || n < 1 || n > MAXIMO_TIRADAS) throw new Error(`Se puede tirar de 1 a ${MAXIMO_TIRADAS} veces de una vez`);
+  if (n > yo.sobres) throw new Error(yo.sobres === 1 ? 'Solo te queda 1 tirada' : `Solo te quedan ${yo.sobres} tiradas`);
   const fecha = ahora(), apunte = e => ({ fecha, id: u.id, usuario: u.nombre, cantidad: 0, ...e });
   const mias = new Map(yo.cartas), familias = new Set(yo.familias), racha = { sinA: yo.sinA, sinS: yo.sinS };
   const eventos = [], tiradas = [];

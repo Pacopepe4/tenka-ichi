@@ -257,7 +257,7 @@ test('sin sobres no se puede abrir ninguno', async () => {
   for (let i = 0; i < 3; i++) assert.equal((await (await carla.ir(`${urlWeb}/api/gacha/abrir`, { method: 'POST' })).json()).ok, true);
   const r = await (await carla.ir(`${urlWeb}/api/gacha/abrir`, { method: 'POST' })).json();
   assert.equal(r.ok, false);
-  assert.match(r.error, /No te quedan sobres/);
+  assert.match(r.error, /No te quedan tiradas/);
 });
 
 test('fantasy: se alinea una carta, el panel guarda la partida y el coleccionista suma los puntos de su jugador', async () => {

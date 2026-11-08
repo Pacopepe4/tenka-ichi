@@ -91,14 +91,14 @@ test('tirar cinco de una vez: cinco tiradas de cuatro cartas, con «nueva» y «
 
 test('«todos» abre los que quedan; y no se pueden abrir más de los que tienes', async () => {
   const quedan = g.estadoUsuario(ana.id).sobres;
-  await assert.rejects(g.abrirSobres(ana, quedan + 1), new RegExp(`Solo te quedan ${quedan} sobres`));
-  await assert.rejects(g.abrirSobres(ana, 0), /de 1 a 50/);
+  await assert.rejects(g.abrirSobres(ana, quedan + 1), new RegExp(`Solo te quedan ${quedan} tiradas`));
+  await assert.rejects(g.abrirSobres(ana, 0), /de 1 a 50 veces/);
   const todas = await g.abrirSobres(ana, 'todos');
   assert.equal(todas.length, quedan);
   // Los sobres de los premios de familia que salen por el camino no se abren en la misma tanda
   assert.equal(g.estadoUsuario(ana.id).sobres, todas.flatMap(t => t.premios).length);
   while (g.estadoUsuario(ana.id).sobres) await g.abrirSobres(ana, 'todos');
-  await assert.rejects(g.abrirSobres(ana, 1), /No te quedan sobres/);
+  await assert.rejects(g.abrirSobres(ana, 1), /No te quedan tiradas/);
 });
 
 test('tras 10 sobres sin S, la siguiente tirada trae una S segura, y la racha vuelve a cero', async () => {
