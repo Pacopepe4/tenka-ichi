@@ -79,11 +79,18 @@
         <p class="progreso"></p>
         <div class="compartir" data-que="coleccion" hidden><button type="button" class="boton-secundario descargar">Descargar imagen</button><button type="button" class="boton-secundario publicar" hidden>Publicar en Discord</button><button type="button" class="boton-secundario fundir-abrir" hidden>Fundir repetidas</button><span class="estado-compartir" role="status"></span></div>
       </div>
-      <div class="filtros" role="tablist" aria-label="Qué cartas ver">
-        <button role="tab" aria-selected="true" data-filtro="todas">Todas</button>
-        <button role="tab" aria-selected="false" data-filtro="tengo">Las que tengo</button>
-        <button role="tab" aria-selected="false" data-filtro="faltan">Me faltan</button>
+    </div>
+    <!-- Tres filtros que se combinan; las chips de familia y de rol las pinta album.js -->
+    <div class="filtros-album">
+      <div class="fila-filtro"><span class="etiqueta-filtro">Ver</span>
+        <div class="filtros filtros-cuales" role="tablist" aria-label="Qué cartas ver">
+          <button role="tab" aria-selected="true" data-filtro="todas">Todas</button>
+          <button role="tab" aria-selected="false" data-filtro="tengo">Las que tengo</button>
+          <button role="tab" aria-selected="false" data-filtro="faltan">Me faltan</button>
+        </div>
       </div>
+      <div class="fila-filtro"><span class="etiqueta-filtro">Familia</span><div class="filtros filtros-familia" role="tablist" aria-label="De qué familia"></div></div>
+      <div class="fila-filtro"><span class="etiqueta-filtro">Rol</span><div class="filtros filtros-rol-album" role="tablist" aria-label="De qué rol"></div></div>
     </div>
     <div class="album"></div>
   </section>
