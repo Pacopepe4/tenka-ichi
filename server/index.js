@@ -93,7 +93,7 @@ const estado = {
   grafico: null,
   // Avisos propios de objetivos en el overlay; apagados, se ven los del propio LoL
   avisosPropios: false,
-  // Marcador de partida: estilo (A «retoque» o B «full art») e interruptores de lo nuevo, encendidos por defecto
+  // Marcador de partida: estilo (solo queda el A, «Placas» de Gokudō) e interruptores de lo nuevo, encendidos por defecto
   // (sirven para ocultar algo si no va bien, no para tener que activarlo). oroIngresos apagado vuelve al valor de los objetos.
   // camaras: las cámaras de los casters a los lados del línea por línea (izquierda y derecha), que sí hay que activar:
   // huecos transparentes como los del draft, con el nombre y el detalle que se escriban en el panel
@@ -570,7 +570,8 @@ async function accion(nombre, d = {}) {
       estado.avisosPropios = Boolean(d.activos);
       break;
     case 'ingame': {
-      if (['a', 'b'].includes(d.estilo)) estado.ingame.estilo = d.estilo;
+      // Desde el 08/11 solo hay un estilo del marcador (el A de Gokudō): el campo se queda por compatibilidad
+      if (d.estilo === 'a') estado.ingame.estilo = 'a';
       for (const k of ['puntosFantasy', 'resumenPelea', 'oroIngresos']) if (typeof d[k] === 'boolean') estado.ingame[k] = d[k];
       // Las cámaras de los casters: la lista de las dos, cada una con lo que cambie (activarla, o su nombre y su detalle)
       if (Array.isArray(d.camaras)) estado.ingame.camaras = estado.ingame.camaras.map((c, i) => camaraLineas(d.camaras[i], c));

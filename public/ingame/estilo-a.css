@@ -103,7 +103,7 @@
 [data-estilo="a"] .retrato.racha img { box-shadow: 0 0 0 2px var(--shu-claro); }
 [data-estilo="a"] .retrato.racha-alta img { box-shadow: 0 0 0 2px #FF8A90; }
 [data-estilo="a"] .retrato.racha-alta::before { box-shadow: 0 0 22px 6px rgba(255, 59, 70, .9); }
-[data-estilo="a"] .quien .nombre { font-family: var(--dela); font-size: 20px; }
+[data-estilo="a"] .quien .nombre { font-family: var(--dela); font-size: 18px; }
 [data-estilo="a"] .recompensa { padding: 1px 8px 1px 5px; border-radius: 999px; background: rgba(224, 48, 58, .14); box-shadow: inset 0 0 0 1px rgba(255, 76, 86, .55); color: var(--shu-neon); }
 [data-estilo="a"] .recompensa svg { color: var(--shu-neon); }
 [data-estilo="a"] .recompensa b { font-size: 15px; font-weight: 700; line-height: 1.4; }
@@ -116,7 +116,8 @@
 [data-estilo="a"] .runa { border-radius: 50%; background: rgba(12, 13, 19, .7); box-shadow: 0 0 0 1px var(--sumi-linea); }
 [data-estilo="a"] .mision { box-shadow: 0 0 0 1px #4A4B5E; }
 [data-estilo="a"] .mision.vacio { box-shadow: inset 0 0 0 1px var(--sumi-linea); }
-[data-estilo="a"] .jugador .oro { font-family: var(--dela); font-size: 18px; color: var(--washi); }
+/* En letra de texto, no en Dela: «≈11,5k» en Dela no cabe en su columna de 66 px y se junta con los puntos */
+[data-estilo="a"] .jugador .oro { font-family: var(--gothic); font-weight: 700; font-size: 19px; color: var(--washi); }
 /* En medio: puntos del fantasy (el que va por delante, del color de su familia) y la diferencia de oro */
 [data-estilo="a"] .puntos b { font-family: var(--dela); font-size: 22px; color: var(--hai); }
 [data-estilo="a"] .rotulo-pts { font-size: 14px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--hai); }
@@ -161,7 +162,8 @@
 [data-estilo="a"] .ficha-retrato-nivel { min-width: 44px; padding: 4px 8px; text-align: center; font-family: var(--dela); font-size: 22px; background: var(--sumi); color: var(--washi); border-radius: 6px; box-shadow: 0 0 0 1px var(--sumi-linea); }
 
 /* ---------- Gráfica de oro ---------- */
-[data-estilo="a"] .grafica { background: rgba(15, 16, 23, .97); border-radius: 8px; box-shadow: var(--filo-fino), 0 12px 32px rgba(0, 0, 0, .45); }
+/* Pegada abajo como el línea por línea, con la misma placa: al cambiar de una a otra solo cambia lo de dentro */
+[data-estilo="a"] .grafica { background: rgba(15, 16, 23, .97); border-radius: 8px 8px 0 0; box-shadow: var(--filo-fino), 0 -12px 32px rgba(0, 0, 0, .45); }
 [data-estilo="a"] .grafica::before { content: ''; position: absolute; left: 14px; right: 14px; top: 0; height: 3px; border-radius: 2px;
   background: linear-gradient(90deg, var(--clan-azul, var(--azul-lado)) 0%, var(--shu-claro) 50%, var(--clan-rojo, var(--rojo-lado)) 100%); box-shadow: 0 0 10px rgba(224, 48, 58, .5); }
 [data-estilo="a"] .grafica-cabeza { border-bottom: 1px solid var(--sumi-linea); }

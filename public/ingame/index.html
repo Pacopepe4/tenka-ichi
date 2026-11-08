@@ -7,11 +7,10 @@
 <link rel="stylesheet" href="/marca.css">
 <link rel="stylesheet" href="/obs-gokudo.css">
 <link rel="stylesheet" href="/carta.css">
-<!-- ingame.css es lo común (estructura, animaciones, mecánica de entrada y salida); cada versión del aspecto va en su
-     archivo, acotada a [data-estilo]: A «placas» y B «neón», las dos en Gokudō. Cuando se elija una, se borra el archivo de la otra -->
+<!-- ingame.css es la estructura (dónde va cada pieza, animaciones, entrada y salida); estilo-a.css, el aspecto: el
+     estilo A «Placas» de Gokudō, acotado a [data-estilo="a"]. Pacopepe se quedó con él el 08/11 y la B se borró -->
 <link rel="stylesheet" href="ingame.css">
 <link rel="stylesheet" href="estilo-a.css">
-<link rel="stylesheet" href="estilo-b.css">
 </head>
 <body class="oculto" data-estilo="a">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -85,7 +84,7 @@
   </div>
   </div>
 
-  <!-- Línea por línea: lo saca el panel. Va dentro de su zona, que se encoge cuando lleva cámaras a los lados -->
+  <!-- Línea por línea: lo saca el panel. Va dentro de su zona, siempre encogida (ESCALA_LINEAS), con la gráfica de oro -->
   <div class="zona-lineas">
   <section class="lineas" hidden>
     <header class="lineas-cabeza">
@@ -95,6 +94,18 @@
       <div class="equipo rojo"><b class="nombre"></b><img class="logo" alt=""></div>
     </header>
     <div class="filas"></div>
+  </section>
+
+  <!-- Gráfica de oro: la diferencia estimada (azul menos rojo) desde el principio. La saca el panel. Va en la zona del
+       línea por línea y con su misma caja: sale justo en el mismo hueco -->
+  <section class="grafica" hidden>
+    <header class="grafica-cabeza">
+      <div class="equipo azul"><img class="logo" alt=""><b class="nombre"></b></div>
+      <div class="grafica-titulo"><b>Diferencia de oro</b><small>oro estimado ≈</small></div>
+      <div class="equipo rojo"><b class="nombre"></b><img class="logo" alt=""></div>
+    </header>
+    <svg class="grafica-svg" viewBox="0 0 1560 344" preserveAspectRatio="none" aria-hidden="true"></svg>
+    <div class="grafica-eje"></div>
   </section>
   </div>
 
@@ -117,16 +128,6 @@
     </div>
   </section>
 
-  <!-- Gráfica de oro: la diferencia estimada (azul menos rojo) desde el principio. La saca el panel -->
-  <section class="grafica" hidden>
-    <header class="grafica-cabeza">
-      <div class="equipo azul"><img class="logo" alt=""><b class="nombre"></b></div>
-      <div class="grafica-titulo"><b>Diferencia de oro</b><small>oro estimado ≈</small></div>
-      <div class="equipo rojo"><b class="nombre"></b><img class="logo" alt=""></div>
-    </header>
-    <svg class="grafica-svg" viewBox="0 0 1000 300" preserveAspectRatio="none" aria-hidden="true"></svg>
-    <div class="grafica-eje"></div>
-  </section>
 </div>
 <script type="module" src="ingame.js"></script>
 </body>

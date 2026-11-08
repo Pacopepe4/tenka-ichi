@@ -672,12 +672,10 @@ $('#verOro').onclick = async () => {
   await enviar('grafico', fuera ? { tipo: null } : { tipo: 'oro', segundos: Number($('#duracionOro').value) });
 };
 
-// ---------- Estilo del marcador e interruptores de lo nuevo ----------
-document.querySelectorAll('.estilos .estilo').forEach(b => b.addEventListener('click', () => enviar('ingame', { estilo: b.dataset.estilo })));
+// ---------- Interruptores de lo nuevo del marcador (el estilo es siempre el A de Gokudō desde el 08/11) ----------
 for (const k of ['resumenPelea', 'puntosFantasy', 'oroIngresos']) $(`#${k}`).onchange = e => enviar('ingame', { [k]: e.target.checked });
 function pintarIngame() {
   const i = estado?.ingame || { estilo: 'a', puntosFantasy: true, resumenPelea: true, oroIngresos: true };
-  document.querySelectorAll('.estilos .estilo').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.estilo === i.estilo)));
   for (const k of ['resumenPelea', 'puntosFantasy', 'oroIngresos']) $(`#${k}`).checked = i[k] !== false;
   pintarOpcionesFicha();
   pintarCamarasLineas();
@@ -685,7 +683,7 @@ function pintarIngame() {
 
 // ---------- Cámaras de los casters, a los lados del línea por línea ----------
 // Dos huecos, uno a cada lado del panel (camarasLineas en comun.js): izquierda y derecha. Marcar una se aplica al
-// momento; el nombre y el detalle, con el botón, como en las cámaras del draft. La medida depende del estilo del marcador
+// momento; el nombre y el detalle, con el botón, como en las cámaras del draft
 const LADO_CAMARA = ['izquierda', 'derecha'];
 let camarasLineasRellenas = false;
 function pintarCamarasLineas() {
@@ -710,7 +708,7 @@ function pintarCamarasLineas() {
       });
     });
   }
-  const huecos = camarasLineas(estado.ingame.estilo);
+  const huecos = camarasLineas();
   caja.querySelectorAll('.fila-camara-lineas').forEach((f, i) => {
     const h = huecos[i];
     f.querySelector('.activa').checked = Boolean(lista[i].activa);
