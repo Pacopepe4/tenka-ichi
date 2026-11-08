@@ -3,10 +3,11 @@
 // - postdraft: el draft ya cerrado, con las estadísticas de cada jugador y de los dos clanes.
 // - partida: el marcador de la partida, transparente, encima del juego.
 // - final: la pantalla de fin de partida.
-// Cambia sola según lo que va pasando, y el panel puede forzar cualquiera de las cuatro.
+// - replay: lo quita todo y deja solo el cartel de REPLAY. Nunca sale sola: solo la fuerza el panel.
+// Cambia sola según lo que va pasando, y el panel puede forzar cualquiera.
 import { ROLES } from './clanes.js';
 
-export const VISTAS = ['draft', 'postdraft', 'partida', 'final'];
+export const VISTAS = ['draft', 'postdraft', 'partida', 'final', 'replay'];
 
 // La partida que hay en el panel: la pantalla final solo vale mientras se siga en ella
 export const clavePartida = e => `${e.config.jornada}|${e.config.partida}|${[e.equipos.azul.clan, e.equipos.rojo.clan].sort().join('-')}`;

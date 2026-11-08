@@ -8,7 +8,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import WebSocket from 'ws';
-import { vistaAutomatica, clavePartida, fotoFinal, fotoFinalDelDraft, completarFinal } from '../server/vista.js';
+import { VISTAS, vistaAutomatica, clavePartida, fotoFinal, fotoFinalDelDraft, completarFinal } from '../server/vista.js';
 import { fotoEstado, restaurarEstado } from '../server/estado-guardado.js';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -125,6 +125,21 @@ test('el estado guardado vuelve tal cual; la búsqueda y la vista forzada, solo 
   assert.equal(raro.vista.forzada, null);
 });
 
+test('REPLAY es una vista que solo fuerza el panel: nunca sale sola ni vuelve tras un reinicio', () => {
+  assert.ok(VISTAS.includes('replay'));
+  for (const enPartida of [true, false]) for (const hayFinal of [true, false]) for (const draftListo of [true, false]) {
+    assert.notEqual(vistaAutomatica({ enPartida, hayFinal, draftListo }), 'replay');
+  }
+  // Tras un reinicio el directo no puede quedarse con solo el cartel
+  const e = estadoBase();
+  restaurarEstado(e, JSON.stringify({ cuando: Date.now(), vista: { forzada: 'replay', enPartida: false } }));
+  assert.equal(e.vista.forzada, null);
+  const f = estadoBase();
+  f.vista.forzada = 'final';
+  restaurarEstado(f, JSON.stringify(fotoEstado(f)));
+  assert.equal(f.vista.forzada, 'final', 'las demás vistas forzadas sí se conservan');
+});
+
 // ---------- la web entera ----------
 let carpeta, web, urlWeb;
 const esperar = ms => new Promise(r => setTimeout(r, ms));
@@ -136,7 +151,7 @@ async function arrancarWeb() {
   for (const k of Object.keys(entorno)) if (/^(GOOGLE_|TWITCH_|DISCORD_|RENDER)/.test(k)) delete entorno[k];
   web = spawn(process.execPath, ['server/index.js'], {
     cwd: RAIZ, stdio: ['ignore', 'pipe', 'pipe'],
-    env: { ...entorno, PORT: String(puerto), PANEL_CLAVE: CLAVE, SESION_SECRETO: 'secreto-de-las-pruebas', ESPERA_VISTA_MS: '250',
+    env: { ...entorno, PORT: String(puerto), PANEL_CLAVE: CLAVE, SESION_SECRETO: 'secreto-de-las-pruebas', ESPERA_VISTA_MS: '250', REPLAY_MAX_MS: '700',
       CARPETA_DATOS: carpeta, ARCHIVO_PLANTILLAS: path.join(carpeta, 'plantillas.json'),
       ARCHIVO_BOOSTS: path.join(carpeta, 'boosts.json'), ARCHIVO_CAMPEONES: path.join(carpeta, 'campeones.json'),
       ARCHIVO_LEGACY: path.join(carpeta, 'legacy.json') },
@@ -388,5 +403,28 @@ test('si el puente se cae en plena partida, el overlay sigue en la partida y no 
   // Vuelve el puente y sigue la partida: no ha pasado nada
   await paquete(52, [inicio]);
   assert.equal(c.estado.vistaOverlay, 'partida');
+  c.ws.close();
+});
+
+test('REPLAY: el panel la fuerza, quita todo lo demás y se suelta sola; otra vista o «Automático» la quitan al momento', async () => {
+  const c = await conectar();
+  const automatica = c.estado.vistaOverlay;
+  assert.notEqual(automatica, 'replay');
+
+  await c.accion('vistaOverlay', { vista: 'replay' });
+  assert.equal(c.estado.vistaOverlay, 'replay');
+  assert.equal(c.estado.vista.forzada, 'replay');
+  // Se suelta sola (en la prueba, a los 0,7 s) y el overlay vuelve a lo que tocaba
+  await c.hasta(e => e.vistaOverlay === automatica, 'la vista de antes, al soltarse sola', 3000);
+  assert.equal(c.estado.vista.forzada, null);
+
+  // Forzar otra vista antes de que pase el tiempo cancela el reloj: no la suelta después
+  await c.accion('vistaOverlay', { vista: 'replay' });
+  await c.accion('vistaOverlay', { vista: 'draft' });
+  assert.equal(c.estado.vistaOverlay, 'draft');
+  await esperar(1000);
+  assert.equal(c.estado.vistaOverlay, 'draft', 'el reloj de REPLAY no suelta una vista forzada que no es REPLAY');
+  await c.accion('vistaOverlay', { vista: 'auto' });
+  assert.equal(c.estado.vistaOverlay, automatica);
   c.ws.close();
 });

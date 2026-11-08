@@ -15,9 +15,8 @@ body { font-family: var(--gothic); color: var(--washi); font-variant-numeric: ta
   --t-rapido: .22s; --t-medio: .45s; --t-lento: .7s;
   --curva: cubic-bezier(.2, .8, .2, 1);          /* entradas: arranca rápido y frena suave */
   --curva-salida: cubic-bezier(.5, 0, .75, 0);   /* salidas: se va acelerando */
-  --oro: #D9A441;         /* el oro de las cifras */
-  --oro-viejo: #EBD28A;   /* el filo de oro de las cartas full art */
-  --tinta: rgba(22, 20, 18, .92);
+  /* Gokudō: el oro #EBD28A (obs-gokudo.css) queda para Shinigami; las cifras de oro van en washi */
+  --tinta: rgba(12, 13, 19, .92);
 }
 
 #lienzo { position: relative; width: 1920px; height: 1080px; transition: opacity var(--t-medio) ease, transform var(--t-medio) var(--curva); }
@@ -114,10 +113,10 @@ body.oculto #lienzo { opacity: 0; transform: translateY(-24px); }
 .kills, .dato b, .diferencia b, .jugador .oro, .dif, .puntos b, .ficha-puntos b { display: inline-block; transform-origin: 50% 60%; }
 
 /* ---------- Línea por línea (abajo, en el centro) ---------- */
-/* El panel va dentro de su zona, que ocupa el lienzo entero y es la que se encoge, hacia abajo y al centro, cuando
-   lleva las cámaras de los casters a los lados (la escala la pone el marcador: ESCALA_LINEAS_CON_CAMARAS) */
-.zona-lineas { position: absolute; inset: 0; pointer-events: none; transform-origin: 50% 100%; transition: transform var(--t-medio) var(--curva); }
-.zona-lineas.con-camaras { transform: scale(var(--escala-lineas, .78)); }
+/* El panel va dentro de su zona, que ocupa el lienzo entero y va siempre encogida hacia abajo y al centro (la escala
+   la pone el marcador: ESCALA_LINEAS en comun.js), haya cámaras de casters a los lados o no. La gráfica de oro va en
+   esta misma zona y con la misma caja: las dos salen exactamente en el mismo hueco */
+.zona-lineas { position: absolute; inset: 0; pointer-events: none; transform-origin: 50% 100%; transform: scale(var(--escala-lineas, .78)); }
 /* Entra subiendo desde el borde, con las filas escalonadas; se va bajando */
 .lineas { position: absolute; bottom: 0; left: 50%; width: 1560px; transform: translateX(-50%); transform-origin: 50% 100%;
   animation: subir var(--t-lento) var(--curva) both; }
@@ -130,8 +129,8 @@ body.oculto #lienzo { opacity: 0; transform: translateY(-24px); }
 .lineas-cabeza .equipo.rojo { justify-content: flex-end; }
 .lineas-cabeza .logo { width: 42px; height: 42px; object-fit: contain; }
 .lineas-cabeza .nombre { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* El logo de Tenka Ichi, pequeño y tal cual, con su papel */
-.lineas-cabeza .sol { width: 46px; height: 46px; border-radius: 4px; }
+/* El sol de Gokudō, pequeño y tal cual */
+.lineas-cabeza .sol { width: 46px; height: 46px; object-fit: contain; }
 .lineas-centro { display: grid; grid-template-columns: 88px 1fr 88px; align-items: center; gap: 6px; width: 300px; justify-items: center; }
 .lineas.sin-puntos .rotulo-pts { visibility: hidden; }
 .filas { padding: 4px 0 8px; }
@@ -210,8 +209,8 @@ body.oculto #lienzo { opacity: 0; transform: translateY(-24px); }
 @keyframes camaraSale { to { opacity: 0; transform: translateY(24px); } }
 .ventana-cam { position: relative; }
 .placa-cam { position: relative; display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 12px; overflow: hidden; }
-/* El emblema de Koryu Budo, tal cual, sobre un círculo de papel para que se lea encima de la tinta */
-.sello-cam { position: relative; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; flex: none; background: var(--washi); }
+/* El sol de Gokudō, tal cual, en un hueco de noche */
+.sello-cam { position: relative; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; flex: none; background: var(--sumi); }
 .sello-cam img { width: 24px; height: 24px; object-fit: contain; }
 .nombre-cam { position: relative; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .detalle-cam { position: relative; min-width: 0; margin-left: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -222,7 +221,7 @@ body.oculto #lienzo { opacity: 0; transform: translateY(-24px); }
 .medidas-cam { display: none; }
 body.guia .medidas-cam { display: grid; place-items: center; position: absolute; inset: 0;
   background: repeating-linear-gradient(45deg, rgba(231, 223, 210, .12) 0 12px, transparent 12px 24px); }
-.medidas-cam span { padding: 5px 10px; background: rgba(22, 20, 18, .82); font-size: 17px; font-weight: 700; line-height: 1.4; text-align: center; color: var(--washi); }
+.medidas-cam span { padding: 5px 10px; border-radius: 6px; background: rgba(12, 13, 19, .85); font-size: 17px; font-weight: 700; line-height: 1.4; text-align: center; color: var(--washi); }
 
 /* ---------- Ficha de un jugador (abajo, en el lado de su clan) ---------- */
 .ficha { position: absolute; bottom: 56px; display: grid; grid-template-columns: 290px 400px; gap: 22px; align-items: stretch; animation: fichaEntra var(--t-lento) var(--curva) both; }
@@ -252,8 +251,11 @@ body.guia .medidas-cam { display: grid; place-items: center; position: absolute;
 .ficha-objetos .hueco { width: 38px; height: 38px; }
 .ficha-puntos { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: auto; }
 
-/* ---------- Gráfica de oro (abajo, en el centro) ---------- */
-.grafica { position: absolute; bottom: 48px; left: 50%; width: 1000px; transform: translateX(-50%); animation: subir var(--t-lento) var(--curva) both; }
+/* ---------- Gráfica de oro: en el mismo hueco que el línea por línea ----------
+   Va dentro de .zona-lineas y mide lo mismo que el panel (1560×436: 64 de cabeza, 344 de gráfica y 28 de eje), pegada
+   abajo; así, al cambiar de una a otra, no se mueve nada de sitio. Entra y sale igual que él */
+.grafica { position: absolute; bottom: 0; left: 50%; width: 1560px; height: 436px; transform: translateX(-50%); transform-origin: 50% 100%;
+  animation: subir var(--t-lento) var(--curva) both; }
 .grafica.sale { animation: bajar var(--t-medio) var(--curva-salida) both; }
 .grafica-cabeza { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; height: 64px; padding: 0 22px; }
 .grafica-cabeza .equipo { display: flex; align-items: center; gap: 12px; min-width: 0; }
@@ -261,7 +263,7 @@ body.guia .medidas-cam { display: grid; place-items: center; position: absolute;
 .grafica-cabeza .logo { width: 42px; height: 42px; object-fit: contain; }
 .grafica-cabeza .nombre { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .grafica-titulo { display: flex; flex-direction: column; align-items: center; line-height: 1.15; }
-.grafica-svg { display: block; width: 1000px; height: 300px; }
+.grafica-svg { display: block; width: 1560px; height: 344px; }
 .grafica-svg .rejilla line { stroke: rgba(231, 223, 210, .1); stroke-width: 1; }
 .grafica-svg .cero { stroke-width: 1.5; }
 .grafica-svg .rotulo { font-size: 16px; font-weight: 700; fill: var(--hai); font-family: var(--gothic); }

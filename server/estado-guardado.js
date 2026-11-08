@@ -63,13 +63,15 @@ export function restaurarEstado(e, texto = ajuste(CLAVE), ahora = Date.now()) {
   if (g.final && typeof g.final === 'object' && Array.isArray(g.final.lineas)) e.final = g.final;
   // El marcador de partida: estilo e interruptores (un estado anterior a esta versión no los trae: se quedan como están)
   if (g.ingame && typeof g.ingame === 'object' && e.ingame) {
-    if (['a', 'b'].includes(g.ingame.estilo)) e.ingame.estilo = g.ingame.estilo;
+    // Un estado guardado con la B (que se borró el 08/11) vuelve con la A, la única que queda
+    if (typeof g.ingame.estilo === 'string') e.ingame.estilo = 'a';
     for (const k of ['puntosFantasy', 'resumenPelea', 'oroIngresos']) if (typeof g.ingame[k] === 'boolean') e.ingame[k] = g.ingame[k];
     if (esLista(g.ingame.camaras, 2) && esLista(e.ingame.camaras, 2)) e.ingame.camaras = e.ingame.camaras.map((c, i) => camaraLineas(g.ingame.camaras[i], c));
   }
   if (reciente) {
     if (typeof g.buscarPartida?.activa === 'boolean') e.buscarPartida.activa = g.buscarPartida.activa;
     if (g.vista && typeof g.vista === 'object') {
+      // 'replay' no se restaura a propósito: tras un reinicio el directo no puede quedarse con solo el cartel
       e.vista.forzada = ['draft', 'postdraft', 'partida', 'final'].includes(g.vista.forzada) ? g.vista.forzada : null;
       e.vista.enPartida = Boolean(g.vista.enPartida);
     }

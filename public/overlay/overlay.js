@@ -1,7 +1,7 @@
 // Overlay para OBS (1920×1080): la única fuente de navegador que hace falta. Enseña cuatro cosas, que cambian solas
 // según lo que va pasando (el panel puede forzar cualquiera): el draft, el postdraft (el draft cerrado con las
 // estadísticas de cada jugador y de los dos clanes), el marcador de la partida y la pantalla final.
-// Por defecto pinta su propio fondo de tinta con los huecos de las cámaras recortados:
+// Por defecto pinta su propio fondo de noche con los huecos de las cámaras recortados:
 // las cámaras de OBS van debajo del overlay, encajadas en esos huecos.
 // ?transparente=1 quita el fondo; ?guia=1 marca los huecos con sus medidas para colocarlas.
 import { cargarCampeones, cargarClanes, conectarDirecto, icono, splash, logo, disposicionCamaras, PLACA_CAMARA } from '/comun.js';
@@ -10,8 +10,9 @@ import { cartaHTML } from '/carta.js';
 const params = new URLSearchParams(location.search);
 if (params.has('transparente')) document.body.classList.add('transparente');
 if (params.has('guia')) document.body.classList.add('guia');
-// ?vista=postdraft (o final, draft, partida): se queda en esa vista diga lo que diga el panel, para montar la escena
-const vistaFija = ['draft', 'postdraft', 'partida', 'final'].includes(params.get('vista')) ? params.get('vista') : null;
+// ?vista=postdraft (o final, draft, partida, replay): se queda en esa vista diga lo que diga el panel, para montar la
+// escena. ?vista=replay es la fuente de OBS de la escena de repetición: solo el cartel REPLAY (replay.css)
+const vistaFija = ['draft', 'postdraft', 'partida', 'final', 'replay'].includes(params.get('vista')) ? params.get('vista') : null;
 
 const $ = s => document.querySelector(s);
 const campeones = await cargarCampeones();
@@ -44,6 +45,13 @@ for (const lado of ['azul', 'rojo']) {
 let estado = null, ultimoAviso = 0, temporizadorTarjeta = null, primeraVez = true, ultimoTurno = null, firmaCamaras = '';
 const fijados = { azul: Array(5).fill(null), rojo: Array(5).fill(null) };
 const nombreEquipo = (c, lado) => (c.id === 'NONAME' ? `Lado ${lado}` : c.nombre);
+// Cada lado lleva el color de su familia (el tubo de neón de las placas, los picks, los bans y las cámaras):
+// overlay.css usa --azul-lado y --rojo-lado, y --azul-texto y --rojo-texto para las cifras
+function ponerColorLado(lado, c) {
+  const raiz = document.documentElement.style;
+  raiz.setProperty(`--${lado}-lado`, c.color);
+  raiz.setProperty(`--${lado}-texto`, c.texto);
+}
 
 function pintar(e) {
   estado = e;
@@ -54,6 +62,7 @@ function pintar(e) {
   for (const lado of ['azul', 'rojo']) {
     const eq = e.equipos[lado];
     const c = clanes.clan(eq.clan);
+    ponerColorLado(lado, c);
     const placa = $(`.placa.${lado}`);
     placa.style.setProperty('--color-clan', c.texto);
     placa.querySelector('.logo').src = logo(c.id);
@@ -119,9 +128,8 @@ function pintarVista(e) {
   if (vista === vistaActual) return;
   vistaActual = vista;
   const marco = $('.vista-partida');
-  // Al marcador le llegan de la dirección del overlay ?estilo=a|b, que fuerza una versión (para comparar las dos en
-  // OBS), y ?guia=1, que raya los huecos de sus cámaras
-  const consulta = ['estilo', 'guia'].filter(k => params.has(k)).map(k => `${k}=${encodeURIComponent(params.get(k))}`).join('&');
+  // Al marcador le llega de la dirección del overlay ?guia=1, que raya los huecos de sus cámaras
+  const consulta = ['guia'].filter(k => params.has(k)).map(k => `${k}=${encodeURIComponent(params.get(k))}`).join('&');
   if (vista === 'partida' && !marco.getAttribute('src')) marco.src = `/ingame/${consulta ? `?${consulta}` : ''}`;
   document.body.dataset.vista = vista;
   // En el postdraft y en la pantalla final no hay cámaras: el fondo va entero
@@ -210,7 +218,7 @@ function mostrarTarjeta(a) {
   const s = a.stats;
   const c = clanes.clan(a.clan);
   const equipo = nombreEquipo(c, a.lado);
-  let pie = `Sobre ${s.partidas} ${s.partidas === 1 ? 'partida' : 'partidas'} de Tenka Ichi`;
+  let pie = `Sobre ${s.partidas} ${s.partidas === 1 ? 'partida' : 'partidas'} de Gokudō`;
   if (a.tipo === 'pick') {
     const partes = [];
     if (s.jugador && a.jugador) partes.push(s.jugador.veces
@@ -280,7 +288,7 @@ function pintarPostdraft() {
         con.innerHTML = `<b>${plural(c.partidas, 'partida', 'partidas')}</b> · ${c.victorias}V ${c.derrotas}D${c.kda ? ` · KDA <b>${numero(c.kda.ratio)}</b>` : ''}`;
       }
       const g = j.general;
-      slot.querySelector('.general').textContent = !j.nombre ? '' : !g.partidas ? 'Debuta en Tenka Ichi'
+      slot.querySelector('.general').textContent = !j.nombre ? '' : !g.partidas ? 'Debuta en Gokudō'
         : `Liga: ${plural(g.partidas, 'partida', 'partidas')} · ${g.wr} % victorias${g.kda ? ` · KDA ${numero(g.kda.ratio)}` : ''}`;
       const caja = slot.querySelector('.fantasy-slot');
       caja.hidden = !j.fantasy;
@@ -290,7 +298,7 @@ function pintarPostdraft() {
     // Los dos clanes frente a frente: su arte, su porcentaje de victorias y su balance
     const figura = $(`.versus-arte .clan.${lado}`), c = clanes.clan(eq.clan);
     figura.style.setProperty('--color-clan', c.color);
-    const img = figura.querySelector('img'), arte = c.invitado ? '/marca/sol-partido.jpg' : `/clanes/${c.id}.jpg`;
+    const img = figura.querySelector('img'), arte = c.invitado ? '/marca/gokudo-cuadro.png' : `/clanes/${c.id}.jpg`;
     if (img.getAttribute('src') !== arte) img.src = arte;
     figura.querySelector('.wr').innerHTML = eq.wr == null ? '–' : `${eq.wr}<small>%</small>`;
     figura.querySelector('.record').textContent = eq.partidas ? `${eq.victorias}V ${eq.derrotas}D${eq.puesto ? ` · ${eq.puesto}.º` : ''}` : 'Sin partidas';
@@ -336,6 +344,7 @@ function pintarFinal(e) {
   const dato = v => (v == null ? '–' : numero(v, 0));
   for (const lado of ['azul', 'rojo']) {
     const eq = f.equipos[lado], c = clanes.clan(eq.clan), caja = $(`.final-clan.${lado}`);
+    ponerColorLado(lado, c);
     caja.style.setProperty('--color-clan', c.texto);
     caja.querySelector('.logo').src = logo(c.id);
     caja.querySelector('.nombre').textContent = nombreEquipo(c, lado);
@@ -409,7 +418,7 @@ function pintarFinal(e) {
   if (!j) {
     mvp.className = 'final-mvp vacio';
     mvp.style.backgroundImage = '';
-    mvp.innerHTML = '<img src="/marca/tenka-ichi-cuadro.png" alt=""><span>Tenka Ichi</span>';
+    mvp.innerHTML = '<img src="/marca/gokudo-neon.png" alt=""><span>極道</span>';
   } else {
     const extra = f.extras?.[f.mvp] || {}, deLaPrevia = previa?.[ladoMvp]?.jugadores?.[Number(iMvp)];
     const carta = deLaPrevia?.carta && deLaPrevia.nombre === j.nombre ? deLaPrevia.carta : null;

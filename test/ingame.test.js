@@ -6,7 +6,10 @@ import assert from 'node:assert/strict';
 import { recibir, olvidarPartida, ajustarIngame, INGRESOS, REGLAS_PELEA } from '../server/partida.js';
 import { puntuar } from '../server/puntuacion.js';
 import { camaraLineas, restaurarEstado } from '../server/estado-guardado.js';
-import { camarasLineas, ESCALA_LINEAS_CON_CAMARAS } from '../public/comun.js';
+import { camarasLineas, ESCALA_LINEAS } from '../public/comun.js';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const POSICIONES = ['TOP', 'JUNGLE', 'MIDDLE', 'BOTTOM', 'UTILITY'];
 // Azul: A1…A5 y rojo: R1…R5, cada uno en su línea. Sin objetos, salvo que se pidan
@@ -185,38 +188,50 @@ test('una cámara de caster cambia solo en lo que llega bien, y los nombres tien
 
 test('las cámaras de los casters vuelven con el estado guardado; uno anterior a ellas no las toca', () => {
   const estado = () => ({ ingame: { estilo: 'a', puntosFantasy: true, resumenPelea: true, oroIngresos: true, camaras: camarasDeFabrica() } });
+  // Guardado cuando aún estaba la B (se borró el 08/11): vuelve con la A, la única que queda
   const guardado = { cuando: Date.now(), ingame: { estilo: 'b', oroIngresos: false,
     camaras: [{ activa: true, nombre: 'Koryu', detalle: '@koryubudo' }, { activa: false, nombre: 'Izakaya', detalle: '' }] } };
   const e = estado();
   restaurarEstado(e, JSON.stringify(guardado));
-  assert.deepEqual(e.ingame, { estilo: 'b', puntosFantasy: true, resumenPelea: true, oroIngresos: false, camaras: guardado.ingame.camaras });
+  assert.deepEqual(e.ingame, { estilo: 'a', puntosFantasy: true, resumenPelea: true, oroIngresos: false, camaras: guardado.ingame.camaras });
   // Guardado por una versión sin cámaras, o con una lista que no es de dos: se quedan las de fábrica
   for (const camaras of [undefined, [], [{ activa: true }], 'dos']) {
     const viejo = estado();
-    restaurarEstado(viejo, JSON.stringify({ cuando: Date.now(), ingame: { estilo: 'b', camaras } }));
-    assert.equal(viejo.ingame.estilo, 'b');
+    restaurarEstado(viejo, JSON.stringify({ cuando: Date.now(), ingame: { estilo: 'a', camaras } }));
+    assert.equal(viejo.ingame.estilo, 'a');
     assert.deepEqual(viejo.ingame.camaras, camarasDeFabrica());
   }
 });
 
 test('los huecos de las cámaras: dos en 16:9, en espejo, a los lados del línea por línea encogido y sin pisarlo', () => {
-  // Lo que mide el panel en cada versión (ingame.css y estilo-b.css; la B lleva además su filo de 5 px), el filo del
-  // marco de la cámara por fuera del hueco (estilo-a.css y estilo-b.css) y la placa del nombre
-  const ANCHO_PANEL = { a: 1560, b: 1600 + 2 * 5 }, ALTO_PANEL = { a: 436, b: 458 + 12 }, FILO_MARCO = { a: 3, b: 8 }, PLACA = 44;
-  for (const estilo of ['a', 'b']) {
-    const escala = ESCALA_LINEAS_CON_CAMARAS[estilo];
-    assert.ok(escala > 0.7 && escala < 1, 'el panel se encoge, pero sigue leyéndose');
-    const izquierdaDelPanel = 960 - ANCHO_PANEL[estilo] * escala / 2, arribaDelPanel = 1080 - ALTO_PANEL[estilo] * escala;
-    const [izquierda, derecha] = camarasLineas(estilo);
-    assert.equal(camarasLineas(estilo).length, 2);
-    for (const h of [izquierda, derecha]) {
-      assert.equal(h.w / h.h, 16 / 9, 'la cámara no se deforma');
-      assert.ok(h.x - FILO_MARCO[estilo] >= 0 && h.x + h.w + FILO_MARCO[estilo] <= 1920 && h.y + h.h + PLACA <= 1080, `dentro del lienzo, con su placa (${estilo})`);
-      assert.ok(h.y > arribaDelPanel, 'a su lado, no por encima');
-    }
-    assert.ok(izquierda.x + izquierda.w + FILO_MARCO[estilo] < izquierdaDelPanel, `el marco no pisa el panel (${estilo})`);
-    assert.equal(izquierda.x, 1920 - (derecha.x + derecha.w), 'en espejo');
-    assert.equal(izquierda.y, derecha.y);
+  // Lo que mide el panel (ingame.css), el filo del marco de la cámara por fuera del hueco (estilo-a.css) y la placa
+  const ANCHO_PANEL = 1560, ALTO_PANEL = 436, FILO_MARCO = 3, PLACA = 44;
+  assert.ok(ESCALA_LINEAS > 0.7 && ESCALA_LINEAS < 1, 'el panel se encoge, pero sigue leyéndose');
+  const izquierdaDelPanel = 960 - ANCHO_PANEL * ESCALA_LINEAS / 2, arribaDelPanel = 1080 - ALTO_PANEL * ESCALA_LINEAS;
+  const [izquierda, derecha] = camarasLineas();
+  assert.equal(camarasLineas().length, 2);
+  for (const h of [izquierda, derecha]) {
+    assert.equal(h.w / h.h, 16 / 9, 'la cámara no se deforma');
+    assert.ok(h.x - FILO_MARCO >= 0 && h.x + h.w + FILO_MARCO <= 1920 && h.y + h.h + PLACA <= 1080, 'dentro del lienzo, con su placa');
+    assert.ok(h.y > arribaDelPanel, 'a su lado, no por encima');
   }
-  assert.deepEqual(camarasLineas(undefined), camarasLineas('a'), 'sin estilo, el de siempre');
+  assert.ok(izquierda.x + izquierda.w + FILO_MARCO < izquierdaDelPanel, 'el marco no pisa el panel');
+  assert.equal(izquierda.x, 1920 - (derecha.x + derecha.w), 'en espejo');
+  assert.equal(izquierda.y, derecha.y);
+});
+
+test('la gráfica de oro sale en el mismo hueco que el línea por línea, y solo queda el estilo A', () => {
+  const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const leer = r => readFileSync(path.join(raiz, r), 'utf8');
+  const css = leer('public/ingame/ingame.css'), html = leer('public/ingame/index.html'), js = leer('public/ingame/ingame.js');
+  const regla = sel => css.match(new RegExp('\n' + sel.replace('.', '\.') + ' \{([^}]*)\}'))?.[1] || '';
+  assert.match(regla('.lineas'), /bottom: 0;[^}]*width: 1560px/);
+  assert.match(regla('.grafica'), /bottom: 0;[^}]*width: 1560px; height: 436px/);
+  // Las dos van dentro de la zona que se encoge (la gráfica justo después del panel, antes de cerrar la zona)
+  const zona = html.slice(html.indexOf('<div class="zona-lineas">'), html.indexOf('<div class="camaras-lineas">'));
+  assert.ok(zona.includes('<section class="lineas"') && zona.includes('<section class="grafica"'));
+  // El dibujo de la gráfica, su viewBox y su caja miden lo mismo
+  assert.match(js, /const W = 1560, H = 344/);
+  assert.ok(html.includes('viewBox="0 0 1560 344"') && css.includes('.grafica-svg { display: block; width: 1560px; height: 344px; }'));
+  assert.ok(!html.includes('estilo-b.css'), 'la B ya no se carga');
 });

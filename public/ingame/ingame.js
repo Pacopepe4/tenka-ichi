@@ -3,14 +3,14 @@
 // avisos de objetivos y resumen de pelea y, cuando lo saca el panel, el línea por línea (con las cámaras de los
 // casters a los lados, si están activadas), la ficha de un jugador o la gráfica de oro. Los clanes salen del
 // enfrentamiento del panel (lado azul a la izquierda).
-// El aspecto lo decide data-estilo en <body> (A «retoque» o B «full art»): lo elige el panel o ?estilo= en la dirección.
-import { cargarClanes, conectarDirecto, logo, icono, splash, camarasLineas, ESCALA_LINEAS_CON_CAMARAS } from '/comun.js';
+// El aspecto es el estilo A de Gokudō («Placas», estilo-a.css, acotado a data-estilo="a" en <body>). Pacopepe se quedó con
+// él el 08/11 y la B se borró.
+import { cargarClanes, conectarDirecto, logo, icono, splash, camarasLineas, ESCALA_LINEAS } from '/comun.js';
 import { cartaHTML } from '/carta.js';
 
 const $ = s => document.querySelector(s);
 const clanes = await cargarClanes();
 const params = new URLSearchParams(location.search);
-const ESTILO_FORZADO = ['a', 'b'].includes(params.get('estilo')) ? params.get('estilo') : null;
 // ?guia=1 (o la vista previa del panel): los huecos de las cámaras salen rayados y con su medida, para colocarlas en OBS
 if (params.has('guia')) document.body.classList.add('guia');
 const DRAGON = { infernal: 'infernal', oceano: 'del océano', montana: 'de montaña', nube: 'de nube', hextech: 'hextech', quimtech: 'quimtech', ancestral: 'ancestral', dragon: '' };
@@ -40,7 +40,7 @@ const escapar = s => String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', 
 const tiempoAhora = () => (partida ? partida.tiempo + Math.min(3, (Date.now() - recibidaEn) / 1000) * (partida.velocidad || 1) : 0);
 const clanDe = lado => clanes.clan(estado?.equipos?.[lado]?.clan || 'NONAME');
 const nombreClan = lado => { const c = clanDe(lado); return c.id === 'NONAME' ? (lado === 'azul' ? 'Lado azul' : 'Lado rojo') : c.nombre; };
-const enso = () => `<svg class="enso" viewBox="0 0 40 40" aria-hidden="true"><circle class="pista" cx="20" cy="20" r="16"/><circle class="trazo" cx="20" cy="20" r="16" pathLength="100" filter="url(#pincel)"/></svg>`;
+const enso = () => `<svg class="enso" viewBox="0 0 40 40" aria-hidden="true"><circle class="pista" cx="20" cy="20" r="16"/><circle class="trazo" cx="20" cy="20" r="16" pathLength="100"/></svg>`;
 const trazar = (el, p) => { el.querySelector('.trazo').style.strokeDashoffset = String(100 - Math.max(0, Math.min(1, p)) * 100); };
 const interruptor = k => estado?.ingame?.[k] !== false;  // lo nuevo viene encendido: solo se apaga a propósito
 
@@ -106,7 +106,7 @@ function aparecer(el, visible) {
 
 // ---------- estilo ----------
 function pintarEstilo() {
-  document.body.dataset.estilo = ESTILO_FORZADO || (estado?.ingame?.estilo === 'b' ? 'b' : 'a');
+  document.body.dataset.estilo = 'a';
 }
 
 // ---------- marcador ----------
@@ -370,14 +370,11 @@ function pintarIcono(img, src) {
 
 function pintarLineas(mostrar) {
   const caja = $('.lineas');
-  // Con cámaras a los lados, la zona del panel se encoge para hacerles sitio. Si el panel estaba fuera, entra ya a su
-  // tamaño; si estaba puesto (se marca o se quita una cámara), cambia con transición. Al irse, se va como estaba
+  // La zona del panel (la misma de la gráfica de oro) va siempre encogida a ESCALA_LINEAS, tenga cámaras o no: así no
+  // cambia de tamaño al marcar una cámara y la gráfica sale justo en el mismo hueco
   if (mostrar) {
-    const zona = $('.zona-lineas'), estilo = document.body.dataset.estilo;
-    if (caja.hidden) zona.style.transition = 'none';
-    zona.style.setProperty('--escala-lineas', ESCALA_LINEAS_CON_CAMARAS[estilo] || ESCALA_LINEAS_CON_CAMARAS.a);
-    zona.classList.toggle('con-camaras', camarasActivas().length > 0);
-    if (caja.hidden) { void zona.offsetWidth; zona.style.transition = ''; }
+    $('.zona-lineas').style.setProperty('--escala-lineas', ESCALA_LINEAS);
+    $('.zona-lineas').classList.toggle('con-camaras', camarasActivas().length > 0);
   }
   aparecer(caja, mostrar);
   if (!mostrar) return;
@@ -466,7 +463,7 @@ function pintarLineas(mostrar) {
 const LADO_CAMARA = ['izquierda', 'derecha'];
 const camarasActivas = () => (estado?.ingame?.camaras || []).map((cam, i) => ({ ...cam, i, clave: LADO_CAMARA[i] })).filter(c => c.activa && LADO_CAMARA[c.i]);
 function pintarCamarasLineas(mostrar) {
-  const huecos = camarasLineas(document.body.dataset.estilo);
+  const huecos = camarasLineas();
   lista($('.camaras-lineas'), mostrar ? camarasActivas() : [], cam => {
     const el = document.createElement('div');
     el.className = `camara-lineas ${cam.clave}`;
@@ -575,7 +572,9 @@ function pintarGrafica(mostrar) {
   if (firma === graficaFirma) return;
   const primera = graficaFirma === null;
   graficaFirma = firma;
-  const W = 1000, H = 300, margen = 16, cero = H / 2;
+  // Mide lo mismo que el línea por línea (1560 de ancho) para salir en su mismo hueco; el alto es el que le queda a la
+  // gráfica dentro del panel (436 menos la cabeza y el eje). Si cambia, cambia también el viewBox de index.html
+  const W = 1560, H = 344, margen = 18, cero = H / 2;
   const svg = caja.querySelector('.grafica-svg');
   if (muestras.length < 2) { svg.innerHTML = ''; return; }
   const t0 = muestras[0][0], t1 = Math.max(muestras.at(-1)[0], t0 + 120);

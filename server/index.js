@@ -95,7 +95,7 @@ const estado = {
   grafico: null,
   // Avisos propios de objetivos en el overlay; apagados, se ven los del propio LoL
   avisosPropios: false,
-  // Marcador de partida: estilo (A «retoque» o B «full art») e interruptores de lo nuevo, encendidos por defecto
+  // Marcador de partida: estilo (solo queda el A, «Placas» de Gokudō) e interruptores de lo nuevo, encendidos por defecto
   // (sirven para ocultar algo si no va bien, no para tener que activarlo). oroIngresos apagado vuelve al valor de los objetos.
   // camaras: las cámaras de los casters a los lados del línea por línea (izquierda y derecha), que sí hay que activar:
   // huecos transparentes como los del draft, con el nombre y el detalle que se escriban en el panel
@@ -172,8 +172,10 @@ setInterval(() => {
 const draftCompleto = d => ['azul', 'rojo'].every(l => d.picks[l].every(Boolean));
 const ESPERA_POSTDRAFT_MS = Number(process.env.ESPERA_VISTA_MS) || 10000;  // el último pick se queda un momento antes del postdraft
 const ESPERA_FINAL_MS = Number(process.env.ESPERA_VISTA_MS) || 10000;      // y el final de la partida, antes de la pantalla final
+const REPLAY_MAX_MS = Number(process.env.REPLAY_MAX_MS) || 30000;          // REPLAY forzada desde el panel: se suelta sola
+let soltarReplay = null;
 let draftCompletoDesde = 0;
-let fotoViva = null;                         // último resumen de la partida mientras estaba en marcha
+let fotoViva = null;                        // último resumen de la partida mientras estaba en marcha
 let terminada = { numero: null, desde: 0 };  // la partida que ya ha dado su fin
 let numeroDespachado = null;                 // la partida de la que el panel ya ha pasado página: no vuelve a dejar su final
 const revisarEn = ms => { setTimeout(emitir, ms + 50).unref?.(); };
@@ -368,10 +370,16 @@ async function accion(nombre, d = {}) {
       return { ok: true, enHoja: r.enHoja };
     }
     case 'vistaOverlay':
-      // El panel fuerza lo que enseña el overlay ('draft', 'postdraft', 'partida' o 'final') o lo deja en automático.
-      // Forzar la partida también pone al puente a buscarla, haya draft o no
+      // El panel fuerza lo que enseña el overlay ('draft', 'postdraft', 'partida', 'final' o 'replay') o lo deja en
+      // automático. Forzar la partida también pone al puente a buscarla, haya draft o no
       estado.vista.forzada = VISTAS.includes(d.vista) ? d.vista : null;
       if (estado.vista.forzada === 'partida') { estado.buscarPartida.activa = true; busquedaTocada = true; }
+      // REPLAY lo quita todo: si nadie la suelta, vuelve sola a la vista automática (y no se guarda entre reinicios)
+      clearTimeout(soltarReplay);
+      if (estado.vista.forzada === 'replay') {
+        soltarReplay = setTimeout(() => { if (estado.vista.forzada === 'replay') { estado.vista.forzada = null; emitir(); } }, REPLAY_MAX_MS);
+        soltarReplay.unref?.();
+      }
       break;
     case 'finalQuitar':
       estado.final = null;
@@ -564,7 +572,8 @@ async function accion(nombre, d = {}) {
       estado.avisosPropios = Boolean(d.activos);
       break;
     case 'ingame': {
-      if (['a', 'b'].includes(d.estilo)) estado.ingame.estilo = d.estilo;
+      // Desde el 08/11 solo hay un estilo del marcador (el A de Gokudō): el campo se queda por compatibilidad
+      if (d.estilo === 'a') estado.ingame.estilo = 'a';
       for (const k of ['puntosFantasy', 'resumenPelea', 'oroIngresos']) if (typeof d[k] === 'boolean') estado.ingame[k] = d[k];
       // Las cámaras de los casters: la lista de las dos, cada una con lo que cambie (activarla, o su nombre y su detalle)
       if (Array.isArray(d.camaras)) estado.ingame.camaras = estado.ingame.camaras.map((c, i) => camaraLineas(d.camaras[i], c));
