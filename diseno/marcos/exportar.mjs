@@ -53,10 +53,9 @@ function pagina(p) {
   const textos = (p.textos || []).map(t => `<div style="position:absolute;left:${t.izq}px;top:${t.arriba}px;height:${t.alto}px;`
     + `${t.ancho ? `width:${t.ancho}px;justify-content:center;` : ''}display:flex;align-items:center;font-size:${t.tam}px;`
     + `letter-spacing:${t.espacio || 0}px;color:${t.color}">${t.texto}</div>`).join('');
-  // En el reverso, el sol partido y el logo de Koryu Budo tal cual
+  // En el reverso, el sol de Gokudō tal cual (el logo de Koryu Budo ya no va en ningún sitio)
   const imagenes = p.imagenes
-    ? `<img src="${url(path.join(RAIZ, 'public', 'marca', 'sol-partido-sin-fondo.png'))}" style="position:absolute;left:319px;top:385px;width:361px;height:430px">`
-      + `<img src="${url(path.join(RAIZ, 'public', 'marca', 'koryu-budo.png'))}" style="position:absolute;left:424px;top:1119px;width:152px;height:146px">`
+    ? `<img src="${url(path.join(RAIZ, 'public', 'marca', 'gokudo.png'))}" style="position:absolute;left:319px;top:385px;width:361px;height:430px">`
     : '';
   return `<!doctype html><html><head><meta charset="utf-8">
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@800&display=block" rel="stylesheet">

@@ -112,7 +112,7 @@ test('el fondo de cada carta: su dibujo si existe, si no el splash de su campeó
   assert.equal(cat.get('BOOST-KAMI').arte, '/ddragon/splash/Ornn.jpg', 'también las BOOST');
   assert.equal(cat.get('TORA-TOP').arte, '/clanes/TORA.jpg', 'con un campeón que no existe, el clan');
   assert.equal(cat.get('TORA-JUNGLA').arte, '/clanes/TORA.jpg', 'sin campeón, el clan');
-  assert.equal(cat.get('BOOST-TENGU').arte, '/marca/sol-partido.jpg', 'una BOOST sin campeón, el sol partido');
+  assert.equal(cat.get('BOOST-TENGU').arte, '/marca/gokudo-cuadro.png', 'una BOOST sin campeón, el sol de Gokudō');
 });
 
 test('marcos por clase y tier, sin mezclar: la S de Jugador no usa uno de BOOST ni al revés', () => {

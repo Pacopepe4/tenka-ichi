@@ -818,7 +818,7 @@ async function imagenTier() {
   const t = await fetch('/api/tierlist', { cache: 'no-store' }).then(r => r.json());
   return imagenTierlist({ jugadores: t.jugadores, equipos: t.equipos, nombreClan: id => clanes.clan(id).nombre });
 }
-$('#descargarTier').onclick = async () => descargar(await imagenTier(), 'tenka-ichi-tierlist.jpg');
+$('#descargarTier').onclick = async () => descargar(await imagenTier(), 'gokudo-tierlist.jpg');
 $('#publicarTier').onclick = async () => {
   const r = await publicar('tierlist', await imagenTier(), { clave: claveInput.value });
   aviso(r.ok ? 'Tier list publicada en Discord' : r.error);
@@ -926,7 +926,7 @@ async function publicarClasificacion() {
   aviso(r.ok ? 'Clasificación publicada en Discord' : r.error);
   return r.ok;
 }
-$('#descargarClasificacion').onclick = async () => descargar(await imagenDeLaJornada(), `tenka-ichi-${jornada.jornada.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.jpg`);
+$('#descargarClasificacion').onclick = async () => descargar(await imagenDeLaJornada(), `gokudo-${jornada.jornada.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.jpg`);
 $('#publicarClasificacion').onclick = publicarClasificacion;
 $('#terminarJornada').onclick = async () => {
   const j = jornada?.jornada, [uno, dos, tres] = estado?.jornadaAuto?.premios || [];

@@ -332,7 +332,7 @@ setInterval(() => cargarCartas().catch(() => {}), 60000).unref();
 export const claveTier = t => (t === 'S+' ? 'SP' : t);
 const splashDe = c => (c.campeon && splashes.has(`${c.campeon.id}.jpg`) ? `/ddragon/splash/${c.campeon.id}.jpg` : null);
 const arteProvisional = c => (c.tipo === 'jefe' ? `/personajes/${c.clan}.jpg` : c.tipo === 'temporada' ? '/marca/gokudo-neon.png' : null);
-const arteDe = c => artes.get(c.id) || splashDe(c) || arteProvisional(c) || (c.clan ? `/clanes/${c.clan}.jpg` : '/marca/sol-partido.jpg');
+const arteDe = c => artes.get(c.id) || splashDe(c) || arteProvisional(c) || (c.clan ? `/clanes/${c.clan}.jpg` : '/marca/gokudo-cuadro.png');
 const marcoDe = c => marcos[c.tipo]?.get(claveTier(c.tier)) || null;
 // Los reversos (08/11/2026): un coche del color de la familia de la carta, uno por familia (id del clan), BOOST y
 // TEMPORADA, en public/cartas/reversos/<CLAVE>.webp. El que falte lo pinta la página (public/gachapon/reverso.js).
