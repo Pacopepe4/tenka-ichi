@@ -1,8 +1,15 @@
-// Fantasy: la alineación (una carta de cada rol y hasta dos BOOST, cada una con uno de tus jugadores) y la clasificación
+// Fantasy: la alineación (una carta de cada rol y hasta dos BOOST, cada una con uno de tus jugadores) y la clasificación.
+// La alineación se pinta sobre «la grieta»: un plano de metro de Tokio de noche (el SVG está en index.html y los estilos,
+// en grieta.css). Las tres calles son líneas de metro, el río es un canal y la jungla, los callejones; cada puesto es una
+// estación. En el móvil el plano pasa a ser una sola línea vertical con las cinco estaciones, una debajo de otra
 import { ROL, escapar } from '/carta.js';
 import { $, est, cartaHTML, cartaPorId, misCartas } from './estado.js';
 
 export const ROLES = ['TOP', 'JUNGLA', 'MEDIO', 'ADC', 'SUPPORT'];
+// El kanji del cartel de cada estación: arriba, bosque (los callejones de la jungla), centro, arco y escudo
+const KANJI = { TOP: '上', JUNGLA: '森', MEDIO: '中', ADC: '弓', SUPPORT: '盾' };
+// En la BOOST colgada de la estación solo cabe el multiplicador: de «×3 · más participación», el «×3»
+const multiplicador = c => (c.bonus?.etiqueta || 'BOOST').split(' · ')[0];
 export const puntosTexto = n => `${n.toLocaleString('es-ES')} ${n === 1 ? 'punto' : 'puntos'}`;
 export const puntosDe = id => est.fantasia.jugadores.find(j => j.id === id)?.puntos || 0;
 export const alineacion = () => est.fantasia.yo?.alineacion || {};
@@ -22,26 +29,40 @@ export function pintarFantasy() {
   }
   const bloqueado = !info.usuario || fantasia.cerrado;
   const boosts = boostsDe();
-  // La BOOST vinculada a cada jugador, para ponérsela debajo
-  const boostDeRol = rol => { const b = boosts.find(x => x?.rol === rol); return b ? cartaPorId(b.carta) : null; };
+  // Con las alineaciones cerradas (o sin sesión) el plano se apaga un poco y los trenes se paran
+  caja.closest('.grieta')?.classList.toggle('cerrada', bloqueado);
+  // Cada puesto es una estación del plano: el hueco de su carta con los puntos debajo y, si su jugador lleva una BOOST,
+  // la BOOST colgada al lado en un ramal. Pulsarla abre el mismo diálogo que su hueco de BOOST de debajo del plano
   caja.innerHTML = ROLES.map(rol => {
-    const carta = yo?.alineacion?.[rol] ? cartaPorId(yo.alineacion[rol]) : null, boost = carta ? boostDeRol(rol) : null;
-    return `<button type="button" class="hueco-ali" data-rol="${rol}" ${bloqueado ? 'disabled' : ''}>
-      <span class="rol-ali">${ROL[rol]}</span>
-      ${carta ? cartaHTML(carta) : '<span class="vacio-ali">Elegir</span>'}
-      ${carta ? `<span class="puntos-ali">${puntosTexto(puntosDe(carta.id))}</span>` : ''}
-      ${boost ? `<span class="boost-ali" title="${escapar(boost.bonus?.texto)}">+ ${escapar(boost.nombre)} ${escapar(boost.bonus?.etiqueta)}</span>` : ''}</button>`;
+    const carta = yo?.alineacion?.[rol] ? cartaPorId(yo.alineacion[rol]) : null;
+    const i = carta ? boosts.findIndex(x => x?.rol === rol) : -1, boost = i >= 0 ? cartaPorId(boosts[i].carta) : null;
+    return `<div class="estacion${carta ? '' : ' libre'}" data-rol="${rol}">
+      <button type="button" class="hueco-ali" data-rol="${rol}" ${bloqueado ? 'disabled' : ''}>
+        <span class="rol-ali"><span class="kanji-ali" aria-hidden="true">${KANJI[rol]}</span>${ROL[rol]}</span>
+        ${carta ? cartaHTML(carta) : '<span class="vacio-ali">Elegir</span>'}
+        <span class="puntos-ali">${carta ? puntosTexto(puntosDe(carta.id)) : 'Estación libre'}</span>
+      </button>
+      ${boost ? `<button type="button" class="boost-estacion" data-i="${i}" ${bloqueado ? 'disabled' : ''} title="${escapar(boost.bonus?.texto)}"
+        aria-label="BOOST ${i + 1}: ${escapar(boost.nombre)} ${escapar(boost.bonus?.etiqueta)}, con ${escapar(carta.nombre)}">
+        ${cartaHTML(boost)}<span class="etiqueta-boost">${escapar(multiplicador(boost))}</span></button>` : ''}
+    </div>`;
   }).join('');
   caja.querySelectorAll('.hueco-ali:not(:disabled)').forEach(b => b.addEventListener('click', () => elegir(b.dataset.rol)));
+  caja.querySelectorAll('.boost-estacion:not(:disabled)').forEach(b => b.addEventListener('click', () => elegirBoost(Number(b.dataset.i))));
 
-  // Los huecos de BOOST: cada una se vincula a uno de los jugadores de arriba
+  // Los huecos de BOOST, debajo del plano como la leyenda de un mapa de metro: cada una se vincula a uno de los jugadores
+  // (data-rol-boost lleva el rol de ese jugador, para pintar el hueco del color de su línea)
   const cajaBoost = $('.alineacion-boost');
   cajaBoost.innerHTML = boosts.map((b, i) => {
     const carta = b ? cartaPorId(b.carta) : null, jugador = carta && yo?.alineacion?.[b.rol] ? cartaPorId(yo.alineacion[b.rol]) : null;
-    return `<button type="button" class="hueco-ali" data-i="${i}" ${bloqueado ? 'disabled' : ''}>
-      <span class="rol-ali">BOOST ${i + 1}</span>
-      ${carta ? cartaHTML(carta) : '<span class="vacio-ali">Elegir</span>'}
-      ${carta ? `<span class="puntos-ali">con ${escapar(jugador?.nombre || ROL[b.rol])}</span>` : ''}</button>`;
+    return `<button type="button" class="hueco-ali hueco-boost" data-i="${i}" ${carta ? `data-rol-boost="${b.rol}"` : ''} ${bloqueado ? 'disabled' : ''}>
+      ${carta ? cartaHTML(carta) : '<span class="vacio-ali" aria-hidden="true">+</span>'}
+      <span class="texto-boost">
+        <span class="rol-ali">BOOST ${i + 1}</span>
+        <b class="nombre-boost">${carta ? escapar(carta.nombre) : 'Elegir'}</b>
+        ${carta?.bonus?.etiqueta ? `<span class="bonus-boost">${escapar(carta.bonus.etiqueta)}</span>` : ''}
+        <span class="puntos-ali">${carta ? `con ${escapar(jugador?.nombre || ROL[b.rol])}` : 'Sin vincular'}</span>
+      </span></button>`;
   }).join('');
   cajaBoost.querySelectorAll('.hueco-ali:not(:disabled)').forEach(b => b.addEventListener('click', () => elegirBoost(Number(b.dataset.i))));
 
