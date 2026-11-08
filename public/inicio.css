@@ -148,7 +148,7 @@ html[data-directo="si"] .directo-estado { color: var(--shu-claro); }
 .baraja { position: relative; height: 490px; max-width: var(--ancho); margin: 32px auto 0; }
 .carta { --x: 0px; --y: 0px; --r: 0deg; --s: 1;
   position: absolute; left: 50%; bottom: 20px; width: 208px; height: 312px; margin-left: -104px;
-  transform: translate(var(--x), var(--y)) rotate(var(--r)) scale(var(--s)) perspective(700px) rotateX(var(--ty, 0deg)) rotateY(var(--tx, 0deg)); transform-origin: 50% 110%;
+  transform: translate(var(--x), var(--y)) rotate(var(--r)) scale(var(--s)) perspective(700px) rotateX(var(--ty, 0deg)) rotateY(var(--tx, 0deg)) rotateY(var(--giro, 0deg)); transform-origin: 50% 110%;
   transition: transform .45s var(--curva), box-shadow .45s var(--curva), opacity .45s;
   border: 0; padding: 0; background: var(--sumi-alzado); color: var(--washi); cursor: pointer; text-align: left;
   border-radius: 8px; overflow: hidden; box-shadow: 0 12px 28px rgba(0, 0, 0, .6); font: inherit; }
@@ -169,6 +169,14 @@ html[data-directo="si"] .directo-estado { color: var(--shu-claro); }
 .carta.activa { box-shadow: 0 0 46px color-mix(in srgb, var(--color) 60%, transparent), 0 30px 60px rgba(0, 0, 0, .75); }
 .carta.activa::after { opacity: 1; }
 .carta.activa .lema { color: var(--oro); }
+/* Delante, el personaje de la familia; detrás, su kamon de tinta. Al hacer clic la carta se da la vuelta (inicio.js):
+   gira 180° con una curva simétrica y el dorso aparece justo a mitad de giro, cuando la carta está de canto.
+   El dorso va espejado para que, ya girada, se lea al derecho. */
+.carta .dorso { position: absolute; inset: 0; z-index: 3; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);
+  opacity: 0; transition: opacity 0s .25s; pointer-events: none; }
+.carta.girada .dorso { opacity: 1; }
+.carta.girada { --giro: 180deg; }
+.carta.girada, .carta.devuelta { transition: transform .5s cubic-bezier(.45, 0, .55, 1), box-shadow .45s var(--curva), opacity .45s; }
 /* La primera vez que se ve, la baraja espera recogida y se reparte de golpe */
 html.con-movimiento .baraja.recogida .carta { transform: translate(0, 70px) rotate(-10deg) scale(.88) !important; opacity: 0; }
 .baraja.abriendo .carta { transition-duration: .9s; transition-timing-function: cubic-bezier(.2, 1.25, .3, 1); transition-delay: calc(var(--i, 0) * 55ms); }
@@ -183,7 +191,7 @@ html.con-movimiento .baraja.recogida .carta { transform: translate(0, 70px) rota
   .portada-texto { grid-column: 1; padding: 28px calc(var(--margen) + 10px) 72px; }
   .baraja { height: auto; display: flex; gap: 14px; margin-top: 24px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding: 0 var(--margen); padding: 8px var(--margen) 24px; scrollbar-width: none; }
   .baraja::-webkit-scrollbar { display: none; }
-  .carta { position: relative; left: auto; bottom: auto; margin: 0; flex: 0 0 208px; transform: none !important; scroll-snap-align: start; }
+  .carta { position: relative; left: auto; bottom: auto; margin: 0; flex: 0 0 208px; transform: perspective(700px) rotateY(var(--giro, 0deg)) !important; scroll-snap-align: start; }
   /* Sin ratón no hay carta «activa»: todas llevan su filo */
   .carta::after { opacity: .85; }
 }
@@ -198,9 +206,9 @@ html.con-movimiento .baraja.recogida .carta { transform: translate(0, 70px) rota
 .equipo-legado { display: flex; align-items: center; gap: clamp(20px, 4vw, 52px); padding: clamp(24px, 3vw, 36px) clamp(18px, 3vw, 40px); border: 1px solid rgba(179, 154, 94, .35); border-radius: var(--radio-carta);
   background: linear-gradient(100deg, color-mix(in srgb, var(--color) 14%, transparent), transparent 60%), rgba(34, 30, 26, .6); }
 .equipo-legado + .equipo-legado { margin-top: 20px; }
-.carta.suelta { position: relative; left: auto; bottom: auto; flex: none; width: 168px; height: 252px; margin: 0; transform: rotate(-3deg); transform-origin: 50% 50%; }
+.carta.suelta { position: relative; left: auto; bottom: auto; flex: none; width: 168px; height: 252px; margin: 0; transform: translateY(0) rotate(-3deg) perspective(700px) rotateY(var(--giro, 0deg)); transform-origin: 50% 50%; }
 .carta.suelta::after { opacity: .85; }
-.carta.suelta:hover, .carta.suelta:focus-visible { transform: rotate(-1deg) translateY(-6px); box-shadow: 0 0 40px color-mix(in srgb, var(--color) 50%, transparent), 0 22px 44px rgba(0, 0, 0, .7); }
+.carta.suelta:hover, .carta.suelta:focus-visible { transform: translateY(-6px) rotate(-1deg) perspective(700px) rotateY(var(--giro, 0deg)); box-shadow: 0 0 40px color-mix(in srgb, var(--color) 50%, transparent), 0 22px 44px rgba(0, 0, 0, .7); }
 .carta.suelta .nombre { font-size: 23px; }
 .carta.suelta .lema { font-size: 12.5px; }
 .legado-texto { min-width: 0; max-width: 34em; }
@@ -209,7 +217,7 @@ html.con-movimiento .baraja.recogida .carta { transform: translate(0, 70px) rota
 .legado-texto .legado-nota { color: var(--hai); font-size: var(--t-menor); }
 @media (max-width: 760px) {
   .equipo-legado { align-items: flex-start; gap: 18px; }
-  .carta.suelta { flex: 0 0 132px; width: 132px; height: 198px; transform: rotate(-3deg) !important; }
+  .carta.suelta { flex: 0 0 132px; width: 132px; height: 198px; transform: rotate(-3deg) perspective(700px) rotateY(var(--giro, 0deg)) !important; }
   .carta.suelta .nombre { font-size: 19px; }
 }
 

@@ -19,11 +19,12 @@ const ROLES_LEGIBLES = { TOP: 'Top', JUNGLA: 'Jungla', MEDIO: 'Medio', ADC: 'ADC
 const baraja = $('.baraja');
 baraja.innerHTML = competidores.map((c, i) => `
   <button class="carta" role="listitem" data-i="${i}" data-clan="${c.id}" style="--color:${c.color}" aria-label="${c.nombre}, ${c.lema}">
-    <img class="arte" src="/clanes/${c.id}.jpg" alt="" loading="lazy">
+    <img class="arte" src="/personajes/${c.id}.jpg" alt="" loading="lazy">
     <span class="velo"></span>
     <img class="logo-carta" src="${logo(c.id)}" alt="">
     <span class="kanji" aria-hidden="true">${c.kanji}</span>
     <span class="pie-carta"><span class="nombre">${c.nombre}</span><span class="lema">${c.lema}</span></span>
+    <img class="dorso" src="/clanes/${c.id}.jpg" alt="" loading="lazy">
   </button>`).join('');
 const cartas = [...baraja.querySelectorAll('.carta')];
 const centro = (cartas.length - 1) / 2;
@@ -66,18 +67,19 @@ baraja.addEventListener('pointerleave', () => colocar());
 cartas.forEach((carta, i) => {
   carta.addEventListener('focus', () => colocar(i));
   carta.addEventListener('blur', () => colocar());
-  carta.addEventListener('click', () => abrirFicha(competidores[i]));
+  carta.addEventListener('click', () => voltearYAbrir(carta, competidores[i]));
 });
 // Los equipos Legacy, debajo de la baraja: su carta y por qué están aparte
 const cajaLegado = $('.legado');
 cajaLegado.hidden = !legado.length;
 cajaLegado.innerHTML = legado.map(c => `<article class="equipo-legado" style="--color:${c.color}; --color-texto:${c.texto}">
     <button class="carta suelta" data-clan="${c.id}" aria-label="${c.nombre}, ${c.lema}: ver su plantilla">
-      <img class="arte" src="/clanes/${c.id}.jpg" alt="" loading="lazy">
+      <img class="arte" src="/personajes/${c.id}.jpg" alt="" loading="lazy">
       <span class="velo"></span>
       <img class="logo-carta" src="${logo(c.id)}" alt="">
       <span class="kanji" aria-hidden="true">${c.kanji}</span>
       <span class="pie-carta"><span class="nombre">${c.nombre}</span><span class="lema">${c.lema}</span></span>
+      <img class="dorso" src="/clanes/${c.id}.jpg" alt="" loading="lazy">
     </button>
     <div class="legado-texto">
       <span class="etiqueta-legacy">Legacy</span>
@@ -86,7 +88,7 @@ cajaLegado.innerHTML = legado.map(c => `<article class="equipo-legado" style="--
       <p class="legado-nota">Familia veterana de Gokudō, apartada de la competición: conserva su kamon y su plantilla, pero no lucha por la ciudad.</p>
     </div>
   </article>`).join('');
-cajaLegado.querySelectorAll('.carta').forEach(b => b.addEventListener('click', () => abrirFicha(legado.find(c => c.id === b.dataset.clan))));
+cajaLegado.querySelectorAll('.carta').forEach(b => b.addEventListener('click', () => voltearYAbrir(b, legado.find(c => c.id === b.dataset.clan))));
 
 addEventListener('resize', () => colocar());
 movil.addEventListener('change', () => colocar());
@@ -98,6 +100,26 @@ const conCarta = new Set(tierlist.jugadores.filter(j => j.nombre && j.tier).map(
 const ficha = $('.ficha');
 ficha.querySelector('.cerrar').addEventListener('click', () => ficha.close());
 ficha.addEventListener('click', e => { if (e.target === ficha) ficha.close(); });
+
+// Delante de cada carta va el personaje de la familia; al hacer clic se da la vuelta, enseña su kamon de tinta por
+// detrás (el mismo que lleva la ficha) y se abre la plantilla. Al cerrar la ficha, la carta vuelve a ponerse de cara.
+const sinMovimiento = matchMedia('(prefers-reduced-motion: reduce)');
+let girada = null;
+function voltearYAbrir(carta, c) {
+  if (sinMovimiento.matches) { abrirFicha(c); return; }
+  girada?.classList.remove('girada');
+  girada = carta;
+  carta.classList.add('girada');
+  setTimeout(() => abrirFicha(c), 560);
+}
+ficha.addEventListener('close', () => {
+  const carta = girada;
+  girada = null;
+  if (!carta) return;
+  // Vuelve con el mismo giro con el que se fue (.devuelta lleva la curva del giro mientras dura)
+  carta.classList.replace('girada', 'devuelta');
+  setTimeout(() => carta.classList.remove('devuelta'), 520);
+});
 
 function abrirFicha(c) {
   const fila = comp.clasificacion?.filas.find(f => f.clan === c.id);

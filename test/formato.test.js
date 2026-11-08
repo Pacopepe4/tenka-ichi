@@ -23,8 +23,8 @@ const serieGanada = (s, partidas) => {
 };
 
 test('las fechas son las que fijó el usuario: domingos de noviembre y diciembre, en orden', () => {
-  assert.deepEqual(TEMPORADA.liguilla, ['2026-11-08', '2026-11-15', '2026-11-22', '2026-11-29']);
-  assert.deepEqual(TEMPORADA.playoffs, { cuartos: '2026-12-06', semis: '2026-12-13', final: '2026-12-20' });
+  assert.deepEqual(TEMPORADA.liguilla, ['2026-11-15', '2026-11-22', '2026-11-29', '2026-12-06']);
+  assert.deepEqual(TEMPORADA.playoffs, { cuartos: '2026-12-13', semis: '2026-12-20', final: '2026-12-27' });
   const todas = [...TEMPORADA.liguilla, ...Object.values(TEMPORADA.playoffs)];
   for (const f of todas) assert.equal(new Date(`${f}T12:00:00Z`).getUTCDay(), 0, `${f} es domingo`);
   assert.deepEqual([...todas].sort(), todas, 'cada fecha va después de la anterior');
@@ -35,9 +35,9 @@ test('antes del sorteo la web ya tiene las fechas y los clanes de la temporada',
   assert.equal(c.calendario, null);
   assert.deepEqual(c.formato.clanes, ['SARU', 'KAIJU', 'KEMONO', 'ATSUI', 'TORA', 'BUSHI']);
   assert.deepEqual(c.formato.liguilla.map(j => [j.nombre, j.fecha]),
-    [['Jornada 1', '2026-11-08'], ['Jornada 2', '2026-11-15'], ['Jornada 3', '2026-11-22'], ['Jornada 4', '2026-11-29']]);
+    [['Jornada 1', '2026-11-15'], ['Jornada 2', '2026-11-22'], ['Jornada 3', '2026-11-29'], ['Jornada 4', '2026-12-06']]);
   assert.deepEqual(c.formato.playoffs.map(r => [r.nombre, r.fecha]),
-    [['Cuartos de final', '2026-12-06'], ['Semifinales', '2026-12-13'], ['Final', '2026-12-20']]);
+    [['Cuartos de final', '2026-12-13'], ['Semifinales', '2026-12-20'], ['Final', '2026-12-27']]);
 });
 
 test('el sorteo da 4 jornadas de 3 partidas: cada clan juega una vez por jornada y nunca repite rival', () => {
@@ -87,12 +87,12 @@ test('playoffs: el 1.º y el 2.º esperan en semifinales al ganador del 4-5 y de
   const [p1, p2, p3, p4, p5, p6] = clasif.filas.map(f => f.clan);
 
   let c = cuadro(clasif, partidas);
-  assert.deepEqual(c.cuartos.map(s => [s.id, s.alto, s.bajo, s.fecha]), [['C1', p4, p5, '2026-12-06'], ['C2', p3, p6, '2026-12-06']]);
+  assert.deepEqual(c.cuartos.map(s => [s.id, s.alto, s.bajo, s.fecha]), [['C1', p4, p5, '2026-12-13'], ['C2', p3, p6, '2026-12-13']]);
   // Los dos primeros ya saben su sitio en semifinales y su rival se decide en los cuartos
-  assert.deepEqual(c.semis.map(s => [s.id, s.alto, s.bajo, s.fecha]), [['S1', p1, null, '2026-12-13'], ['S2', p2, null, '2026-12-13']]);
+  assert.deepEqual(c.semis.map(s => [s.id, s.alto, s.bajo, s.fecha]), [['S1', p1, null, '2026-12-20'], ['S2', p2, null, '2026-12-20']]);
   assert.equal(c.semis[0].puestos[p1], 1);
   assert.equal(c.semis[1].puestos[p2], 2);
-  assert.equal(c.final.fecha, '2026-12-20');
+  assert.equal(c.final.fecha, '2026-12-27');
   assert.equal(c.campeon, null);
 
   for (const s of c.cuartos) serieGanada(s, partidas);

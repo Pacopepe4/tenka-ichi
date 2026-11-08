@@ -364,6 +364,12 @@ Diseño aprobado en `docs/superpowers/specs/2026-10-04-ingame-mejoras-design.md`
 - **Lo que pidió el usuario:** «está publicado pero no con el estilo del artifact» (el bueno: https://claude.ai/artifact/5e248ciTVwkpEGHwCb9JsZ).
 - `public/gokudo.css`, cargada la última en portada, gachapon y guía: noche #0C0D13, placas #15161F con filo #2A2B38 y 8 px de radio, bermellón #E0303A con halo de neón, oro solo en enlaces; Dela Gothic One en títulos y cifras (pisa `--mincho`), Yuji Boku en los kanji de sello; fuera los filos de oro y los cortes en diagonal. Portada y sobre con el sol en neón (`public/marca/gokudo-neon.png`). Overlay y panel sin tocar (fase 3).
 
+## 08/11: el coche del teaser de fondo en la portada
+
+- **Lo que pidió el usuario:** «vamos a usar el fondo del coche en la web también» (la foto del coche negro derrapando en el callejón con lluvia; original en `gokudo/diseno/web/fondo-coche-original.jpg`).
+- `public/marca/fondo-coche.jpg` (1920) y `fondo-coche-movil.jpg` (900). En `public/gokudo.css` la portada cambia de lado: el texto a la izquierda sobre la noche y el coche entero a la derecha; entre 761 y 1200 px la foto se corre más a la derecha para que el texto no pise el coche. El sol en neón queda pequeño arriba a la derecha, como un letrero más. En el móvil el coche va arriba a lo ancho y el texto debajo.
+- Rama `gokudo-fondo-coche` (worktree `draft-app-fondo-coche`), sin PR todavía.
+
 ## 08/11: cartas del gachapon con dibujos de Gokudō
 
 - **Lo que pidió el usuario:** «pasar todas las cartas al nuevo estilo»; «misma idea de los campeones del LoL pero nuevo estilo con todas, el diseño exterior creo que ya estaba» (las del gachapón, no las de familia de la portada). Aprobó las muestras: «Sí, los 40».
