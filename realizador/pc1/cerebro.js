@@ -142,6 +142,8 @@ export class Cerebro {
       if (vivo) j.focos.push({ t: e.t, quien: { jugador: vivo.jugador, campeon: vivo.campeon, equipo: vivo.equipo } });
     }
     if (j.muertes >= this.r.repeticion.minimoMuertes) j.repetir = true;
+    // Una muerte suelta (o una pelea pequeña) también puede repetirse, pero pidiendo más calma (ver planificarAcciones)
+    else if (this.r.repeticion.sueltas?.activo) j.repetir = true;
     return j;
   }
 
@@ -241,6 +243,42 @@ export class Cerebro {
     return r;
   }
 
+  // Rato sin jugadas entre a y b (b null: abierto). En los primeros minutos (reglas.inicio.tramos) no se pone el
+  // plano general sino un guion: bot a nivel 1, los junglas, bot otra vez, los dos junglas cuando sale el
+  // cangrejo (3:30) y los junglas hasta el minuto 5. El jungla es el de la posición JUNGLE o el que lleva Castigo;
+  // el de bot, el BOTTOM (antes el azul). Sin datos de los jugadores, plano general como siempre.
+  rellenarInicio(a, b) {
+    const ini = this.r.inicio;
+    const fin = b === null ? Infinity : b;
+    const planos = [];
+    let t = a;
+    const js = this.jugadores || [];
+    if (ini?.activo !== false && Array.isArray(ini?.tramos) && js.length) {
+      const persona = j => ({ jugador: j.jugador, campeon: j.campeon, equipo: j.equipo });
+      const azulPrimero = (x, y) => (x.equipo === 'azul' ? 0 : 1) - (y.equipo === 'azul' ? 0 : 1);
+      const bot = js.filter(j => /^(BOTTOM|ADC)$/i.test(j.posicion || '')).sort(azulPrimero).slice(0, 1).map(persona);
+      const junglas = js.filter(j => /^JUNGLE$/i.test(j.posicion || '') || j.castigo).sort(azulPrimero).slice(0, 2).map(persona);
+      for (const tr of ini.tramos) {
+        if (tr.hasta <= t || tr.desde >= fin) continue;
+        const quienes = tr.quien === 'bot' ? bot : junglas;
+        if (!quienes.length) continue;
+        const desde = Math.max(t, tr.desde);
+        const hasta = Math.min(fin, tr.hasta);
+        if (desde > t) planos.push({ inicio: t, fin: desde, tipo: 'general', objetivo: null, jugada: null });
+        const cada = tr.cada || (tr.hasta - tr.desde);
+        for (let s = desde; s < hasta - 1e-6;) {
+          const n = Math.floor((s - tr.desde) / cada + 1e-9);
+          const e = Math.min(hasta, tr.desde + (n + 1) * cada);
+          planos.push({ inicio: s, fin: e, tipo: 'seguir', objetivo: quienes[n % quienes.length], jugada: null, guion: 'inicio' });
+          s = e;
+        }
+        t = hasta;
+      }
+    }
+    if (t < fin) planos.push({ inicio: t, fin: b, tipo: 'general', objetivo: null, jugada: null });
+    return planos;
+  }
+
   planificarSinZoom(desde) {
     const r = this.r;
     const candidatas = this.jugadas
@@ -253,7 +291,7 @@ export class Cerebro {
       const activas = candidatas.filter(j => j.inicio <= t + 1e-6 && j.fin > t + 1e-6);
       if (!activas.length) {
         const proxima = candidatas.find(j => j.inicio > t);
-        planos.push({ inicio: t, fin: proxima ? proxima.inicio : null, tipo: 'general', objetivo: null, jugada: null });
+        planos.push(...this.rellenarInicio(t, proxima ? proxima.inicio : null));
         if (!proxima) break;
         t = proxima.inicio;
         continue;
@@ -343,10 +381,15 @@ export class Cerebro {
         if (!ace) { j.repeticion = 'baron-sin-ace'; continue; }
         hastaT = ace.t + 1;
       }
-      const calma = Math.max(r.repeticion.calmaNecesaria, r.repeticion.segundos);
+      // Las jugadas pequeñas (una muerte suelta, una pelea de dos) piden más calma y no van pegadas a otra repetición
+      const sueltas = r.repeticion.sueltas || {};
+      const fuerte = j.muertes >= r.repeticion.minimoMuertes || j.eventos.some(e => r.repeticion.objetivos.includes(e.nombre))
+        || j.eventos.some(e => e.nombre === 'Multikill' && (e.detalle?.racha || 0) >= 3) || j.eleccionIa;
+      const calma = Math.max(fuerte ? r.repeticion.calmaNecesaria : (sueltas.calmaNecesaria ?? r.repeticion.calmaNecesaria), r.repeticion.segundos);
+      const lejosDeOtra = t => fuerte || !this.acciones.some(a => a.tipo === 'repeticion' && Math.abs(a.t - t) < (sueltas.separacion ?? 0));
       for (let t = j.fin + 2; t <= j.fin + 60; t += 2) {
         if (t + calma > conocidoHasta) break;  // aún no se sabe
-        if (!ocupado(t, t + calma, r.prioridades.objetivo)) {
+        if (!ocupado(t, t + calma, fuerte ? r.prioridades.objetivo : 0) && lejosDeOtra(t)) {
           const a = { id: `rep-${j.id}`, tipo: 'repeticion', t: red(t), segundos: r.repeticion.segundos, jugada: j.id, desdeT: red(j.inicio), hastaT: red(hastaT), ...(j.eleccionIa ? { ia: true } : {}) };
           j.repeticion = a.id;
           this.acciones.push(a);
@@ -357,7 +400,7 @@ export class Cerebro {
       if (!j.repeticion && j.fin + 60 + calma <= conocidoHasta) j.repeticion = 'sin-hueco';
     }
 
-    // ---------- overlay de TENKA ICHI ----------
+    // ---------- overlay de Gokudō ----------
     // De base siempre está el línea por línea (y el marcador de arriba): eso lo pone el ejecutor solo. Aquí se
     // deciden los ratos en que se cambia por otra cosa y luego se vuelve al línea por línea.
     const ov = r.overlay || {};

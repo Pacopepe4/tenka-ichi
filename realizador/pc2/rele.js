@@ -17,11 +17,11 @@ import { arrancarPanel } from '../pc1/panel.js';
 import { POR_DEFECTO as BORDES, ajusteBorde, suavizar, zoomConBorde, posicionSeguido } from './bordes.js';
 import { Tenka } from '../pc1/tenka.js';
 import { CamarasDraft } from './camaras.js';
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, appendFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { RAIZ } from '../comun/opciones.js';
 
-// Qué enseña el panel de TENKA ICHI: un draft en marcha (DraftCore conectado o con turnos), el draft recién
+// Qué enseña el panel de Gokudō: un draft en marcha (DraftCore conectado o con turnos), el draft recién
 // cerrado (postdraft) o nada de draft
 // Interfaz del espectador en el LoL de la antena (Replay API, /replay/render): lo que no tiene que salir en la
 // emisión porque ya lo enseña el overlay. Por defecto se quitan los campeones de los lados (interfaceFrames).
@@ -104,11 +104,11 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
     escenas: { juego: o.obs?.escenaJuego, previa: o.obs?.escenaPausa, final: o.obs?.escenaCasters, draft: o.obs?.escenaDraft || 'Draft' },
   });
 
-  // Panel de TENKA ICHI (solo para mirar): si hay draft, y cuántas cámaras tiene puestas
+  // Panel de Gokudō (solo para mirar): si hay draft, y cuántas cámaras tiene puestas
   const tenka = otroTenka !== undefined ? otroTenka
     : (o.tenkaIchi?.activo && o.tenkaIchi?.url ? new Tenka({ url: o.tenkaIchi.url, clave: o.tenkaIchi.clave || o.clave || '' }) : null);
   if (tenka && otroTenka === undefined) {
-    tenka.on('conexion', v => registrar(v ? '[tenka] conectado al panel de TENKA ICHI' : '[tenka] sin conexión con el panel de TENKA ICHI'));
+    tenka.on('conexion', v => registrar(v ? '[tenka] conectado al panel de Gokudō' : '[tenka] sin conexión con el panel de Gokudō'));
     tenka.conectar();
   }
   // Cámaras de la escena de draft, encajadas en los huecos del overlay
@@ -161,7 +161,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
   // con el zoom de base ya algo abierto el salto se nota menos.
   const zooms = r.zoom || {};
   const nivel = n => zooms[n] || zooms.abierto || { fov: 50, distancia: 1 };
-  const zoomDe = p => (!p || p.tipo === 'general' || !p.objetivo ? 'general' : (p.zoom === 'cerca' ? 'cerca' : 'abierto'));
+  const zoomDe = p => (!p || p.tipo === 'general' || !p.objetivo || p.zoom === 'general' ? 'general' : (p.zoom === 'cerca' ? 'cerca' : 'abierto'));
 
   // Cerca de los bordes del mapa el plano se mueve hacia dentro y se cierra un poco (ver bordes.js)
   const cb = { ...BORDES, ...(r.bordes || {}) };
@@ -187,18 +187,28 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
   let secuencia = 0;                       // y cada plano nuevo cancela el cambio de seguido a medias
   estado.zoom = { ...nivel('general') };   // zoom aplicado ahora mismo
 
+  // El zoom va de punto en punto: cada orden cambia el campo de visión como mucho «pasoFov» (medio grado) y la
+  // distancia en proporción, a un ritmo fijo («pasosPorSegundo»). Así no da saltos de varias unidades aunque una
+  // orden a la Replay API tarde más de la cuenta. «transicionSegundos» es lo mínimo que dura.
   async function transicion(p, destino, segundos = r.zoom?.transicionSegundos ?? 1.2) {
     const yo = ++animacion;
     const desde = { ...estado.zoom };
     if (desde.fov === destino.fov && desde.distancia === destino.distancia) return;
-    const pasos = Math.max(1, Math.round(segundos * (r.zoom?.pasosPorSegundo ?? 25)));
+    const ritmo = r.zoom?.pasosPorSegundo ?? 30;
+    const pasoFov = r.zoom?.pasoFov ?? 0.5;
+    const pasoDistancia = r.zoom?.pasoDistancia ?? 0.015;
+    const pasos = Math.max(1, Math.round(segundos * ritmo),
+      Math.ceil(Math.abs(destino.fov - desde.fov) / pasoFov), Math.ceil(Math.abs(destino.distancia - desde.distancia) / pasoDistancia));
+    const intervalo = 1000 / ritmo;
+    const t0 = Date.now();
     estado.animando = yo;
     for (let i = 1; i <= pasos; i++) {
       if (yo !== animacion) return;
-      const k = suave(i / pasos);
+      const k = i / pasos;
       estado.zoom = { fov: desde.fov + (destino.fov - desde.fov) * k, distancia: desde.distancia + (destino.distancia - desde.distancia) * k };
       try { await render(camara(p, estado.zoom)); } catch { return; }
-      if (i < pasos) await new Promise(f => setTimeout(f, 1000 / (r.zoom?.pasosPorSegundo ?? 25)));
+      // Ritmo fijo: si la orden tardó, la siguiente sale antes (sin acumular retraso ni hacer pasos más grandes)
+      if (i < pasos) await new Promise(f => setTimeout(f, Math.max(0, t0 + (i + 1) * intervalo - Date.now())));
     }
     if (estado.animando === yo) estado.animando = null;
   }
@@ -235,7 +245,14 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
     vigilarBordes().catch(() => {}).finally(() => { if (!parado) temporizadorBordes = setTimeout(bucleBordes, cb.cadaMs); });
   }
 
-  async function aplicar(p, motivo) {
+  async function aplicar(plano, motivo) {
+    // Plano general justo después de seguir a alguien: en vez de soltar la cámara (en el LoL eso es un salto feo
+    // a la vista de arriba), se sigue al mismo con el zoom más abierto. Solo se suelta si aún no se ha seguido a nadie.
+    let p = plano;
+    if ((!p || p.tipo === 'general' || !p.objetivo) && r.generalSigueAlUltimo !== false && estado.ultimoSeguido) {
+      p = { tipo: 'seguir', objetivo: estado.ultimoSeguido, zoom: 'general', jugada: null, general: true };
+    }
+    if (p?.tipo === 'seguir' && p.objetivo && !p.general) estado.ultimoSeguido = p.objetivo;
     const k = clave(p);
     const z = zoomDe(p);
     if (estado.aplicado === k && estado.zoomAplicado === z) return;
@@ -243,10 +260,10 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
     const sec = ++secuencia;
     const anterior = estado.planoCamara;
     const salida = r.zoom?.salidaSegundos ?? 0.5;
-    // Cambio de un jugador a otro: abre el zoom poco a poco, cambia con la cámara abierta y vuelve a cerrar.
-    // Así el salto se nota mucho menos que un corte seco.
+    // Cambio de un jugador a otro: por defecto, un corte limpio con el zoom que haya (abrir, cortar y cerrar daba
+    // tirones). Con zoom.abrirAlCambiar: true se vuelve a lo de antes.
     const previo = estado.aplicado;
-    const cambioDeSeguido = previo !== k && anterior?.tipo === 'seguir' && p?.tipo === 'seguir' && salida > 0;
+    const cambioDeSeguido = r.zoom?.abrirAlCambiar === true && previo !== k && anterior?.tipo === 'seguir' && p?.tipo === 'seguir' && salida > 0;
     estado.aplicado = k;
     estado.zoomAplicado = z;
     estado.planoCamara = p;
@@ -270,7 +287,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
       }
       transicion(p, destino);  // sin esperar: el relé sigue con la antena mientras se mueve el zoom
     }
-    registrar(`[cámara] ${motivo}: ${p?.tipo === 'seguir' ? `sigue a ${p.objetivo.campeon}` : 'plano general'} (zoom ${z})`);
+    registrar(`[cámara] ${motivo}: ${p?.general ? `plano general sobre ${p.objetivo.campeon}` : p?.tipo === 'seguir' ? `sigue a ${p.objetivo.campeon}` : 'plano general'} (zoom ${z})`);
   }
 
   // Segundo de partida al que debería ir la antena
@@ -307,6 +324,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
       // nada
     } else if (meta < 0) {
       if (!pb.paused) { await playback({ paused: true }); registrar('[antena] en pausa hasta tener el margen'); }
+      estado.ultimoSeguido = null;  // partida nueva: el último seguido era de la anterior
     } else if (pb.paused) {
       await playback({ paused: false, time: meta, speed: 1 });
       estado.ultimoSalto = ahora;
@@ -361,6 +379,8 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
         meta: estado.meta, tAntena: tAntenaAhora(), pausado: estado.playback?.paused ?? true,
         juego: Boolean(estado.playback), listo: condicionesAhora().listo, tFin: estado.tFin,
         draft: draftDeTenka(tenka?.estado),
+        // La antena llega al final un margen después de que el PC 1 lo viera
+        finEsperado: Number.isFinite(estado.finHora) ? estado.finHora + o.margenSegundos * 1000 : null,
       });
     } catch (e) { registrar(`[emisión] ${e.message}`); }
     camaras?.paso().catch(() => {});
@@ -400,7 +420,15 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
 
   function recibirGuion(d) {
     estado.ultimoContacto = Date.now();
-    if (d.tFin === null || Number.isFinite(d.tFin)) estado.tFin = d.tFin;
+    if (d.tFin === null || Number.isFinite(d.tFin)) {
+      // Hora a la que el PC 1 vio el final (la primera vez que lo dice); sin final, se olvida
+      if (Number.isFinite(d.tFin) && !Number.isFinite(estado.tFin)) {
+        estado.finHora = Date.now();
+        registrar(`[relé] el PC 1 ha visto el final (segundo ${Math.round(d.tFin)}): la antena llegará en unos ${o.margenSegundos} s`);
+      }
+      if (d.tFin === null) estado.finHora = null;
+      estado.tFin = d.tFin;
+    }
     if (Number.isFinite(d.tDirecto)) {
       estado.directo = { t: d.tDirecto, hora: Date.now() };
       estado.historial.push({ ...estado.directo });
@@ -451,12 +479,12 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
 
   let temporizador = null;
   let anuncio = null;
-  // Puente por internet: la sala del realizador en el servidor de TENKA ICHI
+  // Puente por internet: la sala del realizador en el servidor de Gokudō
   let sala = null;
   let latido = null;
   if (otraSala || (o.clave && o.puente?.modo === 'tenka')) {
     sala = otraSala || new Sala({ url: o.puente.url, clave: o.clave, papel: 'pc2' });
-    sala.on('conexion', v => registrar(v ? '[puente] conectado al servidor de TENKA ICHI' : '[puente] sin conexión con el servidor, reintentando...'));
+    sala.on('conexion', v => registrar(v ? '[puente] conectado al servidor de Gokudō' : '[puente] sin conexión con el servidor, reintentando...'));
     sala.on('companero', v => registrar(v ? '[puente] el PC 1 está conectado' : '[puente] el PC 1 se ha ido'));
     sala.on('aviso', t => registrar(`[puente] ${t}`));
     sala.on('mensaje', d => {
@@ -516,12 +544,21 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
 // Arrancado directamente (npm run rele)
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const o = cargarOpciones();
-  const rele = crearRele(o, { panel: true });
+  // Todo lo que pasa en el PC 2 también queda en un archivo (partidas/pc2-AAAA-MM-DD.log) para revisarlo luego
+  const carpetaLog = join(o.registro?.raiz || RAIZ, o.registro?.carpeta || 'partidas');
+  const archivoLog = join(carpetaLog, `pc2-${new Date().toISOString().slice(0, 10)}.log`);
+  try { mkdirSync(carpetaLog, { recursive: true }); } catch { /* sin carpeta: solo en pantalla */ }
+  const registrarArchivo = t => {
+    console.log(t);
+    try { appendFileSync(archivoLog, `${new Date().toTimeString().slice(0, 8)} ${t}\n`); } catch { /* sigue sin archivo */ }
+  };
+  const rele = crearRele(o, { panel: true, registrar: registrarArchivo });
   rele.arrancar();
+  console.log(`Registro del PC 2 en ${archivoLog}`);
   console.log(`Página del PC 2: http://localhost:${o.panelPc2?.puerto ?? 4601}/`);
   console.log(`Relé en marcha en el puerto ${o.rele.puerto}. Replay API: ${o.rele.replayApi}. Margen: ${o.margenSegundos} s`);
   console.log(o.clave && o.puente?.modo === 'tenka'
-    ? `Puente por el servidor de TENKA ICHI (${o.puente.url}) con la contraseña.`
+    ? `Puente por el servidor de Gokudō (${o.puente.url}) con la contraseña.`
     : o.clave
     ? 'Puente con contraseña: anunciándose en la red para que el PC 1 lo encuentre solo.'
     : 'Sin contraseña (opciones.local.json → "clave"): el PC 1 tiene que poner a mano la IP de este PC.');

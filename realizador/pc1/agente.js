@@ -63,12 +63,12 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
   let ejecutor = null;
   if (o.obs.activo && !obsAuto) conectarObs(o.obs.url);
   else if (obsAuto) conexiones.obs = false;
-  // Puente por internet (PCs en redes distintas): sala del realizador en el servidor de TENKA ICHI
+  // Puente por internet (PCs en redes distintas): sala del realizador en el servidor de Gokudō
   let sala = null;
   if (otraSala || (o.clave && o.puente?.modo === 'tenka')) {
     sala = otraSala || new Sala({ url: o.puente.url, clave: o.clave, papel: 'pc1' });
     conexiones.puente = false;
-    sala.on('conexion', v => { conexiones.puente = v; log(v ? 'Conectado al servidor de TENKA ICHI' : 'Sin conexión con el servidor de TENKA ICHI, reintentando...'); panel?.emitir(); });
+    sala.on('conexion', v => { conexiones.puente = v; log(v ? 'Conectado al servidor de Gokudō' : 'Sin conexión con el servidor de Gokudō, reintentando...'); panel?.emitir(); });
     sala.on('companero', v => { log(v ? 'El PC 2 está conectado' : 'El PC 2 no está conectado'); panel?.emitir(); });
     sala.on('aviso', t => avisar(`Puente: ${t}`));
     sala.conectar();
@@ -123,9 +123,11 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
 
   explorador.on('conexion', v => { if (conexiones.explorador !== v) { conexiones.explorador = v; panel?.emitir(); } });
   explorador.on('liveEvents', v => { conexiones.liveEvents = v; panel?.emitir(); });
+  explorador.on('jugadores', lista => { cerebro.jugadores = lista; ejecutor.hayCambios(); });
   explorador.on('partida', info => {
     partida = { ...info, id: info.inicio.replace(/[:.]/g, '-') };
     cerebro = new Cerebro(o.reglas);
+    cerebro.jugadores = explorador.jugadores;  // para el guion de los primeros minutos (bot, junglas, cangrejo)
     ia.partidaNueva();
     const buzon = new Buzon(join(o.registro.raiz || RAIZ, o.registro.carpeta), partida.id);
     ejecutor.reiniciar(cerebro, buzon);
@@ -204,22 +206,22 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
     emision: async orden => ejecutor.emision(orden),
   });
 
-  // Panel de TENKA ICHI (sección «Realizador»): ve lo mismo que este panel y puede tomar el control
+  // Panel de Gokudō (sección «Realizador»): ve lo mismo que este panel y puede tomar el control
   let fotoSala = null;
   if (sala) {
     sala.on('mensaje', async d => {
       try {
-        if (d.tipo === 'panelControl') await ejecutor.ponerManual(Boolean(d.manual), 'panel de TENKA ICHI');
-        else if (d.tipo === 'panelOrden' && d.orden) await ejecutor.ordenManual(d.orden, 'panel de TENKA ICHI');
-        else if (d.tipo === 'panelEmision') await ejecutor.emision(d, 'panel de TENKA ICHI');
-      } catch (e) { avisar(`Orden del panel de TENKA ICHI: ${e.message}`); }
+        if (d.tipo === 'panelControl') await ejecutor.ponerManual(Boolean(d.manual), 'panel de Gokudō');
+        else if (d.tipo === 'panelOrden' && d.orden) await ejecutor.ordenManual(d.orden, 'panel de Gokudō');
+        else if (d.tipo === 'panelEmision') await ejecutor.emision(d, 'panel de Gokudō');
+      } catch (e) { avisar(`Orden del panel de Gokudō: ${e.message}`); }
     });
     fotoSala = setInterval(() => sala.enviar({ tipo: 'foto', ...foto(), registro: registro.slice(0, 15) }), 1000);
   }
 
   explorador.arrancar();
   ejecutor.arrancar();
-  log(`Agente en marcha. Panel: http://localhost:${o.panel.puerto}/  ·  PC 2: ${sala ? `por el servidor de TENKA ICHI (${o.puente.url})` : ejecutor.urlRele || 'buscando en la red'}`);
+  log(`Agente en marcha. Panel: http://localhost:${o.panel.puerto}/  ·  PC 2: ${sala ? `por el servidor de Gokudō (${o.puente.url})` : ejecutor.urlRele || 'buscando en la red'}`);
   log('Abre la partida en LoL (espectador): el realizador la encuentra y arranca solo.');
 
   return {

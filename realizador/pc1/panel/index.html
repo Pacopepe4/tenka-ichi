@@ -205,7 +205,7 @@
   </div>
 
   <!-- Registro -->
-  <!-- Cámaras del draft (PC 2): qué cámara va en cada hueco del overlay de TENKA ICHI -->
+  <!-- Cámaras del draft (PC 2): qué cámara va en cada hueco del overlay de Gokudō -->
   <div class="pestana" id="camarasP" hidden>
     <section>
       <h2>Cámaras del draft</h2>
@@ -216,7 +216,7 @@
         <button class="grande" id="camarasGuardar">Guardar</button>
         <button id="camarasBuscar">Buscar cámaras otra vez</button>
       </div>
-      <div class="como">Se elige una vez. Cuando el panel de TENKA ICHI tenga un draft en marcha, el realizador pone la escena <b>Draft</b> con estas cámaras en los huecos del overlay. Cuántas salen y qué es cada una se cambia en el panel de TENKA ICHI, apartado <b>Cámaras</b>.</div>
+      <div class="como">Se elige una vez. Cuando el panel de Gokudō tenga un draft en marcha, el realizador pone la escena <b>Draft</b> con estas cámaras en los huecos del overlay. Cuántas salen y qué es cada una se cambia en el panel de Gokudō, apartado <b>Cámaras</b>.</div>
     </section>
   </div>
 
@@ -237,7 +237,7 @@
   const $ = id => document.getElementById(id);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const reloj = t => t === null || t === undefined ? '--:--' : `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
-  const NOMBRES = { explorador: 'LoL', liveEvents: 'LiveEvents', puente: 'Servidor', rele: 'PC 2', pc1: 'PC 1', obs: 'OBS', tenka: 'TENKA ICHI', ia: 'IA' };
+  const NOMBRES = { explorador: 'LoL', liveEvents: 'LiveEvents', puente: 'Servidor', rele: 'PC 2', pc1: 'PC 1', obs: 'OBS', tenka: 'Gokudō', ia: 'IA' };
   const TIPOS = { pelea: 'Pelea', objetivo: 'Objetivo', muerte: 'Muerte', estructura: 'Estructura' };
   const ESTADOS = { pendientes: 'pendiente', guion: 'en guion', 'en-curso': 'en antena', emitidos: 'emitida', descartadas: 'descartada' };
   let f = null;
@@ -290,7 +290,7 @@
     } else if (fase === 'apagada') {
       if (f.listo) { insignia = 'Todo listo'; clase = 'listo'; titulo = 'Listo para empezar'; }
       else { titulo = pendientes.length === 1 ? `Falta: ${pendientes[0].texto.toLowerCase()}` : `Faltan ${pendientes.length} cosas`; }
-      sub = e.draft ? 'Hay un draft en el panel de TENKA ICHI: si pulsas, el directo empieza ya, con el draft y sus cámaras.'
+      sub = e.draft ? 'Hay un draft en el panel de Gokudō: si pulsas, el directo empieza ya, con el draft y sus cámaras.'
         : f.listo && faltan === null ? 'La partida ya está en antena: si pulsas ahora, el directo empieza donde vaya.'
         : f.listo ? 'Pulsa y el directo empezará solo, con la partida desde el segundo 0.'
         : 'Puedes pulsarlo ya: el directo empezará solo, desde el principio de la partida, cuando esté todo.';
@@ -421,8 +421,8 @@
     if (!c) return;
     const n = c.cantidad || 0;
     $('camarasResumen').textContent = n
-      ? `El panel de TENKA ICHI tiene puestas ${n} cámara${n === 1 ? '' : 's'} en el draft. Elige qué cámara del PC va en cada hueco.`
-      : 'El panel de TENKA ICHI no tiene cámaras puestas en el draft (apartado Cámaras). Puedes dejarlas elegidas igualmente.';
+      ? `El panel de Gokudō tiene puestas ${n} cámara${n === 1 ? '' : 's'} en el draft. Elige qué cámara del PC va en cada hueco.`
+      : 'El panel de Gokudō no tiene cámaras puestas en el draft (apartado Cámaras). Puedes dejarlas elegidas igualmente.';
     $('camarasError').hidden = !c.error;
     $('camarasError').textContent = c.error || '';
     // Solo se repinta si cambia algo (y no mientras se está eligiendo)

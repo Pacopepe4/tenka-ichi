@@ -1,4 +1,4 @@
-// Conexión con el panel de TENKA ICHI: manda las mismas acciones que el panel (por su WebSocket /ws, con la
+// Conexión con el panel de Gokudō: manda las mismas acciones que el panel (por su WebSocket /ws, con la
 // contraseña del panel). Así el realizador usa el overlay, el draft y el marcador que ya existen en vez de
 // duplicarlos. Ejemplo: { accion: 'grafico', datos: { tipo: 'lineas', segundos: 20 } } saca el línea por línea.
 import { EventEmitter } from 'node:events';
@@ -52,7 +52,7 @@ export class Tenka extends EventEmitter {
   }
 
   accion(accion, datos = {}) {
-    if (!this.listo) return Promise.reject(new Error('Sin conexión con el panel de TENKA ICHI'));
+    if (!this.listo) return Promise.reject(new Error('Sin conexión con el panel de Gokudō'));
     const id = `realizador-${++this.n}`;
     return new Promise((resolver, rechazar) => {
       this.pendientes.set(id, { resolver, rechazar });

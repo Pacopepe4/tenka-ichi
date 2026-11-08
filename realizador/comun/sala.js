@@ -1,5 +1,5 @@
 // Puente por internet entre los dos PCs: los dos se conectan a la sala del realizador en el servidor de
-// TENKA ICHI (wss://.../realizador) con la huella de la misma contraseña, y el servidor se pasa los mensajes.
+// Gokudō (wss://.../realizador) con la huella de la misma contraseña, y el servidor se pasa los mensajes.
 // Sirve aunque los PCs estén en redes distintas. Usa el WebSocket que trae Node 22: sin dependencias.
 //
 // Eventos: 'conexion' (true/false, con el servidor), 'companero' (true/false, el otro PC), 'mensaje' (objeto).

@@ -1,5 +1,5 @@
 // Ejecutor (PC 1): lleva el guion al relé del PC 2, sigue por dónde va la antena y, al llegar cada momento,
-// lanza las acciones que no son de cámara (repeticiones en OBS) y lleva el overlay de TENKA ICHI: de base, el
+// lanza las acciones que no son de cámara (repeticiones en OBS) y lleva el overlay de Gokudō: de base, el
 // línea por línea siempre puesto; en los ratos que decide el cerebro, la gráfica de oro o la ficha de quien va en racha.
 // La cámara la mueve el relé en local: le llega el guion por adelantado y un corte de red no se nota.
 import { EventEmitter } from 'node:events';
@@ -35,9 +35,9 @@ export class Ejecutor extends EventEmitter {
     this.temporizador = null;
     this.ultimoEnvio = 0;
     this.cambios = true;
-    this.overlayPuesto = null;   // lo último que se mandó al overlay de TENKA ICHI (firma)
+    this.overlayPuesto = null;   // lo último que se mandó al overlay de Gokudō (firma)
     this.overlayMandando = false;
-    // Si el panel de TENKA ICHI se reconecta, se le vuelve a decir qué tiene que enseñar
+    // Si el panel de Gokudō se reconecta, se le vuelve a decir qué tiene que enseñar
     tenka?.on?.('conexion', v => { if (v) this.overlayPuesto = null; });
   }
 
@@ -141,14 +141,14 @@ export class Ejecutor extends EventEmitter {
       this.lanzar(a).catch(e => this.emit('aviso', `${a.tipo}: ${e.message}`));
     }
 
-    // 4. Overlay de TENKA ICHI
+    // 4. Overlay de Gokudō
     this.overlay(tA).catch(e => this.emit('aviso', `overlay: ${e.message}`));
 
     // 5. Cada jugada a su carpeta del buzón
     this.repartir(tA, tD);
   }
 
-  // Qué tiene que enseñar el overlay de TENKA ICHI con la antena en tA: lo que toque del cerebro (gráfica de oro,
+  // Qué tiene que enseñar el overlay de Gokudō con la antena en tA: lo que toque del cerebro (gráfica de oro,
   // ficha) o, si no, el línea por línea. Nada antes de la partida ni después del final.
   overlayEn(tA) {
     const ov = this.o.reglas.overlay || {};
@@ -160,7 +160,7 @@ export class Ejecutor extends EventEmitter {
     return ov.base === null || ov.base === '' ? { tipo: null } : { tipo: ov.base || 'lineas' };
   }
 
-  // Solo se manda cuando cambia (así el panel de TENKA ICHI puede tocarlo a mano entre medias)
+  // Solo se manda cuando cambia (así el panel de Gokudō puede tocarlo a mano entre medias)
   async overlay(tA) {
     if (!this.tenka?.listo || this.overlayMandando) return;
     if (this.manual) return;  // con el control tomado, el overlay tampoco se toca

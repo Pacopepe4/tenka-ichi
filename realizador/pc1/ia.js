@@ -8,7 +8,7 @@
 // contesta, falla o no hay clave, el realizador hace lo de siempre.
 //
 // La clave de la API se lee de un archivo de este PC (Documentos\realizado, o el que diga ia.archivoClave) y
-// solo sale de aquí hacia la API de Anthropic. No se apunta en el registro, ni va al PC 2, ni al panel de TENKA ICHI.
+// solo sale de aquí hacia la API de Anthropic. No se apunta en el registro, ni va al PC 2, ni al panel de Gokudō.
 import { EventEmitter } from 'node:events';
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -185,7 +185,7 @@ export function resumenReglas(cerebro, jugadores = [], tFin = null) {
 
 // ---------- lo que se le pide ----------
 
-const SISTEMA = `Eres el ayudante de realización de un directo de League of Legends de la comunidad TENKA ICHI.
+const SISTEMA = `Eres el ayudante de realización de un directo de League of Legends de la comunidad Gokudō.
 La emisión va 2 minutos por detrás de la partida real: sabes lo que va a pasar antes de que el público lo vea.
 La cámara, las repeticiones y las transiciones las lleva un programa con reglas fijas; tú no las tocas.
 

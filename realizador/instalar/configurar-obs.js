@@ -1,7 +1,7 @@
 // Deja OBS listo para el realizador (PC 2, o el mismo PC en las pruebas de un solo PC). Con OBS cerrado:
 //
 //   - Colección de escenas "Realizador": Juego, Repeticion, Casters, Pausa y Draft, con sus fuentes
-//     (captura del juego, overlay de TENKA ICHI, "Repeticion clip", cámaras, rótulos y audio). En Draft, cuatro
+//     (captura del juego, overlay de Gokudō, "Repeticion clip", cámaras, rótulos y audio). En Draft, cuatro
 //     cámaras debajo del overlay: el relé las encaja en los huecos del draft y les pone la cámara elegida.
 //     Con las transiciones de la repetición (obs/repeticion-entrada.webm y -salida.webm) y el overlay de REPLAY
 //     (obs/replay.html), que se usan desde donde está instalado el realizador.
@@ -110,7 +110,7 @@ export function crearColeccion({ escenas, fuenteRepeticion, overlay = '', recurs
   const juego = fuente('Juego LoL', 'game_capture', {
     capture_mode: 'window', window: VENTANA_LOL, priority: 2, capture_cursor: false, allow_transparency: false,
   });
-  const marcador = fuente('Overlay TENKA ICHI', 'browser_source', {
+  const marcador = fuente(NOMBRES_OVERLAY[0], 'browser_source', {
     url: overlay, width: ANCHO, height: ALTO, fps: 30, shutdown: false, restart_when_active: false,
     reroute_audio: false, css: 'body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }',
   });
@@ -168,9 +168,18 @@ export function crearColeccion({ escenas, fuenteRepeticion, overlay = '', recurs
   };
 }
 
-// Busca en tus colecciones una fuente de navegador que parezca el overlay de TENKA ICHI
+// Nombres que ha tenido la fuente del overlay en la colección del realizador (el viejo, de antes de Gokudō, y el de ahora)
+export const NOMBRES_OVERLAY = ['Overlay Gokudō', 'Overlay TENKA ICHI'];
+
+// Busca la dirección del overlay: primero en la fuente del realizador de una instalación anterior (con su nombre
+// de ahora o el viejo, por si se cambió a mano), y si no, en tus colecciones una fuente de navegador que lo parezca
 export function buscarOverlay(carpetaEscenas) {
   if (!existsSync(carpetaEscenas)) return '';
+  try {
+    const propia = JSON.parse(leerTexto(join(carpetaEscenas, `${NOMBRE}.json`)));
+    const f = (propia.sources || []).find(s => NOMBRES_OVERLAY.includes(s.name) && s.settings?.url);
+    if (f) return f.settings.url;
+  } catch { /* sin colección del realizador todavía */ }
   for (const f of readdirSync(carpetaEscenas)) {
     if (!f.endsWith('.json') || f === `${NOMBRE}.json`) continue;
     try {
@@ -360,8 +369,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     console.log(`  "obs": { "activo": true, "url": "ws://IP-DE-ESTE-PC:${r.puerto}", "clave": "${r.clave}" }`);
     console.log('');
     console.log(r.overlay
-      ? `Overlay de TENKA ICHI: ${r.overlay}`
-      : 'Overlay de TENKA ICHI: sin dirección. En OBS, doble clic en "Overlay TENKA ICHI" y pega la URL del overlay.');
+      ? `Overlay de Gokudō: ${r.overlay}`
+      : 'Overlay de Gokudō: sin dirección. En OBS, doble clic en "Overlay Gokudō" y pega la URL del overlay.');
     console.log('Falta a mano: elegir la cámara en "Camara casters" y, si no la tenías, la clave de emisión.');
   } catch (e) {
     console.error(e.message);

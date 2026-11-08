@@ -1,5 +1,5 @@
 // Peticiones JSON sin dependencias. El cliente de LoL usa un certificado propio de Riot en 127.0.0.1:2999:
-// solo para esa dirección se acepta sin comprobarlo, igual que hace el puente de TENKA ICHI.
+// solo para esa dirección se acepta sin comprobarlo, igual que hace el puente de Gokudō.
 import http from 'node:http';
 import https from 'node:https';
 

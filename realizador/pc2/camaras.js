@@ -1,9 +1,9 @@
-// Cámaras de la escena de draft (PC 2). El overlay de TENKA ICHI (/overlay/) pinta su fondo con 0 a 4 huecos
+// Cámaras de la escena de draft (PC 2). El overlay de Gokudō (/overlay/) pinta su fondo con 0 a 4 huecos
 // recortados durante el draft, según lo que tenga puesto su panel en «Cámaras». Debajo, en la escena «Draft» de
 // OBS, van las fuentes «Camara draft 1…4»: aquí se encajan en esos huecos, se encienden las que tocan y se les pone
 // el dispositivo que se eligió al configurar (página del PC 2, pestaña Cámaras).
 //
-// Se aplica solo al conectar OBS, al cambiar la cantidad en el panel de TENKA ICHI y al cambiar los dispositivos.
+// Se aplica solo al conectar OBS, al cambiar la cantidad en el panel de Gokudō y al cambiar los dispositivos.
 
 export const FUENTES = [1, 2, 3, 4].map(n => `Camara draft ${n}`);
 
@@ -33,14 +33,14 @@ export class CamarasDraft {
     this.registrar = registrar;
     this.elegidos = [...elegidos];
     this.cantidad = 0;
-    this.nombres = [];      // qué es cada cámara (lo que pone el panel de TENKA ICHI)
+    this.nombres = [];      // qué es cada cámara (lo que pone el panel de Gokudō)
     this.disponibles = [];  // [{ id, nombre }] cámaras que ve OBS
     this.aplicado = null;
     this.error = null;
     this.ocupado = false;
   }
 
-  // Desde el estado del panel de TENKA ICHI
+  // Desde el estado del panel de Gokudō
   desdeTenka(e) {
     const c = e?.camaras;
     if (!c) return;

@@ -1,7 +1,7 @@
 // Explorador (PC 1): sigue la partida lo más cerca posible del directo y cuenta lo que pasa.
 // Dos fuentes, las dos oficiales del cliente:
 //  - Live Client Data API (https://127.0.0.1:2999/liveclientdata/...): jugadores, reloj y sucesos
-//    (asesinatos, torres, inhibidores, multikills...). Es lo mismo que lee el puente de TENKA ICHI.
+//    (asesinatos, torres, inhibidores, multikills...). Es lo mismo que lee el puente de Gokudō.
 //  - LiveEvents (TCP 34243, solo en modo espectador): dragones, Barón, heraldo y larvas, que la Live Client
 //    Data no da a los espectadores. Riot pudo quitarla en algún parche: si no conecta, se sigue sin ella.
 import { EventEmitter } from 'node:events';
@@ -149,6 +149,9 @@ export class Explorador extends EventEmitter {
       campeon: j.championName,
       equipo: EQUIPOS[j.team] || j.team,
       posicion: j.position || '',
+      // Castigo (Smite): así se sabe quién es el jungla aunque el juego no dé la posición (pasa en espectador)
+      castigo: [j.summonerSpells?.summonerSpellOne, j.summonerSpells?.summonerSpellTwo]
+        .some(s => /SummonerSmite|Smite|Castigo/i.test(`${s?.rawDisplayName || ''} ${s?.displayName || ''}`)),
       nombres: [j.riotIdGameName, j.riotId, j.summonerName, (j.riotId || '').split('#')[0]].filter(Boolean),
     }));
     this.porNombre.clear();

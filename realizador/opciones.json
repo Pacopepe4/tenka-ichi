@@ -16,6 +16,7 @@
     "toleranciaSegundos": 4,
     "seleccionarPor": "jugador",
     "interfaz": { "interfaceFrames": false },
+    "generalSigueAlUltimo": true,
     "desplazamientoCamara": { "x": 0, "y": 1911.85, "z": -1200 },
     "degradadoTrasSegundos": 15,
     "zoom": {
@@ -24,7 +25,10 @@
       "cerca": { "fov": 44, "distancia": 0.8 },
       "transicionSegundos": 1.2,
       "salidaSegundos": 0.5,
-      "pasosPorSegundo": 25
+      "pasosPorSegundo": 30,
+      "pasoFov": 0.5,
+      "pasoDistancia": 0.015,
+      "abrirAlCambiar": false
     },
     "bordes": {
       "activo": true,
@@ -57,10 +61,10 @@
     "anticipacionObjetivo": 10,
     "cola": 3,
     "ventanaPelea": 12,
-    "planoMinimo": 6,
+    "planoMinimo": 8,
     "congelarSegundos": 3,
     "quedarseConLaPrimera": true,
-    "focoMinimo": 4,
+    "focoMinimo": 6,
     "prioridades": {
       "pelea": 5,
       "objetivo": 4,
@@ -74,7 +78,18 @@
       "colchon": 1.5,
       "calmaNecesaria": 15,
       "grupoSegundos": 30,
-      "esperaIaSegundos": 15
+      "esperaIaSegundos": 15,
+      "sueltas": { "activo": true, "calmaNecesaria": 25, "separacion": 90 }
+    },
+    "inicio": {
+      "activo": true,
+      "tramos": [
+        { "desde": 0, "hasta": 90, "quien": "bot" },
+        { "desde": 90, "hasta": 170, "quien": "junglas", "cada": 20 },
+        { "desde": 170, "hasta": 200, "quien": "bot" },
+        { "desde": 200, "hasta": 245, "quien": "junglas", "cada": 10 },
+        { "desde": 245, "hasta": 300, "quien": "junglas", "cada": 20 }
+      ]
     },
     "cerca": {
       "activo": true,

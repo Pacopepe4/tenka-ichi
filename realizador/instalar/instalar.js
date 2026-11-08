@@ -3,9 +3,9 @@
 //   node instalar/instalar.js pc1 --clave CONTRASEÑA [--ruta "D:\Riot Games\League of Legends"]
 //   node instalar/instalar.js pc2 --clave CONTRASEÑA [--ruta ...]
 //
-//  - Guarda la contraseña (la del panel de TENKA ICHI: sirve para todo) y el papel del PC en opciones.local.json.
-//  - PC 2: si viene el puente del marcador de TENKA ICHI (descarga de la guía), le deja la misma contraseña.
-//  - Los dos se encuentran en la sala del realizador del servidor de TENKA ICHI con esa contraseña: sirve
+//  - Guarda la contraseña (la del panel de Gokudō: sirve para todo) y el papel del PC en opciones.local.json.
+//  - PC 2: si viene el puente del marcador de Gokudō (descarga de la guía), le deja la misma contraseña.
+//  - Los dos se encuentran en la sala del realizador del servidor de Gokudō con esa contraseña: sirve
 //    aunque estén en redes distintas.
 //  - PC 2: deja OBS listo (escenas, búfer, WebSocket con la misma contraseña); su relé lo maneja en local.
 //  - Activa en LoL lo que necesita cada PC (Replay API; en el PC 1 también LiveEvents).
@@ -19,7 +19,7 @@ import { RAIZ, cargarOpciones, mezclar } from '../comun/opciones.js';
 import { configurarApis, rutaConfig } from './configurar-lol.js';
 import { configurarObs, carpetaObs, obsAbierto, NOMBRE } from './configurar-obs.js';
 
-// El overlay de TENKA ICHI sale del mismo servidor que la sala: wss://x/realizador → https://x/overlay/
+// El overlay de Gokudō sale del mismo servidor que la sala: wss://x/realizador → https://x/overlay/
 export function overlayDeTenka(urlPuente) {
   try {
     const u = new URL(urlPuente);
@@ -29,7 +29,7 @@ export function overlayDeTenka(urlPuente) {
   } catch { return ''; }
 }
 
-// El panel de TENKA ICHI (su WebSocket /ws) también: wss://x/realizador → wss://x/ws
+// El panel de Gokudō (su WebSocket /ws) también: wss://x/realizador → wss://x/ws
 export function wsDeTenka(urlPuente) {
   try {
     const u = new URL(urlPuente);
@@ -39,11 +39,11 @@ export function wsDeTenka(urlPuente) {
 }
 
 export function opcionesLocales(papel, clave, actuales = {}, ruta, urlPuente) {
-  // Los dos PCs hablan con el panel de TENKA ICHI con la misma contraseña: el PC 1 lleva el overlay (línea por
+  // Los dos PCs hablan con el panel de Gokudō con la misma contraseña: el PC 1 lleva el overlay (línea por
   // línea, gráfica de oro, ficha) y el PC 2 mira el draft para poner su escena
   const tenka = wsDeTenka(urlPuente || actuales.puente?.url || 'wss://tenka-ichi.onrender.com/realizador');
   const comun = { papel, clave, ...(ruta ? { rutaLoL: ruta } : {}), ...(tenka ? { tenkaIchi: { activo: true, url: actuales.tenkaIchi?.url || tenka, clave } } : {}) };
-  // Los dos PCs se encuentran en la sala del realizador del servidor de TENKA ICHI. OBS va en el PC 2 y lo
+  // Los dos PCs se encuentran en la sala del realizador del servidor de Gokudō. OBS va en el PC 2 y lo
   // maneja su relé: el PC 1 solo le dice qué guardar y qué repetir.
   const puente = { modo: 'tenka' };
   if (papel === 'pc1') return mezclar(actuales, { ...comun, puente, obs: { activo: false } });
@@ -95,17 +95,17 @@ export function instalar({ papel, clave, ruta, emision = '', rutaLocal = join(RA
       try {
         const r = configurarObs({ carpeta, opciones: o, rutaLocal, overlayPorDefecto: overlayDeTenka(o.puente?.url), carpetaClips: join(homedir(), 'Videos', NOMBRE) });
         hechos.push(...r.hechos.map(h => `OBS: ${h}`));
-        if (!r.overlay) avisos.push('OBS: falta la URL del overlay de TENKA ICHI (doble clic en «Overlay TENKA ICHI»)');
+        if (!r.overlay) avisos.push('OBS: falta la URL del overlay de Gokudō (doble clic en «Overlay Gokudō»)');
       } catch (e) { avisos.push(`OBS: ${e.message}`); }
     }
   }
 
-  // 4. Puente del marcador de TENKA ICHI (viene en la descarga del PC 2 de la guía): la misma contraseña
+  // 4. Puente del marcador de Gokudō (viene en la descarga del PC 2 de la guía): la misma contraseña
   const puente = join(RAIZ, 'puente');
   if (papel === 'pc2' && carpetaPuente !== null && existsSync(join(carpetaPuente || puente, 'puente-tenka-ichi.ps1'))) {
     // Con BOM: PowerShell 5 lee sin BOM como ANSI y una ñ en la contraseña no coincidiría
     writeFileSync(join(carpetaPuente || puente, 'clave.txt'), `\uFEFF${clave}`);
-    hechos.push('Puente del marcador de TENKA ICHI con la misma contraseña');
+    hechos.push('Puente del marcador de Gokudō con la misma contraseña');
   }
 
   // 5. Acceso directo

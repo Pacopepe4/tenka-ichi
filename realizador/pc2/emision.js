@@ -7,7 +7,7 @@
 //  3. Cuando la antena arranca en el segundo 0, salta a la escena de juego: la emisión empieza desde el principio.
 //  4. Cuando la antena llega al final de la partida, pone la escena final (casters) y se queda armada para la
 //     siguiente partida, sin cortar la emisión. «Terminar» la corta.
-//  Draft: si el panel de TENKA ICHI tiene un draft en marcha (DraftCore conectado), pone la escena de draft (con
+//  Draft: si el panel de Gokudō tiene un draft en marcha (DraftCore conectado), pone la escena de draft (con
 //  las cámaras); si aún no se emitía, el botón empieza a emitir ya, con el draft. Al acabar el draft y salir de
 //  su pantalla, pasa a la escena de previa hasta que la partida llegue a la antena.
 //  Lo único que no hace solo es empezar: el botón «Empezar directo», o empezar a emitir a mano en OBS (entonces
@@ -63,7 +63,7 @@ export class Emision extends EventEmitter {
     };
   }
 
-  // Órdenes del botón (de cualquiera de los dos PCs o del panel de TENKA ICHI)
+  // Órdenes del botón (de cualquiera de los dos PCs o del panel de Gokudō)
   async orden({ accion, modo } = {}) {
     if (accion === 'armar') {
       if (this.fase !== 'apagada') return;
@@ -123,8 +123,10 @@ export class Emision extends EventEmitter {
   // Cada vuelta del relé. meta: segundo de partida al que va (o irá) la antena; negativo mientras espera el margen.
   // tAntena: segundo que se ve en la antena. juego: el LoL del PC 2 responde. listo: todas las condiciones.
   // tFin: segundo de partida en que acabó (lo manda el PC 1), o null.
-  // draft: 'draft' | 'postdraft' | null, lo que enseña el panel de TENKA ICHI (draft en marcha o recién cerrado).
-  async paso({ meta, tAntena, pausado, juego, listo, tFin = null, draft = null }) {
+  // draft: 'draft' | 'postdraft' | null, lo que enseña el panel de Gokudō (draft en marcha o recién cerrado).
+  // finEsperado: hora (ms) a la que la antena llega al final: cuando el PC 1 lo vio más el margen. Sirve aunque
+  // la Replay API del PC 2 deje de contestar al acabar la partida (el LoL sigue enseñando lo que tenía guardado).
+  async paso({ meta, tAntena, pausado, juego, listo, tFin = null, draft = null, finEsperado = null }) {
     await this.leerSalidas();
     const ahora = Date.now();
     if ((this.draft || null) !== (draft || null)) { this.draft = draft || null; this.emit('cambio'); }
@@ -152,7 +154,7 @@ export class Emision extends EventEmitter {
     this.sinJuegoDesde = juego ? null : (this.sinJuegoDesde ?? ahora);
 
     if (this.fase === 'armada') {
-      // Draft en el panel de TENKA ICHI: su escena (y, si aún no se emitía, se empieza ya, con el draft)
+      // Draft en el panel de Gokudō: su escena (y, si aún no se emitía, se empieza ya, con el draft)
       if (draft) {
         if (!this.salidaActiva && this.obs?.arrancarSalida && ahora >= this.reintentoEn) {
           try {
@@ -180,7 +182,8 @@ export class Emision extends EventEmitter {
         this.emit('cambio');
       }
       // Otra partida: el LoL del PC 2 se cerró, o la antena vuelve a esperar el margen desde el principio
-      if (this.esperaNueva && (!juego || (Number.isFinite(meta) && meta < -this.c.previaSegundos))) this.esperaNueva = false;
+      // (solo cuando el PC 1 ya no da el final: mientras lo dé, sigue siendo la misma partida)
+      if (this.esperaNueva && !Number.isFinite(tFin) && (!juego || (Number.isFinite(meta) && meta < -this.c.previaSegundos))) this.esperaNueva = false;
       if (this.esperaNueva) return;
       if (!listo || meta === null || meta === undefined || ahora < this.reintentoEn) return;
       if (meta < -this.c.previaSegundos) return;
@@ -227,9 +230,15 @@ export class Emision extends EventEmitter {
       // La antena se para en el final: desde que llega, se deja ver «segundosTrasFin» y se pasa a la escena final
       if (Number.isFinite(tFin) && tAntena !== null && tAntena >= tFin - 1) this.finVisto ??= ahora;
       else this.finVisto = null;
-      const acabada = (this.finVisto !== null && ahora - this.finVisto >= this.c.segundosTrasFin * 1000)
-        || (this.sinJuegoDesde && ahora - this.sinJuegoDesde > this.c.sinJuegoSegundos * 1000);
-      if (!acabada) return;
+      // Con el final avisado, también por la hora (la API puede callarse al acabar aunque el LoL siga enseñando la
+      // partida). Que el LoL no conteste solo cuenta si no se sabe cuándo acaba: si no, cortaría los 2 últimos minutos.
+      const tras = this.c.segundosTrasFin * 1000;
+      const conFinAvisado = Number.isFinite(tFin) && Number.isFinite(finEsperado);
+      const motivo = this.finVisto !== null && ahora - this.finVisto >= tras ? 'la antena ha llegado al final'
+        : conFinAvisado && ahora >= finEsperado + tras ? 'es la hora del final (el PC 1 lo vio hace el margen)'
+          : !conFinAvisado && this.sinJuegoDesde && ahora - this.sinJuegoDesde > this.c.sinJuegoSegundos * 1000 ? 'el LoL de este PC no contesta'
+            : null;
+      if (!motivo) return;
       await this.escena(this.escenas.final);
       this.escenaAuto = 'final';
       this.partidas++;
@@ -240,7 +249,7 @@ export class Emision extends EventEmitter {
       this.esperaNueva = true;
       this.finVisto = null;
       if (this.c.pararAlAcabar) this.pararEn = ahora + this.c.pararTrasSegundos * 1000;
-      this.registrar(`[emisión] partida terminada: escena ${this.escenas.final}${this.c.pararAlAcabar ? `; se corta en ${this.c.pararTrasSegundos} s` : '; la siguiente entra sola'}`);
+      this.registrar(`[emisión] partida terminada (${motivo}): escena ${this.escenas.final}${this.c.pararAlAcabar ? `; se corta en ${this.c.pararTrasSegundos} s` : '; la siguiente entra sola'}`);
       this.emit('cambio');
     }
   }
