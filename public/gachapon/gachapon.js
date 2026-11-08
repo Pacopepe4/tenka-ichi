@@ -6,7 +6,7 @@ import { imagenColeccion, imagenAlineacion, descargar, publicar } from '/compart
 import { TIERS, claveTier, ROL, escapar } from '/carta.js';
 import { revelarAlAsomar, cierreSuave } from '/efectos.js';
 import { $, est, nombreClan, colorClan, cartaHTML, cartaPorId, misCartas, ganchos } from './estado.js';
-import { abrir, aperturaAbierta } from './apertura.js';
+import { aperturaAbierta } from './apertura.js';
 import { pintarAlbum } from './album.js';
 import { pintarFantasy, dialogoElegir, ROLES, puntosDe, boostsDe } from './alineacion.js';
 
@@ -51,11 +51,9 @@ function pintarCuenta() {
     const puede = u.sobres > 0 && listos;
     cuenta.innerHTML = `<div class="yo">${u.avatar ? `<img src="${escapar(u.avatar)}" alt="">` : ''}
         <div><b>${escapar(u.nombre)}</b><span>${u.sobres === 1 ? 'Tienes 1 sobre' : `Tienes ${u.sobres} sobres`}</span></div></div>
-      <button class="boton-claro abrir" type="button" ${puede ? '' : 'disabled'}>Abrir un sobre</button>
       <button class="salir" type="button">Salir</button>`;
     sobre.disabled = !puede;
     $('.sobre-contador').textContent = u.sobres ? `×${u.sobres}` : '';
-    cuenta.querySelector('.abrir').onclick = abrir;
     cuenta.querySelector('.salir').onclick = async () => { await fetch('/auth/salir', { method: 'POST' }); cargar(); };
   }
   // Sin cartas de Jugador los sobres esperan: solo con las BOOST saldrían todas de las mejores
