@@ -47,8 +47,9 @@ export const logo = clan => `/logos/${clan}.png`;
 // Conexión en directo con reconexión automática.
 // Si la web se actualiza mientras la página está abierta (una fuente de OBS puede pasar así toda la jornada), al
 // volver a conectarse llega una versión distinta y la página se recarga sola; con alVersion, se avisa en su lugar
-// Con canal: 'sorteo' solo llega el sorteo del calendario en directo (la portada no necesita el estado del draft)
-export function conectarDirecto({ alEstado, alRespuesta, alConexion, alPartida, alVersion, alSorteo, canal }) {
+// Con canal: 'sorteo' solo llega el sorteo del calendario en directo (la portada no necesita el estado del draft);
+// con 'alertas', solo las alertas de Kick (seguidores, subs, regalos y kicks) para la fuente de OBS /alertas/
+export function conectarDirecto({ alEstado, alRespuesta, alConexion, alPartida, alVersion, alSorteo, alAlerta, canal }) {
   let ws, pendientes = new Map(), id = 0, version = null;
   function abrir() {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
@@ -70,6 +71,7 @@ export function conectarDirecto({ alEstado, alRespuesta, alConexion, alPartida, 
       if (m.tipo === 'estado') alEstado?.(m.estado);
       if (m.tipo === 'partida') alPartida?.(m.partida);
       if (m.tipo === 'sorteo') alSorteo?.(m.sorteo);
+      if (m.tipo === 'alerta') alAlerta?.(m.alerta);
       if (m.tipo === 'respuesta') {
         pendientes.get(m.id)?.(m);
         pendientes.delete(m.id);

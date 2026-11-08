@@ -69,13 +69,15 @@ function pintarCuenta() {
 // Puntos del canal de Twitch y de Kick: se ganan viendo el directo y se canjean allí por sobres (en Twitch, «Sobre de
 // Gokudō»; en Kick, «Omamori»). Para que el sobre llegue a esta colección, cada uno vincula su cuenta (una vez)
 const TWITCH = { clave: 'twitch', nombre: 'Twitch', canal: () => `twitch.tv/${est.info.canal}`, recompensa: () => est.info.recompensa };
-const KICK = { clave: 'kick', nombre: 'Kick', canal: () => `kick.com/${est.info.canalKick}`, recompensa: () => est.info.recompensaKick };
+// En Kick, además, las subs, las subs regaladas y los kicks dan sobres (server/kick-bot.js)
+const KICK = { clave: 'kick', nombre: 'Kick', canal: () => `kick.com/${est.info.canalKick}`, recompensa: () => est.info.recompensaKick,
+  extra: ' Suscribirte, regalar subs o mandar kicks también da sobres.' };
 function comoCanjear(u, p) {
   const canal = `<a href="https://${p.canal()}" target="_blank" rel="noopener">${p.canal()}</a>`;
-  const r = p.recompensa(), canje = `<b>${escapar(r.titulo)}</b> por ${r.coste} puntos del canal`;
-  if (!u) return `Más sobres con los puntos del canal de ${canal}, que se ganan viendo el directo: entra, vincula tu ${p.nombre} y canjea ${canje}.`;
-  if (u[p.clave]) return `${p.nombre} vinculado: <b>${escapar(u[p.clave].login)}</b>. Canjea ${canje} en ${canal} y el sobre te llega aquí en un minuto. <button type="button" class="desvincular" data-de="${p.clave}">Desvincular</button>`;
-  return `Más sobres con los puntos del canal de ${canal}, que se ganan viendo el directo: <a class="vincular" href="/auth/${p.clave}/vincular">vincula tu ${p.nombre}</a> y canjea ${canje}.`;
+  const r = p.recompensa(), canje = `<b>${escapar(r.titulo)}</b> por ${r.coste} puntos del canal`, extra = p.extra || '';
+  if (!u) return `Más sobres con los puntos del canal de ${canal}, que se ganan viendo el directo: entra, vincula tu ${p.nombre} y canjea ${canje}.${extra}`;
+  if (u[p.clave]) return `${p.nombre} vinculado: <b>${escapar(u[p.clave].login)}</b>. Canjea ${canje} en ${canal} y el sobre te llega aquí en un minuto.${extra} <button type="button" class="desvincular" data-de="${p.clave}">Desvincular</button>`;
+  return `Más sobres con los puntos del canal de ${canal}, que se ganan viendo el directo: <a class="vincular" href="/auth/${p.clave}/vincular">vincula tu ${p.nombre}</a> y canjea ${canje}.${extra}`;
 }
 
 async function desvincular(de) {

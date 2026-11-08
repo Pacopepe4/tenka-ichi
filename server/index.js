@@ -29,7 +29,10 @@ import { estadoJornadas, terminarJornada, jornadasCerradas, premiosPublicos } fr
 import { clasificacionJornada } from './fantasy.js';
 import { previa, fichaJugador, fichaClan } from './previa.js';
 import { cargarCanal, conectarCanal, cambiarCoste, sondear, sondearSiHaceFalta, estadoCanal, SCOPE_CANAL } from './canal.js';
-import { cargarCanalKick, conectarCanalKick, cambiarCosteKick, sondearKick, sondearKickSiHaceFalta, estadoCanalKick, SCOPE_CANAL_KICK } from './canal-kick.js';
+import { cargarCanalKick, conectarCanalKick, cambiarCosteKick, recogerCanjesKick, estadoCanalKick, asegurarSuscripciones, SCOPE_CANAL_KICK } from './canal-kick.js';
+import { atenderWebhookKick, alAlertar, alertaDePrueba, contextoComandos, cargarBotKick, conectarBotKick, quitarBotKick, estadoBotKick, SCOPE_BOT_KICK } from './kick-bot.js';
+import { textoPartido } from './comandos-kick.js';
+import { formatoTemporada } from './competicion.js';
 import { kickActivo, pkce, urlAutorizar as urlAutorizarKick, canjearCodigo as canjearCodigoKick, usuarioDeToken as usuarioDeKick, CANAL_KICK } from './kick.js';
 import { firmar, verificar, leerCookies, ponerCookie, cifrar, descifrar } from './sesion.js';
 import { twitchActivo, urlAutorizar, canjearCodigo, usuarioDeToken, usuarioPorNombre, CANAL } from './twitch.js';
@@ -114,7 +117,7 @@ function emitir() {
   estado.codigo = codigo ? { texto: codigo.texto, sobres: codigo.sobres, quedan: codigo.caduca - Date.now() } : null;
   guardarEstadoSiCambia(fotoActual);
   const msg = JSON.stringify({ tipo: 'estado', estado });
-  for (const ws of clientes) if (ws.readyState === 1 && ws.canal !== 'sorteo') ws.send(msg);
+  for (const ws of clientes) if (ws.readyState === 1 && !CANALES_SUELTOS.has(ws.canal)) ws.send(msg);
 }
 
 // El sorteo del calendario en directo (server/sorteo.js) llega a todas las pantallas. La portada solo pide este
@@ -122,8 +125,22 @@ function emitir() {
 const sorteo = crearSorteo({ guardar: e => guardarAjustes({ sorteo_en_curso: e ? JSON.stringify(e) : null }) });
 sorteo.alCambiar(v => {
   const msg = JSON.stringify({ tipo: 'sorteo', sorteo: v });
-  for (const ws of clientes) if (ws.readyState === 1) ws.send(msg);
+  for (const ws of clientes) if (ws.readyState === 1 && ws.canal !== 'alertas') ws.send(msg);
 });
+
+// Canales de /ws que no reciben el estado del draft ni la partida: la portada (sorteo) y las alertas de Kick en OBS (alertas)
+const CANALES_SUELTOS = new Set(['sorteo', 'alertas']);
+// Alertas de Kick (seguidores, subs, regalos y kicks: server/kick-bot.js) para la fuente de OBS /alertas/
+alAlertar(alerta => {
+  const msg = JSON.stringify({ tipo: 'alerta', alerta: { ...alerta, id: crypto.randomUUID() } });
+  for (const ws of clientes) if (ws.readyState === 1 && ws.canal === 'alertas') ws.send(msg);
+});
+// Lo que contestan los comandos del chat de Kick que necesitan el fantasy o el calendario
+contextoComandos(() => ({
+  clasificacion: () => infoFantasy(null).clasificacion,
+  puesto: id => infoFantasy({ id }).yo?.puesto || null,
+  partido: () => textoPartido({ formato: formatoTemporada(), calendario: calendarioActual(), nombre: id => CLANES.find(c => c.id === id)?.nombre || id }),
+}));
 
 // La partida en directo va en su propio mensaje: llega cada segundo y no hace falta reenviar todo el estado
 let partidaActiva = false, puenteConectado = false;
@@ -141,7 +158,7 @@ function emitirPartida(partida = resumenPartida()) {
   puenteConectado = partida.puente.conectado;
   const cambia = seguirPartida(partida);
   const msg = JSON.stringify({ tipo: 'partida', partida });
-  for (const ws of clientes) if (ws.readyState === 1 && ws.canal !== 'sorteo') ws.send(msg);
+  for (const ws of clientes) if (ws.readyState === 1 && !CANALES_SUELTOS.has(ws.canal)) ws.send(msg);
   if (cambia) emitir();
 }
 // Si el puente deja de mandar datos, avisa al overlay para que se retire y al panel de que se ha cerrado
@@ -449,7 +466,7 @@ async function accion(nombre, d = {}) {
       await cambiarCoste(d.coste);
       return { ok: true, gacha: estadoGachaPanel() };
     case 'gachaSondear':
-      await Promise.all([sondear(), sondearKick()]);
+      await Promise.all([sondear(), recogerCanjesKick()]);
       return { ok: true, gacha: estadoGachaPanel() };
     // Puntos del canal de Kick: la recompensa «Omamori»
     case 'kickCanal': {
@@ -458,6 +475,20 @@ async function accion(nombre, d = {}) {
     }
     case 'kickCoste':
       await cambiarCosteKick(d.coste);
+      return { ok: true, gacha: estadoGachaPanel() };
+    // Avisos de Kick: volver a suscribirse a los que falten y una alerta de prueba para colocar la fuente de OBS
+    case 'kickAvisos':
+      await asegurarSuscripciones();
+      return { ok: true, gacha: estadoGachaPanel() };
+    case 'kickAlertaPrueba':
+      return { ok: true, alerta: alertaDePrueba(d.tipo) };
+    // La cuenta de Kick aparte para el bot (opcional): conectarla o quitarla (entonces escribe la cuenta del canal)
+    case 'kickBot': {
+      if (!kickActivo()) return { ok: false, error: 'Falta configurar la app de Kick en Render' };
+      return { ok: true, url: `/auth/kick/bot?t=${encodeURIComponent(firmar({ botKick: true }, 300))}` };
+    }
+    case 'kickBotQuitar':
+      await quitarBotKick();
       return { ok: true, gacha: estadoGachaPanel() };
     case 'gachaRegalar': {
       const cantidad = Math.round(Number(d.cantidad));
@@ -570,7 +601,7 @@ const usuarioDeSesion = req => verificar(leerCookies(req).tk_sesion);
 const volverSeguro = v => (/^\/(?![/\\])/.test(v || '') ? v : '/gachapon/');
 
 function estadoGachaPanel() {
-  return { login: loginDiscordActivo(), canal: estadoCanal(), kick: { ...estadoCanalKick(), activo: kickActivo() }, resumen: resumenGacha(), probabilidades: probabilidades(), reparto: reparto(), cerrado: infoFantasy(null).cerrado,
+  return { login: loginDiscordActivo(), canal: estadoCanal(), kick: { ...estadoCanalKick(), activo: kickActivo(), bot: estadoBotKick() }, resumen: resumenGacha(), probabilidades: probabilidades(), reparto: reparto(), cerrado: infoFantasy(null).cerrado,
     codigo: estadoCodigo(), jornadas: estadoJornadas(), publicarDiscord: discordActivo('clasificacion'), temporada: estadoTemporada() };
 }
 
@@ -740,11 +771,17 @@ async function rutasSesion(req, res, url) {
     return aKick(req, res, 'canal', SCOPE_CANAL_KICK);
   }
 
+  if (p === '/auth/kick/bot') {
+    if (!kickActivo()) return paginaAviso(res, 'No disponible', 'Falta configurar la app de Kick en Render.', 503);
+    if (!verificar(url.searchParams.get('t'))?.botKick) return paginaAviso(res, 'Enlace caducado', 'Vuelve a pulsar «Conectar la cuenta del bot» en el panel.', 403);
+    return aKick(req, res, 'bot', SCOPE_BOT_KICK);
+  }
+
   if (p === '/auth/kick/callback') {
     const guardado = verificar(leerCookies(req).tk_oauth_kick);
     ponerCookie(res, 'tk_oauth_kick', '', 0, req);
-    if (!guardado || guardado.state !== url.searchParams.get('state')) return paginaAviso(res, 'No se pudo entrar', 'La petición a Kick caducó o no es válida. Vuelve a intentarlo.', 400, guardado?.tipo === 'canal' ? undefined : aGachapon);
-    if (url.searchParams.get('error') || !url.searchParams.get('code')) return redirigir(res, guardado.tipo === 'canal' ? '/panel/' : '/gachapon/');
+    if (!guardado || guardado.state !== url.searchParams.get('state')) return paginaAviso(res, 'No se pudo entrar', 'La petición a Kick caducó o no es válida. Vuelve a intentarlo.', 400, ['canal', 'bot'].includes(guardado?.tipo) ? undefined : aGachapon);
+    if (url.searchParams.get('error') || !url.searchParams.get('code')) return redirigir(res, ['canal', 'bot'].includes(guardado.tipo) ? '/panel/' : '/gachapon/');
     try {
       const t = await canjearCodigoKick(url.searchParams.get('code'), `${origen(req)}/auth/kick/callback`, descifrar(guardado.v));
       const u = await usuarioDeKick(t.access_token);
@@ -755,14 +792,17 @@ async function rutasSesion(req, res, url) {
         return paginaAviso(res, 'Canal de Kick conectado', c.error ? `El canal ${escaparHTML(u.name)} está conectado, pero: ${escaparHTML(c.error)}`
           : `La recompensa «${c.titulo}» ya está en el canal de Kick de ${escaparHTML(u.name)}, a ${c.coste} puntos. Ya puedes cerrar esta pestaña.`);
       }
+      if (guardado.tipo === 'bot') {
+        await conectarBotKick(t, u);
+        return paginaAviso(res, 'Cuenta del bot conectada', `Desde ahora el bot de Gokudō escribe en el chat de kick.com/${CANAL_KICK} como ${escaparHTML(u.name)}. Ya puedes cerrar esta pestaña.`);
+      }
       const yo = usuarioDeSesion(req);
       if (!yo) return paginaAviso(res, 'No se pudo vincular', 'Tu sesión del gachapon ha caducado: entra otra vez y vuelve a vincular tu Kick.', 401, aGachapon);
       await vincularKick(yo, { id: u.user_id, login: u.name });
-      sondearKick();   // por si ya tenía canjes esperando
       return redirigir(res, '/gachapon/');
     } catch (e) {
       console.error(e);
-      return paginaAviso(res, 'No se pudo conectar con Kick', escaparHTML(e.message), 500, guardado.tipo === 'canal' ? undefined : aGachapon);
+      return paginaAviso(res, 'No se pudo conectar con Kick', escaparHTML(e.message), 500, ['canal', 'bot'].includes(guardado.tipo) ? undefined : aGachapon);
     }
   }
 
@@ -782,7 +822,7 @@ async function rutasSesion(req, res, url) {
 
   if (p === '/api/gacha') {
     const u = usuarioDeSesion(req);
-    if (u) { sondearSiHaceFalta(); sondearKickSiHaceFalta(); }
+    if (u) sondearSiHaceFalta();   // Twitch; Kick avisa solo (server/kick-bot.js)
     return json(res, infoGacha(u));
   }
 
@@ -946,6 +986,16 @@ const comandosDiscord = crearComandos();
 
 const servidor = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
+  // Avisos de Kick (webhooks), firmados por Kick: la dirección que va en la app de kick.com/settings/developer
+  if (url.pathname === '/webhooks/kick' && req.method === 'POST') {
+    try {
+      const r = await atenderWebhookKick(req, { web: origen(req) });
+      return json(res, r.cuerpo, r.estado);
+    } catch (e) {
+      console.error(url.pathname, e);
+      return json(res, { ok: false }, 500);
+    }
+  }
   if (url.pathname === '/discord/interacciones' && req.method === 'POST') {
     try {
       const r = await comandosDiscord.atender(req);
@@ -1089,11 +1139,11 @@ wss.on('connection', (ws, req) => {
   clientes.add(ws);
   ws.canal = new URL(req.url, 'http://localhost').searchParams.get('canal');
   ws.send(JSON.stringify({ tipo: 'hola', version: VERSION }));
-  if (ws.canal !== 'sorteo') {
+  if (!CANALES_SUELTOS.has(ws.canal)) {
     ws.send(JSON.stringify({ tipo: 'estado', estado }));
     ws.send(JSON.stringify({ tipo: 'partida', partida: resumenPartida() }));
   }
-  ws.send(JSON.stringify({ tipo: 'sorteo', sorteo: sorteo.vista() }));
+  if (ws.canal !== 'alertas') ws.send(JSON.stringify({ tipo: 'sorteo', sorteo: sorteo.vista() }));
   ws.on('close', () => clientes.delete(ws));
   ws.on('message', async raw => {
     let m;
@@ -1132,6 +1182,7 @@ await estrenarTemporada().then(r => { if (r) console.log(`Temporada ${estadoTemp
 await cargarPartida();
 await cargarCanal().catch(e => console.error('Canal de Twitch:', e.message));
 await cargarCanalKick().catch(e => console.error('Canal de Kick:', e.message));
+cargarBotKick();
 estado.hoja = estadoHoja();
 estado.fantasy.cerrado = alineacionesCerradas();
 // Lo que el panel tenía puesto antes del reinicio (y, si estaba conectado a DraftCore, se vuelve a conectar)

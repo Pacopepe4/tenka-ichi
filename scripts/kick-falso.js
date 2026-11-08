@@ -1,7 +1,10 @@
 // Kick falso para probar la recompensa «Omamori» sin conectar nada de verdad. Imita lo que usa la app (docs.kick.com):
 //   id.kick.com            → /oauth/authorize (con PKCE S256), /oauth/token (código y refresco), /oauth/token/introspect
-//   api.kick.com/public/v1 → /users, /channels/rewards y sus canjes (listar los pendientes y aceptarlos)
-// y tiene órdenes de control (/_control/…) para simular canjes, tokens caducados o permisos retirados.
+//   api.kick.com/public/v1 → /users, /channels/rewards y sus canjes (listar los pendientes y aceptarlos), /public-key,
+//                            /events/subscriptions (suscribirse a los avisos) y /chat (escribir en el chat, como el canal o
+//                            como la cuenta del bot, GokudoBot)
+// y tiene órdenes de control (/_control/…) para simular canjes, tokens caducados, permisos retirados y avisos (webhooks)
+// firmados con su propia clave, como los de Kick: /_control/evento manda uno a la dirección de /_control/webhook.
 //
 // Uso: node scripts/kick-falso.js [puerto]   (4050 por defecto)
 // Luego, la app con KICK_URL_ID=http://localhost:4050 y KICK_URL_API=http://localhost:4050/public/v1
@@ -16,6 +19,7 @@ const ulid = () => crypto.randomBytes(13).toString('hex').toUpperCase().slice(0,
 export function crearKickFalso() {
   const usuarios = new Map([
     ['gokudo_zoku', { user_id: 5001, name: 'Gokudo_zoku' }],
+    ['gokudobot', { user_id: 5002, name: 'GokudoBot' }],
     ['ana', { user_id: 6001, name: 'ana_kick' }],
     ['beto', { user_id: 6002, name: 'Beto_K' }],
   ].map(([k, u]) => [k, { ...u, email: `${k}@ejemplo.test`, profile_picture: '' }]));
@@ -28,8 +32,25 @@ export function crearKickFalso() {
     refrescos: new Map(),   // token de refresco → { login, scopes }
     recompensas: [],        // { id, canal, title, cost, description, background_color, is_enabled, skip, creada_por }
     canjes: [],             // { id, reward_id, user_id, status, redeemed_at }
+    suscripciones: [],      // { id, app_id, broadcaster_user_id, event, version, method }
+    chat: [],               // { canal, type, content, reply_to_message_id }
+    webhook: null,          // a dónde manda los avisos (la «Webhook URL» de la app)
+    rechazar: new Set(),
+    fallarAceptar: 0,       // las próximas N veces que se acepten canjes, Kick falla (500)    // avisos a los que Kick no deja suscribirse (para probar el error)
     llamadas: [],
   };
+  // Kick firma los avisos con RSA y SHA-256; la web pide la clave pública a /public/v1/public-key
+  const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+  const clavePublica = publicKey.export({ type: 'spki', format: 'pem' });
+  async function mandarAviso({ tipo, datos, id = ulid(), firmaMala = false, momento = new Date().toISOString() }) {
+    const cuerpo = JSON.stringify(datos);
+    let firma = crypto.sign('sha256', Buffer.from(`${id}.${momento}.${cuerpo}`), privateKey).toString('base64');
+    if (firmaMala) firma = crypto.sign('sha256', Buffer.from(`${id}.${momento}.{}`), privateKey).toString('base64');
+    const r = await fetch(estado.webhook, { method: 'POST', body: cuerpo, headers: { 'Content-Type': 'application/json',
+      'Kick-Event-Message-Id': id, 'Kick-Event-Subscription-Id': ulid(), 'Kick-Event-Signature': firma,
+      'Kick-Event-Message-Timestamp': momento, 'Kick-Event-Type': tipo, 'Kick-Event-Version': '1' } });
+    return { estado: r.status, id, cuerpo: await r.json().catch(() => null) };
+  }
   const token = () => crypto.randomBytes(15).toString('hex');
   const darAcceso = (login, scopes) => {
     const acceso = token(), refresco = token();
@@ -97,6 +118,7 @@ export function crearKickFalso() {
     }
 
     // ---------- api.kick.com/public/v1 ----------
+    if (p === '/public/v1/public-key') return enviar(res, 200, { data: { public_key: clavePublica }, message: 'OK' });
     if (p.startsWith('/public/v1/')) {
       const a = acceso();
       if (!a) return error(res, 401, 'Unauthorized');
@@ -110,6 +132,35 @@ export function crearKickFalso() {
         const ids = q.getAll('id');
         const lista = ids.length ? ids.map(porId).filter(Boolean) : [yo];
         return enviar(res, 200, { data: lista, message: 'OK' });
+      }
+      if (ruta === '/events/subscriptions') {
+        if (!tiene('events:subscribe')) return error(res, 403, 'Forbidden: missing scope events:subscribe');
+        const mias = estado.suscripciones.filter(x => x.broadcaster_user_id === yo.user_id);
+        if (req.method === 'GET') return enviar(res, 200, { data: mias, message: 'OK' });
+        if (req.method === 'POST') {
+          if (cuerpo.method !== 'webhook' || !Array.isArray(cuerpo.events)) return error(res, 400, 'invalid body');
+          const data = cuerpo.events.map(e => {
+            if (estado.rechazar.has(e.name)) return { name: e.name, version: e.version, error: 'event not available' };
+            const s = { id: ulid(), app_id: CLIENTE_KICK.id, broadcaster_user_id: yo.user_id, event: e.name, version: e.version, method: 'webhook' };
+            estado.suscripciones.push(s);
+            return { name: e.name, version: e.version, subscription_id: s.id };
+          });
+          return enviar(res, 200, { data, message: 'OK' });
+        }
+        if (req.method === 'DELETE') {
+          const ids = q.getAll('id');
+          estado.suscripciones = estado.suscripciones.filter(x => !ids.includes(x.id));
+          return enviar(res, 204);
+        }
+      }
+      if (ruta === '/chat' && req.method === 'POST') {
+        if (!tiene('chat:write')) return error(res, 403, 'Forbidden: missing scope chat:write');
+        if (!['user', 'bot'].includes(cuerpo.type) || !cuerpo.content || [...cuerpo.content].length > 500) return error(res, 400, 'invalid message');
+        // Como «bot», al canal del token; como «user», al canal que diga broadcaster_user_id
+        if (cuerpo.type === 'user' && !cuerpo.broadcaster_user_id) return error(res, 400, 'broadcaster_user_id is required');
+        const canal = cuerpo.type === 'bot' ? yo.user_id : cuerpo.broadcaster_user_id;
+        estado.chat.push({ canal, de: yo.name, type: cuerpo.type, content: cuerpo.content, reply_to_message_id: cuerpo.reply_to_message_id || null });
+        return enviar(res, 200, { data: { is_sent: true, message_id: crypto.randomUUID() }, message: 'OK' });
       }
       if (ruta.startsWith('/channels/rewards')) {
         const escribir = req.method !== 'GET';
@@ -148,6 +199,7 @@ export function crearKickFalso() {
           return enviar(res, 200, { data: grupos, message: 'OK', pagination: { next_cursor: siguiente } });
         }
         if (ruta === '/channels/rewards/redemptions/accept' && req.method === 'POST') {
+          if (estado.fallarAceptar > 0) { estado.fallarAceptar--; return error(res, 500, 'Internal Server Error'); }
           const ids = cuerpo.ids || [];
           if (!ids.length || ids.length > 25 || new Set(ids).size !== ids.length) return error(res, 400, 'ids must have 1 to 25 unique items');
           const fallos = [];
@@ -193,7 +245,30 @@ export function crearKickFalso() {
         for (const [t, r] of estado.refrescos) if (r.login === c.login) estado.refrescos.delete(t);
         return enviar(res, 200, { ok: true });
       }
-      if (p === '/_control/estado') return enviar(res, 200, { recompensas: estado.recompensas, canjes: estado.canjes, llamadas: estado.llamadas });
+      if (p === '/_control/webhook') { estado.webhook = c.url; return enviar(res, 200, { ok: true }); }
+      if (p === '/_control/fallar-aceptar') { estado.fallarAceptar = c.veces || 1; return enviar(res, 200, { ok: true }); }
+      if (p === '/_control/rechazar') { estado.rechazar = new Set(c.eventos || []); return enviar(res, 200, { ok: true }); }
+      if (p === '/_control/baja') {   // Kick da de baja una suscripción (el webhook falló más de un día)
+        estado.suscripciones = estado.suscripciones.filter(x => x.event !== c.evento);
+        return enviar(res, 200, { ok: true });
+      }
+      if (p === '/_control/evento') {
+        if (!estado.webhook) return error(res, 400, 'Falta /_control/webhook');
+        return enviar(res, 200, await mandarAviso(c));
+      }
+      // Un canje del Omamori que llega también por aviso, como hace Kick (channel.reward.redemption.updated)
+      if (p === '/_control/canje-avisado') {
+        const canal = usuarios.get('gokudo_zoku'), u = usuarios.get(c.login);
+        const r = estado.recompensas.find(x => x.canal === canal.user_id && x.title === 'Omamori');
+        const canje = { id: ulid(), reward_id: r.id, user_id: u.user_id, status: 'pending', redeemed_at: new Date().toISOString() };
+        estado.canjes.push(canje);
+        const quien = x => ({ user_id: x.user_id, username: x.name, is_verified: false, profile_picture: '', channel_slug: x.name.toLowerCase().replace(/_/g, '-') });
+        const aviso = await mandarAviso({ tipo: 'channel.reward.redemption.updated', datos: { id: canje.id, user_input: '', status: 'pending', redeemed_at: canje.redeemed_at,
+          reward: { id: r.id, title: r.title, cost: r.cost, description: r.description }, redeemer: quien(u), broadcaster: quien(canal) } });
+        return enviar(res, 200, { ...aviso, canje: canje.id });
+      }
+      if (p === '/_control/estado') return enviar(res, 200, { recompensas: estado.recompensas, canjes: estado.canjes, llamadas: estado.llamadas,
+        suscripciones: estado.suscripciones, chat: estado.chat });
     }
     return error(res, 404, 'Not Found');
   });

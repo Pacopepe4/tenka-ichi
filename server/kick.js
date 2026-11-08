@@ -78,3 +78,36 @@ export async function usuariosPorId(ids, token) {
   const { data } = await api(`users?${ids.map(id => `id=${encodeURIComponent(id)}`).join('&')}`, { token });
   return data || [];
 }
+
+// ---------- avisos de Kick (webhooks) ----------
+// Kick firma cada aviso con su clave privada: la firma (cabecera Kick-Event-Signature, en base64) es RSA con SHA-256 de
+// «id del mensaje.momento.cuerpo tal cual llegó». La clave pública se pide a Kick (puede cambiarla cuando quiera, así
+// que no se escribe en el código) y se guarda en memoria; si una firma no cuadra, se vuelve a pedir por si la ha cambiado
+let clave = null, claveDesde = 0;
+export async function clavePublica({ renovar = false } = {}) {
+  if (clave && !renovar) return clave;
+  if (renovar && Date.now() - claveDesde < 5 * 60000) return clave;   // como mucho, una vez cada 5 minutos
+  const r = await fetch(`${URL_API}/public-key`, { headers: { Accept: 'application/json' } });
+  const texto = await r.text();
+  if (!r.ok) throw new ErrorKick(`Kick no dio su clave pública (${r.status})`, r.status);
+  let pem = texto;
+  try { pem = JSON.parse(texto)?.data?.public_key || texto; } catch {}
+  crypto.createPublicKey(pem);   // que sea una clave de verdad
+  clave = pem; claveDesde = Date.now();
+  return clave;
+}
+
+export function firmaKickValida({ id, momento, firma, cuerpo }, pem) {
+  if (!id || !momento || !firma || !pem) return false;
+  try {
+    const datos = Buffer.concat([Buffer.from(`${id}.${momento}.`), Buffer.isBuffer(cuerpo) ? cuerpo : Buffer.from(String(cuerpo))]);
+    return crypto.verify('sha256', datos, pem, Buffer.from(String(firma), 'base64'));
+  } catch { return false; }
+}
+
+// Comprueba un aviso con la clave de Kick (y con la nueva, si Kick la ha cambiado)
+export async function avisoDeKick(aviso) {
+  if (firmaKickValida(aviso, await clavePublica())) return true;
+  const nueva = await clavePublica({ renovar: true });
+  return nueva !== null && firmaKickValida(aviso, nueva);
+}

@@ -135,3 +135,23 @@ export function leerImagen(req, maximo = MAXIMO_IMAGEN) {
     req.on('error', mal);
   });
 }
+// Aviso de «empieza el directo en Kick» (lo manda server/kick-bot.js al llegar livestream.status.updated): al canal
+// del webhook DISCORD_WEBHOOK_DIRECTO o, si no hay, al de siempre. Menciona a @everyone (lo eligió Pacopepe el 08/11/2026)
+const WEBHOOK_DIRECTO = () => process.env.DISCORD_WEBHOOK_DIRECTO || process.env.DISCORD_WEBHOOK_URL;
+export const directoDiscordActivo = () => Boolean(WEBHOOK_DIRECTO());
+export async function anunciarDirecto({ titulo, enlace, imagen = null, avatar = null }) {
+  const webhook = WEBHOOK_DIRECTO();
+  if (!webhook) throw new ErrorDiscord('Falta el webhook de Discord en Render', 503);
+  const formulario = new FormData();
+  formulario.append('payload_json', JSON.stringify({
+    content: ['@everyone **¡Gokudō está en directo en Kick!**', escaparMarkdown(titulo || 'Directo de Gokudō'), enlace].join('\n'),
+    username: 'Gokudō', ...(avatar ? { avatar_url: avatar } : {}),
+    allowed_mentions: { parse: ['everyone'] },
+    embeds: [{ title: String(titulo || 'Directo de Gokudō').slice(0, 256), url: enlace, color: 0xBE2A2F,
+      description: 'Entra al callejón: draft, partidas y sobres del gachapon para quien apoya.', ...(imagen ? { thumbnail: { url: imagen } } : {}) }],
+  }));
+  let r;
+  try { r = await fetch(`${webhook}${webhook.includes('?') ? '&' : '?'}wait=true`, { method: 'POST', body: formulario }); }
+  catch { throw new ErrorDiscord('No hay conexión con Discord', 502); }
+  if (!r.ok) throw new ErrorDiscord(`Discord no ha aceptado el aviso del directo (${r.status})`, 502);
+}

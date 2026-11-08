@@ -174,7 +174,7 @@ test('Ana vincula su Kick y sus canjes le llegan a su colección, aunque sean va
   assert.equal((await gacha(ana)).usuario.sobres, 8);
   const p = await accion('gachaEstado');
   assert.equal(p.gacha.resumen.conKick, 1);
-  assert.ok(p.gacha.kick.ultimoSondeo);
+  assert.ok(p.gacha.kick.ultimaRecogida);
 });
 
 test('lo que Beto canjea antes de vincular su Kick se le guarda y le llega al vincularlo', async () => {
