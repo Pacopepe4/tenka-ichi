@@ -255,7 +255,12 @@ test('sin sobres no se puede abrir ninguno', async () => {
   const carla = navegador();
   await carla.ir(`${urlWeb}/auth/twitch`);
   for (let i = 0; i < 3; i++) assert.equal((await (await carla.ir(`${urlWeb}/api/gacha/abrir`, { method: 'POST' })).json()).ok, true);
-  const r = await (await carla.ir(`${urlWeb}/api/gacha/abrir`, { method: 'POST' })).json();
+  // Con solo diez cartas, en esas tres tiradas puede completar una familia, y el premio es una tirada más
+  let r;
+  for (let i = 0; i < 5; i++) {
+    r = await (await carla.ir(`${urlWeb}/api/gacha/abrir`, { method: 'POST' })).json();
+    if (!r.ok) break;
+  }
   assert.equal(r.ok, false);
   assert.match(r.error, /No te quedan tiradas/);
 });
