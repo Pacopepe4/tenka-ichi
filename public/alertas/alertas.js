@@ -30,7 +30,7 @@ function pintar(a) {
   el.querySelector('.nombre').textContent = a.nombre || 'Anónimo';
   el.querySelector('.detalle').textContent = t.detalle;
   if (a.mensaje) Object.assign(el.querySelector('.mensaje'), { hidden: false, textContent: `«${a.mensaje}»` });
-  if (a.sobres > 0) Object.assign(el.querySelector('.sobres'), { hidden: false, textContent: `+${plural(a.sobres, 'sobre', 'sobres')} del gachapon` });
+  if (a.sobres > 0) Object.assign(el.querySelector('.sobres'), { hidden: false, textContent: `+${plural(a.sobres, 'tirada', 'tiradas')} en el gachapon` });
   // Los nombres largos se encogen para caber en el rótulo
   const largo = [...(a.nombre || '')].length;
   if (largo > 14) el.querySelector('.nombre').style.setProperty('--encoge', String(Math.max(0.55, 14 / largo)));

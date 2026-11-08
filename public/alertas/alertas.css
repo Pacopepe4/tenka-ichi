@@ -47,7 +47,7 @@ html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; backgro
   max-width: 860px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .sol { width: 96px; height: 96px; object-fit: contain; filter: drop-shadow(0 0 10px rgba(224, 48, 58, .5)); }
 
-/* Los sobres que se lleva: una placa de oro colgando debajo del rótulo */
+/* Las tiradas del gachapon que se lleva: una placa de oro colgando debajo del rótulo */
 .sobres { margin: -2px 0 0; padding: 8px 22px 9px; border: 1px solid var(--oro); border-top: 0; border-radius: 0 0 8px 8px;
   background: var(--noche); font-family: var(--dela); font-size: 24px; letter-spacing: .02em; color: var(--oro);
   box-shadow: 0 10px 30px rgba(0, 0, 0, .5), 0 0 16px rgba(235, 210, 138, .25);

@@ -56,6 +56,9 @@ export async function publicarCronica({ azul, rojo, titulo, texto, resumen }, pu
   let error = null;
   try { await publicar(); c.discord = 'publicada'; }
   catch (e) { error = e.message; c.discord = `no: ${e.message}`; }
+  // «La última» se apunta a la vez que se cuenta la crónica (antes de guardarla), para que el panel nunca vea la
+  // crónica nueva con la información de la anterior
+  estado.ultima = { fecha: c.fecha, partida: `${azul} contra ${rojo}`, publicada: !error, error };
   await enCola(async () => {
     cronicas.push(c);
     if (hojaActiva()) {
@@ -66,7 +69,6 @@ export async function publicarCronica({ azul, rojo, titulo, texto, resumen }, pu
       await writeFile(CRON.archivo, JSON.stringify(cronicas.map(aFila), null, 1));
     }
   });
-  estado.ultima = { fecha: c.fecha, partida: `${azul} contra ${rojo}`, publicada: !error, error };
   return { publicada: !error, error };
 }
 

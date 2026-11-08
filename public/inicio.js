@@ -152,11 +152,11 @@ function abrirFicha(c) {
   if (!simulacion) {
     fetch(`/api/clan?id=${c.id}`).then(r => (r.ok ? r.json() : null)).then(d => {
       if (!d || ficha.querySelector('#ficha-nombre').textContent !== c.nombre) return;
-      // Las cartas LEGACY del equipo: de colección, salen de vez en cuando como carta extra de un sobre
+      // Las cartas LEGACY del equipo: de colección, salen de vez en cuando como carta extra de una tirada
       if (d.cartas?.length) {
         cajaLegacy.innerHTML = '<h4>Cartas Legacy</h4>' + d.cartas.map((x, i) =>
           `<button type="button" class="carta-legacy" data-i="${i}" aria-label="Ver la carta de ${escapar(x.nombre)}">${cartaHTML(x, { nombreClan: nombre })}</button>`).join('')
-          + '<p>De colección: salen de vez en cuando como carta extra de un sobre del gachapon.</p>';
+          + '<p>De colección: salen de vez en cuando como carta extra de una tirada del gachapon.</p>';
         cajaLegacy.querySelectorAll('.carta-legacy').forEach(b => b.addEventListener('click', () => abrirCartaLegacy(d.cartas[Number(b.dataset.i)])));
       }
       if (!d.partidas) return;
@@ -430,11 +430,11 @@ function pintarFantasy() {
   const premio = jornadaFantasy ? fantasy.premios?.find(p => p.jornada === jornadaFantasy) : null;
   const sobres = puesto => premio?.ganadores.find(g => g.puesto === puesto)?.sobres || 0;
   $('.ranking-fantasy').innerHTML = filas.length ? filas.map(c => `<li><span class="puesto">${c.puesto}</span><b>${escapar(c.nombre)}</b>
-      ${sobres(c.puesto) ? `<em>+${sobres(c.puesto)} ${sobres(c.puesto) === 1 ? 'sobre' : 'sobres'}</em>` : ''}
+      ${sobres(c.puesto) ? `<em>+${sobres(c.puesto)} ${sobres(c.puesto) === 1 ? 'tirada' : 'tiradas'}</em>` : ''}
       <span class="puntos">${cifra(c.puntos)}<small>${c.puntos === 1 ? 'punto' : 'puntos'}</small></span></li>`).join('')
     : '<li class="vacio">La clasificación empieza con la primera jornada.</li>';
   const [uno, dos, tres] = fantasy.sobresPremio || [];
-  $('.premios-portada').textContent = uno || dos || tres ? `Los tres primeros de cada jornada se llevan sobres: ${uno}, ${dos} y ${tres}.` : '';
+  $('.premios-portada').textContent = uno || dos || tres ? `Los tres primeros de cada jornada se llevan tiradas del gachapon: ${uno}, ${dos} y ${tres}.` : '';
 }
 pintarFantasy();
 

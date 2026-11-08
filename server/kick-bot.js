@@ -21,7 +21,7 @@ import { ajuste, guardarAjustes } from './ajustes.js';
 import { cifrar, descifrar } from './sesion.js';
 import { comandoDe, esPersonal, responderComando, ESPERA_COMANDO_MS } from './comandos-kick.js';
 
-// Sobres por apoyar en Kick (los fijó Pacopepe el 08/11/2026). Van a la temporada del gachapon en curso, como los
+// Tiradas (sobres, por dentro) por apoyar en Kick (las fijó Pacopepe el 08/11/2026). Van a la temporada del gachapon en curso, como los
 // canjes: a la cuenta vinculada o, si aún no ha vinculado su Kick, guardados hasta que lo haga. Seguir al canal no da sobres
 export const SOBRES_APOYO = { sub: 3, renovacion: 2, regalaPorSub: 2, recibeRegalo: 1, kicksPorSobre: 100 };
 
@@ -87,9 +87,10 @@ async function darConReintento(u, cantidad, detalle, intentos = 3) {
 }
 const persona = p => ({ id: idKick(p.user_id), nombre: p.username || `Kick ${p.user_id}` });
 const conNombre = p => (p && !p.is_anonymous && p.user_id ? p : null);
-const sobres = n => `+${n} ${n === 1 ? 'sobre' : 'sobres'} del gachapon`;
-// A quien aún no ha vinculado su Kick, el anuncio le dice dónde hacerlo para recibir los sobres
-const vincula = (userId, web) => (cuentaDeKick(userId).vinculada ? '' : ` Vincula tu Kick en ${web}/gachapon/ para abrirlos.`);
+// En la web y en el chat, cada sobre es una tirada de la tragaperras del gachapon (por dentro sigue siendo darSobres)
+const tiradas = n => `+${n} ${n === 1 ? 'tirada' : 'tiradas'} en el gachapon`;
+// A quien aún no ha vinculado su Kick, el anuncio le dice dónde hacerlo para recibir las tiradas
+const vincula = (userId, web) => (cuentaDeKick(userId).vinculada ? '' : ` Vincula tu Kick en ${web}/gachapon/ para jugarlas.`);
 
 export async function atenderEvento(tipo, d, idAviso, { web }) {
   const canal = idCanalKick();
@@ -98,7 +99,7 @@ export async function atenderEvento(tipo, d, idAviso, { web }) {
 
   if (tipo === 'channel.reward.redemption.updated') {
     const r = await canjeAvisado(d);
-    if (r?.nuevo) anunciar(`お守り ${r.nombre} canjea un Omamori: ${sobres(1)}.${vincula(r.quien, web)}`);
+    if (r?.nuevo) anunciar(`お守り ${r.nombre} canjea un Omamori: ${tiradas(1)}.${vincula(r.quien, web)}`);
     return;
   }
 
@@ -128,8 +129,8 @@ export async function atenderEvento(tipo, d, idAviso, { web }) {
     const n = nueva ? SOBRES_APOYO.sub : SOBRES_APOYO.renovacion;
     alertar({ tipo: nueva ? 'sub' : 'renovacion', nombre: s.username, meses, sobres: n });
     await darConReintento(persona(s), n, `kk-${nueva ? 'sub' : 'renovacion'}:${idAviso}`);
-    anunciar(nueva ? `盃 ¡${s.username} bebe del sakazuki y entra en la familia! ${sobres(n)}.${vincula(s.user_id, web)}`
-      : `盃 ${s.username} renueva el sakazuki: ${meses} ${meses === 1 ? 'mes' : 'meses'} en la familia. ${sobres(n)}.${vincula(s.user_id, web)}`);
+    anunciar(nueva ? `盃 ¡${s.username} bebe del sakazuki y entra en la familia! ${tiradas(n)}.${vincula(s.user_id, web)}`
+      : `盃 ${s.username} renueva el sakazuki: ${meses} ${meses === 1 ? 'mes' : 'meses'} en la familia. ${tiradas(n)}.${vincula(s.user_id, web)}`);
     return;
   }
 
@@ -142,8 +143,8 @@ export async function atenderEvento(tipo, d, idAviso, { web }) {
     if (quien) await darConReintento(persona(quien), n, `kk-regalo:${idAviso}`);
     for (const g of giftees) await darConReintento(persona(g), SOBRES_APOYO.recibeRegalo, `kk-regalado:${idAviso}:${g.user_id}`);
     const subs = `${giftees.length} ${giftees.length === 1 ? 'sub' : 'subs'}`;
-    anunciar(quien ? `贈 ${quien.username} regala ${subs}: ${sobres(n)} para ${quien.username} y 1 para cada kobun nuevo.${vincula(quien.user_id, web)}`
-      : `贈 Alguien regala ${subs}: 1 sobre del gachapon para cada kobun nuevo. Vincula tu Kick en ${web}/gachapon/ para abrirlo.`);
+    anunciar(quien ? `贈 ${quien.username} regala ${subs}: ${tiradas(n)} para ${quien.username} y 1 para cada kobun nuevo.${vincula(quien.user_id, web)}`
+      : `贈 Alguien regala ${subs}: 1 tirada en el gachapon para cada kobun nuevo. Vincula tu Kick en ${web}/gachapon/ para jugarla.`);
     return;
   }
 
@@ -154,8 +155,8 @@ export async function atenderEvento(tipo, d, idAviso, { web }) {
     const n = Math.floor(cantidad / SOBRES_APOYO.kicksPorSobre);
     alertar({ tipo: 'kicks', nombre: s.username, cantidad, regalo: d.gift?.name || '', mensaje: d.gift?.message || '', sobres: n });
     if (n) await darConReintento(persona(s), n, `kk-kicks:${idAviso}`);
-    anunciar(n ? `蹴 ${s.username} manda ${cantidad} kicks: ${sobres(n)}.${vincula(s.user_id, web)}`
-      : `蹴 ${s.username} manda ${cantidad} kicks. ¡Gracias por el tributo! (cada ${SOBRES_APOYO.kicksPorSobre} kicks, un sobre)`);
+    anunciar(n ? `蹴 ${s.username} manda ${cantidad} kicks: ${tiradas(n)}.${vincula(s.user_id, web)}`
+      : `蹴 ${s.username} manda ${cantidad} kicks. ¡Gracias por el tributo! (cada ${SOBRES_APOYO.kicksPorSobre} kicks, una tirada)`);
     return;
   }
 

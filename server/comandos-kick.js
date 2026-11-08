@@ -1,18 +1,19 @@
-// Comandos del chat de Kick (los eligió Pacopepe el 08/11/2026): !sobres, !clasificacion, !gachapon, !partido y !comandos.
+// Comandos del chat de Kick (los eligió Pacopepe el 08/11/2026): !tiradas (antes !sobres, que sigue valiendo),
+// !clasificacion, !gachapon, !partido y !comandos.
 // Llegan con el aviso chat.message.sent (server/kick-bot.js) y la web contesta en el chat como la cuenta del canal.
 // Aquí solo se decide qué contestar: lo que hace falta saber (la cuenta de quien escribe, el fantasy, el calendario)
 // llega en «ctx», así se prueba sin Kick.
 
-export const COMANDOS = ['sobres', 'clasificacion', 'gachapon', 'partido'];
-// Lo que se contesta igual a todos se contesta como mucho cada 15 s; lo de cada uno (!sobres), cada 30 s por persona
+export const COMANDOS = ['tiradas', 'clasificacion', 'gachapon', 'partido'];
+// Lo que se contesta igual a todos se contesta como mucho cada 15 s; lo de cada uno (!tiradas), cada 30 s por persona
 export const ESPERA_COMANDO_MS = { general: 15000, personal: 30000 };
-const PERSONALES = new Set(['sobres']);
-const ALIAS = { clasificación: 'clasificacion', ranking: 'clasificacion', gacha: 'gachapon', omamori: 'gachapon', proximo: 'partido',
+const PERSONALES = new Set(['tiradas']);
+const ALIAS = { sobres: 'tiradas', sobre: 'tiradas', tirada: 'tiradas', clasificación: 'clasificacion', ranking: 'clasificacion', gacha: 'gachapon', omamori: 'gachapon', proximo: 'partido',
   próximo: 'partido', ayuda: 'comandos' };
 
 const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
 
-// El comando de un mensaje («!Sobres», «!clasificación por favor»…) o null si no es uno de los nuestros
+// El comando de un mensaje («!Tiradas», «!clasificación por favor»…) o null si no es uno de los nuestros
 export function comandoDe(texto) {
   const m = /^\s*!([\p{L}]+)/u.exec(String(texto || ''));
   if (!m) return null;
@@ -28,12 +29,12 @@ export function responderComando(comando, quien, ctx) {
   if (comando === 'comandos') return `Comandos de Gokudō: ${COMANDOS.map(c => `!${c}`).join(' · ')}`;
   if (comando === 'gachapon') {
     return `Gachapon de Gokudō: ${gachapon} · Entra con Discord y vincula tu Kick: el Omamori${ctx.coste ? ` (${ctx.coste} puntos)` : ''}, `
-      + 'las subs y los kicks te dan sobres de cartas.';
+      + 'las subs y los kicks te dan tiradas en la tragaperras.';
   }
-  if (comando === 'sobres') {
+  if (comando === 'tiradas') {
     const c = ctx.cuenta(quien.user_id);
-    if (c.vinculada) return `@${quien.username} tienes ${plural(c.sobres, 'sobre', 'sobres')} sin abrir y ${plural(c.cartas, 'carta', 'cartas')} en el gachapon: ${gachapon}`;
-    if (c.sobres > 0) return `@${quien.username} tienes ${plural(c.sobres, 'sobre esperándote', 'sobres esperándote')}: vincula tu Kick en ${gachapon} y te llegan a tu colección.`;
+    if (c.vinculada) return `@${quien.username} tienes ${plural(c.sobres, 'tirada', 'tiradas')} por jugar y ${plural(c.cartas, 'carta', 'cartas')} en el gachapon: ${gachapon}`;
+    if (c.sobres > 0) return `@${quien.username} tienes ${plural(c.sobres, 'tirada esperándote', 'tiradas esperándote')}: vincula tu Kick en ${gachapon} y te llegan a tu cuenta.`;
     return `@${quien.username} aún no has vinculado tu Kick: entra en ${gachapon} con Discord y pulsa «vincula tu Kick».`;
   }
   if (comando === 'clasificacion') {

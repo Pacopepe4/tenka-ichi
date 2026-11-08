@@ -91,9 +91,9 @@ export function textoDiscord(tipo, { usuario, tiene = 0, total = 0, puntos = 0, 
   const numero = n => Number(n || 0).toLocaleString('es-ES');
   const pie = enlace ? `\n<${enlace}>` : '';
   if (tipo === 'clasificacion') {
-    // Los tres primeros de la jornada, con los sobres que se lleva cada uno
+    // Los tres primeros de la jornada, con las tiradas que se lleva cada uno
     const lineas = ganadores.map(g => `${g.puesto}.º ${autorDiscord(g)}: ${numero(g.puntos)} ${g.puntos === 1 ? 'punto' : 'puntos'}`
-      + (g.sobres ? ` (+${g.sobres} ${g.sobres === 1 ? 'sobre' : 'sobres'})` : ''));
+      + (g.sobres ? ` (+${g.sobres} ${g.sobres === 1 ? 'tirada' : 'tiradas'})` : ''));
     return `**Clasificación del fantasy de Gokudō${jornada ? `: ${escaparMarkdown(jornada)}` : ''}**${lineas.length ? `\n${lineas.join('\n')}` : ''}${pie}`;
   }
   if (tipo === 'mitierlist') return `${autorDiscord(usuario)} comparte su tier list de Gokudō. ¿Estás de acuerdo? Haz la tuya:${pie}`;
@@ -148,7 +148,7 @@ export async function anunciarDirecto({ titulo, enlace, imagen = null, avatar = 
     username: 'Gokudō', ...(avatar ? { avatar_url: avatar } : {}),
     allowed_mentions: { parse: ['everyone'] },
     embeds: [{ title: String(titulo || 'Directo de Gokudō').slice(0, 256), url: enlace, color: 0xBE2A2F,
-      description: 'Entra al callejón: draft, partidas y sobres del gachapon para quien apoya.', ...(imagen ? { thumbnail: { url: imagen } } : {}) }],
+      description: 'Entra al callejón: draft, partidas y tiradas del gachapon para quien apoya.', ...(imagen ? { thumbnail: { url: imagen } } : {}) }],
   }));
   let r;
   try { r = await fetch(`${webhook}${webhook.includes('?') ? '&' : '?'}wait=true`, { method: 'POST', body: formulario }); }

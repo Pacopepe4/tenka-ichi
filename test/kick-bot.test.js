@@ -182,7 +182,7 @@ test('una sub nueva da 3 sobres a la cuenta vinculada y su alerta; el mismo avis
   const a = await hasta(() => alertas.find(x => x.alerta.tipo === 'sub'));
   assert.deepEqual([a.alerta.nombre, a.alerta.sobres, a.alerta.meses], ['ana_kick', 3, 1]);
   const m = await enChat(/ana_kick bebe del sakazuki/);
-  assert.match(m.content, /\+3 sobres del gachapon\.$/, 'Ana ya ha vinculado su Kick: no se le dice que lo vincule');
+  assert.match(m.content, /\+3 tiradas en el gachapon\.$/, 'Ana ya ha vinculado su Kick: no se le dice que lo vincule');
   assert.equal(m.type, 'bot');
   assert.equal(m.de, 'Gokudo_zoku');
   assert.equal(otros.filter(x => x.tipo === 'estado' || x.tipo === 'partida').length, 0, 'la fuente de alertas no recibe el estado del draft');
@@ -194,7 +194,7 @@ test('una renovación da 2 sobres y su alerta dice los meses', async () => {
   assert.equal(await hasta(async () => (await sobresDe(ana)) === antes + 2), true);
   const a = await hasta(() => alertas.find(x => x.alerta.tipo === 'renovacion'));
   assert.equal(a.alerta.meses, 6);
-  assert.ok(await enChat(/ana_kick renueva el sakazuki: 6 meses en la familia\. \+2 sobres/));
+  assert.ok(await enChat(/ana_kick renueva el sakazuki: 6 meses en la familia\. \+2 tiradas en el gachapon/));
 });
 
 test('subs regaladas: 2 sobres por sub a quien regala (aunque no haya vinculado) y 1 a cada una que la recibe; si es anónimo, solo a quien recibe', async () => {
@@ -211,13 +211,13 @@ test('subs regaladas: 2 sobres por sub a quien regala (aunque no haya vinculado)
   assert.equal(r.find(e => e.id === 'kick-6002').usuario, 'Beto_K');
   const a = await hasta(() => alertas.find(x => x.alerta.tipo === 'regalo'));
   assert.deepEqual([a.alerta.nombre, a.alerta.cantidad, a.alerta.sobres], ['Beto_K', 2, 4]);
-  assert.match((await enChat(/Beto_K regala 2 subs/)).content, /\+4 sobres del gachapon para Beto_K y 1 para cada kobun nuevo\. Vincula tu Kick en http/);
+  assert.match((await enChat(/Beto_K regala 2 subs/)).content, /\+4 tiradas en el gachapon para Beto_K y 1 para cada kobun nuevo\. Vincula tu Kick en http.*para jugarlas\.$/);
 
   await aviso('channel.subscription.gifts', { gifter: { is_anonymous: true, user_id: null, username: null }, giftees: [ANA] });
   assert.equal(await hasta(async () => (await sobresDe(ana)) === antes + 2), true);
   const anon = await hasta(() => alertas.find(x => x.alerta.tipo === 'regalo' && x.alerta.nombre === 'Anónimo'));
   assert.equal(anon.alerta.sobres, 0);
-  assert.ok(await enChat(/Alguien regala 1 sub: 1 sobre/));
+  assert.ok(await enChat(/Alguien regala 1 sub: 1 tirada en el gachapon para cada kobun nuevo\. Vincula tu Kick en http.*para jugarla\.$/));
 });
 
 test('kicks: 1 sobre por cada 100 (redondeando hacia abajo); con menos de 100 solo sale la alerta', async () => {
@@ -230,7 +230,7 @@ test('kicks: 1 sobre por cada 100 (redondeando hacia abajo); con menos de 100 so
   await esperar(150);
   assert.equal(await sobresDe(ana), antes + 2);
   assert.equal(alertas.find(x => x.alerta.cantidad === 250).alerta.mensaje, 'vamos');
-  assert.ok(await enChat(/ana_kick manda 250 kicks: \+2 sobres/));
+  assert.ok(await enChat(/ana_kick manda 250 kicks: \+2 tiradas en el gachapon/));
   assert.ok(await enChat(/ana_kick manda 50 kicks\. ¡Gracias por el tributo!/));
 });
 
@@ -265,7 +265,7 @@ test('la web no pregunta a Kick por su cuenta: un canje sin aviso espera pendien
   // El suyo y, como es el primer Omamori desde que arrancó la web, también el que esperaba
   assert.equal(await hasta(async () => (await sobresDe(ana)) === antes + 2), true);
   assert.equal(await hasta(async () => (await estadoKick()).canjes.filter(c => [r.canje, perdido].includes(c.id)).every(c => c.status === 'accepted')), true);
-  assert.match((await enChat(/お守り ana_kick canjea un Omamori/)).content, /\+1 sobre del gachapon\./);
+  assert.match((await enChat(/お守り ana_kick canjea un Omamori/)).content, /\+1 tirada en el gachapon\./);
 });
 
 test('si Kick falla al aceptar, el canje queda sin resolver y se arregla con el siguiente Omamori, sin dar el sobre dos veces', async () => {
@@ -311,26 +311,26 @@ test('al empezar el directo se avisa en Discord con @everyone, una sola vez por 
   assert.deepEqual((await fetch(`${urlWeb}/api/directo`).then(r => r.json())).kick, { enDirecto: false, titulo: '' }, 'al acabar, ya no');
 });
 
-test('comandos del chat: contesta !sobres a quien lo pide (una vez cada 30 s), !clasificacion, !partido, !comandos y no se contesta a sí mismo', async () => {
+test('comandos del chat: contesta !tiradas (y el !sobres de antes) a quien lo pide (una vez cada 30 s), !clasificacion, !partido, !comandos y no se contesta a sí mismo', async () => {
   const n = (await estadoKick()).chat.length;
   const respuestas = async () => (await chatDesde(n)).filter(x => x.reply_to_message_id);
-  await chat(ANA, '!sobres');
+  await chat(ANA, '!tiradas');
   const m = await hasta(async () => (await respuestas())[0]);
   assert.equal(m.type, 'bot');
   assert.ok(m.reply_to_message_id, 'contesta al mensaje');
-  assert.match(m.content, /@ana_kick tienes \d+ sobres sin abrir y 0 cartas en el gachapon/);
+  assert.match(m.content, /@ana_kick tienes \d+ tiradas por jugar y 0 cartas en el gachapon/);
   await chat(ANA, '!sobres');
   await esperar(250);
   assert.equal((await respuestas()).length, 1, 'no repite enseguida');
 
   await chat(BETO, '!SOBRES');
-  assert.match((await hasta(async () => (await respuestas())[1])).content, /@Beto_K tienes 4 sobres esperándote: vincula tu Kick/);
+  assert.match((await hasta(async () => (await respuestas())[1])).content, /@Beto_K tienes 4 tiradas esperándote: vincula tu Kick/);
   await chat(CARLA, '!clasificación');
   assert.match((await hasta(async () => (await respuestas())[2])).content, /aún no tiene puntos/);
   await chat(CARLA, '!partido');
   assert.match((await hasta(async () => (await respuestas())[3])).content, /Jornada 1|Ahora|Próximo|terminado/);
   await chat(CARLA, '!comandos');
-  assert.equal((await hasta(async () => (await respuestas())[4])).content, 'Comandos de Gokudō: !sobres · !clasificacion · !gachapon · !partido');
+  assert.equal((await hasta(async () => (await respuestas())[4])).content, 'Comandos de Gokudō: !tiradas · !clasificacion · !gachapon · !partido');
   await chat(CANAL, '!gachapon');
   await chat(ANA, 'hola a todos');
   await esperar(250);
@@ -401,7 +401,8 @@ test('«Probar alerta» del panel manda una alerta de mentira a la fuente de OBS
 
 // ---------- los comandos, sin web ----------
 test('comandoDe reconoce los comandos con tildes, mayúsculas y alias, y nada más', () => {
-  assert.equal(comandoDe('!Sobres'), 'sobres');
+  assert.equal(comandoDe('!Tiradas'), 'tiradas');
+  assert.equal(comandoDe('!Sobres'), 'tiradas', 'el de antes sigue valiendo');
   assert.equal(comandoDe('  !clasificación por favor'), 'clasificacion');
   assert.equal(comandoDe('!omamori'), 'gachapon');
   assert.equal(comandoDe('!próximo'), 'partido');

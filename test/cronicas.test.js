@@ -154,7 +154,9 @@ test('las crónicas siguen tras reiniciar la web', async () => {
 test('si Discord falla, la crónica se guarda igual, sale en la portada y el panel lo dice', async () => {
   discord.estado.responder = { estado: 404, cuerpo: { message: 'Unknown Webhook' } };
   await cronica({ azul: 'ATSUI', rojo: 'KEMONO', titulo: 'Sin Discord', texto: 'Otra.' });
-  const p = await hasta(async () => { const x = await estadoPanel(); return x.cronicas === 4 ? x : null; });
+  // Se espera a esta crónica en concreto (la de Ryūjin contra Tengu, sin publicar), no solo a que haya 4: con todas las
+  // pruebas a la vez, el equipo va cargado y el panel puede contestar mientras la web aún la está guardando
+  const p = await hasta(async () => { const x = await estadoPanel(); return x.cronicas === 4 && x.ultima?.partida === 'ATSUI contra KEMONO' ? x : null; }, 10000);
   assert.equal(p.ultima.publicada, false);
   assert.match(p.ultima.error, /ya no existe/);
   assert.equal((await portada()).enfrentamientos[2].titulo, 'Sin Discord');
