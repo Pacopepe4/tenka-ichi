@@ -7,6 +7,8 @@ main > section { position: relative; isolation: isolate; padding-left: var(--lad
 .titulo-seccion { display: flex; align-items: center; gap: clamp(14px, 2vw, 24px); }
 .titulo-seccion .marca-seccion { flex: none; margin: 0; }
 .titulo-seccion h2, .titulo-reglas { margin: 0; font-family: var(--mincho); font-weight: 800; font-size: clamp(34px, 4.6vw, 56px); line-height: 1.05; letter-spacing: -.01em; }
+/* En el móvil, «Probabilidades» en letra de rótulo no cabía a 34 px junto al sello y desbordaba la página */
+@media (max-width: 420px) { .titulo-seccion h2, .titulo-reglas { font-size: 28px; overflow-wrap: anywhere; } }
 .titulo-seccion[data-kanji]::after { content: attr(data-kanji); position: absolute; z-index: -1; right: var(--lado); top: clamp(20px, 5vw, 70px);
   font-family: var(--mincho); font-weight: 800; font-size: clamp(150px, 22vw, 300px); line-height: 1; color: transparent; -webkit-text-stroke: 1.5px rgba(231, 223, 210, .08); pointer-events: none; user-select: none; }
 /* Entra como las cabeceras de la portada: cae el sello, el título se descubre como un trazo y el kanji asoma */
