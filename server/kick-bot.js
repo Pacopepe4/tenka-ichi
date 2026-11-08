@@ -103,6 +103,8 @@ export async function atenderEvento(tipo, d, idAviso, { web }) {
   }
 
   if (tipo === 'livestream.status.updated') {
+    // La portada enseña el directo de Kick si lo hay: lo sabe por este aviso, sin preguntar a Kick (estadoDirectoKick)
+    await guardarAjustes({ kick_en_directo: d.is_live ? '1' : '0', kick_titulo: d.is_live ? String(d.title || '') : '' });
     if (!d.is_live) return;
     const directo = d.started_at || idAviso;
     if (ajuste('kick_directo') === directo) return;   // ya avisado de este directo
@@ -267,6 +269,9 @@ async function atenderChat(d, { web }) {
   const texto = responderComando(comando, quien, ctx);
   if (texto) encolar(texto, d.message_id);
 }
+
+// ¿Está el canal en directo en Kick? Lo apunta el aviso livestream.status.updated (si nunca ha llegado, no)
+export const estadoDirectoKick = () => ({ enDirecto: ajuste('kick_en_directo') === '1', titulo: ajuste('kick_titulo') || '' });
 
 export const estadoBotKick = () => ({ ...bot, escribeComo: bot.conectado ? bot.login : estadoCanalKick().login });
 

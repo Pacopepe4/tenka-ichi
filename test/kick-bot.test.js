@@ -294,6 +294,8 @@ test('al empezar el directo se avisa en Discord con @everyone, una sola vez por 
   const datos = { is_live: true, title: 'Jornada 1 · *Tsuki* contra Yasha', started_at: '2026-11-15T17:00:00+01:00', ended_at: null };
   await aviso('livestream.status.updated', datos);
   const m = await hasta(() => discord.estado.mensajes.find(x => x.canal === 'directos'));
+  // La portada sabe que hay directo en Kick por el mismo aviso, sin preguntar a Kick
+  assert.deepEqual((await fetch(`${urlWeb}/api/directo`).then(r => r.json())).kick, { enDirecto: true, titulo: datos.title });
   assert.ok(m, 'llega al webhook de directos');
   assert.match(m.payload.content, /^@everyone /);
   assert.match(m.payload.content, /Jornada 1 · \\\*Tsuki\\\* contra Yasha/, 'el título va escapado');
@@ -306,6 +308,7 @@ test('al empezar el directo se avisa en Discord con @everyone, una sola vez por 
   await esperar(300);
   assert.equal(discord.estado.mensajes.filter(x => x.canal === 'directos').length, 1);
   assert.equal((await chatDesde(0)).filter(x => /Empieza el directo de Gokudō/.test(x.content)).length, 1, 'y una vez en el chat');
+  assert.deepEqual((await fetch(`${urlWeb}/api/directo`).then(r => r.json())).kick, { enDirecto: false, titulo: '' }, 'al acabar, ya no');
 });
 
 test('comandos del chat: contesta !sobres a quien lo pide (una vez cada 30 s), !clasificacion, !partido, !comandos y no se contesta a sí mismo', async () => {

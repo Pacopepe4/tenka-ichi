@@ -48,3 +48,11 @@ services:
       # Opcional: el aviso de «empieza el directo en Kick» en otro canal de Discord (si no, va al de DISCORD_WEBHOOK_URL)
       - key: DISCORD_WEBHOOK_DIRECTO
         sync: false
+      # Newsletter: la clave con la que el realizador manda la crónica de cada partida y el envío de correos por Brevo
+      # (gratis en brevo.com: API key y un correo remitente verificado)
+      - key: NEWSLETTER_CLAVE
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: NEWSLETTER_REMITENTE
+        sync: false

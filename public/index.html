@@ -12,6 +12,8 @@
 <link rel="stylesheet" href="/carta.css">
 <link rel="stylesheet" href="/inicio.css">
 <link rel="stylesheet" href="/directo.css">
+<link rel="stylesheet" href="/pantalla.css">
+<link rel="stylesheet" href="/cronicas.css">
 <link rel="stylesheet" href="/sorteo.css">
 <link rel="stylesheet" href="/gokudo.css">
 </head>
@@ -42,17 +44,26 @@
   </section>
 
   <section id="directo" class="directo">
+    <!-- La pantalla grande y, al lado, las cartas: al pasar el ratón por una (o tocarla) la pantalla cambia a eso.
+         Kick es el directo principal y Twitch el segundo; sin directo sale el tráiler (public/pantalla.js) -->
     <div class="directo-rejilla">
-      <div class="directo-marco"></div>
-      <div class="directo-texto">
-        <span class="marca-seccion" aria-hidden="true">生</span>
-        <h2>Directo</h2>
-        <p class="directo-estado">Sin directo ahora mismo.</p>
-        <p>Las jornadas de Gokudō se emiten en su canal de Twitch, con el draft en directo y los casters.</p>
-        <div class="directo-acciones">
-          <a class="boton" href="https://twitch.tv/gokudo_zoku" target="_blank" rel="noopener">Ver en Twitch</a>
-          <a class="boton-secundario" href="https://www.twitch.tv/popout/gokudo_zoku/chat" target="_blank" rel="noopener">Abrir el chat</a>
+      <div class="pantalla">
+        <div class="pantalla-panel" id="panel-kick" role="tabpanel" aria-labelledby="carta-kick" data-red="kick" hidden></div>
+        <div class="pantalla-panel" id="panel-twitch" role="tabpanel" aria-labelledby="carta-twitch" data-red="twitch" hidden><div class="directo-marco"></div></div>
+        <div class="pantalla-panel" id="panel-trailer" role="tabpanel" aria-labelledby="carta-trailer" data-red="trailer" hidden></div>
+        <div class="pantalla-panel" id="panel-x" role="tabpanel" aria-labelledby="carta-x" data-red="x" hidden></div>
+        <div class="pantalla-panel" id="panel-tiktok" role="tabpanel" aria-labelledby="carta-tiktok" data-red="tiktok" hidden></div>
+        <div class="pantalla-panel" id="panel-youtube" role="tabpanel" aria-labelledby="carta-youtube" data-red="youtube" hidden></div>
+      </div>
+      <div class="directo-lado">
+        <div class="directo-texto">
+          <span class="marca-seccion" aria-hidden="true">生</span>
+          <div>
+            <h2>Directo</h2>
+            <p class="directo-estado">Sin directo ahora mismo.</p>
+          </div>
         </div>
+        <div class="cartas-red" role="tablist" aria-label="Directo, tráiler y redes de Gokudō" aria-orientation="vertical"></div>
       </div>
     </div>
   </section>
@@ -115,6 +126,29 @@
       <div class="cuenta-atras" data-cuenta hidden></div>
     </div>
     <div class="sorteo" hidden></div>
+    <!-- Newsletter (08/11/2026): donde estaba el anuncio del sorteo. Los enfrentamientos del último día con su resultado y la
+         crónica del realizador, y el formulario para recibirlas por correo (public/inicio.js, server/newsletter.js) -->
+    <section class="cronicas" aria-labelledby="cronicas-titulo">
+      <div class="cronicas-cabeza">
+        <span class="marca-seccion" aria-hidden="true">報</span>
+        <div><h3 id="cronicas-titulo">Crónicas de la jornada</h3><p class="cronicas-sub"></p></div>
+      </div>
+      <div class="cronicas-lista"></div>
+      <form class="newsletter" novalidate>
+        <div class="newsletter-texto">
+          <b>La crónica de cada partida, en tu correo</b>
+          <span>Al acabar cada enfrentamiento te mandamos el resultado y lo que pasó en la calle. Nada más.</span>
+        </div>
+        <div class="newsletter-campos">
+          <label class="oculto" for="newsletter-correo">Tu correo</label>
+          <input id="newsletter-correo" type="email" name="correo" placeholder="tu@correo.com" autocomplete="email" required>
+          <input class="trampa" type="text" name="web" tabindex="-1" autocomplete="off" aria-hidden="true">
+          <button class="boton" type="submit">Apuntarme</button>
+        </div>
+        <label class="newsletter-acepto"><input type="checkbox" name="acepto"> Acepto que Gokudō me escriba a este correo para mandarme las crónicas. Me puedo dar de baja desde cualquiera de ellas.</label>
+        <p class="newsletter-aviso" role="status"></p>
+      </form>
+    </section>
     <div class="liga-rejilla">
       <div class="bloque">
         <h3>Clasificación</h3>

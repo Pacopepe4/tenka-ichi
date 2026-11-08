@@ -420,6 +420,25 @@ El bot es la app de Kick en modo webhook (`server/kick-bot.js`): recibe los avis
 
 Render duerme la web gratuita si nadie entra en 15 minutos: el primer aviso la despierta y, si tarda en contestar, Kick lo reintenta.
 
+### La sección Directo de la portada: Kick, Twitch, el tráiler y las redes
+
+En la portada, la sección **Directo** es una pantalla grande con una columna de cartas al lado (`public/pantalla.js` y `pantalla.css`): **Kick** (el directo principal), **Twitch**, el **tráiler**, **X**, **TikTok** y **YouTube**. Al pasar el ratón por una carta (en el móvil, al tocarla; con el teclado, con las flechas) se levanta y brilla con el color de su red, como las cartas de familia, y la pantalla cambia a lo suyo. Lo pidió Pacopepe el 08/11/2026.
+
+- Si hay directo en Kick sale Kick; si no, en Twitch; si no, el tráiler. La web sabe que Kick está en directo por el aviso `livestream.status.updated` del bot (`/api/directo`), sin preguntar a Kick; Twitch lo dice su propio reproductor.
+- Si hay directo y la pantalla sale de la vista, el directo sigue en una ventanita en la esquina.
+- **Tráiler**: va desde YouTube. Mientras no esté subido, la carta enseña la miniatura con «Muy pronto en YouTube»; cuando lo esté, se pone el id del vídeo en `REDES.trailerYoutube` de `public/pantalla.js`.
+- **X** (últimos posts de @gokudozoku) y **TikTok** (perfil de @gokudo_zoku) usan los widgets oficiales, que solo se cargan al mirar su carta. Si no se ven (bloqueados, sin sesión en X, la cuenta sin publicaciones), queda una tarjeta de perfil con «Seguir». **YouTube** (@gokuzo) es una tarjeta con «Suscribirse».
+- Las cuentas están en `REDES`, al principio de `public/pantalla.js`.
+
+### Newsletter: las crónicas de cada partida
+
+En la zona de la liga, donde salía el anuncio del sorteo del calendario (ahora oculto: solo aparece si el staff lanza un sorteo en directo), está **Crónicas de la jornada** (`server/newsletter.js`, `public/cronicas.css`): los enfrentamientos del último día de partidas (en la liguilla, los tres de la jornada) con su resultado y la crónica del realizador, y el formulario para apuntarse a recibirlas por correo (correo, casilla de consentimiento; como mucho 5 intentos cada 10 minutos por dirección y un campo escondido contra robots).
+
+- **El realizador** manda, al acabar cada partida, `POST /api/newsletter/partida` con `Authorization: Bearer <NEWSLETTER_CLAVE>` y el cuerpo `{ "texto": "…", "resumen": "…", "titulo": "…", "azul": "Tsuki", "rojo": "Yasha" }` (texto o resumen obligatorio, hasta 20 000 letras cada uno; las familias, por su nombre o su id, en el orden que sea; sin ellas, es la última partida guardada). Contesta 202 con la partida a la que la ha unido y su ganador. **Falta configurarlo en el realizador** (su IA ya escribe el resumen final en `partidas\…\resumen.txt`).
+- **El correo** va en texto plano: «GOKUDŌ 極道 · Jornada N», el enfrentamiento y quién gana, el título, el texto, el resumen, el enlace a la liga y el enlace para darse de baja (también en la cabecera `List-Unsubscribe`). Uno por persona.
+- **Envío con Brevo** (gratis: 300 correos al día, sin dominio propio): crea la cuenta en brevo.com, verifica el correo remitente (Senders), crea una API key (SMTP & API › API Keys) y pon en Render `BREVO_API_KEY` y `NEWSLETTER_REMITENTE` (ese correo). Para el realizador, `NEWSLETTER_CLAVE` (una contraseña larga inventada que se pone también en el realizador). Sin Brevo, las crónicas se guardan y salen en la portada, pero no se manda ningún correo.
+- En la hoja: pestaña «Newsletter» (altas y bajas, con el token de la baja) y «Cronicas». El panel (Liga y gachapon › Newsletter) dice cuánta gente hay apuntada, qué falta configurar y cómo fue el último envío.
+
 ### Probarlo sin Discord ni Twitch de verdad
 
 `npm test` arranca la web con datos temporales contra un **Discord falso** (`scripts/entrada-discord-falso.js`), un **Twitch falso** (`scripts/twitch-falso.js`), un **Kick falso** (`scripts/kick-falso.js`) y un **Google Sheets falso** (`scripts/sheets-falso.js`):
@@ -427,6 +446,7 @@ Render duerme la web gratuita si nadie entra en 15 minutos: el primer aviso la d
 - Inicio de sesión con Discord (`test/entrada-discord.test.js`): entrar y recibir 3 sobres una sola vez, cancelar, estados y códigos inválidos, que `volver` no saque de la web, nombres que no puedan ser fórmulas, regalos por nombre, reinicio de la web y que en Render sin claves no haya ni inicio de sesión ni entrada de prueba.
 - Twitch (`test/twitch.test.js`): entrar, abrir sobres, conectar el canal, canjes que dan sobres una sola vez, renovación de tokens, regalos, reinicio, permiso retirado y una partida del fantasy.
 - Kick (`test/kick.test.js`): conectar el canal solo con su cuenta, crear «Omamori» sin saltarse la cola, vincular, canjes de varias páginas recogidos a mano que dan sobres una sola vez, los de antes de vincular, coste, token caducado, reinicio, desvincular y permiso retirado.
+- Newsletter (`test/newsletter.test.js`, con un Brevo falso): apuntarse (correo, casilla, robots, repetidos, demasiados intentos), clave del realizador, crónica unida a su enfrentamiento por el nombre de las familias o a la última partida, correo de texto con su baja, darse de baja, la portada con los enfrentamientos del día, reinicio, Brevo que falla y sin Brevo.
 - Bot de Kick (`test/kick-bot.test.js`, con avisos firmados por el Kick falso y un Discord falso): suscripción a los 8 avisos, firma mala, aviso repetido, sobres por sub, renovación, regalos (también anónimos) y kicks con su anuncio en el chat, seguidores, avisos de otro canal, que la web no pregunte a Kick por su cuenta, Omamori por aviso, canjes sin resolver que se arreglan con el siguiente, recogida a mano, aviso de directo una vez con @everyone, comandos del chat con su espera, la cuenta aparte del bot (GokudoBot), baja de una suscripción y alerta de prueba.
 - Google Sheets (`test/sheets.test.js` y `test/temporada.test.js`): el estreno de una temporada del gachapon con la web entera, también cuando la hoja falla a medias (no se puede leer el registro de una u otra temporada, falla al escribir el estreno o se pierde la respuesta), con miles de filas en la temporada anterior y con la versión anterior de la web escribiendo todavía en su pestaña.
 

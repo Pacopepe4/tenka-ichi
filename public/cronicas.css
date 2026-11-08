@@ -1,0 +1,61 @@
+/* Crónicas de la jornada y newsletter (en la liga, donde estaba el anuncio del sorteo). Placas de noche con filo fino,
+   el ganador con el color de su familia y el formulario de la newsletter como una franja con el bermellón de la marca. */
+.cronicas { max-width: var(--ancho); margin: 0 auto clamp(28px, 4vw, 48px); padding: 0 var(--margen); }
+.cronicas-cabeza { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.cronicas-cabeza .marca-seccion { margin: 0; }
+.cronicas-cabeza h3 { margin: 0; font-family: var(--dela, sans-serif); font-weight: 400; font-size: clamp(22px, 2.4vw, 30px); }
+.cronicas-sub { margin: 2px 0 0; color: var(--hai); font-size: 14px; }
+.cronicas-sub:empty { display: none; }
+
+.cronicas-lista { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.cronicas-vacio { grid-column: 1 / -1; margin: 0; padding: 22px 24px; border: 1px dashed var(--sumi-linea, #2A2B38); border-radius: 8px; color: var(--hai); }
+
+.cronica { --color: var(--oro); display: flex; flex-direction: column; gap: 10px; padding: 18px 18px 16px; border-radius: 8px;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--color) 10%, var(--sumi-alzado, #15161F)), var(--sumi-alzado, #15161F) 55%);
+  border: 1px solid var(--sumi-linea, #2A2B38); box-shadow: inset 3px 0 0 var(--color), 0 10px 24px rgba(0, 0, 0, .35);
+  transition: transform .25s cubic-bezier(.2, .8, .2, 1), box-shadow .25s ease; }
+.cronica:hover { transform: translateY(-4px); box-shadow: inset 3px 0 0 var(--color), 0 0 28px color-mix(in srgb, var(--color) 30%, transparent), 0 16px 30px rgba(0, 0, 0, .5); }
+.cronica-cruce { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
+.cronica-familia { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; opacity: .55; filter: grayscale(.6); }
+.cronica-familia.gana { opacity: 1; filter: none; }
+.cronica-familia img { width: 54px; height: 54px; object-fit: contain; }
+.cronica-familia.gana img { filter: drop-shadow(0 0 10px color-mix(in srgb, var(--color) 60%, transparent)); }
+.cronica-familia b { font-family: var(--dela, sans-serif); font-weight: 400; font-size: 16px; }
+.cronica-vs { font-family: var(--pincel, serif); font-size: 26px; color: var(--shu-claro); text-shadow: 0 0 10px rgba(224, 48, 58, .5); }
+.cronica-resultado { margin: 0; text-align: center; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--hai); }
+.cronica-resultado b { color: var(--color-texto, var(--color)); letter-spacing: .06em; }
+.cronica h4 { margin: 4px 0 0; font-family: var(--dela, sans-serif); font-weight: 400; font-size: 18px; line-height: 1.25; color: var(--washi); }
+.cronica-texto { max-height: 8.6em; overflow: hidden; color: var(--tinta-papel, var(--washi)); font-size: 14.5px; line-height: 1.55;
+  -webkit-mask-image: linear-gradient(#000 65%, transparent); mask-image: linear-gradient(#000 65%, transparent); }
+.cronica-texto.abierta { max-height: none; -webkit-mask-image: none; mask-image: none; }
+.cronica-texto p { margin: 0 0 .7em; }
+.cronica-mas { align-self: flex-start; padding: 0; border: 0; background: none; color: var(--oro); font: inherit; font-size: 13.5px; cursor: pointer; }
+.cronica-mas:hover { text-decoration: underline; }
+.cronica-pendiente { margin: 0; color: var(--hai); font-size: 14px; font-style: italic; }
+
+/* La franja de la newsletter */
+.newsletter { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 10px 28px; align-items: center; margin-top: 18px;
+  padding: 20px 22px; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--shu) 55%, transparent);
+  background: linear-gradient(120deg, rgba(224, 48, 58, .14), var(--sumi-alzado, #15161F) 60%);
+  box-shadow: 0 0 30px rgba(224, 48, 58, .12); }
+.newsletter-texto { display: grid; gap: 4px; }
+.newsletter-texto b { font-family: var(--dela, sans-serif); font-weight: 400; font-size: 19px; color: var(--washi); }
+.newsletter-texto span { color: var(--hai); font-size: 14px; }
+.newsletter-campos { display: flex; gap: 10px; }
+.newsletter-campos input[type="email"] { flex: 1; min-width: 0; padding: 11px 14px; border-radius: 8px; border: 1px solid var(--sumi-linea, #2A2B38);
+  background: #0B0C11; color: var(--washi); font: inherit; }
+.newsletter-campos input[type="email"]:focus { outline: none; border-color: var(--shu-claro); box-shadow: 0 0 0 3px rgba(224, 48, 58, .25); }
+.newsletter-campos .boton { flex: 0 0 auto; }
+.newsletter .trampa { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.newsletter-acepto { grid-column: 2; display: flex; gap: 8px; align-items: flex-start; color: var(--hai); font-size: 13px; line-height: 1.4; cursor: pointer; }
+.newsletter-acepto input { margin-top: 2px; accent-color: var(--shu); }
+.newsletter-aviso { grid-column: 2; margin: 0; font-size: 14px; color: #7BD88F; }
+.newsletter-aviso:empty { display: none; }
+.newsletter-aviso.mal { color: var(--shu-claro); }
+
+@media (max-width: 760px) {
+  .newsletter { grid-template-columns: 1fr; }
+  .newsletter-acepto, .newsletter-aviso { grid-column: 1; }
+  .newsletter-campos { flex-direction: column; }
+}
+@media (prefers-reduced-motion: reduce) { .cronica, .cronica:hover { transition: none; transform: none; } }
