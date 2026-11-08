@@ -20,9 +20,10 @@ import { cargarTierlist, vistaTierlist, ponerTier } from './tierlist.js';
 import { cargarAjustes, ajuste, guardarAjustes } from './ajustes.js';
 import { cargarTierlistsPublico, candidatos, tierlistDe, guardarTierlistPublico } from './mitierlist.js';
 import { aplicarImportaciones } from './importaciones.js';
-import { cargarGacha, catalogo, probabilidades, abrirSobre, darAlta, darSobres, estadoUsuario, buscarUsuario, resumenGacha, fundirRepetidas,
+import { cargarGacha, catalogo, cartasDeColeccion, probabilidades, abrirSobre, abrirSobres, darAlta, darSobres, estadoUsuario, buscarUsuario, resumenGacha, fundirRepetidas,
   vincularTwitch, desvincularTwitch, vincularKick, desvincularKick, sobresListos, reparto, estrenarTemporada, estadoTemporada,
-  PESOS, CARTAS_POR_SOBRE, SOBRES_INICIALES, REPETIDAS_POR_SOBRE, PROBABILIDAD_LEGACY, CARPETA_ARTE, reversoCarta } from './gacha.js';
+  PESOS, CARTAS_POR_SOBRE, SOBRES_INICIALES, REPETIDAS_POR_SOBRE, PROBABILIDAD_LEGACY, CARPETA_ARTE, reversoCarta,
+  GARANTIA_A, GARANTIA_S, MAXIMO_TIRADAS, REPETIDAS_POR_MEJORA, TIER_SIGUIENTE, CARTAS_CONMEMORATIVA } from './gacha.js';
 import { crearCodigo, cerrarCodigo, mostrarCodigo, estadoCodigo, codigoEnPantalla, canjearCodigo as canjearCodigoDirecto } from './codigos.js';
 import { estadoJornadas, terminarJornada, jornadasCerradas, premiosPublicos } from './jornada.js';
 import { clasificacionJornada } from './fantasy.js';
@@ -579,6 +580,9 @@ function infoGacha(u) {
     activo: loginActivo(), discord: loginDiscordActivo(), twitch: twitchActivo(), canal: CANAL,
     cartasPorSobre: CARTAS_POR_SOBRE, sobresIniciales: SOBRES_INICIALES, repetidasPorSobre: REPETIDAS_POR_SOBRE, pesos: PESOS,
     probabilidades: probabilidades(cat), reparto: reparto(), probabilidadLegacy: PROBABILIDAD_LEGACY,
+    // Garantía, tiradas de una vez, fusión por tiers y conmemorativa (las reglas; la racha de cada uno va en usuario.garantia)
+    garantia: { umbralA: GARANTIA_A, umbralS: GARANTIA_S }, maximoTiradas: MAXIMO_TIRADAS,
+    repetidasPorMejora: REPETIDAS_POR_MEJORA, tierSiguiente: TIER_SIGUIENTE, cartasConmemorativa: CARTAS_CONMEMORATIVA,
     // Sin cartas de Jugador los sobres no se abren; y la temporada, con la fecha en que empezaron todos de cero
     sobresListos: sobresListos(cat), temporada: { numero: temporada.numero, estreno: temporada.estreno?.fecha || null },
     catalogo: cat.map(({ peso, ...carta }) => carta),
@@ -795,6 +799,19 @@ async function rutasSesion(req, res, url) {
 
   const estadoDe = u => ({ nombre: u.nombre, avatar: u.avatar || null, ...estadoUsuario(u.id) });
 
+  // Tiradas: abrir uno, varios o todos los sobres de una vez (server/gacha.js, abrirSobres). Cuerpo: { cuantas: 1 | 5 | 'todos' }
+  if (p === '/api/gacha/tirar' && req.method === 'POST') {
+    const u = usuarioDeSesion(req);
+    if (!u) return json(res, { ok: false, error: 'Entra con tu cuenta de Discord para tirar' }, 401);
+    try {
+      const { cuantas = 1 } = await leerCuerpo(req);
+      const tiradas = await abrirSobres(u, cuantas);
+      return json(res, { ok: true, tiradas, usuario: estadoDe(u) });
+    } catch (e) {
+      return json(res, { ok: false, error: e.message }, 400);
+    }
+  }
+
   // Código de directo: el que sale en el overlay durante el directo
   if (p === '/api/gacha/canjear' && req.method === 'POST') {
     const u = usuarioDeSesion(req);
@@ -874,7 +891,7 @@ async function rutasSesion(req, res, url) {
     const r = await atenderPublicacion({
       tipo, req, usuario: u, staff: req.headers['x-clave-panel'] === CLAVE,
       datos: tipo === 'clasificacion' ? { jornada, ganadores }
-        : tipo === 'coleccion' && u ? { tiene: estadoUsuario(u.id).cartas.length, total: catalogo().length } : yo ? { puntos: yo.puntos, puesto: yo.puesto } : {},
+        : tipo === 'coleccion' && u ? { tiene: (() => { const mias = new Set(estadoUsuario(u.id).cartas.map(c => c.id)); return cartasDeColeccion().filter(c => mias.has(c.id)).length; })(), total: cartasDeColeccion().length } : yo ? { puntos: yo.puntos, puesto: yo.puesto } : {},
       avatar: `${origen(req)}/marca/gokudo-cuadro.png`, enlace: tipo === 'mitierlist' ? `${origen(req)}/#mitierlist` : `${origen(req)}/gachapon/`,
     });
     return json(res, r.cuerpo, r.estado);

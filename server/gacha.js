@@ -26,6 +26,21 @@ export const PESOS = { 'S+': 0.3, S: 1.2, A: 6.5, B: 22, C: 30, D: 40 };
 export const CARTAS_POR_SOBRE = 4;      // desde el 08/11/2026, cuatro (antes tres)
 export const SOBRES_INICIALES = 3;
 export const REPETIDAS_POR_SOBRE = 5;   // cartas repetidas que hay que fundir para llevarse un sobre
+// Garantía de rareza (08/11/2026): tras GARANTIA_A sobres seguidos sin ninguna A o mejor, el siguiente trae una A segura;
+// tras GARANTIA_S sin ninguna S o mejor, una S segura. La carta segura es una que aún no tienes: si ya tienes todas las
+// de esa tier, baja a la anterior (S → A → B…), para que la colección se pueda terminar
+export const GARANTIA_A = 5;
+export const GARANTIA_S = 10;
+export const MAXIMO_TIRADAS = 50;       // sobres que se abren de una vez con «todos»
+// Fusión por tiers: REPETIDAS_POR_MEJORA repetidas de la misma tier se cambian por una carta al azar de la tier siguiente
+export const REPETIDAS_POR_MEJORA = 3;
+export const TIER_SIGUIENTE = { D: 'C', C: 'B', B: 'A', A: 'S' };
+// Carta conmemorativa: quien acaba una temporada con CARTAS_CONMEMORATIVA cartas distintas (de jugador, BOOST o LEGACY)
+// se lleva la de esa temporada, y la conserva en las siguientes
+export const CARTAS_CONMEMORATIVA = 30;
+const RANGO = { 'S+': 0, S: 1, A: 2, B: 3, C: 4, D: 5 };
+const esAoMejor = t => t in RANGO && RANGO[t] <= RANGO.A;
+const esSoMejor = t => t in RANGO && RANGO[t] <= RANGO.S;
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ARCHIVO_BOOSTS = process.env.ARCHIVO_BOOSTS
@@ -37,7 +52,11 @@ const ARCHIVO = archivoDeTemporada('gacha');
 const PESTANA = pestanaDeTemporada('Gachapon');
 const CABECERA = ['Fecha', 'ID de usuario', 'Usuario', 'Tipo', 'Detalle', 'Cantidad', 'Rareza'];
 
-const TIPOS_CON_SOBRES = new Set(['alta', 'regalo', 'canje', 'premio', 'codigo', 'fundido']);
+// «familia»: el sobre del premio por juntar una familia entera
+const TIPOS_CON_SOBRES = new Set(['alta', 'regalo', 'canje', 'premio', 'codigo', 'fundido', 'familia']);
+// Movimientos que dan una carta: «carta» (la de un sobre), «mejora» (la de fundir por tiers) y «premio-carta» (las
+// estéticas: el jefe de una familia completa y la conmemorativa de una temporada). Solo las de los sobres cuentan
+// para la garantía
 let registro = [];
 const usuarios = new Map();
 const canjes = new Set();
@@ -51,7 +70,7 @@ function aplicar(e) {
   if (e.tipo === 'temporada') return;   // la marca del estreno de la temporada (estrenarTemporada): no es de nadie
   const id = vinculos.get(String(e.id)) || e.id;
   let u = usuarios.get(id);
-  if (!u) { u = { id, nombre: e.usuario, sobres: 0, abiertos: 0, cartas: new Map(), codigos: new Set(), twitch: null, kick: null }; usuarios.set(id, u); }
+  if (!u) { u = { id, nombre: e.usuario, sobres: 0, abiertos: 0, cartas: new Map(), codigos: new Set(), twitch: null, kick: null, sinA: 0, sinS: 0, familias: new Set() }; usuarios.set(id, u); }
   // El nombre es el de la cuenta: un canje llega con el nombre de Twitch y no lo pisa
   if (e.usuario && id === e.id) u.nombre = e.usuario;
   if (e.tipo === 'vinculo') vincular(u, e.detalle);
@@ -62,8 +81,12 @@ function aplicar(e) {
   if (TIPOS_CON_SOBRES.has(e.tipo)) u.sobres += n;
   if (e.tipo === 'canje') canjes.add(e.detalle);
   if (e.tipo === 'codigo') { u.codigos.add(e.detalle); usosCodigo.set(e.detalle, (usosCodigo.get(e.detalle) || 0) + 1); }
-  if (e.tipo === 'apertura') { u.sobres -= 1; u.abiertos += 1; }
-  if (e.tipo === 'carta') u.cartas.set(e.detalle, (u.cartas.get(e.detalle) || 0) + 1);
+  // Cada sobre abierto suma uno a las rachas sin A y sin S; una carta del sobre de esa tier o mejor la corta
+  if (e.tipo === 'apertura') { u.sobres -= 1; u.abiertos += 1; u.sinA += 1; u.sinS += 1; }
+  if (e.tipo === 'carta' || e.tipo === 'mejora' || e.tipo === 'premio-carta') u.cartas.set(e.detalle, (u.cartas.get(e.detalle) || 0) + 1);
+  if (e.tipo === 'carta' && esAoMejor(e.rareza)) u.sinA = 0;
+  if (e.tipo === 'carta' && esSoMejor(e.rareza)) u.sinS = 0;
+  if (e.tipo === 'familia') u.familias.add(e.detalle);
   // Una carta fundida: la cantidad va en negativo. La última copia nunca se funde, pero por si acaso se quita del mapa
   if (e.tipo === 'fusion') {
     const quedan = (u.cartas.get(e.detalle) || 0) + n;
@@ -92,6 +115,7 @@ function vincular(u, detalle) {
     u.abiertos += suya.abiertos;
     for (const [carta, n] of suya.cartas) u.cartas.set(carta, (u.cartas.get(carta) || 0) + n);
     for (const codigo of suya.codigos) u.codigos.add(codigo);
+    for (const familia of suya.familias) u.familias.add(familia);
     usuarios.delete(suId);
   }
   vinculos.set(suId, u.id);
@@ -203,6 +227,28 @@ async function cargarLegacy() {
     .filter((e, i, todas) => !ocupados.has(e.id) && todas.findIndex(x => x.id === e.id) === i);
 }
 
+// ---------- cartas de premio: los jefes y las conmemorativas ----------
+// Puramente estéticas, como las LEGACY: no entran en ningún sorteo (pesan 0), no se alinean, no se funden y no cuentan
+// para el álbum ni para la conmemorativa.
+// - JEFE-<CLAN>: el oyabun de cada familia (las siete, Shinigami incluida). Se lleva una vez por temporada, con un sobre,
+//   quien junta todas las cartas de la familia (sus cinco jugadores; las de Shinigami, sus LEGACY). Mientras no tenga su
+//   dibujo (public/cartas/fullart/JEFE-<CLAN>.webp) lleva el personaje de la familia de la portada (/personajes/).
+// - TEMPORADA-T<n>: la de la temporada n. Se da al estrenar la n+1 a quien acabó la n con CARTAS_CONMEMORATIVA cartas
+//   distintas, y se arrastra a las temporadas siguientes. Mientras no tenga dibujo, el sol de Gokudō en neón.
+export const TIER_JEFE = 'JEFE', TIER_TEMPORADA = 'TEMPORADA';
+const nombreFamilia = c => c.nombre.toUpperCase();
+function cartasDePremio() {
+  const jefes = CLANES.filter(c => !c.invitado).map(c => ({ id: `JEFE-${c.id}`, nombre: nombreFamilia(c), tier: TIER_JEFE,
+    subtitulo: `Oyabun de ${c.nombre}`, clan: c.id, rol: null, tipo: 'jefe', bonus: null }));
+  const conmemorativas = Array.from({ length: Math.max(0, TEMPORADA - 1) }, (_, i) => ({ id: `TEMPORADA-T${i + 1}`, nombre: `TEMPORADA ${i + 1}`,
+    tier: TIER_TEMPORADA, subtitulo: `${CARTAS_CONMEMORATIVA} cartas en la temporada ${i + 1}`, clan: null, rol: null, tipo: 'temporada', temporada: i + 1, bonus: null }));
+  return [...jefes, ...conmemorativas];
+}
+const ESTETICAS = new Set(['legacy', 'jefe', 'temporada']);
+export const esEstetica = c => ESTETICAS.has(c.tipo);
+// Las que cuentan para el álbum y la conmemorativa: jugadores, BOOST y LEGACY
+const deColeccion = c => c.tipo === 'jugador' || c.tipo === 'boost' || c.tipo === 'legacy';
+
 let boosts = [];
 async function cargarBoosts() {
   let lista = [];
@@ -283,7 +329,8 @@ setInterval(() => cargarCartas().catch(() => {}), 60000).unref();
 // Clave de la tier para archivos y CSS: la S+ es SP
 export const claveTier = t => (t === 'S+' ? 'SP' : t);
 const splashDe = c => (c.campeon && splashes.has(`${c.campeon.id}.jpg`) ? `/ddragon/splash/${c.campeon.id}.jpg` : null);
-const arteDe = c => artes.get(c.id) || splashDe(c) || (c.clan ? `/clanes/${c.clan}.jpg` : '/marca/sol-partido.jpg');
+const arteProvisional = c => (c.tipo === 'jefe' ? `/personajes/${c.clan}.jpg` : c.tipo === 'temporada' ? '/marca/gokudo-neon.png' : null);
+const arteDe = c => artes.get(c.id) || splashDe(c) || arteProvisional(c) || (c.clan ? `/clanes/${c.clan}.jpg` : '/marca/sol-partido.jpg');
 const marcoDe = c => marcos[c.tipo]?.get(claveTier(c.tier)) || null;
 // El reverso es el mismo para todas las cartas: al abrir el sobre no se sabe qué ha tocado hasta darle la vuelta
 export const reversoCarta = () => reverso;
@@ -294,10 +341,13 @@ export function catalogo() {
   // Cada carta pesa en el sorteo la parte de su tier repartida entre las cartas de esa tier
   const deTier = new Map();
   for (const c of [...boosts, ...jugadores]) deTier.set(c.tier, (deTier.get(c.tier) || 0) + 1);
-  // Las LEGACY pesan 0: no entran en el sorteo de las cartas del sobre. Y solo cuentan las que ya tienen su dibujo
-  return [...legacy.filter(c => LEGACY_SIN_DIBUJO || completas.has(c.id)), ...boosts, ...jugadores].map(c => ({ ...c, campeon: campeones.get(c.id) || null }))
-    .map(c => ({ ...c, arte: arteDe(c), fullart: completas.get(c.id) || null, marco: marcoDe(c), peso: c.tipo === 'legacy' ? 0 : (PESOS[c.tier] || 0) / deTier.get(c.tier) }));
+  // Las LEGACY pesan 0: no entran en el sorteo de las cartas del sobre. Y solo cuentan las que ya tienen su dibujo.
+  // Los jefes y las conmemorativas, tampoco (son premios), y existen aunque aún no tengan dibujo
+  return [...legacy.filter(c => LEGACY_SIN_DIBUJO || completas.has(c.id)), ...boosts, ...jugadores, ...cartasDePremio()].map(c => ({ ...c, campeon: campeones.get(c.id) || null }))
+    .map(c => ({ ...c, arte: arteDe(c), fullart: completas.get(c.id) || null, marco: marcoDe(c), peso: esEstetica(c) ? 0 : (PESOS[c.tier] || 0) / deTier.get(c.tier) }));
 }
+// Las cartas del álbum: jugadores, BOOST y LEGACY (los jefes y las conmemorativas son premios aparte)
+export const cartasDeColeccion = (cat = catalogo()) => cat.filter(deColeccion);
 
 // Probabilidad de que una carta cualquiera del sobre sea de cada tier
 export function probabilidades(cat = catalogo()) {
@@ -356,21 +406,106 @@ export const darSobres = (u, cantidad, tipo, detalle = '') => enCola(async () =>
   await registrar([{ fecha: ahora(), id: u.id, usuario: u.nombre, tipo, detalle, cantidad }]);
 });
 
-export const abrirSobre = u => enCola(async () => {
+// La carta segura de la garantía: una que aún no tienes (ni ha salido ya en este sobre) de las tiers pedidas; si ya las
+// tienes todas, de la tier de debajo, y así hasta la D. Si no te falta ninguna, una cualquiera de las tiers pedidas
+const ORDEN_TIERS = ['S+', 'S', 'A', 'B', 'C', 'D'];
+export function cartaSegura(normales, tiers, mias, enElSobre = new Set()) {
+  const libre = c => !enElSobre.has(c.id) && c.peso > 0;
+  const peor = Math.max(...tiers.map(t => RANGO[t]));
+  for (const nivel of [tiers, ...ORDEN_TIERS.slice(peor + 1).map(t => [t])]) {
+    const faltan = normales.filter(c => nivel.includes(c.tier) && libre(c) && !mias.get(c.id));
+    if (faltan.length) return sacarCarta(faltan);
+  }
+  const cualquiera = normales.filter(c => tiers.includes(c.tier) && libre(c));
+  return cualquiera.length ? sacarCarta(cualquiera) : null;
+}
+
+// Si toca la garantía y el sobre no la trae ya, la carta segura sustituye a la peor del sobre.
+// Devuelve { cual: 'S' | 'A', segura } o null
+function aplicarGarantia(cartas, normales, mias, racha) {
+  const cambiar = (tiers, cual) => {
+    const segura = cartaSegura(normales, tiers, mias, new Set(cartas.map(c => c.id)));
+    if (!segura) return null;
+    let peor = 0;
+    cartas.forEach((c, i) => { if (RANGO[c.tier] >= RANGO[cartas[peor].tier]) peor = i; });
+    cartas[peor] = segura;
+    return { cual, segura };
+  };
+  if (racha.sinS >= GARANTIA_S && !cartas.some(c => esSoMejor(c.tier))) return cambiar(['S+', 'S'], 'S');
+  if (racha.sinA >= GARANTIA_A && !cartas.some(c => esAoMejor(c.tier))) return cambiar(['A'], 'A');
+  return null;
+}
+
+// Las cartas de cada familia: sus jugadores (las de Shinigami, sus LEGACY)
+const cartasDeFamilia = (cat, clan) => cat.filter(c => c.clan === clan && (c.tipo === 'jugador' || c.tipo === 'legacy'));
+// Premio por familia completa: la primera vez en la temporada que alguien tiene todas las cartas de una familia, se
+// lleva un sobre y la carta de su jefe. mias y familias son lo de esta operación (se van actualizando)
+function premiosDeFamilia(cat, mias, familias, apunte) {
+  const premios = [], eventos = [];
+  for (const clan of CLANES.filter(c => !c.invitado).map(c => c.id)) {
+    const suyas = cartasDeFamilia(cat, clan);
+    if (familias.has(clan) || !suyas.length || !suyas.every(c => mias.get(c.id))) continue;
+    familias.add(clan);
+    eventos.push(apunte({ tipo: 'familia', detalle: clan, cantidad: 1 }));
+    const jefe = cat.find(c => c.id === `JEFE-${clan}`);
+    let carta = null;
+    if (jefe) {
+      eventos.push(apunte({ tipo: 'premio-carta', detalle: jefe.id, cantidad: 1, rareza: jefe.tier }));
+      mias.set(jefe.id, (mias.get(jefe.id) || 0) + 1);
+      carta = sinPeso({ ...jefe, nueva: mias.get(jefe.id) === 1, copias: mias.get(jefe.id), extra: true });
+    }
+    premios.push({ tipo: 'familia', clan, sobres: 1, carta });
+  }
+  return { premios, eventos };
+}
+
+const sinPeso = ({ peso, ...c }) => c;
+// Apunta una carta ganada en mias y la devuelve con «nueva» (no la tenías) y «copias» (las que tienes ahora)
+const ganada = (mias, c, mas = {}) => { mias.set(c.id, (mias.get(c.id) || 0) + 1); return sinPeso({ ...c, ...mas, nueva: mias.get(c.id) === 1, copias: mias.get(c.id) }); };
+
+// Abrir varios sobres de una vez (o uno): cada uno con su sorteo, su garantía y sus premios, en orden, y todo apuntado en
+// una sola escritura. cuantas: un número o «todos» (los que tenga, hasta MAXIMO_TIRADAS). Los sobres que se ganan por el
+// camino (premio de familia) no se abren en la misma tanda.
+// Devuelve [{ cartas: [carta con nueva, copias, extra (la LEGACY de regalo) y garantia], garantia: 'S'|'A'|null,
+//   premios: [{ tipo: 'familia', clan, sobres: 1, carta }] }]
+export const abrirSobres = (u, cuantas = 1) => enCola(async () => {
   const yo = usuarios.get(u.id);
   if (!yo || yo.sobres < 1) throw new Error('No te quedan sobres');
-  const cat = catalogo(), normales = cat.filter(c => c.tipo !== 'legacy');
+  const cat = catalogo(), normales = cat.filter(c => !esEstetica(c)), legados = cat.filter(c => c.tipo === 'legacy');
   if (!sobresListos(cat)) throw new Error('Los sobres se abren cuando estén las cartas de los jugadores: el staff tiene que poner su tier');
-  const cartas = sacarSobre(normales);
-  const regalo = sacarLegacy(cat.filter(c => c.tipo === 'legacy'));
-  if (regalo) cartas.push({ ...regalo, extra: true });
-  const fecha = ahora(), sobre = crypto.randomUUID().slice(0, 8);
-  await registrar([
-    { fecha, id: u.id, usuario: u.nombre, tipo: 'apertura', detalle: sobre, cantidad: -1 },
-    ...cartas.map(c => ({ fecha, id: u.id, usuario: u.nombre, tipo: 'carta', detalle: c.id, cantidad: 1, rareza: c.tier })),
-  ]);
-  return cartas.map(({ peso, ...c }) => c);
+  const n = cuantas === 'todos' ? Math.min(yo.sobres, MAXIMO_TIRADAS) : Math.round(Number(cuantas));
+  if (!Number.isInteger(n) || n < 1 || n > MAXIMO_TIRADAS) throw new Error(`Se pueden abrir de 1 a ${MAXIMO_TIRADAS} sobres de una vez`);
+  if (n > yo.sobres) throw new Error(yo.sobres === 1 ? 'Solo te queda 1 sobre' : `Solo te quedan ${yo.sobres} sobres`);
+  const fecha = ahora(), apunte = e => ({ fecha, id: u.id, usuario: u.nombre, cantidad: 0, ...e });
+  const mias = new Map(yo.cartas), familias = new Set(yo.familias), racha = { sinA: yo.sinA, sinS: yo.sinS };
+  const eventos = [], tiradas = [];
+  for (let i = 0; i < n; i++) {
+    const cartas = sacarSobre(normales);
+    const g = aplicarGarantia(cartas, normales, mias, racha), garantia = g?.cual || null;
+    racha.sinA = cartas.some(c => esAoMejor(c.tier)) ? 0 : racha.sinA + 1;
+    racha.sinS = cartas.some(c => esSoMejor(c.tier)) ? 0 : racha.sinS + 1;
+    const regalo = sacarLegacy(legados);
+    eventos.push(apunte({ tipo: 'apertura', detalle: crypto.randomUUID().slice(0, 8), cantidad: -1 }),
+      ...cartas.map(c => apunte({ tipo: 'carta', detalle: c.id, cantidad: 1, rareza: c.tier })),
+      ...(regalo ? [apunte({ tipo: 'carta', detalle: regalo.id, cantidad: 1, rareza: regalo.tier })] : []));
+    // La carta segura se marca para que la página la enseñe
+    const salidas = [...cartas.map(c => ganada(mias, c, g && c === g.segura ? { garantia } : {})), ...(regalo ? [ganada(mias, regalo, { extra: true })] : [])];
+    const familia = premiosDeFamilia(cat, mias, familias, apunte);
+    eventos.push(...familia.eventos);
+    tiradas.push({ cartas: salidas, garantia, premios: familia.premios });
+  }
+  await registrar(eventos);
+  return tiradas;
 });
+
+// Un sobre, como siempre: sus cartas, con la LEGACY de regalo y el jefe de una familia completa al final
+export const abrirSobre = u => abrirSobres(u, 1).then(([t]) => [...t.cartas, ...t.premios.map(p => p.carta).filter(Boolean)]);
+
+// Racha de cada uno para la página: cuántos sobres lleva sin A y sin S, y cuándo le toca la segura
+export function garantiaDe(id) {
+  const u = usuarios.get(id);
+  return { sinA: u?.sinA || 0, sinS: u?.sinS || 0, umbralA: GARANTIA_A, umbralS: GARANTIA_S };
+}
 
 export const canjeProcesado = id => canjes.has(id);
 
@@ -496,9 +631,10 @@ export const fundirRepetidas = (u, pedidas, minimo = () => 1) => enCola(async ()
 
 export function estadoUsuario(id) {
   const u = usuarios.get(id);
-  if (!u) return { sobres: 0, abiertos: 0, cartas: [], twitch: null, kick: null };
+  if (!u) return { sobres: 0, abiertos: 0, cartas: [], twitch: null, kick: null, familias: [], garantia: garantiaDe(id) };
   return { sobres: u.sobres, abiertos: u.abiertos, cartas: [...u.cartas].map(([carta, cantidad]) => ({ id: carta, cantidad })),
-    twitch: u.twitch ? { login: u.twitch.login } : null, kick: u.kick ? { login: u.kick.login } : null };
+    twitch: u.twitch ? { login: u.twitch.login } : null, kick: u.kick ? { login: u.kick.login } : null,
+    familias: [...u.familias], garantia: garantiaDe(id) };
 }
 
 export function buscarUsuario(nombre) {
@@ -512,6 +648,6 @@ export function resumenGacha() {
   const cat = catalogo();
   const con = campo => [...usuarios.values()].filter(u => u[campo]).length;
   return { coleccionistas: usuarios.size, sobresAbiertos: abiertos, sobresSinAbrir: sobres, conTwitch: con('twitch'), conKick: con('kick'),
-    cartas: cat.filter(c => c.tipo !== 'legacy').length, legacy: cat.filter(c => c.tipo === 'legacy').length, listos: sobresListos(cat),
+    cartas: cat.filter(c => !esEstetica(c)).length, legacy: cat.filter(c => c.tipo === 'legacy').length, listos: sobresListos(cat),
     faltanTiers: faltanTiers() };
 }

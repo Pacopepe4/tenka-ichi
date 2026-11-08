@@ -1,11 +1,13 @@
 // La carta del gachapon, igual en todas las páginas (el álbum, la portada y el overlay). Los estilos, en carta.css.
 // Las imágenes de Discord la dibujan aparte (dibujarCarta en compartir.js): lo que cambie aquí se cambia allí a la vez.
 // Tres clases de carta: Jugador (jugadores de la liga), BOOST (personajes de fuera de los clanes, de S+ a B) y LEGACY
-// (los jugadores del equipo Legacy: de colección, salen de vez en cuando como carta extra de un sobre).
+// (los jugadores del equipo Legacy: de colección, salen de vez en cuando como carta extra de un sobre). Y dos de premio,
+// estéticas y a carta completa como las LEGACY: JEFE (el oyabun de una familia, por juntarla entera) y TEMPORADA (la
+// conmemorativa de una temporada).
 import { logo } from '/comun.js';
 
 // De más rara a más común. LEGACY no es una tier de la tier list: es la clase de las cartas del equipo Legacy
-export const TIERS = ['LEGACY', 'S+', 'S', 'A', 'B', 'C', 'D'];
+export const TIERS = ['TEMPORADA', 'JEFE', 'LEGACY', 'S+', 'S', 'A', 'B', 'C', 'D'];
 // La S+ es SP en CSS y en los archivos
 export const claveTier = t => (t === 'S+' ? 'SP' : t);
 export const ROL = { TOP: 'Top', JUNGLA: 'Jungla', MEDIO: 'Medio', ADC: 'ADC', SUPPORT: 'Support' };
@@ -22,13 +24,13 @@ export const emblemaDe = c => (c.clan ? logo(c.clan) : c.tipo === 'boost' ? EMBL
 // cantidad: null (no se enseña), 0 (no la tiene: sale apagada) o cuántas copias tiene
 export function cartaHTML(c, { cantidad = null, nombreClan = id => id } = {}) {
   const falta = cantidad === 0, k = claveTier(c.tier), boost = c.tipo === 'boost', legado = c.tipo === 'legacy', emblema = emblemaDe(c);
-  const completa = Boolean(c.fullart) || legado;
-  const quien = boost || legado ? escapar(c.subtitulo) : `${ROL[c.rol] || c.rol} · ${escapar(nombreClan(c.clan))}`;
+  const premio = c.tipo === 'jefe' || c.tipo === 'temporada', completa = Boolean(c.fullart) || legado || premio;
+  const quien = boost || legado || premio ? escapar(c.subtitulo) : `${ROL[c.rol] || c.rol} · ${escapar(nombreClan(c.clan))}`;
   // Las BOOST llevan su multiplicador bajo el apodo y la frase entera al pasar el ratón
   // Los nombres largos (FROZENRONIN, o dos jugadores que comparten carta: «SPORFU / MANU») van en letra más pequeña
-  return `<div class="carta-g${falta ? ' falta' : ''}${completa ? ' fullart' : ''}${String(c.nombre).length > 10 ? ' nombre-largo' : ''}${boost ? ' boost' : ''}${legado ? ' legacy' : ''}" data-tier="${k}" style="--color-tier: var(--tier-${k})"${c.bonus ? ` title="${escapar(c.bonus.texto)}"` : ''}>
+  return `<div class="carta-g${falta ? ' falta' : ''}${completa ? ' fullart' : ''}${String(c.nombre).length > 10 ? ' nombre-largo' : ''}${boost ? ' boost' : ''}${legado ? ' legacy' : ''}${premio ? ` premio ${c.tipo}` : ''}" data-tier="${k}" style="--color-tier: var(--tier-${k})"${c.bonus ? ` title="${escapar(c.bonus.texto)}"` : ''}>
     <img class="arte" src="${escapar(c.fullart || c.arte || logo(c.clan))}" alt="" loading="lazy"><span class="velo"></span>
-    <span class="hanko rareza" title="${legado ? 'Carta LEGACY' : `Tier ${c.tier}`}">${c.tier}</span>${emblema ? `<img class="logo" src="${emblema}" alt="">` : ''}
+    <span class="hanko rareza" title="${legado ? 'Carta LEGACY' : c.tipo === 'jefe' ? 'Jefe de la familia' : c.tipo === 'temporada' ? 'Carta conmemorativa' : `Tier ${c.tier}`}">${c.tier}</span>${emblema ? `<img class="logo" src="${emblema}" alt="">` : ''}
     <div class="pie"><b class="nick">${escapar(c.nombre)}</b><span class="rol">${quien}</span>${c.bonus ? `<b class="bonus">${escapar(c.bonus.etiqueta)}</b>` : ''}</div>
     ${cantidad > 1 ? `<span class="cantidad" title="La tienes repetida">×${cantidad}</span>` : ''}
   </div>`;

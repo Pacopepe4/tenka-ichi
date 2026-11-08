@@ -117,8 +117,10 @@ test('en un sobre no sale dos veces la misma carta', async () => {
   for (let i = 0; i < 22; i++) {
     const r = await beto.json('/api/gacha/abrir', {});
     assert.equal(r.ok, true);
-    assert.equal(r.sobre.length, 4);
-    assert.equal(new Set(r.sobre.map(c => c.id)).size, 4, `sobre con repetidas: ${r.sobre.map(c => c.id)}`);
+    // Las cuatro del sobre; detrás pueden ir la LEGACY de regalo y el jefe de una familia completa (extra)
+    const normales = r.sobre.filter(c => !c.extra);
+    assert.equal(normales.length, 4);
+    assert.equal(new Set(normales.map(c => c.id)).size, 4, `sobre con repetidas: ${normales.map(c => c.id)}`);
   }
 });
 

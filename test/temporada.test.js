@@ -20,7 +20,8 @@ let carpeta, g, fantasy;
 const ana = { id: 'discord-1', nombre: 'Ana' }, beto = { id: 'discord-2', nombre: 'Beto' }, eva = { id: 'discord-5', nombre: 'Eva' };
 const archivo = nombre => path.join(carpeta, nombre);
 const leerArchivo = nombre => readFile(archivo(nombre), 'utf8');
-const vacio = { sobres: 0, abiertos: 0, cartas: [], twitch: null, kick: null };
+// La temporada nueva también empieza sin rachas de la garantía y sin premios de familia
+const vacio = { sobres: 0, abiertos: 0, cartas: [], twitch: null, kick: null, familias: [], garantia: { sinA: 0, sinS: 0, umbralA: 5, umbralS: 10 } };
 const alineados = u => Object.values(fantasy.infoFantasy(u).yo.alineacion).filter(x => typeof x === 'string').length;
 
 // La temporada 1, como la dejó la web: Ana con un sobre abierto, un regalo y su Kick vinculado; Beto con su Twitch vinculado (apuntado

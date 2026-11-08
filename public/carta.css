@@ -71,3 +71,12 @@
    en lugar de la tier y, debajo del nombre, solo su título. Mientras no tengan su dibujo vertical, llevan el que haya. */
 .carta-g.fullart[data-tier="LEGACY"] .rareza { min-width: 0; height: 9cqw; padding: 0 3.2cqw; font-size: 4.4cqw; letter-spacing: .6cqw; background: #EBD28A; }
 .carta-g.fullart.legacy .arte { object-position: 50% 30%; }
+
+/* ---------- Cartas de premio: JEFE y TEMPORADA ----------
+   Estéticas, como las LEGACY: el jefe (oyabun) de una familia que se ha juntado entera, con la placa en bermellón, y la
+   conmemorativa de una temporada, en oro. Mientras no tengan su dibujo vertical, el jefe lleva el personaje de la familia */
+.carta-g.fullart:is([data-tier="JEFE"], [data-tier="TEMPORADA"]) .rareza { min-width: 0; height: 9cqw; padding: 0 3.2cqw; font-size: 4.4cqw; letter-spacing: .6cqw; }
+.carta-g.fullart[data-tier="JEFE"] .rareza { background: #E0303A; color: #F5EFE2; }
+.carta-g.fullart[data-tier="TEMPORADA"] .rareza { background: #EBD28A; }
+.carta-g.fullart.jefe .arte { object-position: 50% 22%; }
+.carta-g.fullart.temporada .arte { object-fit: contain; background: #0C0D13; }

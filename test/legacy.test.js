@@ -81,7 +81,8 @@ test('la carta extra: sale según la probabilidad y nunca entre las cuatro del s
   await g.darSobres(ana, 10, 'regalo', 'prueba');
   for (let i = 0; i < 12; i++) {
     const sobre = await g.abrirSobre(ana);
-    assert.equal(sobre.length, 5, 'cuatro cartas y la extra');
+    // Cuatro cartas y la extra; y, la vez que se completa una familia, detrás su jefe
+    assert.ok(sobre.length === 5 || (sobre.length > 5 && sobre.slice(5).every(c => c.tipo === 'jefe')), 'cuatro cartas y la extra');
     assert.ok(sobre.slice(0, 4).every(c => c.tipo !== 'legacy' && !c.extra), 'las cuatro del sobre son de las normales');
     assert.deepEqual([sobre[4].tipo, sobre[4].extra, sobre[4].tier], ['legacy', true, 'LEGACY']);
     assert.equal(sobre[4].peso, undefined);
