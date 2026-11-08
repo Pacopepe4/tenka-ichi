@@ -28,7 +28,10 @@ import { estadoJornadas, terminarJornada, jornadasCerradas, premiosPublicos } fr
 import { clasificacionJornada } from './fantasy.js';
 import { previa, fichaJugador, fichaClan } from './previa.js';
 import { cargarCanal, conectarCanal, cambiarCoste, sondear, sondearSiHaceFalta, estadoCanal, SCOPE_CANAL } from './canal.js';
-import { cargarCanalKick, conectarCanalKick, cambiarCosteKick, sondearKick, sondearKickSiHaceFalta, estadoCanalKick, SCOPE_CANAL_KICK } from './canal-kick.js';
+import { cargarCanalKick, conectarCanalKick, cambiarCosteKick, sondearKick, sondearKickSiHaceFalta, estadoCanalKick, asegurarSuscripciones, SCOPE_CANAL_KICK } from './canal-kick.js';
+import { atenderWebhookKick, alAlertar, alertaDePrueba, contextoComandos } from './kick-eventos.js';
+import { textoPartido } from './comandos-kick.js';
+import { formatoTemporada } from './competicion.js';
 import { kickActivo, pkce, urlAutorizar as urlAutorizarKick, canjearCodigo as canjearCodigoKick, usuarioDeToken as usuarioDeKick, CANAL_KICK } from './kick.js';
 import { firmar, verificar, leerCookies, ponerCookie, cifrar, descifrar } from './sesion.js';
 import { twitchActivo, urlAutorizar, canjearCodigo, usuarioDeToken, usuarioPorNombre, CANAL } from './twitch.js';
@@ -113,7 +116,7 @@ function emitir() {
   estado.codigo = codigo ? { texto: codigo.texto, sobres: codigo.sobres, quedan: codigo.caduca - Date.now() } : null;
   guardarEstadoSiCambia(fotoActual);
   const msg = JSON.stringify({ tipo: 'estado', estado });
-  for (const ws of clientes) if (ws.readyState === 1 && ws.canal !== 'sorteo') ws.send(msg);
+  for (const ws of clientes) if (ws.readyState === 1 && !CANALES_SUELTOS.has(ws.canal)) ws.send(msg);
 }
 
 // El sorteo del calendario en directo (server/sorteo.js) llega a todas las pantallas. La portada solo pide este
@@ -121,8 +124,22 @@ function emitir() {
 const sorteo = crearSorteo({ guardar: e => guardarAjustes({ sorteo_en_curso: e ? JSON.stringify(e) : null }) });
 sorteo.alCambiar(v => {
   const msg = JSON.stringify({ tipo: 'sorteo', sorteo: v });
-  for (const ws of clientes) if (ws.readyState === 1) ws.send(msg);
+  for (const ws of clientes) if (ws.readyState === 1 && ws.canal !== 'alertas') ws.send(msg);
 });
+
+// Canales de /ws que no reciben el estado del draft ni la partida: la portada (sorteo) y las alertas de Kick en OBS (alertas)
+const CANALES_SUELTOS = new Set(['sorteo', 'alertas']);
+// Alertas de Kick (seguidores, subs, regalos y kicks: server/kick-eventos.js) para la fuente de OBS /alertas/
+alAlertar(alerta => {
+  const msg = JSON.stringify({ tipo: 'alerta', alerta: { ...alerta, id: crypto.randomUUID() } });
+  for (const ws of clientes) if (ws.readyState === 1 && ws.canal === 'alertas') ws.send(msg);
+});
+// Lo que contestan los comandos del chat de Kick que necesitan el fantasy o el calendario
+contextoComandos(() => ({
+  clasificacion: () => infoFantasy(null).clasificacion,
+  puesto: id => infoFantasy({ id }).yo?.puesto || null,
+  partido: () => textoPartido({ formato: formatoTemporada(), calendario: calendarioActual(), nombre: id => CLANES.find(c => c.id === id)?.nombre || id }),
+}));
 
 // La partida en directo va en su propio mensaje: llega cada segundo y no hace falta reenviar todo el estado
 let partidaActiva = false, puenteConectado = false;
@@ -140,7 +157,7 @@ function emitirPartida(partida = resumenPartida()) {
   puenteConectado = partida.puente.conectado;
   const cambia = seguirPartida(partida);
   const msg = JSON.stringify({ tipo: 'partida', partida });
-  for (const ws of clientes) if (ws.readyState === 1 && ws.canal !== 'sorteo') ws.send(msg);
+  for (const ws of clientes) if (ws.readyState === 1 && !CANALES_SUELTOS.has(ws.canal)) ws.send(msg);
   if (cambia) emitir();
 }
 // Si el puente deja de mandar datos, avisa al overlay para que se retire y al panel de que se ha cerrado
@@ -458,6 +475,12 @@ async function accion(nombre, d = {}) {
     case 'kickCoste':
       await cambiarCosteKick(d.coste);
       return { ok: true, gacha: estadoGachaPanel() };
+    // Avisos de Kick: volver a suscribirse a los que falten y una alerta de prueba para colocar la fuente de OBS
+    case 'kickAvisos':
+      await asegurarSuscripciones();
+      return { ok: true, gacha: estadoGachaPanel() };
+    case 'kickAlertaPrueba':
+      return { ok: true, alerta: alertaDePrueba(d.tipo) };
     case 'gachaRegalar': {
       const cantidad = Math.round(Number(d.cantidad));
       if (!Number.isInteger(cantidad) || cantidad < 1 || cantidad > 20) return { ok: false, error: 'La cantidad tiene que estar entre 1 y 20 sobres' };
@@ -915,6 +938,16 @@ const comandosDiscord = crearComandos();
 
 const servidor = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
+  // Avisos de Kick (webhooks), firmados por Kick: la dirección que va en la app de kick.com/settings/developer
+  if (url.pathname === '/webhooks/kick' && req.method === 'POST') {
+    try {
+      const r = await atenderWebhookKick(req, { web: origen(req) });
+      return json(res, r.cuerpo, r.estado);
+    } catch (e) {
+      console.error(url.pathname, e);
+      return json(res, { ok: false }, 500);
+    }
+  }
   if (url.pathname === '/discord/interacciones' && req.method === 'POST') {
     try {
       const r = await comandosDiscord.atender(req);
@@ -1058,11 +1091,11 @@ wss.on('connection', (ws, req) => {
   clientes.add(ws);
   ws.canal = new URL(req.url, 'http://localhost').searchParams.get('canal');
   ws.send(JSON.stringify({ tipo: 'hola', version: VERSION }));
-  if (ws.canal !== 'sorteo') {
+  if (!CANALES_SUELTOS.has(ws.canal)) {
     ws.send(JSON.stringify({ tipo: 'estado', estado }));
     ws.send(JSON.stringify({ tipo: 'partida', partida: resumenPartida() }));
   }
-  ws.send(JSON.stringify({ tipo: 'sorteo', sorteo: sorteo.vista() }));
+  if (ws.canal !== 'alertas') ws.send(JSON.stringify({ tipo: 'sorteo', sorteo: sorteo.vista() }));
   ws.on('close', () => clientes.delete(ws));
   ws.on('message', async raw => {
     let m;

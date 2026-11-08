@@ -353,6 +353,12 @@
           <label class="coste">Puntos por omamori <input id="costeKick" type="number" min="1" step="100"></label>
           <button type="button" id="guardarCosteKick" class="secundario">Cambiar el coste</button>
         </div>
+        <p class="ayuda">Avisos de Kick: subs, renovaciones, subs regaladas y kicks dan sobres (sub 3, renovación 2, cada sub regalada 2 a quien la regala y 1 a quien la recibe, 1 por cada 100 kicks); seguidores, subs y kicks salen como alerta en la fuente de OBS <a href="/alertas/" target="_blank">/alertas/</a> (1920×1080); al empezar el directo se avisa en Discord con @everyone; y el chat tiene !sobres, !clasificacion, !gachapon, !partido y !comandos.</p>
+        <p class="estado" id="estadoAvisosKick"></p>
+        <div class="fila">
+          <button type="button" id="suscribirKick" class="secundario">Volver a suscribir los avisos</button>
+          <button type="button" id="probarAlertaKick" class="secundario">Probar alerta</button>
+        </div>
       </div>
       <div class="caja-gacha">
         <h3>Regalar sobres</h3>

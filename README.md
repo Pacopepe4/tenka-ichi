@@ -394,15 +394,28 @@ Para activarlo:
 1. En Kick, con la cuenta **Gokudo_zoku**: **Ajustes › Developer** (kick.com/settings/developer) › **Create new app**:
    - Nombre: `Gokudō` (o el que quieras).
    - Redirect URL: `https://tenka-ichi.onrender.com/auth/kick/callback` (y, para probar en local, `http://localhost:3030/auth/kick/callback`).
-   - Si pide permisos (*scopes*): **Read user information** (`user:read`), **Read channel points rewards** (`channel:rewards:read`) y **Manage channel points rewards** (`channel:rewards:write`). Los webhooks no hacen falta.
+   - Permisos (*scopes*): `user:read`, `channel:rewards:read`, `channel:rewards:write`, `events:subscribe`, `chat:write` y `kicks:read` (en Kick: leer la información del usuario, leer y gestionar las recompensas de puntos, suscribirse a eventos, escribir en el chat y leer lo de los KICKs).
+   - **Enable Webhooks** encendido, con la Webhook URL `https://tenka-ichi.onrender.com/webhooks/kick`.
 2. Copia el **Client ID** y el **Client Secret** de la app y ponlos en Render, en Environment: `KICK_CLIENT_ID` y `KICK_CLIENT_SECRET` (nunca en el chat ni en el repo).
 3. En el panel, apartado **Gachapon**, pulsa **Conectar el canal de Kick** y entra con la cuenta **Gokudo_zoku**. La web crea la recompensa «Omamori» a 3000 puntos, en el bermellón de la marca; el coste se cambia desde el panel. Si en Kick ya hay una recompensa «Omamori» creada a mano, hay que borrarla antes: Kick solo deja a cada app aceptar los canjes de las recompensas que ha creado ella.
 
-La web recoge cada minuto (y cuando alguien entra en el gachapon) los canjes **pendientes** de la cola de Kick, da el sobre y acepta el canje. Por eso la recompensa no se salta la cola: si la web está dormida, los canjes esperan pendientes en Kick y no se pierden. No usa webhooks. Si el canal retira el permiso a la app, el panel avisa «vuelve a conectarlo».
+Los canjes llegan al momento por aviso de Kick (abajo) y, de respaldo, la web recoge cada minuto (y cuando alguien entra en el gachapon) los canjes **pendientes** de la cola de Kick, da el sobre y acepta el canje. Por eso la recompensa no se salta la cola: si la web está dormida, los canjes esperan pendientes en Kick y no se pierden. Si el canal retira el permiso a la app, el panel avisa «vuelve a conectarlo».
 
 En la hoja, los canjes de Kick quedan a nombre de `kick-` y el id de Kick de quien canjea, y cada vínculo es un movimiento `vinculo` con `kk:id:nombre` en el detalle (`kk:` al desvincular). Los ids de Kick y de Twitch son números distintos que pueden coincidir; por eso los de Kick llevan delante `kick-`.
 
 Lo que no dice la documentación de Kick (docs.kick.com) y hay que mirar la primera vez: cuánto dura el token del canal (se renueva solo con el de refresco) y el tope de llamadas por minuto.
+
+### Avisos de Kick (webhooks): sobres por apoyar, alertas en OBS, aviso de directo y comandos del chat
+
+Al conectar el canal, la web se suscribe a sus avisos de Kick (`server/canal-kick.js`, `EVENTOS_KICK`) y Kick se los manda a `POST /webhooks/kick` (`server/kick-eventos.js`). Cada aviso viene **firmado**: la web comprueba la firma con la clave pública de Kick (la pide a `/public/v1/public-key` y la vuelve a pedir si Kick la cambia), atiende cada aviso una sola vez (`Kick-Event-Message-Id`) y contesta 200 al momento; lo demás lo hace después. Si el webhook falla durante más de un día, Kick da de baja la suscripción: la web se vuelve a suscribir al arrancar, al reconectar el canal o con **Volver a suscribir los avisos** en el panel, que además dice a cuántos está suscrita y cuándo llegó el último.
+
+- **Omamori** (`channel.reward.redemption.updated`): el sobre al momento; la recogida de cada minuto sigue de respaldo.
+- **Sobres por apoyar** (lo fijó Pacopepe el 08/11/2026, `SOBRES_APOYO`): sub nueva **3**, renovación **2**, cada sub regalada **2** a quien la regala y **1** a quien la recibe (si regala alguien anónimo, solo a quien la recibe) y **1 por cada 100 kicks** (redondeando hacia abajo). Seguir al canal no da sobres. Van a la temporada del gachapon en curso, apuntados como `apoyo` con el aviso en el detalle (`kk-sub:…`, `kk-regalo:…`, `kk-kicks:…`), así no se dan dos veces; quien aún no ha vinculado su Kick los tiene guardados como con los canjes.
+- **Alertas en OBS**: fuente de navegador `/alertas/` a 1920×1080, con el fondo transparente. Seguidores, subs, renovaciones, subs regaladas y kicks salen como un rótulo de neón del callejón, uno detrás de otro. **Probar alerta** en el panel manda una de mentira; `/alertas/?prueba` las enseña todas en bucle para colocarla.
+- **Aviso de directo** (`livestream.status.updated`): al empezar, el webhook de Discord publica «¡Gokudō está en directo en Kick!» con el título y el enlace, mencionando a **@everyone**, una vez por directo. Va al webhook `DISCORD_WEBHOOK_DIRECTO` o, si no lo hay, al de `DISCORD_WEBHOOK_URL`.
+- **Comandos del chat** (`chat.message.sent`, `server/comandos-kick.js`): `!sobres` (sobres y cartas de quien lo escribe, o cómo vincular su Kick), `!clasificacion` (los 3 primeros del fantasy y su puesto), `!gachapon` (enlace y cómo vincular), `!partido` (el próximo cruce con su hora de España) y `!comandos`. Contesta la cuenta del canal, respondiendo al mensaje; cada comando general, como mucho cada 15 s, y `!sobres`, cada 30 s por persona.
+
+Render duerme la web gratuita si nadie entra en 15 minutos: el primer aviso la despierta y, si tarda en contestar, Kick lo reintenta.
 
 ### Probarlo sin Discord ni Twitch de verdad
 
@@ -411,6 +424,7 @@ Lo que no dice la documentación de Kick (docs.kick.com) y hay que mirar la prim
 - Inicio de sesión con Discord (`test/entrada-discord.test.js`): entrar y recibir 3 sobres una sola vez, cancelar, estados y códigos inválidos, que `volver` no saque de la web, nombres que no puedan ser fórmulas, regalos por nombre, reinicio de la web y que en Render sin claves no haya ni inicio de sesión ni entrada de prueba.
 - Twitch (`test/twitch.test.js`): entrar, abrir sobres, conectar el canal, canjes que dan sobres una sola vez, renovación de tokens, regalos, reinicio, permiso retirado y una partida del fantasy.
 - Kick (`test/kick.test.js`): conectar el canal solo con su cuenta, crear «Omamori» sin saltarse la cola, vincular, canjes de varias páginas que dan sobres una sola vez, los de antes de vincular, coste, token caducado, reinicio, desvincular y permiso retirado.
+- Avisos de Kick (`test/kick-eventos.test.js`, con avisos firmados por el Kick falso y un Discord falso): suscripción a los 8 avisos, firma mala, aviso repetido, sobres por sub, renovación, regalos (también anónimos) y kicks, seguidores, avisos de otro canal, Omamori al momento, aviso de directo una vez con @everyone, comandos del chat con su espera, baja de una suscripción y alerta de prueba.
 - Google Sheets (`test/sheets.test.js` y `test/temporada.test.js`): el estreno de una temporada del gachapon con la web entera, también cuando la hoja falla a medias (no se puede leer el registro de una u otra temporada, falla al escribir el estreno o se pierde la respuesta), con miles de filas en la temporada anterior y con la versión anterior de la web escribiendo todavía en su pestaña.
 
 No tocan `data/`, las plantillas ni la hoja de Google de verdad.

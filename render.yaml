@@ -45,3 +45,6 @@ services:
         sync: false
       - key: KICK_CLIENT_SECRET
         sync: false
+      # Opcional: el aviso de «empieza el directo en Kick» en otro canal de Discord (si no, va al de DISCORD_WEBHOOK_URL)
+      - key: DISCORD_WEBHOOK_DIRECTO
+        sync: false

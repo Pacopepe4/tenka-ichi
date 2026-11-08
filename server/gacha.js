@@ -37,7 +37,10 @@ const ARCHIVO = archivoDeTemporada('gacha');
 const PESTANA = pestanaDeTemporada('Gachapon');
 const CABECERA = ['Fecha', 'ID de usuario', 'Usuario', 'Tipo', 'Detalle', 'Cantidad', 'Rareza'];
 
-const TIPOS_CON_SOBRES = new Set(['alta', 'regalo', 'canje', 'premio', 'codigo', 'fundido']);
+// «apoyo»: los sobres por suscribirse, regalar suscripciones o mandar kicks en Kick (server/kick-eventos.js)
+const TIPOS_CON_SOBRES = new Set(['alta', 'regalo', 'canje', 'premio', 'codigo', 'fundido', 'apoyo']);
+// Los que llevan en el detalle el aviso que los dio: se apuntan para no darlos dos veces
+const UNA_VEZ = new Set(['canje', 'apoyo']);
 let registro = [];
 const usuarios = new Map();
 const canjes = new Set();
@@ -60,7 +63,7 @@ function aplicar(e) {
   // Sobres que entran: de bienvenida, regalados, canjeados con puntos del canal, premios de jornada, códigos de
   // directo y los que salen de fundir repetidas
   if (TIPOS_CON_SOBRES.has(e.tipo)) u.sobres += n;
-  if (e.tipo === 'canje') canjes.add(e.detalle);
+  if (UNA_VEZ.has(e.tipo)) canjes.add(e.detalle);
   if (e.tipo === 'codigo') { u.codigos.add(e.detalle); usosCodigo.set(e.detalle, (usosCodigo.get(e.detalle) || 0) + 1); }
   if (e.tipo === 'apertura') { u.sobres -= 1; u.abiertos += 1; }
   if (e.tipo === 'carta') u.cartas.set(e.detalle, (u.cartas.get(e.detalle) || 0) + 1);
@@ -352,7 +355,7 @@ export const darAlta = u => enCola(async () => {
 });
 
 export const darSobres = (u, cantidad, tipo, detalle = '') => enCola(async () => {
-  if (tipo === 'canje' && canjes.has(detalle)) return;
+  if (UNA_VEZ.has(tipo) && canjes.has(detalle)) return;
   await registrar([{ fecha: ahora(), id: u.id, usuario: u.nombre, tipo, detalle, cantidad }]);
 });
 
@@ -499,6 +502,15 @@ export function estadoUsuario(id) {
   if (!u) return { sobres: 0, abiertos: 0, cartas: [], twitch: null, kick: null };
   return { sobres: u.sobres, abiertos: u.abiertos, cartas: [...u.cartas].map(([carta, cantidad]) => ({ id: carta, cantidad })),
     twitch: u.twitch ? { login: u.twitch.login } : null, kick: u.kick ? { login: u.kick.login } : null };
+}
+
+// Lo de una cuenta de Kick (por su id de Kick), para los comandos del chat: la cuenta del gachapon a la que está vinculada
+// o, si no la ha vinculado, los sobres que tiene guardados a su nombre esperando
+export function cuentaDeKick(userId) {
+  const clave = `kick-${userId}`;
+  const cuenta = usuarios.get(vinculos.get(clave));
+  if (cuenta) return { vinculada: true, id: cuenta.id, nombre: cuenta.nombre, sobres: cuenta.sobres, cartas: [...cuenta.cartas.values()].reduce((a, n) => a + n, 0) };
+  return { vinculada: false, id: null, sobres: usuarios.get(clave)?.sobres || 0 };
 }
 
 export function buscarUsuario(nombre) {

@@ -12,8 +12,12 @@ import { canjeProcesado, darSobres } from './gacha.js';
 
 export const TITULO_OMAMORI = 'Omamori';
 // user:read para saber con qué cuenta se conecta (y los nombres de quien canjea); las recompensas, para crearla,
-// cambiar su coste, listar los canjes y aceptarlos
-export const SCOPE_CANAL_KICK = 'user:read channel:rewards:read channel:rewards:write';
+// cambiar su coste, listar los canjes y aceptarlos; events:subscribe para recibir los avisos de Kick (server/kick-eventos.js),
+// chat:write para contestar los comandos del chat y kicks:read por si Kick lo pide para el aviso de los kicks
+export const SCOPE_CANAL_KICK = 'user:read channel:rewards:read channel:rewards:write events:subscribe chat:write kicks:read';
+// Los avisos a los que se suscribe la web (versión 1, por webhook a la dirección que tiene la app en kick.com/settings/developer)
+export const EVENTOS_KICK = ['channel.reward.redemption.updated', 'livestream.status.updated', 'channel.followed',
+  'channel.subscription.new', 'channel.subscription.renewal', 'channel.subscription.gifts', 'kicks.gifted', 'chat.message.sent'];
 const COSTE_INICIAL = 3000;
 const COLOR = '#BE2A2F';   // el bermellón de la marca (--shu)
 // Lo que lee el espectador en Kick al canjear (máximo 200 caracteres)
@@ -21,7 +25,10 @@ const TEXTO_OMAMORI = 'Un sobre de 3 cartas del gachapon de Gokudō. Entra en te
 export const idKick = userId => `kick-${userId}`;
 
 let tokens = null;
-const estado = { conectado: false, login: null, recompensa: null, coste: null, error: null, ultimoSondeo: null };
+const estado = { conectado: false, login: null, recompensa: null, coste: null, error: null, ultimoSondeo: null,
+  // Avisos de Kick: a qué está suscrita la web, el último que ha llegado y lo que haya fallado al suscribirse
+  eventos: { suscritos: [], ultimo: null, error: null } };
+export const idCanalKick = () => ajuste('kick_id') || null;
 
 export async function cargarCanalKick() {
   const guardados = ajuste('kick_tokens');
@@ -32,6 +39,7 @@ export async function cargarCanalKick() {
   await comprobarToken();
   if (!estado.conectado) return;
   await asegurarRecompensa();
+  await asegurarSuscripciones();
   iniciarSondeo();
 }
 
@@ -51,7 +59,8 @@ async function renovar() {
 }
 
 // Llama a Kick con el token del canal y lo renueva si ha caducado
-async function conToken(fn) {
+export async function conToken(fn) {
+  if (!tokens) throw new Error('El canal de Kick no está conectado');
   try { return await fn(tokens.access_token); }
   catch (e) {
     if (!(e instanceof ErrorKick) || e.estado !== 401) throw e;
@@ -67,7 +76,7 @@ async function comprobarToken() {
     if (!t.active) { await renovar(); t = await examinarToken(tokens.access_token); }
     const permisos = String(t.scope || '').split(' ');
     if (!SCOPE_CANAL_KICK.split(' ').every(s => permisos.includes(s))) {
-      estado.error = 'La conexión del canal de Kick no tiene permiso para las recompensas: vuelve a conectarlo desde el panel';
+      estado.error = 'A la conexión del canal de Kick le faltan permisos (recompensas, avisos o chat): vuelve a conectarlo desde el panel';
     }
   } catch (e) {
     if (estado.conectado) estado.error = explicar(e);
@@ -81,7 +90,42 @@ export async function conectarCanalKick(t, u) {
   await guardarAjustes({ kick_tokens: cifrar(JSON.stringify(tokens)), kick_id: String(u.user_id), kick_login: u.name });
   Object.assign(estado, { conectado: true, login: u.name, error: null });
   await asegurarRecompensa();
+  await asegurarSuscripciones();
   iniciarSondeo();
+}
+
+// Que la web esté suscrita a todos sus avisos de Kick: pide los que falten (con el token del canal, Kick ya sabe de qué
+// canal son). Si Kick dio de baja alguno (el webhook falló más de un día), se vuelve a pedir al arrancar o al reconectar
+export async function asegurarSuscripciones() {
+  try {
+    const { data = [] } = await conToken(tk => api('events/subscriptions', { token: tk }));
+    const tiene = new Set(data.filter(s => s.method === 'webhook' || !s.method).map(s => s.event));
+    const faltan = EVENTOS_KICK.filter(e => !tiene.has(e));
+    const errores = [];
+    if (faltan.length) {
+      const r = await conToken(tk => api('events/subscriptions', { token: tk, method: 'POST',
+        body: { events: faltan.map(name => ({ name, version: 1 })), method: 'webhook' } }));
+      for (const x of r.data || []) if (x.error) errores.push(`${x.name}: ${x.error}`); else tiene.add(x.name);
+    }
+    estado.eventos.suscritos = EVENTOS_KICK.filter(e => tiene.has(e));
+    estado.eventos.error = errores.length ? `Kick no ha aceptado algunos avisos (${errores.join('; ')})` : null;
+  } catch (e) {
+    estado.eventos.error = e.estado === 403 || e.estado === 401
+      ? 'Kick no deja suscribirse a los avisos con esta conexión: vuelve a conectar el canal desde el panel' : e.message;
+  }
+}
+
+export const avisoRecibido = () => { estado.eventos.ultimo = new Date().toISOString(); };
+
+// Un canje del Omamori que llega por aviso (channel.reward.redemption.updated): el sobre al momento y se acepta en Kick.
+// La consulta de cada minuto sigue de respaldo por si algún aviso no llega
+export async function canjeAvisado(d) {
+  if (!estado.conectado || !estado.recompensa || d?.reward?.id !== estado.recompensa || d.status !== 'pending') return false;
+  const quien = String(d.redeemer?.user_id || '');
+  if (!quien || !d.id) return false;
+  if (!canjeProcesado(d.id)) await darSobres({ id: idKick(quien), nombre: d.redeemer.username || `Kick ${quien}` }, 1, 'canje', d.id);
+  await conToken(tk => api('channels/rewards/redemptions/accept', { token: tk, method: 'POST', body: { ids: [d.id] } })).catch(() => {});
+  return true;
 }
 
 function explicar(e) {
@@ -176,4 +220,4 @@ export function sondearKickSiHaceFalta() {
   if (!estado.ultimoSondeo || Date.now() - Date.parse(estado.ultimoSondeo) > 20000) sondearKick();
 }
 
-export const estadoCanalKick = () => ({ ...estado, canal: CANAL_KICK, titulo: TITULO_OMAMORI });
+export const estadoCanalKick = () => ({ ...estado, eventos: { ...estado.eventos, total: EVENTOS_KICK.length }, canal: CANAL_KICK, titulo: TITULO_OMAMORI });

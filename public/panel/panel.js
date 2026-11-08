@@ -423,6 +423,12 @@ function pintarGacha(g) {
         : `Sin conectar. Hay que entrar con la cuenta del canal (kick.com/${k.canal}); la web crea la recompensa «${k.titulo}».`;
   $('#conectarKick').textContent = k.conectado ? 'Volver a conectar el canal de Kick' : 'Conectar el canal de Kick';
   if (k.coste && document.activeElement !== $('#costeKick')) $('#costeKick').value = k.coste;
+  // Avisos de Kick (webhooks): a cuántos está suscrita la web y el último que llegó
+  const ev = k.eventos || {}, estA = $('#estadoAvisosKick'), suscritos = ev.suscritos?.length || 0;
+  estA.className = `estado ${ev.error ? 'mal' : k.conectado && suscritos === ev.total ? 'ok' : ''}`;
+  estA.textContent = !k.conectado ? 'Avisos: se suscriben al conectar el canal de Kick.'
+    : ev.error ? ev.error
+      : `Avisos: suscrita a ${suscritos} de ${ev.total}.${ev.ultimo ? ` Último aviso de Kick: ${new Date(ev.ultimo).toLocaleTimeString('es-ES')}.` : ' Todavía no ha llegado ninguno.'}`;
   // Sin cartas de jugador los sobres no se abren: se enseña el reparto con el que saldrán, no el de las BOOST solas
   const r = g.resumen, p = r.listos ? g.probabilidades : g.reparto;
   const n = (x, uno, varios) => `${x} ${x === 1 ? uno : varios}`;
@@ -456,6 +462,8 @@ $('#conectarKick').onclick = async () => {
   if (r.ok) window.open(r.url, '_blank', 'noopener');
 };
 $('#recogerCanjesKick').onclick = $('#recogerCanjes').onclick;
+$('#suscribirKick').onclick = async () => { const r = await enviar('kickAvisos'); if (r.ok) { pintarGacha(r.gacha); aviso('Avisos de Kick revisados'); } };
+$('#probarAlertaKick').onclick = async () => { const r = await enviar('kickAlertaPrueba'); if (r.ok) aviso(`Alerta de prueba enviada a /alertas/ (${r.alerta.tipo})`); };
 $('#guardarCosteKick').onclick = async () => { const r = await enviar('kickCoste', { coste: $('#costeKick').value }); if (r.ok) { pintarGacha(r.gacha); aviso('Coste cambiado en Kick'); } };
 $('#regalar').onclick = async () => {
   const usuario = $('#regaloUsuario').value.trim();

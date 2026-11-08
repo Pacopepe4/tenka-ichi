@@ -1,0 +1,74 @@
+/* Alertas de Kick en OBS con el estilo Gokudō: un rótulo de neón del callejón (placa de noche con filo fino, kanji de
+   pincel con halo, Dela Gothic One para el nombre) que se enciende con parpadeo, cuelga unos segundos y se apaga.
+   Fondo transparente: la fuente de OBS va encima de todo. Lienzo de 1920×1080; la alerta, arriba en el centro. */
+:root {
+  --noche: #0C0D13; --alzado: #15161F; --linea: #2A2B38; --hai: #8D8A99; --papel: #E7DFD2;
+  --shu: #E0303A; --shu-claro: #FF4C56; --oro: #EBD28A;
+  --dela: 'Dela Gothic One', 'Zen Kaku Gothic New', sans-serif;
+  --pincel: 'Yuji Boku', serif;
+  --gothic: 'Zen Kaku Gothic New', 'Segoe UI', sans-serif;
+}
+html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
+#escena { position: absolute; inset: 0; display: flex; justify-content: center; align-items: flex-start; padding-top: 56px; }
+
+.alerta { --luz: var(--shu); --luz-claro: var(--shu-claro);
+  display: flex; flex-direction: column; align-items: center; gap: 0;
+  animation: bajar .55s cubic-bezier(.2, .9, .25, 1.15) both; }
+.alerta[data-tipo="seguidor"] { --luz: #D9B95C; --luz-claro: var(--oro); }
+.alerta[data-tipo="kicks"] { --luz: #3FD10F; --luz-claro: #53FC18; }   /* el verde de Kick */
+.alerta.sale { animation: subir .7s cubic-bezier(.5, 0, .75, 0) forwards; }
+
+/* El rótulo cuelga de dos cables, como los letreros del callejón */
+.rotulo { position: relative; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 28px;
+  min-width: 760px; max-width: 1180px; padding: 26px 34px 26px 30px; box-sizing: border-box;
+  background: linear-gradient(180deg, rgba(21, 22, 31, .97), rgba(12, 13, 19, .97));
+  border: 1px solid var(--linea); border-radius: 8px;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, .6), 0 18px 50px rgba(0, 0, 0, .55); }
+.rotulo::before, .rotulo::after { content: ''; position: absolute; top: -60px; width: 2px; height: 60px;
+  background: linear-gradient(var(--linea), #4a4b5c); }
+.rotulo::before { left: 70px; }
+.rotulo::after { right: 70px; }
+/* El tubo de neón por dentro del borde: se enciende con parpadeo */
+.alerta .rotulo { outline: 2px solid var(--luz-claro); outline-offset: -9px;
+  animation: encender 1.1s steps(1, end) .35s both; }
+
+.kanji { font-family: var(--pincel); font-size: 112px; line-height: 1; color: var(--luz-claro);
+  text-shadow: 0 0 6px var(--luz-claro), 0 0 18px var(--luz), 0 0 40px var(--luz);
+  animation: zumbido 4s ease-in-out 1.5s infinite; }
+.texto { min-width: 0; }
+.texto p { margin: 0; }
+.etiqueta { font-family: var(--gothic); font-weight: 700; font-size: 20px; letter-spacing: .2em; text-transform: uppercase;
+  color: var(--luz-claro); text-shadow: 0 0 10px var(--luz); }
+.nombre { --encoge: 1; font-family: var(--dela); font-size: calc(64px * var(--encoge)); line-height: 1.1; color: #fff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 860px; margin-top: 6px !important;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, .5); }
+.detalle { font-family: var(--gothic); font-weight: 500; font-size: 24px; color: var(--papel); margin-top: 6px !important; }
+.mensaje { font-family: var(--gothic); font-weight: 500; font-style: italic; font-size: 22px; color: var(--hai); margin-top: 8px !important;
+  max-width: 860px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.sol { width: 96px; height: 96px; object-fit: contain; filter: drop-shadow(0 0 10px rgba(224, 48, 58, .5)); }
+
+/* Los sobres que se lleva: una placa de oro colgando debajo del rótulo */
+.sobres { margin: -2px 0 0; padding: 8px 22px 9px; border: 1px solid var(--oro); border-top: 0; border-radius: 0 0 8px 8px;
+  background: var(--noche); font-family: var(--dela); font-size: 24px; letter-spacing: .02em; color: var(--oro);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .5), 0 0 16px rgba(235, 210, 138, .25);
+  animation: caer .45s cubic-bezier(.2, .9, .25, 1.2) .9s both; }
+
+@keyframes bajar { from { transform: translateY(-140%); } to { transform: none; } }
+@keyframes subir { to { transform: translateY(-150%); opacity: .6; } }
+@keyframes caer { from { transform: translateY(-100%); opacity: 0; } to { transform: none; opacity: 1; } }
+/* Un tubo que arranca: falla un par de veces y se queda encendido */
+@keyframes encender {
+  0% { outline-color: transparent; box-shadow: 0 0 0 2px rgba(0, 0, 0, .6), 0 18px 50px rgba(0, 0, 0, .55); }
+  12% { outline-color: var(--luz-claro); }
+  20% { outline-color: transparent; }
+  34% { outline-color: var(--luz-claro); }
+  40% { outline-color: transparent; }
+  55%, 100% { outline-color: var(--luz-claro);
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, .6), 0 18px 50px rgba(0, 0, 0, .55), 0 0 26px color-mix(in srgb, var(--luz) 55%, transparent),
+      inset 0 0 22px color-mix(in srgb, var(--luz) 25%, transparent); }
+}
+@keyframes zumbido { 0%, 100% { opacity: 1; } 48% { opacity: 1; } 50% { opacity: .82; } 52% { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .alerta, .alerta.sale, .rotulo, .kanji, .sobres { animation-duration: .01s !important; animation-delay: 0s !important; }
+}
