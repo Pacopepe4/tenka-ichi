@@ -57,8 +57,17 @@ body { background: var(--sumi); font-synthesis-weight: none; }
 .boton-secundario:hover { border-color: var(--oro); }
 .filtros button::before { transform: none; border-radius: 999px; }
 
-/* Portada: el sol en neón sobre la noche, a la derecha del título, en una placa */
-.portada { background: radial-gradient(60% 70% at 26% 50%, rgba(224, 48, 58, .14), transparent 70%), var(--sumi); }
+/* Portada: el coche derrapando en el callejón mojado (el fondo del teaser). El texto pasa a la izquierda, sobre la noche,
+   y el coche queda entero a la derecha; el sol, pequeño, cuelga arriba como un letrero de neón más del callejón */
+.portada { grid-template-columns: minmax(0, 50%) 1fr; background:
+  linear-gradient(90deg, var(--sumi) 0%, var(--sumi) 16%, rgba(12, 13, 19, .9) 30%, rgba(12, 13, 19, .45) 50%, rgba(12, 13, 19, .05) 70%),
+  linear-gradient(180deg, rgba(12, 13, 19, .5) 0%, transparent 20%, transparent 74%, var(--sumi) 100%),
+  url("/marca/fondo-coche.jpg") right -14vw center / auto 100% no-repeat, var(--sumi); }
+.portada-texto { grid-column: 1; padding-left: clamp(40px, 6vw, 110px); }
+@media (min-width: 761px) and (max-width: 1200px) { .portada { background-position: 0 0, 0 0, right -30vw center; } }
+.papel { inset: 0 0 0 auto; width: 50%; }
+.portada .papel img { position: absolute; top: clamp(40px, 7vh, 80px); right: clamp(32px, 4vw, 72px); width: clamp(96px, 10vw, 170px); height: auto; padding: 0;
+  filter: drop-shadow(0 0 18px rgba(224, 48, 58, .55)); }
 .portada::before { display: none; }
 .portada::after { border: 1px solid var(--sumi-linea); border-radius: 8px; box-shadow: none; }
 .papel { clip-path: none; background: transparent; animation: aparecer 1s var(--curva) both; }
@@ -108,6 +117,9 @@ footer { border-top: 1px solid var(--sumi-linea); background: var(--sumi); }
 .volteable .dorso { background: var(--sumi-alzado); box-shadow: inset 0 0 0 1px var(--sumi-linea), 0 12px 26px rgba(0, 0, 0, .5); }
 
 @media (max-width: 760px) {
-  .papel { height: 70vw; }
-  .papel img { padding: 24px; }
+  /* En el móvil el coche va arriba, a lo ancho, y el texto debajo sobre la noche */
+  .portada { grid-template-columns: 1fr; background: var(--sumi); }
+  .portada-texto { padding-left: calc(var(--margen) + 10px); }
+  .papel { inset: auto; width: 100%; height: 62vw; background: linear-gradient(180deg, transparent 60%, var(--sumi)), url("/marca/fondo-coche-movil.jpg") 62% 50% / cover no-repeat; }
+  .portada .papel img { top: 16px; right: 18px; width: 72px; }
 }
