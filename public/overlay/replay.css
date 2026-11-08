@@ -11,26 +11,28 @@ body[data-vista="replay"] #replay { opacity: 1; visibility: visible; transition:
 body[data-vista="replay"] #lienzo { opacity: 0; visibility: hidden; transition: opacity .5s ease, visibility 0s .5s; }
 body[data-vista="replay"] .codigo-directo { display: none; }
 
-.replay-cartel { position: absolute; left: 48px; top: 48px; display: grid; grid-template-columns: auto auto auto; align-items: center; gap: 26px;
-  padding: 20px 26px 20px 28px; border-radius: 8px; border: 1px solid var(--sumi-linea);
+/* Compacto y pegado a la esquina: la repetición lleva el marcador de la partida arriba en el centro, y el cartel no puede
+   tapar el nombre de la familia azul, que empieza hacia x 465 (estilo B) o 491 (A). Mide unos 410 px de ancho (acaba hacia x 435) */
+.replay-cartel { position: absolute; left: 24px; top: 24px; display: grid; grid-template-columns: auto auto auto; align-items: center; gap: 12px;
+  padding: 12px 14px 12px 18px; border-radius: 8px; border: 1px solid var(--sumi-linea);
   background: linear-gradient(180deg, rgba(21, 22, 31, .96), rgba(12, 13, 19, .96));
-  outline: 2px solid var(--shu-claro); outline-offset: -9px;
+  outline: 2px solid var(--shu-claro); outline-offset: -7px;
   box-shadow: 0 0 0 2px rgba(0, 0, 0, .6), 0 18px 50px rgba(0, 0, 0, .55), 0 0 26px rgba(224, 48, 58, .5), inset 0 0 22px rgba(224, 48, 58, .22); }
-.replay-sello { font-family: var(--pincel); font-size: 108px; line-height: 1; color: var(--shu-neon); text-shadow: 0 0 6px var(--shu-claro), 0 0 18px var(--shu), 0 0 40px var(--shu); }
+.replay-sello { font-family: var(--pincel); font-size: 58px; line-height: 1; color: var(--shu-neon); text-shadow: 0 0 6px var(--shu-claro), 0 0 18px var(--shu), 0 0 40px var(--shu); }
 .replay-texto { display: flex; flex-direction: column; }
-.replay-palabra { font-family: var(--dela); font-weight: 400; font-size: 88px; line-height: 1.05; letter-spacing: .04em; color: #fff;
+.replay-palabra { font-family: var(--dela); font-weight: 400; font-size: 44px; line-height: 1.1; letter-spacing: .03em; color: #fff;
   text-shadow: 0 2px 0 rgba(0, 0, 0, .5); }
-.replay-pie { margin-top: 2px; font-family: var(--gothic); font-weight: 700; font-size: 18px; letter-spacing: .32em; text-transform: uppercase;
+.replay-pie { margin-top: 2px; font-family: var(--gothic); font-weight: 700; font-size: 10.5px; letter-spacing: .22em; text-transform: uppercase;
   color: var(--shu-neon); text-shadow: 0 0 10px var(--shu); }
 /* El PNG del sol en neón lleva mucho margen para el halo: se agranda y se le come ese margen */
-.replay-sol { width: 160px; height: 160px; margin: -26px -26px -26px -18px; object-fit: contain; }
+.replay-sol { width: 92px; height: 92px; margin: -18px -18px -18px -14px; object-fit: contain; }
 
 /* Hasta que entra, no se ve nada (así no parpadea el cartel entero antes de empezar la animación) */
 .replay-cartel:not(.entra) { opacity: 0; }
 .replay-cartel.entra { animation: replay-bajar .5s cubic-bezier(.2, .9, .25, 1.15) var(--retraso, 0s) both,
   replay-encender 1s steps(1, end) calc(var(--retraso, 0s) + .25s) both; }
 .replay-cartel.entra .replay-sello, .replay-cartel.entra .replay-sol { animation: replay-zumbido 4s ease-in-out calc(var(--retraso, 0s) + 1.4s) infinite; }
-@keyframes replay-bajar { from { opacity: 0; transform: translateY(-60px); } to { opacity: 1; transform: none; } }
+@keyframes replay-bajar { from { opacity: 0; transform: translateY(-40px); } to { opacity: 1; transform: none; } }
 /* Un tubo que arranca: falla un par de veces y se queda encendido */
 @keyframes replay-encender {
   0% { outline-color: transparent; } 12% { outline-color: var(--shu-claro); } 22% { outline-color: transparent; }
