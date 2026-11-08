@@ -157,8 +157,10 @@ function pintarCompartir() {
 async function imagenDe(que) {
   const info = est.info, mias = misCartas();
   if (que === 'coleccion') {
-    return imagenColeccion({ nombre: info.usuario.nombre, total: info.catalogo.length, nombreClan,
-      cartas: info.catalogo.filter(c => mias.get(c.id)).map(c => ({ ...c, cantidad: mias.get(c.id) })) });
+    // La colección son las de jugador, BOOST y LEGACY: los jefes y las conmemorativas son premios aparte
+    const coleccion = info.catalogo.filter(c => ['jugador', 'boost', 'legacy'].includes(c.tipo));
+    return imagenColeccion({ nombre: info.usuario.nombre, total: coleccion.length, nombreClan,
+      cartas: coleccion.filter(c => mias.get(c.id)).map(c => ({ ...c, cantidad: mias.get(c.id) })) });
   }
   const yo = est.fantasia.yo, ali = yo?.alineacion || {};
   return imagenAlineacion({ nombre: info.usuario.nombre, nombreClan, total: yo?.puntos || 0, puesto: yo?.puesto || null,
@@ -197,27 +199,36 @@ $('.canje').addEventListener('submit', async e => {
   pintarCuenta();
 });
 
-// ---------- fundir repetidas: cada 5 copias que sobran, un sobre ----------
+// ---------- fundir repetidas: por una tirada o para mejorar de tier ----------
+// Dos maneras (pestañas del diálogo): cada est.info.repetidasPorSobre (5) repetidas cualesquiera, una tirada; o cada
+// est.info.repetidasPorMejora (3) repetidas de la misma tier, una carta al azar de la tier siguiente (D→C… A→S).
 // De cada carta se queda al menos una copia; de las BOOST, también las que estén puestas en la alineación
 const dialogoFundir = $('.fundir');
-let aFundir = new Map();
+let aFundir = new Map(), modoFundir = 'sobre', tierFundir = null;
+const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
 function sobrantes() {
   const enUso = boostsDe().filter(Boolean).map(b => b.carta);
   return (est.info.usuario?.cartas || []).map(c => ({ carta: cartaPorId(c.id), cantidad: c.cantidad,
     sobran: c.cantidad - Math.max(1, enUso.filter(id => id === c.id).length) })).filter(x => x.carta && x.sobran > 0)
     .sort((a, b) => TIERS.indexOf(b.carta.tier) - TIERS.indexOf(a.carta.tier) || (a.carta.tipo === 'boost') - (b.carta.tipo === 'boost') || a.carta.nombre.localeCompare(b.carta.nombre));
 }
+// Las que se pueden mejorar: de jugador o BOOST y de una tier que tenga siguiente
+const mejorables = () => sobrantes().filter(x => ['jugador', 'boost'].includes(x.carta.tipo) && est.info.tierSiguiente?.[x.carta.tier]);
 function pintarFundir() {
   const boton = $('.fundir-abrir');
   boton.hidden = !est.info.usuario || !sobrantes().length;
 }
+const enLista = () => (modoFundir === 'sobre' ? sobrantes() : mejorables().filter(x => x.carta.tier === tierFundir));
+const cuantasPor = () => (modoFundir === 'sobre' ? est.info.repetidasPorSobre : est.info.repetidasPorMejora);
 function pintarCuentaFundir() {
-  const n = est.info.repetidasPorSobre, total = [...aFundir.values()].reduce((s, x) => s + x, 0), sobres = Math.floor(total / n), faltan = (n - total % n) % n;
-  $('.cuenta-fundir').textContent = !total ? `Elige ${n} cartas` : faltan ? `${total} ${total === 1 ? 'elegida' : 'elegidas'}: ${faltan === 1 ? 'falta 1' : `faltan ${faltan}`} para ${sobres + 1} ${sobres + 1 === 1 ? 'sobre' : 'sobres'}`
-    : `${total} cartas por ${sobres} ${sobres === 1 ? 'sobre' : 'sobres'}`;
+  const n = cuantasPor(), total = [...aFundir.values()].reduce((s, x) => s + x, 0), salen = Math.floor(total / n), faltan = (n - total % n) % n;
+  const premio = k => (modoFundir === 'sobre' ? plural(k, 'tirada', 'tiradas') : `${plural(k, 'carta', 'cartas')} de tier ${est.info.tierSiguiente[tierFundir]}`);
+  $('.cuenta-fundir').textContent = modoFundir === 'tier' && !tierFundir ? 'Elige una tier'
+    : !total ? `Elige ${n} cartas` : faltan ? `${plural(total, 'elegida', 'elegidas')}: ${faltan === 1 ? 'falta 1' : `faltan ${faltan}`} para ${premio(salen + 1)}`
+      : `${total} cartas por ${premio(salen)}`;
   const confirmar = dialogoFundir.querySelector('.confirmar');
   confirmar.disabled = !total || Boolean(faltan);
-  confirmar.textContent = total && !faltan ? `Fundir por ${sobres} ${sobres === 1 ? 'sobre' : 'sobres'}` : 'Fundir';
+  confirmar.textContent = total && !faltan ? `${modoFundir === 'sobre' ? 'Fundir' : 'Mejorar'} por ${premio(salen)}` : modoFundir === 'sobre' ? 'Fundir' : 'Mejorar';
   dialogoFundir.querySelectorAll('.opcion-fundir').forEach(o => {
     const elegidas = aFundir.get(o.dataset.id) || 0;
     o.querySelector('output').textContent = elegidas;
@@ -226,20 +237,36 @@ function pintarCuentaFundir() {
     o.querySelector('.mas').disabled = elegidas >= Number(o.dataset.sobran);
   });
 }
-function abrirFundir() {
-  const lista = sobrantes(), n = est.info.repetidasPorSobre;
+function pintarOpcionesFundir() {
+  const lista = enLista(), n = cuantasPor();
   aFundir = new Map();
-  $('.nota-fundir').textContent = `Cada ${n} cartas repetidas que fundas se convierten en un sobre nuevo. De cada carta te quedas siempre una copia, y las BOOST que tienes en la alineación no se tocan.`;
-  dialogoFundir.querySelector('.opciones').innerHTML = lista.map(x => `<div class="opcion-fundir" data-id="${escapar(x.carta.id)}" data-sobran="${x.sobran}">
+  dialogoFundir.querySelector('.confirmar').hidden = false;
+  dialogoFundir.querySelector('.solas').hidden = false;
+  dialogoFundir.querySelector('.cancelar').textContent = 'Cancelar';
+  dialogoFundir.querySelectorAll('.modo-fundir button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.modo === modoFundir)));
+  // En «mejorar», primero la tier: cuántas te sobran de cada una
+  const porTier = new Map();
+  for (const x of mejorables()) porTier.set(x.carta.tier, (porTier.get(x.carta.tier) || 0) + x.sobran);
+  const tiers = dialogoFundir.querySelector('.tiers-fundir');
+  tiers.hidden = modoFundir !== 'tier';
+  tiers.innerHTML = Object.keys(est.info.tierSiguiente || {}).map(t => `<button type="button" role="tab" data-tier="${t}" aria-selected="${t === tierFundir}" ${porTier.get(t) >= n ? '' : 'disabled'}
+      style="--color-tier: var(--tier-${claveTier(t)})"><b>${t}</b> → ${est.info.tierSiguiente[t]}<small>${porTier.get(t) ? `te sobran ${porTier.get(t)}` : 'no te sobra ninguna'}</small></button>`).join('');
+  tiers.querySelectorAll('button').forEach(b => b.addEventListener('click', () => { tierFundir = b.dataset.tier; pintarOpcionesFundir(); }));
+  $('.nota-fundir').textContent = modoFundir === 'sobre'
+    ? `Cada ${n} cartas repetidas que fundas se convierten en una tirada. De cada carta te quedas siempre una copia, y las BOOST que tienes en la alineación no se tocan.`
+    : `Cada ${n} repetidas de la misma tier se convierten en una carta al azar de la tier siguiente. De cada carta te quedas siempre una copia; las S, las S+ y las LEGACY no se mejoran.`;
+  dialogoFundir.querySelector('.opciones').innerHTML = modoFundir === 'tier' && !tierFundir ? ''
+    : lista.length ? lista.map(x => `<div class="opcion-fundir" data-id="${escapar(x.carta.id)}" data-sobran="${x.sobran}">
     ${cartaHTML(x.carta, x.cantidad)}
     <div class="contador"><button type="button" class="menos" aria-label="Fundir una menos de ${escapar(x.carta.nombre)}">−</button><output>0</output><button type="button" class="mas" aria-label="Fundir una más de ${escapar(x.carta.nombre)}">+</button></div>
-    <small>${x.sobran === 1 ? 'Te sobra 1' : `Te sobran ${x.sobran}`}</small></div>`).join('');
+    <small>${x.sobran === 1 ? 'Te sobra 1' : `Te sobran ${x.sobran}`}</small></div>`).join('')
+      : '<p class="sin-cartas">No te sobra ninguna de esta tier.</p>';
   dialogoFundir.querySelectorAll('.opcion-fundir').forEach(o => {
     const cambiar = d => { aFundir.set(o.dataset.id, Math.max(0, Math.min(Number(o.dataset.sobran), (aFundir.get(o.dataset.id) || 0) + d))); pintarCuentaFundir(); };
     o.querySelector('.menos').onclick = () => cambiar(-1);
     o.querySelector('.mas').onclick = () => cambiar(1);
   });
-  // «Elegir por mí»: las de peor tier primero, hasta el múltiplo de 5 más alto que se pueda
+  // «Elegir por mí»: las de peor tier primero (o las de la tier elegida), hasta el múltiplo más alto que se pueda
   dialogoFundir.querySelector('.solas').onclick = () => {
     const total = lista.reduce((s, x) => s + x.sobran, 0);
     let quedan = total - total % n;
@@ -248,17 +275,40 @@ function abrirFundir() {
     pintarCuentaFundir();
   };
   pintarCuentaFundir();
+}
+function abrirFundir() {
+  modoFundir = 'sobre';
+  tierFundir = null;
+  pintarOpcionesFundir();
   dialogoFundir.showModal();
 }
+dialogoFundir.querySelectorAll('.modo-fundir button').forEach(b => b.addEventListener('click', () => { modoFundir = b.dataset.modo; tierFundir = null; pintarOpcionesFundir(); }));
 $('.fundir-abrir').onclick = abrirFundir;
 dialogoFundir.querySelector('.cancelar').onclick = () => dialogoFundir.close();
+// Al cerrar después de mejorar, la página se repinta con las cartas nuevas
+dialogoFundir.addEventListener('close', () => { if (dialogoFundir.dataset.mejorado) { delete dialogoFundir.dataset.mejorado; pintar(); } });
 dialogoFundir.querySelector('.confirmar').onclick = async e => {
   e.currentTarget.disabled = true;
-  const r = await fetch('/api/gacha/fundir', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+  const sobre = modoFundir === 'sobre';
+  const r = await fetch(sobre ? '/api/gacha/fundir' : '/api/gacha/fundir-tier', { method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ cartas: Object.fromEntries([...aFundir].filter(([, x]) => x > 0)) }) }).then(x => x.json()).catch(() => ({ ok: false, error: 'No hay conexión con la web' }));
   if (!r.ok) { $('.cuenta-fundir').textContent = r.error; e.currentTarget.disabled = false; return; }
   est.info.usuario = r.usuario;
-  dialogoFundir.close();
-  pintar();
-  avisar(r.sobres === 1 ? `Has fundido ${r.cartas} cartas: tienes un sobre más.` : `Has fundido ${r.cartas} cartas: tienes ${r.sobres} sobres más.`);
+  if (sobre) {
+    dialogoFundir.close();
+    pintar();
+    avisar(r.sobres === 1 ? `Has fundido ${r.cartas} cartas: tienes una tirada más.` : `Has fundido ${r.cartas} cartas: tienes ${r.sobres} tiradas más.`);
+    return;
+  }
+  // Mejorar: se enseña lo que ha salido (y el premio si se ha completado una familia) en el mismo diálogo
+  const salidas = [...r.cartas, ...r.premios.map(p => p.carta).filter(Boolean)];
+  dialogoFundir.dataset.mejorado = '1';
+  $('.nota-fundir').textContent = `Has fundido ${r.fundidas} cartas de tier ${tierFundir}. Te ha salido:`
+    + r.premios.map(p => ` ¡Familia ${nombreClan(p.clan)} completa: una tirada más y su jefe!`).join('');
+  dialogoFundir.querySelector('.tiers-fundir').hidden = true;
+  dialogoFundir.querySelector('.opciones').innerHTML = salidas.map(c => `<div class="opcion-fundir resultado">${cartaHTML(c)}<small>${c.nueva ? '¡Nueva!' : `Repetida ×${c.copias}`}</small></div>`).join('');
+  $('.cuenta-fundir').textContent = '';
+  dialogoFundir.querySelector('.confirmar').hidden = true;
+  dialogoFundir.querySelector('.solas').hidden = true;
+  dialogoFundir.querySelector('.cancelar').textContent = 'Cerrar';
 };

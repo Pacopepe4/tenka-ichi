@@ -361,6 +361,16 @@ html.con-movimiento .tabla-prob.revelar.visto .barra-prob span { transform: scal
 .elegir .opcion-rol:hover, .elegir .opcion-rol[aria-pressed="true"] { border-color: var(--oro); }
 .acciones-elegir { display: flex; justify-content: flex-end; align-items: center; flex-wrap: wrap; gap: 10px 20px; margin-top: 22px; }
 .nota-fundir { margin: 0 0 18px; color: var(--hai); font-size: 15px; max-width: 46em; }
+/* Fundir: «por una tirada» o «mejorar de tier»; en mejorar, primero la tier (con lo que te sobra de cada una) */
+.modo-fundir { margin: 4px 0 14px; }
+.tiers-fundir { display: flex; flex-wrap: wrap; gap: 10px; margin: -6px 0 18px; }
+.tiers-fundir button { display: grid; gap: 2px; min-width: 112px; padding: 10px 14px; border: 1px solid var(--sumi-linea); border-radius: 8px; background: var(--sumi); color: var(--washi);
+  font: inherit; font-size: 15px; text-align: left; cursor: pointer; }
+.tiers-fundir button b { color: var(--color-tier); font-family: var(--rotulo, inherit); font-weight: 400; }
+.tiers-fundir button small { color: var(--hai); font-size: 12px; }
+.tiers-fundir button[aria-selected="true"] { border-color: var(--color-tier); box-shadow: 0 0 0 1px var(--color-tier), 0 0 14px color-mix(in srgb, var(--color-tier) 45%, transparent); }
+.tiers-fundir button:disabled { opacity: .4; cursor: default; }
+.opcion-fundir.resultado small { color: var(--washi); font-weight: 700; }
 .fundir .opciones { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 16px 12px; }
 .opcion-fundir { display: flex; flex-direction: column; gap: 6px; align-items: center; }
 .opcion-fundir .carta-g { width: 100%; transition: outline-color .2s, transform .2s; outline: 2px solid transparent; outline-offset: 3px; }

@@ -148,7 +148,12 @@
 
 <dialog class="fundir" aria-labelledby="titulo-fundir">
   <h3 id="titulo-fundir">Fundir repetidas</h3>
+  <div class="filtros modo-fundir" role="tablist" aria-label="Qué hacer con las repetidas">
+    <button type="button" role="tab" aria-selected="true" data-modo="sobre">Por una tirada</button>
+    <button type="button" role="tab" aria-selected="false" data-modo="tier">Mejorar de tier</button>
+  </div>
   <p class="nota-fundir"></p>
+  <div class="tiers-fundir" role="tablist" aria-label="Tier que quieres mejorar" hidden></div>
   <div class="opciones"></div>
   <div class="acciones-elegir">
     <span class="cuenta-fundir" role="status"></span>

@@ -512,7 +512,8 @@ export const canjeProcesado = id => canjes.has(id);
 // ---------- temporada nueva ----------
 // Al estrenar una temporada todos empiezan de cero, con los sobres de bienvenida: quien ya había entrado en la anterior
 // conserva su cuenta (no tiene que registrarse otra vez) y su Twitch y su Kick vinculados, y no arrastra ni cartas, ni sobres, ni
-// historial. El registro de la temporada anterior no se toca: se queda como estaba, en su pestaña o en su archivo.
+// historial. Lo único que se arrastra son las cartas conmemorativas: las que ya tenía y, si acabó la anterior con
+// CARTAS_CONMEMORATIVA cartas distintas (de jugador, BOOST o LEGACY), la de esa temporada. El registro de la temporada anterior no se toca: se queda como estaba, en su pestaña o en su archivo.
 // Se hace una sola vez: queda apuntado en el registro nuevo con un movimiento «temporada», que va en la misma escritura
 // que las altas. Devuelve { cuentas } o null si ya estaba estrenada (o si es la primera, que no tiene anterior)
 const marcaDeEstreno = () => registro.find(e => e.tipo === 'temporada') || null;
@@ -527,14 +528,23 @@ export const estrenarTemporada = () => enCola(async () => {
     if (marcaDeEstreno()) { errorDeEstreno = null; return null; }
     // Las cuentas de la temporada anterior salen de leer su registro igual que se lee el de esta
     reconstruir(await leerRegistro(TEMPORADA - 1));
-    const cuentas = [...usuarios.values()].filter(u => u.alta).map(u => ({ id: u.id, nombre: u.nombre, twitch: u.twitch, kick: u.kick }));
+    const coleccion = new Set(cartasDeColeccion().map(c => c.id)), suya = `TEMPORADA-T${TEMPORADA - 1}`;
+    const conmemorativas = u => {
+      const tiene = [...u.cartas.keys()];
+      const ya = tiene.filter(id => id.startsWith('TEMPORADA-T'));
+      const distintas = tiene.filter(id => coleccion.has(id)).length;
+      return [...new Set([...ya, ...(distintas >= CARTAS_CONMEMORATIVA ? [suya] : [])])];
+    };
+    const cuentas = [...usuarios.values()].filter(u => u.alta).map(u => ({ id: u.id, nombre: u.nombre, twitch: u.twitch, kick: u.kick, conmemorativas: conmemorativas(u) }));
     reconstruir();
     const fecha = ahora(), tiene = id => usuarios.get(id);
     const eventos = [{ fecha, id: 'tenka-ichi', usuario: 'Tenka Ichi', tipo: 'temporada', detalle: `T${TEMPORADA}`, cantidad: cuentas.length },
       ...cuentas.flatMap(c => [
         ...(tiene(c.id)?.alta ? [] : [{ fecha, id: c.id, usuario: c.nombre, tipo: 'alta', detalle: '', cantidad: SOBRES_INICIALES }]),
         ...(c.twitch && !tiene(c.id)?.twitch ? [{ fecha, id: c.id, usuario: c.nombre, tipo: 'vinculo', detalle: detalleVinculo(c.twitch), cantidad: 0 }] : []),
-        ...(c.kick && !tiene(c.id)?.kick ? [{ fecha, id: c.id, usuario: c.nombre, tipo: 'vinculo', detalle: detalleVinculo(c.kick, 'kk'), cantidad: 0 }] : [])])];
+        ...(c.kick && !tiene(c.id)?.kick ? [{ fecha, id: c.id, usuario: c.nombre, tipo: 'vinculo', detalle: detalleVinculo(c.kick, 'kk'), cantidad: 0 }] : []),
+        ...c.conmemorativas.filter(id => !tiene(c.id)?.cartas.has(id))
+          .map(id => ({ fecha, id: c.id, usuario: c.nombre, tipo: 'premio-carta', detalle: id, cantidad: 1, rareza: TIER_TEMPORADA }))])];
     if (hojaActiva()) {
       // Todo en una sola escritura. Después manda lo que haya quedado en la hoja: puede haberse escrito aunque la
       // respuesta no llegara, y repetirlo daría los sobres dos veces
@@ -627,6 +637,43 @@ export const fundirRepetidas = (u, pedidas, minimo = () => 1) => enCola(async ()
     { fecha, id: u.id, usuario: u.nombre, tipo: 'fundido', detalle: `${total} cartas`, cantidad: sobres },
   ]);
   return { sobres, cartas: total };
+});
+
+// ---------- fusión por tiers ----------
+// Cada REPETIDAS_POR_MEJORA repetidas de la misma tier (de jugador o BOOST, de D a A) se cambian por una carta al azar de
+// la tier siguiente (TIER_SIGUIENTE), con el sorteo de siempre dentro de esa tier. pedidas: { idDeCarta: copias }.
+// Como al fundir por sobres, de cada carta se queda al menos una copia, o las que diga minimo(id). La carta que sale
+// puede completar una familia: entonces llega también su premio. No cuenta para la garantía (no es de un sobre)
+export const fundirPorTier = (u, pedidas, minimo = () => 1) => enCola(async () => {
+  const yo = usuarios.get(u.id);
+  if (!yo) throw new Error('No tienes cartas que fundir');
+  const cat = catalogo(), porId = new Map(cat.map(c => [c.id, c]));
+  const lista = Object.entries(pedidas || {}).map(([id, n]) => [id, Math.round(Number(n))]).filter(([, n]) => n > 0);
+  const total = lista.reduce((s, [, n]) => s + n, 0);
+  if (!total) throw new Error('Elige las cartas repetidas que quieres mejorar');
+  const tiers = new Set(lista.map(([id]) => porId.get(id)?.tier));
+  const tier = [...tiers][0];
+  if (tiers.size !== 1 || lista.some(([id]) => esEstetica(porId.get(id) || { tipo: 'legacy' }))) throw new Error('Para mejorar, las cartas tienen que ser de jugador o BOOST y todas de la misma tier');
+  if (!TIER_SIGUIENTE[tier]) throw new Error(tier === 'S' || tier === 'S+' ? 'Las S y las S+ no se mejoran: ya son lo más alto' : 'Esas cartas no se pueden mejorar');
+  if (total % REPETIDAS_POR_MEJORA) throw new Error(`Se mejoran de ${REPETIDAS_POR_MEJORA} en ${REPETIDAS_POR_MEJORA}: llevas ${total}`);
+  for (const [id, n] of lista) {
+    if ((yo.cartas.get(id) || 0) - n < Math.max(1, minimo(id))) throw new Error('Solo se pueden fundir las copias que te sobran de cada carta');
+  }
+  const destino = cat.filter(c => !esEstetica(c) && c.tier === TIER_SIGUIENTE[tier] && c.peso > 0);
+  if (!destino.length) throw new Error(`Todavía no hay cartas de tier ${TIER_SIGUIENTE[tier]}`);
+  const fecha = ahora(), apunte = e => ({ fecha, id: u.id, usuario: u.nombre, cantidad: 0, ...e });
+  const mias = new Map(yo.cartas), familias = new Set(yo.familias);
+  for (const [id, n] of lista) mias.set(id, mias.get(id) - n);
+  const eventos = lista.map(([id, n]) => apunte({ tipo: 'fusion', detalle: id, cantidad: -n, rareza: tier }));
+  const cartas = [];
+  for (let i = 0; i < total / REPETIDAS_POR_MEJORA; i++) {
+    const c = sacarCarta(destino);
+    eventos.push(apunte({ tipo: 'mejora', detalle: c.id, cantidad: 1, rareza: c.tier }));
+    cartas.push(ganada(mias, c));
+  }
+  const familia = premiosDeFamilia(cat, mias, familias, apunte);
+  await registrar([...eventos, ...familia.eventos]);
+  return { cartas, premios: familia.premios, fundidas: total };
 });
 
 export function estadoUsuario(id) {

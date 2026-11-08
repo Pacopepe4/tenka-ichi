@@ -20,7 +20,7 @@ import { cargarTierlist, vistaTierlist, ponerTier } from './tierlist.js';
 import { cargarAjustes, ajuste, guardarAjustes } from './ajustes.js';
 import { cargarTierlistsPublico, candidatos, tierlistDe, guardarTierlistPublico } from './mitierlist.js';
 import { aplicarImportaciones } from './importaciones.js';
-import { cargarGacha, catalogo, cartasDeColeccion, probabilidades, abrirSobre, abrirSobres, darAlta, darSobres, estadoUsuario, buscarUsuario, resumenGacha, fundirRepetidas,
+import { cargarGacha, catalogo, cartasDeColeccion, probabilidades, abrirSobre, abrirSobres, fundirPorTier, darAlta, darSobres, estadoUsuario, buscarUsuario, resumenGacha, fundirRepetidas,
   vincularTwitch, desvincularTwitch, vincularKick, desvincularKick, sobresListos, reparto, estrenarTemporada, estadoTemporada,
   PESOS, CARTAS_POR_SOBRE, SOBRES_INICIALES, REPETIDAS_POR_SOBRE, PROBABILIDAD_LEGACY, CARPETA_ARTE, reversoCarta,
   GARANTIA_A, GARANTIA_S, MAXIMO_TIRADAS, REPETIDAS_POR_MEJORA, TIER_SIGUIENTE, CARTAS_CONMEMORATIVA } from './gacha.js';
@@ -858,6 +858,20 @@ async function rutasSesion(req, res, url) {
       const { cartas } = await leerCuerpo(req);
       const enUso = (infoFantasy(u).yo?.alineacion?.boosts || []).filter(Boolean).map(b => b.carta);
       const r = await fundirRepetidas(u, cartas, id => enUso.filter(x => x === id).length);
+      return json(res, { ok: true, ...r, usuario: estadoDe(u) });
+    } catch (e) {
+      return json(res, { ok: false, error: e.message }, 400);
+    }
+  }
+
+  // Fusión por tiers: 3 repetidas de la misma tier por una carta de la siguiente. Las BOOST alineadas no se tocan
+  if (p === '/api/gacha/fundir-tier' && req.method === 'POST') {
+    const u = usuarioDeSesion(req);
+    if (!u) return json(res, { ok: false, error: 'Entra con tu cuenta de Discord para mejorar cartas' }, 401);
+    try {
+      const { cartas } = await leerCuerpo(req);
+      const enUso = (infoFantasy(u).yo?.alineacion?.boosts || []).filter(Boolean).map(b => b.carta);
+      const r = await fundirPorTier(u, cartas, id => enUso.filter(x => x === id).length);
       return json(res, { ok: true, ...r, usuario: estadoDe(u) });
     } catch (e) {
       return json(res, { ok: false, error: e.message }, 400);
