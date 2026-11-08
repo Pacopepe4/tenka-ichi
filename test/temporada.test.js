@@ -20,17 +20,17 @@ let carpeta, g, fantasy;
 const ana = { id: 'discord-1', nombre: 'Ana' }, beto = { id: 'discord-2', nombre: 'Beto' }, eva = { id: 'discord-5', nombre: 'Eva' };
 const archivo = nombre => path.join(carpeta, nombre);
 const leerArchivo = nombre => readFile(archivo(nombre), 'utf8');
-const vacio = { sobres: 0, abiertos: 0, cartas: [], twitch: null };
+const vacio = { sobres: 0, abiertos: 0, cartas: [], twitch: null, kick: null };
 const alineados = u => Object.values(fantasy.infoFantasy(u).yo.alineacion).filter(x => typeof x === 'string').length;
 
-// La temporada 1, como la dejó la web: Ana con un sobre abierto y un regalo; Beto con su Twitch vinculado (apuntado
+// La temporada 1, como la dejó la web: Ana con un sobre abierto, un regalo y su Kick vinculado; Beto con su Twitch vinculado (apuntado
 // como antes, sin «tw:»), un canje y un código; Carla solo ha canjeado en Twitch y a Dani le han regalado sobres, pero
 // ninguno de los dos ha entrado nunca
 const mov = (id, usuario, tipo, detalle, cantidad, rareza = '') => ({ fecha: F, id, usuario, tipo, detalle, cantidad, rareza });
 const TEMPORADA_1 = [
   mov('discord-1', 'Ana', 'alta', '', 2), mov('discord-1', 'Ana', 'apertura', 'a1b2c3d4', -1),
   mov('discord-1', 'Ana', 'carta', 'KAIJU-TOP', 1, 'S'), mov('discord-1', 'Ana', 'carta', 'KAIJU-ADC', 1, 'C'), mov('discord-1', 'Ana', 'carta', 'KAIJU-SUPPORT', 1, 'D'),
-  mov('discord-1', 'Ana', 'regalo', 'Regalo del staff', 5),
+  mov('discord-1', 'Ana', 'regalo', 'Regalo del staff', 5), mov('discord-1', 'Ana', 'vinculo', 'kk:6001:ana_kick', 0),
   mov('discord-2', 'Beto', 'alta', '', 2), mov('discord-2', 'Beto', 'vinculo', '2002:beto_tw', 0),
   mov('2002', 'BETO_TW', 'canje', 'canje-1', 1), mov('2003', 'CARLA_TW', 'canje', 'canje-2', 1),
   mov('discord-2', 'Beto', 'codigo', 'KB1234', 2), mov('discord-9', 'Dani', 'regalo', 'Regalo del staff', 2)];
@@ -82,7 +82,7 @@ test('antes de estrenarla, la temporada nueva está vacía y la anterior sigue d
 
 test('al estrenarla, cada cuenta empieza con sus 3 sobres y su Twitch, sin cartas, sin historial y sin alineación', async () => {
   assert.deepEqual(await g.estrenarTemporada(), { cuentas: 2 });
-  assert.deepEqual(g.estadoUsuario(ana.id), { ...vacio, sobres: 3 });
+  assert.deepEqual(g.estadoUsuario(ana.id), { ...vacio, sobres: 3, kick: { login: 'ana_kick' } }, 'conserva su Kick vinculado');
   assert.deepEqual(g.estadoUsuario(beto.id), { ...vacio, sobres: 3, twitch: { login: 'beto_tw' } }, 'conserva su Twitch vinculado');
   assert.deepEqual([g.estadoUsuario('2003'), g.estadoUsuario('discord-9')], [vacio, vacio], 'quien no había entrado nunca no tiene cuenta');
   const r = g.resumenGacha();
@@ -94,7 +94,7 @@ test('al estrenarla, cada cuenta empieza con sus 3 sobres y su Twitch, sin carta
   // El registro nuevo: la marca del estreno y, por cada cuenta, su alta y su Twitch
   assert.deepEqual(JSON.parse(await leerArchivo('gacha-t2.json')).map(e => [e.id, e.tipo, e.detalle, e.cantidad]), [
     ['tenka-ichi', 'temporada', 'T2', 2],
-    [ana.id, 'alta', '', 3], [beto.id, 'alta', '', 3], [beto.id, 'vinculo', 'tw:2002:beto_tw', 0]]);
+    [ana.id, 'alta', '', 3], [ana.id, 'vinculo', 'kk:6001:ana_kick', 0], [beto.id, 'alta', '', 3], [beto.id, 'vinculo', 'tw:2002:beto_tw', 0]]);
   const t = g.estadoTemporada();
   assert.deepEqual([t.numero, t.estreno.cuentas, t.pendiente, t.error], [2, 2, false, null]);
 });
@@ -165,7 +165,7 @@ test('si el de la temporada anterior no se puede leer, tampoco; y quien ya tenga
   assert.deepEqual([g.estadoUsuario(ana.id).sobres, g.estadoUsuario(ana.id).abiertos], [2, 1], 'Ana sigue con lo suyo: no recibe otros tres sobres');
   assert.deepEqual(g.estadoUsuario(beto.id), { ...vacio, sobres: 3, twitch: { login: 'beto_tw' } });
   assert.deepEqual(JSON.parse(await leerArchivo('gacha-t2.json')).filter(e => ['temporada', 'alta', 'vinculo'].includes(e.tipo)).map(e => [e.id, e.tipo]),
-    [[ana.id, 'alta'], ['tenka-ichi', 'temporada'], [beto.id, 'alta'], [beto.id, 'vinculo']]);
+    [[ana.id, 'alta'], ['tenka-ichi', 'temporada'], [ana.id, 'vinculo'], [beto.id, 'alta'], [beto.id, 'vinculo']]);
 });
 
 // ---------- con la web entera y la hoja de Google (de mentira) ----------

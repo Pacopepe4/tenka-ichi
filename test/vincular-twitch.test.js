@@ -63,7 +63,7 @@ test('lo que ese Twitch ya tenía a su nombre (canjes de antes de vincularse) se
   const e = g.estadoUsuario(beto.id);
   assert.deepEqual([e.sobres, e.abiertos], [3 + 1, 1], 'los tres de bienvenida y el que le quedaba sin abrir');
   assert.equal(e.cartas.reduce((s, c) => s + c.cantidad, 0), 3, 'y las tres cartas del que abrió');
-  assert.deepEqual(g.estadoUsuario(twBeto.id), { sobres: 0, abiertos: 0, cartas: [], twitch: null });
+  assert.deepEqual(g.estadoUsuario(twBeto.id), { sobres: 0, abiertos: 0, cartas: [], twitch: null, kick: null });
   assert.deepEqual([g.resumenGacha().coleccionistas, g.resumenGacha().conTwitch], [2, 2]);
 });
 
@@ -119,4 +119,31 @@ test('los vínculos apuntados antes de llevar «tw:» delante se siguen leyendo 
   await writeFile(archivo, JSON.stringify(registro.map(e => (e.tipo === 'vinculo' ? { ...e, detalle: e.detalle.replace(/^tw:/, '') } : e))));
   await g.cargarGacha();
   assert.equal(foto(), antes);
+});
+
+test('una cuenta lleva a la vez su Twitch y su Kick, y cada uno suma por su lado aunque los ids coincidan', async () => {
+  // Los ids de Kick y de Twitch son números y pueden coincidir: los canjes de Kick van a «kick-» y su id
+  const kkAna = { id: '2001', login: 'ana_kick' };
+  const antes = g.estadoUsuario(ana.id).sobres;
+  await g.darSobres({ id: `kick-${kkAna.id}`, nombre: 'ana_kick' }, 2, 'canje', 'kick-canje-1');
+  assert.equal(g.estadoUsuario(ana.id).sobres, antes, 'aún no es suyo');
+  assert.equal(await g.vincularKick(ana, kkAna), true);
+  assert.equal(await g.vincularKick(ana, kkAna), false, 'otra vez lo mismo no hace nada');
+  await assert.rejects(g.vincularKick(ana, {}), /de quién es la cuenta/);
+  const e = g.estadoUsuario(ana.id);
+  assert.equal(e.sobres, antes + 2);
+  assert.deepEqual(e.kick, { login: 'ana_kick' });
+  assert.equal(g.resumenGacha().conKick, 1);
+  // Desvincular el Kick no toca el Twitch, ni al revés
+  const twitchAntes = g.estadoUsuario(beto.id).twitch;
+  await g.vincularKick(beto, { id: '7777', login: 'beto_kick' });
+  assert.equal(await g.desvincularKick(beto), true);
+  assert.deepEqual(g.estadoUsuario(beto.id).twitch, twitchAntes);
+  assert.equal(g.estadoUsuario(beto.id).kick, null);
+  // Y tras un reinicio queda igual, con el vínculo apuntado como «kk:id:nombre» y su retirada como «kk:»
+  const foto2 = JSON.stringify([ana.id, beto.id].map(id => g.estadoUsuario(id)).concat(g.resumenGacha()));
+  await g.cargarGacha();
+  assert.equal(JSON.stringify([ana.id, beto.id].map(id => g.estadoUsuario(id)).concat(g.resumenGacha())), foto2);
+  const registro = JSON.parse(await readFile(path.join(carpeta, 'gacha.json'), 'utf8'));
+  assert.deepEqual(registro.filter(e => e.tipo === 'vinculo' && /^kk:/.test(e.detalle)).map(e => e.detalle), ['kk:2001:ana_kick', 'kk:7777:beto_kick', 'kk:']);
 });

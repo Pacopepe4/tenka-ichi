@@ -65,23 +65,26 @@ function pintarCuenta() {
   }
   // Sin cartas de Jugador los sobres esperan: solo con las BOOST saldrían todas de las mejores
   $('.como-mas').innerHTML = (listos ? '' : '<b>Los sobres se abren cuando salgan las cartas de los jugadores:</b> el staff está preparando la tier list. ')
-    + (info.recompensa ? comoCanjear(u) : 'Más sobres: el staff los regala en premios y sorteos.');
-  const quitar = $('.como-mas .desvincular');
-  if (quitar) quitar.onclick = desvincularTwitch;
+    + ([info.recompensa && comoCanjear(u, TWITCH), info.recompensaKick && comoCanjear(u, KICK)].filter(Boolean).join('<br>')
+      || 'Más sobres: el staff los regala en premios y sorteos.');
+  $('.como-mas .desvincular[data-de="twitch"]')?.addEventListener('click', () => desvincular('twitch'));
+  $('.como-mas .desvincular[data-de="kick"]')?.addEventListener('click', () => desvincular('kick'));
 }
 
-// Puntos del canal de Twitch: se ganan viendo el directo y se canjean allí por sobres. Para que el sobre llegue a esta
-// colección, cada uno vincula su Twitch a su cuenta (una vez)
-function comoCanjear(u) {
-  const canal = `<a href="https://twitch.tv/${info.canal}" target="_blank" rel="noopener">twitch.tv/${info.canal}</a>`;
-  const canje = `<b>${escapar(info.recompensa.titulo)}</b> por ${info.recompensa.coste} puntos del canal`;
-  if (!u) return `Más sobres con los puntos del canal de ${canal}, que se ganan viendo el directo: entra, vincula tu Twitch y canjea ${canje}.`;
-  if (u.twitch) return `Twitch vinculado: <b>${escapar(u.twitch.login)}</b>. Canjea ${canje} en ${canal} y el sobre te llega aquí en un minuto. <button type="button" class="desvincular">Desvincular</button>`;
-  return `Más sobres con los puntos del canal, que se ganan viendo el directo: <a class="vincular" href="/auth/twitch/vincular">vincula tu Twitch</a> y canjea ${canje} en ${canal}.`;
+// Puntos del canal de Twitch y de Kick: se ganan viendo el directo y se canjean allí por sobres (en Twitch, «Sobre de
+// Gokudō»; en Kick, «Omamori»). Para que el sobre llegue a esta colección, cada uno vincula su cuenta (una vez)
+const TWITCH = { clave: 'twitch', nombre: 'Twitch', canal: () => `twitch.tv/${info.canal}`, recompensa: () => info.recompensa };
+const KICK = { clave: 'kick', nombre: 'Kick', canal: () => `kick.com/${info.canalKick}`, recompensa: () => info.recompensaKick };
+function comoCanjear(u, p) {
+  const canal = `<a href="https://${p.canal()}" target="_blank" rel="noopener">${p.canal()}</a>`;
+  const r = p.recompensa(), canje = `<b>${escapar(r.titulo)}</b> por ${r.coste} puntos del canal`;
+  if (!u) return `Más sobres con los puntos del canal de ${canal}, que se ganan viendo el directo: entra, vincula tu ${p.nombre} y canjea ${canje}.`;
+  if (u[p.clave]) return `${p.nombre} vinculado: <b>${escapar(u[p.clave].login)}</b>. Canjea ${canje} en ${canal} y el sobre te llega aquí en un minuto. <button type="button" class="desvincular" data-de="${p.clave}">Desvincular</button>`;
+  return `Más sobres con los puntos del canal de ${canal}, que se ganan viendo el directo: <a class="vincular" href="/auth/${p.clave}/vincular">vincula tu ${p.nombre}</a> y canjea ${canje}.`;
 }
 
-async function desvincularTwitch() {
-  const r = await fetch('/api/gacha/desvincular-twitch', { method: 'POST' }).then(x => x.json()).catch(() => ({ ok: false, error: 'No hay conexión con la web: prueba otra vez' }));
+async function desvincular(de) {
+  const r = await fetch(`/api/gacha/desvincular-${de}`, { method: 'POST' }).then(x => x.json()).catch(() => ({ ok: false, error: 'No hay conexión con la web: prueba otra vez' }));
   if (!r.ok) return avisar(r.error);
   info.usuario = r.usuario;
   pintarCuenta();

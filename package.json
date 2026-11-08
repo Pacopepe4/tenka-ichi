@@ -11,6 +11,7 @@
     "simular": "node scripts/simular.js",
     "test": "node --test test/*.test.js",
     "twitch-falso": "node scripts/twitch-falso.js",
+    "kick-falso": "node scripts/kick-falso.js",
     "entrada-discord-falso": "node scripts/entrada-discord-falso.js",
     "sheets-falso": "node scripts/sheets-falso.js",
     "vista-previa": "node scripts/vista-previa.js",

@@ -21,14 +21,16 @@ import { cargarAjustes, ajuste, guardarAjustes } from './ajustes.js';
 import { cargarTierlistsPublico, candidatos, tierlistDe, guardarTierlistPublico } from './mitierlist.js';
 import { aplicarImportaciones } from './importaciones.js';
 import { cargarGacha, catalogo, probabilidades, abrirSobre, darAlta, darSobres, estadoUsuario, buscarUsuario, resumenGacha, fundirRepetidas,
-  vincularTwitch, desvincularTwitch, sobresListos, reparto, estrenarTemporada, estadoTemporada,
+  vincularTwitch, desvincularTwitch, vincularKick, desvincularKick, sobresListos, reparto, estrenarTemporada, estadoTemporada,
   PESOS, CARTAS_POR_SOBRE, SOBRES_INICIALES, REPETIDAS_POR_SOBRE, PROBABILIDAD_LEGACY, CARPETA_ARTE, reversoCarta } from './gacha.js';
 import { crearCodigo, cerrarCodigo, mostrarCodigo, estadoCodigo, codigoEnPantalla, canjearCodigo as canjearCodigoDirecto } from './codigos.js';
 import { estadoJornadas, terminarJornada, jornadasCerradas, premiosPublicos } from './jornada.js';
 import { clasificacionJornada } from './fantasy.js';
 import { previa, fichaJugador, fichaClan } from './previa.js';
 import { cargarCanal, conectarCanal, cambiarCoste, sondear, sondearSiHaceFalta, estadoCanal, SCOPE_CANAL } from './canal.js';
-import { firmar, verificar, leerCookies, ponerCookie } from './sesion.js';
+import { cargarCanalKick, conectarCanalKick, cambiarCosteKick, sondearKick, sondearKickSiHaceFalta, estadoCanalKick, SCOPE_CANAL_KICK } from './canal-kick.js';
+import { kickActivo, pkce, urlAutorizar as urlAutorizarKick, canjearCodigo as canjearCodigoKick, usuarioDeToken as usuarioDeKick, CANAL_KICK } from './kick.js';
+import { firmar, verificar, leerCookies, ponerCookie, cifrar, descifrar } from './sesion.js';
 import { twitchActivo, urlAutorizar, canjearCodigo, usuarioDeToken, usuarioPorNombre, CANAL } from './twitch.js';
 import { loginDiscordActivo, urlAutorizarDiscord, sesionDeDiscord } from './entrada-discord.js';
 import crypto from 'node:crypto';
@@ -446,7 +448,15 @@ async function accion(nombre, d = {}) {
       await cambiarCoste(d.coste);
       return { ok: true, gacha: estadoGachaPanel() };
     case 'gachaSondear':
-      await sondear();
+      await Promise.all([sondear(), sondearKick()]);
+      return { ok: true, gacha: estadoGachaPanel() };
+    // Puntos del canal de Kick: la recompensa «Omamori»
+    case 'kickCanal': {
+      if (!kickActivo()) return { ok: false, error: 'Falta configurar la app de Kick en Render (KICK_CLIENT_ID, KICK_CLIENT_SECRET y SESION_SECRETO)' };
+      return { ok: true, url: `/auth/kick/canal?t=${encodeURIComponent(firmar({ canalKick: true }, 300))}` };
+    }
+    case 'kickCoste':
+      await cambiarCosteKick(d.coste);
       return { ok: true, gacha: estadoGachaPanel() };
     case 'gachaRegalar': {
       const cantidad = Math.round(Number(d.cantidad));
@@ -559,12 +569,12 @@ const usuarioDeSesion = req => verificar(leerCookies(req).tk_sesion);
 const volverSeguro = v => (/^\/(?![/\\])/.test(v || '') ? v : '/gachapon/');
 
 function estadoGachaPanel() {
-  return { login: loginDiscordActivo(), canal: estadoCanal(), resumen: resumenGacha(), probabilidades: probabilidades(), reparto: reparto(), cerrado: infoFantasy(null).cerrado,
+  return { login: loginDiscordActivo(), canal: estadoCanal(), kick: { ...estadoCanalKick(), activo: kickActivo() }, resumen: resumenGacha(), probabilidades: probabilidades(), reparto: reparto(), cerrado: infoFantasy(null).cerrado,
     codigo: estadoCodigo(), jornadas: estadoJornadas(), publicarDiscord: discordActivo('clasificacion'), temporada: estadoTemporada() };
 }
 
 function infoGacha(u) {
-  const c = estadoCanal(), cat = catalogo(), temporada = estadoTemporada();
+  const c = estadoCanal(), k = estadoCanalKick(), cat = catalogo(), temporada = estadoTemporada();
   return {
     activo: loginActivo(), discord: loginDiscordActivo(), twitch: twitchActivo(), canal: CANAL,
     cartasPorSobre: CARTAS_POR_SOBRE, sobresIniciales: SOBRES_INICIALES, repetidasPorSobre: REPETIDAS_POR_SOBRE, pesos: PESOS,
@@ -575,6 +585,8 @@ function infoGacha(u) {
     publicarDiscord: discordActivo('coleccion'),
     reverso: reversoCarta(),
     recompensa: c.conectado && c.recompensa ? { titulo: c.titulo, coste: c.coste } : null,
+    canalKick: CANAL_KICK,
+    recompensaKick: k.conectado && k.recompensa ? { titulo: k.titulo, coste: k.coste } : null,
     usuario: u ? { nombre: u.nombre, avatar: u.avatar || null, ...estadoUsuario(u.id) } : null,
   };
 }
@@ -704,6 +716,52 @@ async function rutasSesion(req, res, url) {
     }
   }
 
+  // ---------- Kick: solo si se configura la app. Sirve para los puntos del canal (la recompensa «Omamori») ----------
+  // No es otra forma de entrar: cada uno vincula su Kick a su cuenta de Discord y los sobres de sus canjes le llegan a
+  // ella. Kick pide PKCE: el verificador va cifrado en la cookie de esa autorización, con su state
+  const aKick = (req, res, tipo, scope) => {
+    const state = crypto.randomBytes(16).toString('hex'), { verificador, reto } = pkce();
+    ponerCookie(res, 'tk_oauth_kick', firmar({ state, tipo, v: cifrar(verificador) }, 600), 600, req);
+    return redirigir(res, urlAutorizarKick({ redirect: `${origen(req)}/auth/kick/callback`, state, scope, reto }));
+  };
+  if (p === '/auth/kick/vincular') {
+    if (!kickActivo()) return paginaAviso(res, 'No disponible', 'Los puntos del canal de Kick todavía no están conectados.', 503, aGachapon);
+    if (!usuarioDeSesion(req)) return redirigir(res, '/auth/discord?volver=/gachapon/');
+    return aKick(req, res, 'vincular', 'user:read');
+  }
+
+  if (p === '/auth/kick/canal') {
+    if (!kickActivo()) return paginaAviso(res, 'No disponible', 'Falta configurar la app de Kick en Render.', 503);
+    if (!verificar(url.searchParams.get('t'))?.canalKick) return paginaAviso(res, 'Enlace caducado', 'Vuelve a pulsar «Conectar el canal de Kick» en el panel.', 403);
+    return aKick(req, res, 'canal', SCOPE_CANAL_KICK);
+  }
+
+  if (p === '/auth/kick/callback') {
+    const guardado = verificar(leerCookies(req).tk_oauth_kick);
+    ponerCookie(res, 'tk_oauth_kick', '', 0, req);
+    if (!guardado || guardado.state !== url.searchParams.get('state')) return paginaAviso(res, 'No se pudo entrar', 'La petición a Kick caducó o no es válida. Vuelve a intentarlo.', 400, guardado?.tipo === 'canal' ? undefined : aGachapon);
+    if (url.searchParams.get('error') || !url.searchParams.get('code')) return redirigir(res, guardado.tipo === 'canal' ? '/panel/' : '/gachapon/');
+    try {
+      const t = await canjearCodigoKick(url.searchParams.get('code'), `${origen(req)}/auth/kick/callback`, descifrar(guardado.v));
+      const u = await usuarioDeKick(t.access_token);
+      if (!u?.user_id) throw new Error('Kick no ha dicho de quién es la cuenta');
+      if (guardado.tipo === 'canal') {
+        await conectarCanalKick(t, u);
+        const c = estadoCanalKick();
+        return paginaAviso(res, 'Canal de Kick conectado', c.error ? `El canal ${escaparHTML(u.name)} está conectado, pero: ${escaparHTML(c.error)}`
+          : `La recompensa «${c.titulo}» ya está en el canal de Kick de ${escaparHTML(u.name)}, a ${c.coste} puntos. Ya puedes cerrar esta pestaña.`);
+      }
+      const yo = usuarioDeSesion(req);
+      if (!yo) return paginaAviso(res, 'No se pudo vincular', 'Tu sesión del gachapon ha caducado: entra otra vez y vuelve a vincular tu Kick.', 401, aGachapon);
+      await vincularKick(yo, { id: u.user_id, login: u.name });
+      sondearKick();   // por si ya tenía canjes esperando
+      return redirigir(res, '/gachapon/');
+    } catch (e) {
+      console.error(e);
+      return paginaAviso(res, 'No se pudo conectar con Kick', escaparHTML(e.message), 500, guardado.tipo === 'canal' ? undefined : aGachapon);
+    }
+  }
+
   // Solo en local: entrar sin Twitch para probar el gachapon
   if (p === '/auth/prueba' && !EN_RENDER) {
     const nombre = (url.searchParams.get('nombre') || 'Probador').slice(0, 25);
@@ -720,7 +778,7 @@ async function rutasSesion(req, res, url) {
 
   if (p === '/api/gacha') {
     const u = usuarioDeSesion(req);
-    if (u) sondearSiHaceFalta();
+    if (u) { sondearSiHaceFalta(); sondearKickSiHaceFalta(); }
     return json(res, infoGacha(u));
   }
 
@@ -757,6 +815,18 @@ async function rutasSesion(req, res, url) {
     if (!u) return json(res, { ok: false, error: 'Entra con tu cuenta de Discord' }, 401);
     try {
       await desvincularTwitch(u);
+      return json(res, { ok: true, usuario: estadoDe(u) });
+    } catch (e) {
+      return json(res, { ok: false, error: e.message }, 400);
+    }
+  }
+
+  // Lo mismo con el Kick vinculado
+  if (p === '/api/gacha/desvincular-kick' && req.method === 'POST') {
+    const u = usuarioDeSesion(req);
+    if (!u) return json(res, { ok: false, error: 'Entra con tu cuenta de Discord' }, 401);
+    try {
+      await desvincularKick(u);
       return json(res, { ok: true, usuario: estadoDe(u) });
     } catch (e) {
       return json(res, { ok: false, error: e.message }, 400);
@@ -1030,6 +1100,7 @@ await estrenarTemporada().then(r => { if (r) console.log(`Temporada ${estadoTemp
   e => console.error('Temporada del gachapon sin estrenar:', e.message));
 await cargarPartida();
 await cargarCanal().catch(e => console.error('Canal de Twitch:', e.message));
+await cargarCanalKick().catch(e => console.error('Canal de Kick:', e.message));
 estado.hoja = estadoHoja();
 estado.fantasy.cerrado = alineacionesCerradas();
 // Lo que el panel tenía puesto antes del reinicio (y, si estaba conectado a DraftCore, se vuelve a conectar)
