@@ -126,28 +126,22 @@
       <div class="cuenta-atras" data-cuenta hidden></div>
     </div>
     <div class="sorteo" hidden></div>
-    <!-- Newsletter (08/11/2026): donde estaba el anuncio del sorteo. Los enfrentamientos del último día con su resultado y la
-         crónica del realizador, y el formulario para recibirlas por correo (public/inicio.js, server/newsletter.js) -->
+    <!-- Crónicas (08/11/2026): donde estaba el anuncio del sorteo. Los enfrentamientos del último día con su resultado y la
+         crónica del realizador, que también sale en el canal #resultados de Discord (public/inicio.js, server/cronicas.js) -->
     <section class="cronicas" aria-labelledby="cronicas-titulo">
       <div class="cronicas-cabeza">
         <span class="marca-seccion" aria-hidden="true">報</span>
         <div><h3 id="cronicas-titulo">Crónicas de la jornada</h3><p class="cronicas-sub"></p></div>
       </div>
       <div class="cronicas-lista"></div>
-      <form class="newsletter" novalidate>
-        <div class="newsletter-texto">
-          <b>La crónica de cada partida, en tu correo</b>
-          <span>Al acabar cada enfrentamiento te mandamos el resultado y lo que pasó en la calle. Nada más.</span>
+      <div class="cronicas-discord">
+        <span class="cronicas-discord-canal" aria-hidden="true">#</span>
+        <div class="cronicas-discord-texto">
+          <b>La crónica de cada partida, en Discord</b>
+          <span>Al acabar cada enfrentamiento sale en el canal <b>#resultados</b> del servidor de Gokudō, con el resultado y lo que pasó en la calle.</span>
         </div>
-        <div class="newsletter-campos">
-          <label class="oculto" for="newsletter-correo">Tu correo</label>
-          <input id="newsletter-correo" type="email" name="correo" placeholder="tu@correo.com" autocomplete="email" required>
-          <input class="trampa" type="text" name="web" tabindex="-1" autocomplete="off" aria-hidden="true">
-          <button class="boton" type="submit">Apuntarme</button>
-        </div>
-        <label class="newsletter-acepto"><input type="checkbox" name="acepto"> Acepto que Gokudō me escriba a este correo para mandarme las crónicas. Me puedo dar de baja desde cualquiera de ellas.</label>
-        <p class="newsletter-aviso" role="status"></p>
-      </form>
+        <a class="boton cronicas-discord-boton" target="_blank" rel="noopener" hidden>Entrar en el Discord</a>
+      </div>
     </section>
     <div class="liga-rejilla">
       <div class="bloque">

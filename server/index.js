@@ -31,7 +31,7 @@ import { cargarCanal, conectarCanal, cambiarCoste, sondear, sondearSiHaceFalta, 
 import { cargarCanalKick, conectarCanalKick, cambiarCosteKick, recogerCanjesKick, estadoCanalKick, asegurarSuscripciones, SCOPE_CANAL_KICK } from './canal-kick.js';
 import { atenderWebhookKick, alAlertar, alertaDePrueba, contextoComandos, cargarBotKick, conectarBotKick, quitarBotKick, estadoBotKick, estadoDirectoKick, SCOPE_BOT_KICK } from './kick-bot.js';
 import { textoPartido } from './comandos-kick.js';
-import { cargarNewsletter, apuntar, darDeBaja, cronicaDe, publicarCronica, estadoNewsletter, claveRealizador, MAXIMO_TEXTO } from './newsletter.js';
+import { cargarCronicas, cronicaDe, publicarCronica, estadoCronicas, claveRealizador, MAXIMO_TEXTO } from './cronicas.js';
 import { formatoTemporada } from './competicion.js';
 import { kickActivo, pkce, urlAutorizar as urlAutorizarKick, canjearCodigo as canjearCodigoKick, usuarioDeToken as usuarioDeKick, CANAL_KICK } from './kick.js';
 import { firmar, verificar, leerCookies, ponerCookie, cifrar, descifrar } from './sesion.js';
@@ -39,7 +39,7 @@ import { twitchActivo, urlAutorizar, canjearCodigo, usuarioDeToken, usuarioPorNo
 import { loginDiscordActivo, urlAutorizarDiscord, sesionDeDiscord } from './entrada-discord.js';
 import crypto from 'node:crypto';
 import { cargarFantasy, infoFantasy, cambiarAlineacion, guardarEstadisticas, cerrarAlineaciones, alineacionesCerradas } from './fantasy.js';
-import { atenderPublicacion, discordActivo } from './discord.js';
+import { atenderPublicacion, discordActivo, publicarCronica as cronicaEnDiscord, resultadosDiscordActivo } from './discord.js';
 import { crearComandos } from './discord-comandos.js';
 import { cargarPartida, recibir as recibirPartida, resumen as resumenPartida, empezarPrueba, pararPrueba, enPrueba, olvidarPartida,
   ponerContexto, marcarObjetivo, deshacerMarca, ajustarIngame } from './partida.js';
@@ -603,7 +603,7 @@ const volverSeguro = v => (/^\/(?![/\\])/.test(v || '') ? v : '/gachapon/');
 function estadoGachaPanel() {
   return { login: loginDiscordActivo(), canal: estadoCanal(), kick: { ...estadoCanalKick(), activo: kickActivo(), bot: estadoBotKick() }, resumen: resumenGacha(), probabilidades: probabilidades(), reparto: reparto(), cerrado: infoFantasy(null).cerrado,
     codigo: estadoCodigo(), jornadas: estadoJornadas(), publicarDiscord: discordActivo('clasificacion'), temporada: estadoTemporada(),
-    newsletter: estadoNewsletter() };
+    cronicas: { ...estadoCronicas(), discord: resultadosDiscordActivo() } };
 }
 
 function infoGacha(u) {
@@ -648,7 +648,7 @@ function redirigir(res, destino) {
 const escaparHTML = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 // Página mínima para contar el resultado de conectar el canal o de entrar; el enlace de salida es el panel salvo que se diga otro
-// ---------- Newsletter ----------
+// ---------- Crónicas ----------
 // Los enfrentamientos del último día con partidas (en la liguilla, los tres de la jornada), con su ganador y la crónica
 // que haya mandado el realizador. Sin partidas, cuándo es la primera
 function ultimoDiaDePartidas() {
@@ -668,27 +668,16 @@ function ultimoDiaDePartidas() {
   };
 }
 
-// Como mucho 5 intentos de apuntarse cada 10 minutos por dirección
-const intentos = new Map();
-function demasiadas(req) {
-  const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
-  const ahora = Date.now(), lista = (intentos.get(ip) || []).filter(t => ahora - t < 600000);
-  lista.push(ahora);
-  intentos.set(ip, lista);
-  if (intentos.size > 5000) intentos.clear();
-  return lista.length > 5;
-}
-
 // Familia por su id (SARU) o por su nombre (Tsuki, tsuki, Ryujin…)
 const sinTildes = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 const idDeFamilia = t => CLANES.find(c => c.id === String(t || '').toUpperCase() || sinTildes(c.nombre) === sinTildes(t))?.id || null;
 const nombreFamilia = id => CLANES.find(c => c.id === id)?.nombre || id;
 
-// POST /api/newsletter/partida, con Authorization: Bearer NEWSLETTER_CLAVE.
+// POST /api/cronicas/partida, con Authorization: Bearer CRONICAS_CLAVE.
 // Cuerpo: { texto, resumen, titulo?, azul?, rojo? }. Sin las familias, es la última partida guardada.
 async function recibirCronica(req, res) {
   const clave = claveRealizador();
-  if (!clave) return json(res, { ok: false, error: 'Falta NEWSLETTER_CLAVE en Render' }, 503);
+  if (!clave) return json(res, { ok: false, error: 'Falta CRONICAS_CLAVE en Render' }, 503);
   const dada = Buffer.from(String(req.headers.authorization || '').replace(/^Bearer\s+/i, ''));
   const buena = Buffer.from(clave);
   if (dada.length !== buena.length || !crypto.timingSafeEqual(dada, buena)) return json(res, { ok: false, error: 'Clave incorrecta' }, 401);
@@ -703,13 +692,11 @@ async function recibirCronica(req, res) {
   if (!p) return json(res, { ok: false, error: a && r ? 'No hay ninguna partida guardada de esas dos familias' : 'No hay ninguna partida guardada todavía' }, 409);
   const ganador = p.ganador === 'azul' ? p.clanAzul : p.clanRojo;
   const enfrentamiento = `${nombreFamilia(p.clanAzul)} contra ${nombreFamilia(p.clanRojo)}: gana ${nombreFamilia(ganador)}`;
-  const web = origen(req);
-  const cuerpo = [`GOKUDŌ 極道${p.jornada ? ` · ${p.jornada}` : ''}`, enfrentamiento, titulo, texto, resumen && `RESUMEN\n${resumen}`, `La liga entera: ${web}/#liga`]
-    .filter(Boolean).join('\n\n');
-  const asunto = `${titulo || enfrentamiento} · Gokudō`;
-  // Se contesta enseguida; los correos salen después, de uno en uno
-  publicarCronica({ azul: p.clanAzul, rojo: p.clanRojo, titulo, texto, resumen, asunto, cuerpo, web })
-    .catch(e => console.error('Newsletter:', e.message));
+  const web = origen(req), familia = CLANES.find(c => c.id === ganador);
+  // Se contesta enseguida; se guarda y se publica en #resultados después
+  publicarCronica({ azul: p.clanAzul, rojo: p.clanRojo, titulo, texto, resumen }, () => cronicaEnDiscord({
+    enfrentamiento, titulo, texto, resumen, jornada: p.jornada || '', color: familia?.color, logo: `${web}/logos/${ganador}.png`, enlace: `${web}/#liga`,
+  })).catch(e => console.error('Crónicas:', e.message));
   return json(res, { ok: true, partida: { azul: p.clanAzul, rojo: p.clanRojo, ganador, jornada: p.jornada || null } }, 202);
 }
 
@@ -1050,27 +1037,11 @@ const servidor = http.createServer(async (req, res) => {
     if (!res.headersSent) return json(res, { ok: false, error: 'Algo ha fallado en la web: prueba otra vez' }, 500);
     return;
   }
-  // ---------- Newsletter (server/newsletter.js) ----------
+  // ---------- Crónicas de las partidas (server/cronicas.js) ----------
   // Lo que enseña la portada: los enfrentamientos del último día de partidas, con su resultado y su crónica
-  if (url.pathname === '/api/newsletter' && req.method === 'GET') return json(res, ultimoDiaDePartidas());
-  // Apuntarse: el correo y la casilla de consentimiento. «web» es un campo escondido: si llega relleno, es un robot
-  if (url.pathname === '/api/newsletter' && req.method === 'POST') {
-    if (demasiadas(req)) return json(res, { ok: false, error: 'Demasiados intentos: prueba otra vez en unos minutos' }, 429);
-    let d;
-    try { d = await leerCuerpo(req, 2000); } catch (e) { return json(res, { ok: false, error: e.message }, 400); }
-    if (d.web) return json(res, { ok: true });
-    if (d.acepto !== true) return json(res, { ok: false, error: 'Marca la casilla para aceptar que te escribamos' }, 400);
-    const r = await apuntar(d.correo);
-    return json(res, r.ok ? { ok: true, ya: Boolean(r.ya) } : r, r.ok ? 200 : 400);
-  }
-  // El realizador manda el texto y el resumen de una partida que acaba de terminar
-  if (url.pathname === '/api/newsletter/partida' && req.method === 'POST') return recibirCronica(req, res);
-  if (url.pathname === '/newsletter/baja') {
-    const hecho = await darDeBaja(url.searchParams.get('t') || '');
-    return paginaAviso(res, hecho ? 'Te has dado de baja' : 'Ya no estabas apuntado',
-      hecho ? 'Ya no te llegarán más correos de Gokudō. Si cambias de idea, puedes volver a apuntarte en la portada.'
-        : 'Ese enlace ya no vale o ya te diste de baja: no te llegará ningún correo más.', 200, ['/#liga', 'Ir a la web']);
-  }
+  if (url.pathname === '/api/cronicas' && req.method === 'GET') return json(res, ultimoDiaDePartidas());
+  // El realizador manda el texto y el resumen de una partida que acaba de terminar: se guardan y van a #resultados
+  if (url.pathname === '/api/cronicas/partida' && req.method === 'POST') return recibirCronica(req, res);
   // La portada: si el canal está en directo en Kick (lo sabe por el aviso de Kick, server/kick-bot.js)
   if (url.pathname === '/api/directo') return json(res, { kick: estadoDirectoKick() });
   if (url.pathname === '/api/clanes') {
@@ -1224,7 +1195,7 @@ wss.on('connection', (ws, req) => {
 setInterval(() => { for (const ws of clientes) if (ws.readyState === 1) ws.ping(); }, 25000);
 
 await Promise.all([cargar(), cargarPlantillas(), cargarCalendario(), cargarAjustes()]);
-await Promise.all([cargarTierlist(), cargarGacha(), cargarTierlistsPublico(), cargarNewsletter()]);
+await Promise.all([cargarTierlist(), cargarGacha(), cargarTierlistsPublico(), cargarCronicas()]);
 // El sorteo que estaba en marcha cuando la web se reinició sigue en la misma bola (si no se guardó ya el calendario)
 try {
   const enCurso = JSON.parse(ajuste('sorteo_en_curso') || 'null');

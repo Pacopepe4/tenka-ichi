@@ -437,15 +437,14 @@ function pintarGacha(g) {
     .filter(Boolean).join(' ');
   $('#conectarBotKick').textContent = b.conectado ? 'Cambiar la cuenta del bot' : 'Conectar la cuenta del bot';
   $('#quitarBotKick').hidden = !b.conectado;
-  // Newsletter: cuántos hay apuntados, si el envío y el realizador están configurados y el último envío
-  const nl = g.newsletter;
-  if (nl) {
-    const u = nl.ultimoEnvio, falta = [!nl.envio && 'BREVO_API_KEY y NEWSLETTER_REMITENTE', !nl.realizador && 'NEWSLETTER_CLAVE'].filter(Boolean);
-    $('#estadoNewsletter').className = `estado ${falta.length || u?.fallos ? 'mal' : 'ok'}`;
-    $('#estadoNewsletter').textContent = [`${nl.suscritos} ${nl.suscritos === 1 ? 'persona apuntada' : 'personas apuntadas'}, ${nl.cronicas} ${nl.cronicas === 1 ? 'crónica' : 'crónicas'}.`,
-      nl.envio ? `Envío activo desde ${nl.remitente}.` : '',
+  // Crónicas: cuántas hay, qué falta configurar y cómo fue la última
+  const cr = g.cronicas;
+  if (cr) {
+    const u = cr.ultima, falta = [!cr.realizador && 'CRONICAS_CLAVE', !cr.discord && 'DISCORD_WEBHOOK_RESULTADOS'].filter(Boolean);
+    $('#estadoCronicas').className = `estado ${falta.length || (u && !u.publicada) ? 'mal' : 'ok'}`;
+    $('#estadoCronicas').textContent = [`${cr.cronicas} ${cr.cronicas === 1 ? 'crónica guardada' : 'crónicas guardadas'}.`,
       falta.length ? `Falta en Render: ${falta.join(' y ')}.` : '',
-      u ? `Último envío (${new Date(u.fecha).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}, ${u.partida}): ${u.enviados} enviados${u.fallos ? `, ${u.fallos} fallos (${u.error})` : ''}${!u.enviados && u.error ? ` (${u.error})` : ''}.` : '']
+      u ? `Última (${new Date(u.fecha).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}, ${u.partida}): ${u.publicada ? 'publicada en Discord' : `no se pudo publicar en Discord (${u.error})`}.` : '']
       .filter(Boolean).join(' ');
   }
   // Sin cartas de jugador los sobres no se abren: se enseña el reparto con el que saldrán, no el de las BOOST solas

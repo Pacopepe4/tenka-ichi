@@ -366,9 +366,9 @@
         </div>
       </div>
       <div class="caja-gacha">
-        <h3>Newsletter</h3>
-        <p class="ayuda">En la portada (zona de la liga) se apunta quien quiera recibir la crónica de cada partida. Al acabar una partida, el realizador manda su texto y su resumen a <code>/api/newsletter/partida</code> (con la clave <code>NEWSLETTER_CLAVE</code>): salen en la portada y se envían por correo con Brevo (<code>BREVO_API_KEY</code> y <code>NEWSLETTER_REMITENTE</code> en Render). Los pasos, en el README.</p>
-        <p class="estado" id="estadoNewsletter"></p>
+        <h3>Crónicas de las partidas</h3>
+        <p class="ayuda">Al acabar una partida, el realizador manda su texto y su resumen a <code>/api/cronicas/partida</code> (con la clave <code>CRONICAS_CLAVE</code>): salen en la portada (zona de la liga) y en el canal #resultados de Discord (webhook <code>DISCORD_WEBHOOK_RESULTADOS</code>, que crea <code>npm run discord-aplicar</code>). Los pasos, en el README.</p>
+        <p class="estado" id="estadoCronicas"></p>
       </div>
       <div class="caja-gacha">
         <h3>Regalar sobres</h3>

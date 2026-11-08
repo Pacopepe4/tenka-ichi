@@ -1,5 +1,5 @@
-/* Crónicas de la jornada y newsletter (en la liga, donde estaba el anuncio del sorteo). Placas de noche con filo fino,
-   el ganador con el color de su familia y el formulario de la newsletter como una franja con el bermellón de la marca. */
+/* Crónicas de la jornada (en la liga, donde estaba el anuncio del sorteo). Placas de noche con filo fino, el ganador
+   con el color de su familia y una franja que lleva al canal #resultados de Discord, donde también salen. */
 .cronicas { max-width: var(--ancho); margin: 0 auto clamp(28px, 4vw, 48px); padding: 0 var(--margen); }
 .cronicas-cabeza { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
 .cronicas-cabeza .marca-seccion { margin: 0; }
@@ -33,29 +33,20 @@
 .cronica-mas:hover { text-decoration: underline; }
 .cronica-pendiente { margin: 0; color: var(--hai); font-size: 14px; font-style: italic; }
 
-/* La franja de la newsletter */
-.newsletter { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 10px 28px; align-items: center; margin-top: 18px;
-  padding: 20px 22px; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--shu) 55%, transparent);
-  background: linear-gradient(120deg, rgba(224, 48, 58, .14), var(--sumi-alzado, #15161F) 60%);
-  box-shadow: 0 0 30px rgba(224, 48, 58, .12); }
-.newsletter-texto { display: grid; gap: 4px; }
-.newsletter-texto b { font-family: var(--dela, sans-serif); font-weight: 400; font-size: 19px; color: var(--washi); }
-.newsletter-texto span { color: var(--hai); font-size: 14px; }
-.newsletter-campos { display: flex; gap: 10px; }
-.newsletter-campos input[type="email"] { flex: 1; min-width: 0; padding: 11px 14px; border-radius: 8px; border: 1px solid var(--sumi-linea, #2A2B38);
-  background: #0B0C11; color: var(--washi); font: inherit; }
-.newsletter-campos input[type="email"]:focus { outline: none; border-color: var(--shu-claro); box-shadow: 0 0 0 3px rgba(224, 48, 58, .25); }
-.newsletter-campos .boton { flex: 0 0 auto; }
-.newsletter .trampa { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
-.newsletter-acepto { grid-column: 2; display: flex; gap: 8px; align-items: flex-start; color: var(--hai); font-size: 13px; line-height: 1.4; cursor: pointer; }
-.newsletter-acepto input { margin-top: 2px; accent-color: var(--shu); }
-.newsletter-aviso { grid-column: 2; margin: 0; font-size: 14px; color: #7BD88F; }
-.newsletter-aviso:empty { display: none; }
-.newsletter-aviso.mal { color: var(--shu-claro); }
-
+/* La franja de Discord: dónde salen las crónicas, con el blurple de Discord en el filo */
+.cronicas-discord { display: flex; align-items: center; gap: 18px; margin-top: 18px; padding: 18px 22px; border-radius: 8px;
+  border: 1px solid rgba(88, 101, 242, .55); background: linear-gradient(120deg, rgba(88, 101, 242, .16), var(--sumi-alzado, #15161F) 60%);
+  box-shadow: 0 0 30px rgba(88, 101, 242, .12); }
+.cronicas-discord-canal { display: grid; place-items: center; flex: 0 0 auto; width: 52px; height: 52px; border-radius: 8px; background: #0B0C11;
+  font-family: var(--dela, sans-serif); font-size: 30px; color: #8B95FF; text-shadow: 0 0 10px rgba(88, 101, 242, .7); }
+.cronicas-discord-texto { display: grid; gap: 4px; flex: 1; min-width: 0; }
+.cronicas-discord-texto > b { font-family: var(--dela, sans-serif); font-weight: 400; font-size: 19px; color: var(--washi); }
+.cronicas-discord-texto span { color: var(--hai); font-size: 14px; }
+.cronicas-discord-texto span b { color: var(--washi); }
+.cronicas-discord-boton { flex: 0 0 auto; }
+.cronicas-discord-boton[hidden] { display: none; }
 @media (max-width: 760px) {
-  .newsletter { grid-template-columns: 1fr; }
-  .newsletter-acepto, .newsletter-aviso { grid-column: 1; }
-  .newsletter-campos { flex-direction: column; }
+  .cronicas-discord { flex-wrap: wrap; }
+  .cronicas-discord-boton { width: 100%; text-align: center; }
 }
 @media (prefers-reduced-motion: reduce) { .cronica, .cronica:hover { transition: none; transform: none; } }

@@ -276,8 +276,8 @@ function pintarLiga() {
 pintarLiga();
 
 // Sorteo del calendario en directo: el bombo sale en la zona de la liga mientras sale. Antes también salía como anuncio
-// mientras no hubiera calendario; el 08/11/2026 Pacopepe pidió ocultarlo («de momento no hace falta») y poner ahí la
-// newsletter, así que se le dice que ya hay calendario: solo aparece si el staff lanza un sorteo en directo.
+// mientras no hubiera calendario; el 08/11/2026 Pacopepe pidió ocultarlo («de momento no hace falta») y poner ahí las
+// crónicas de las partidas, así que se le dice que ya hay calendario: solo aparece si el staff lanza un sorteo en directo.
 // Al terminar, el servidor ya lo ha guardado y se vuelve a pintar la liga con él
 if (!simulacion) {
   const bombo = montarSorteo($('.sorteo'), {
@@ -287,18 +287,20 @@ if (!simulacion) {
   conectarDirecto({ canal: 'sorteo', alSorteo: v => bombo.recibir(v) });
 }
 
-// ---------- Crónicas y newsletter ----------
+// ---------- Crónicas de las partidas ----------
 // Los enfrentamientos del último día de partidas (en la liguilla, los tres de la jornada) con su ganador y la crónica del
-// realizador; sin partidas, cuándo llega la primera
+// realizador; sin partidas, cuándo llega la primera. Las crónicas salen también en el canal #resultados de Discord.
+// DISCORD_INVITACION: el enlace para entrar en el servidor de Gokudō (discord.gg/…); vacío, no sale el botón
+const DISCORD_INVITACION = '';
 const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 const diaLargo = f => { const [a, m, d] = f.split('-').map(Number); return `${DIAS[new Date(Date.UTC(a, m - 1, d)).getUTCDay()]} ${d}/${m}`; };
 async function pintarCronicas() {
-  const n = await fetch('/api/newsletter').then(r => r.json()).catch(() => null);
+  const n = await fetch('/api/cronicas').then(r => r.json()).catch(() => null);
   if (!n) return;
   const sub = $('.cronicas-sub'), listaCr = $('.cronicas-lista');
   if (!n.enfrentamientos.length) {
     sub.textContent = n.proxima ? `${n.proxima.nombre} · ${diaLargo(n.proxima.fecha)}` : '';
-    listaCr.innerHTML = `<p class="cronicas-vacio">La primera crónica sale al acabar la primera partida${n.proxima ? ` de la ${n.proxima.nombre}, el ${diaLargo(n.proxima.fecha)}` : ''}. Apúntate y te llega al correo.</p>`;
+    listaCr.innerHTML = `<p class="cronicas-vacio">La primera crónica sale al acabar la primera partida${n.proxima ? ` de la ${n.proxima.nombre}, el ${diaLargo(n.proxima.fecha)}` : ''}.</p>`;
     return;
   }
   sub.textContent = [n.jornada, diaLargo(n.dia)].filter(Boolean).join(' · ');
@@ -323,21 +325,7 @@ async function pintarCronicas() {
 }
 pintarCronicas();
 
-$('.newsletter').addEventListener('submit', async e => {
-  e.preventDefault();
-  const f = e.currentTarget, aviso = f.querySelector('.newsletter-aviso'), boton = f.querySelector('button');
-  const correo = f.correo.value.trim();
-  const decir = (texto, bien) => { aviso.textContent = texto; aviso.classList.toggle('mal', !bien); };
-  if (!f.correo.checkValidity() || !correo) return decir('Escribe un correo válido.', false);
-  if (!f.acepto.checked) return decir('Marca la casilla para que podamos escribirte.', false);
-  boton.disabled = true;
-  const r = await fetch('/api/newsletter', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ correo, acepto: true, web: f.web.value }) }).then(x => x.json()).catch(() => ({ ok: false, error: 'No hay conexión con la web: prueba otra vez' }));
-  boton.disabled = false;
-  if (!r.ok) return decir(r.error, false);
-  decir(r.ya ? 'Ya estabas apuntado: te llegarán las crónicas.' : '¡Hecho! Te llegará la crónica de cada partida.', true);
-  f.reset();
-});
+if (DISCORD_INVITACION) Object.assign($('.cronicas-discord-boton'), { href: DISCORD_INVITACION, hidden: false });
 
 // Campeones con más presencia
 $('.campeones').innerHTML = liga.campeones.length
