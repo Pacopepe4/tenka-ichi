@@ -148,21 +148,7 @@ button.boton-secundario { background: transparent; font: inherit; font-weight: 7
 .premios-fantasy { margin: 14px 0 0; color: var(--hai); font-size: 14px; }
 .premios-fantasy:empty { display: none; }
 
-/* ---------- Colección ---------- */
-.coleccion { padding-top: calc(var(--aire-seccion) * .6 + var(--sesgo)); padding-bottom: calc(var(--aire-seccion) * .6); }
-.coleccion-cabeza { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 18px; margin-bottom: 28px; }
-.progreso { margin: 12px 0 0; color: var(--hai); }
-/* Cuánto llevas de la colección: una barra que va del bermellón al oro */
-.progreso.con-barra::after { content: ''; display: block; width: min(320px, 100%); height: 5px; margin-top: 10px; border-radius: 3px;
-  background: linear-gradient(90deg, var(--shu), var(--oro)) 0 0 / calc(var(--avance, 0) * 100%) 100% no-repeat, var(--sumi-linea); }
-.album { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 18px; }
-.album .vacio { grid-column: 1 / -1; color: var(--hai); }
-.album .carta-g { transition: transform .3s var(--curva), box-shadow .3s, filter .3s; }
-.album .carta-g:not(.falta):hover { transform: translateY(-6px) rotate(-1deg) scale(1.02); }
-/* Las que faltan: apagadas y más hundidas; al pasar se asoman un poco */
-.album .carta-g.falta { opacity: .7; box-shadow: inset 0 0 0 1.5px var(--sumi-linea); }
-.album .carta-g.falta:hover { opacity: .95; }
-.album.entrando .carta-g { animation: aparecer .45s var(--curva) both; animation-delay: calc(var(--i, 0) * 22ms); }
+/* ---------- Colección: el álbum por familias va en album.css ---------- */
 /* Las repetidas: una pastilla de oro con cuántas hay (la misma que en la imagen de Discord, pastillaCantidad en compartir.js) */
 :is(.album, .elegir, .fundir) .carta-g .cantidad { right: 5%; bottom: 3.6%; padding: 1px 9px 2px; border-radius: 999px; background: var(--oro); color: var(--sumi);
   font-family: var(--mincho); font-weight: 800; font-size: 14px; line-height: 1.4; box-shadow: 0 2px 6px rgba(0, 0, 0, .5); }
@@ -379,7 +365,6 @@ html.con-movimiento .tabla-prob.revelar.visto .barra-prob span { transform: scal
 @media (max-width: 760px) {
   .cabeza-gacha { grid-template-columns: 1fr; padding-left: calc(var(--margen) + 12px); padding-right: calc(var(--margen) + 12px); }
   .sobre { width: min(220px, 60vw); }
-  .album { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
   .titulo-seccion[data-kanji]::after { top: 10px; }
   .elegir, .fundir { padding: 20px 16px; }
 }
@@ -394,10 +379,10 @@ html.con-movimiento .tabla-prob.revelar.visto .barra-prob span { transform: scal
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sobre, .volteable, .volteable.fuera, .volteable .giro, .album .carta-g, .hueco-ali .carta-g, .boton-entrar { transition: none; }
+  .sobre, .volteable, .volteable.fuera, .volteable .giro, .hueco-ali .carta-g, .boton-entrar { transition: none; }
   .volteable, .volteable.fuera { transform: none; }
   .sobre, .intro > *, .cabeza-gacha::after, .apertura[open], .apertura[open] .sobre-abriendo, .apertura .corte, .apertura .mitad, .sobre-abriendo::after, .escena::after,
-  .volteable .frente .carta-g, .volteable .frente::after, .volteable::before, .album.entrando .carta-g, .clasificacion-fantasy li,
+  .volteable .frente .carta-g, .volteable .frente::after, .volteable::before, .clasificacion-fantasy li,
   .elegir[open], .fundir[open], .elegir::backdrop, .fundir::backdrop { animation: none !important; }
   .volteable.girada .giro { animation: none !important; transform: rotateY(180deg); }
   .apertura.abierto .mitad, .apertura.abierto .corte { opacity: 0; }
