@@ -1,4 +1,5 @@
-// Gachapon: entrar con Discord, abrir sobres y ver la colección. Aquí van la cuenta, las probabilidades, los puntos de
+// Gachapon: entrar con Discord, tirar de la tragaperras y ver la colección. Lo que ve la gente dice «tirada»; por dentro
+// (la API, usuario.sobres) sigue siendo un sobre: 1 sobre = 1 tirada. Aquí van la cuenta, las probabilidades, los puntos de
 // los jugadores, fundir, compartir y el arranque; lo demás, en sus módulos (estado.js dice cuál es cuál)
 import { logo } from '/comun.js';
 import { iniciarDirecto } from '/directo.js';
@@ -44,22 +45,22 @@ function pintarCuenta() {
     // uno vincula su Twitch a su cuenta para que los sobres de los puntos del canal le lleguen a ella
     cuenta.innerHTML = `<a class="boton-entrar" href="/auth/discord?volver=/gachapon/">Entrar con Discord</a>
       ${info.twitch && !info.discord ? '<a class="boton-entrar secundario" href="/auth/twitch?volver=/gachapon/">Entrar con Twitch</a>' : ''}
-      <p class="aviso">La primera vez te llevas ${info.sobresIniciales} sobres.</p>`;
+      <p class="aviso">La primera vez te llevas ${info.sobresIniciales} tiradas.</p>`;
     sobre.disabled = true;
     $('.sobre-contador').textContent = '';
   } else {
     const puede = u.sobres > 0 && listos;
     cuenta.innerHTML = `<div class="yo">${u.avatar ? `<img src="${escapar(u.avatar)}" alt="">` : ''}
-        <div><b>${escapar(u.nombre)}</b><span>${u.sobres === 1 ? 'Tienes 1 sobre' : `Tienes ${u.sobres} sobres`}</span></div></div>
+        <div><b>${escapar(u.nombre)}</b><span>${u.sobres === 1 ? 'Tienes 1 tirada' : `Tienes ${u.sobres} tiradas`}</span></div></div>
       <button class="salir" type="button">Salir</button>`;
     sobre.disabled = !puede;
     $('.sobre-contador').textContent = u.sobres ? `×${u.sobres}` : '';
     cuenta.querySelector('.salir').onclick = async () => { await fetch('/auth/salir', { method: 'POST' }); cargar(); };
   }
   // Sin cartas de Jugador los sobres esperan: solo con las BOOST saldrían todas de las mejores
-  $('.como-mas').innerHTML = (listos ? '' : '<b>Los sobres se abren cuando salgan las cartas de los jugadores:</b> el staff está preparando la tier list. ')
+  $('.como-mas').innerHTML = (listos ? '' : '<b>La tragaperras se abre cuando salgan las cartas de los jugadores:</b> el staff está preparando la tier list. ')
     + ([info.recompensa && comoCanjear(u, TWITCH), info.recompensaKick && comoCanjear(u, KICK)].filter(Boolean).join('<br>')
-      || 'Más sobres: el staff los regala en premios y sorteos.');
+      || 'Más tiradas: el staff las regala en premios y sorteos.');
   $('.como-mas .desvincular[data-de="twitch"]')?.addEventListener('click', () => desvincular('twitch'));
   $('.como-mas .desvincular[data-de="kick"]')?.addEventListener('click', () => desvincular('kick'));
 }
@@ -69,13 +70,13 @@ function pintarCuenta() {
 const TWITCH = { clave: 'twitch', nombre: 'Twitch', canal: () => `twitch.tv/${est.info.canal}`, recompensa: () => est.info.recompensa };
 // En Kick, además, las subs, las subs regaladas y los kicks dan sobres (server/kick-bot.js)
 const KICK = { clave: 'kick', nombre: 'Kick', canal: () => `kick.com/${est.info.canalKick}`, recompensa: () => est.info.recompensaKick,
-  extra: ' Suscribirte, regalar subs o mandar kicks también da sobres.' };
+  extra: ' Suscribirte, regalar subs o mandar kicks también da tiradas.' };
 function comoCanjear(u, p) {
   const canal = `<a href="https://${p.canal()}" target="_blank" rel="noopener">${p.canal()}</a>`;
   const r = p.recompensa(), canje = `<b>${escapar(r.titulo)}</b> por ${r.coste} puntos del canal`, extra = p.extra || '';
-  if (!u) return `Más sobres con los puntos del canal de ${canal}, que se ganan viendo el directo: entra, vincula tu ${p.nombre} y canjea ${canje}.${extra}`;
-  if (u[p.clave]) return `${p.nombre} vinculado: <b>${escapar(u[p.clave].login)}</b>. Canjea ${canje} en ${canal} y el sobre te llega aquí en un minuto.${extra} <button type="button" class="desvincular" data-de="${p.clave}">Desvincular</button>`;
-  return `Más sobres con los puntos del canal de ${canal}, que se ganan viendo el directo: <a class="vincular" href="/auth/${p.clave}/vincular">vincula tu ${p.nombre}</a> y canjea ${canje}.${extra}`;
+  if (!u) return `Más tiradas con los puntos del canal de ${canal}, que se ganan viendo el directo: entra, vincula tu ${p.nombre} y canjea ${canje}.${extra}`;
+  if (u[p.clave]) return `${p.nombre} vinculado: <b>${escapar(u[p.clave].login)}</b>. Canjea ${canje} en ${canal} y la tirada te llega aquí en un minuto.${extra} <button type="button" class="desvincular" data-de="${p.clave}">Desvincular</button>`;
+  return `Más tiradas con los puntos del canal de ${canal}, que se ganan viendo el directo: <a class="vincular" href="/auth/${p.clave}/vincular">vincula tu ${p.nombre}</a> y canjea ${canje}.${extra}`;
 }
 
 async function desvincular(de) {
@@ -101,10 +102,10 @@ function pintarProbabilidades() {
     return `<div class="fila-prob" data-tier="${k}" style="--color-tier: var(--tier-${k})"><span class="letra">${t}</span>
       <span class="barra-prob"><span style="width:${(p * 100).toFixed(1)}%"></span></span>
       <span class="cifra">${pct(p)}<small>${quienes}</small></span></div>`;
-  }).join('') + (listos ? '' : '<p class="resumen-prob">Los sobres todavía no se abren: así saldrán las cartas cuando estén las de los jugadores.</p>')
-    + `<p class="resumen-prob">En cada sobre, la probabilidad de que salga al menos una S${hayS ? ' o una S+' : ''} es del ${pct(1 - (1 - pS) ** info.cartasPorSobre)}.</p>`
+  }).join('') + (listos ? '' : '<p class="resumen-prob">La tragaperras todavía no se abre: así saldrán las cartas cuando estén las de los jugadores.</p>')
+    + `<p class="resumen-prob">En cada tirada, la probabilidad de que salga al menos una S${hayS ? ' o una S+' : ''} es del ${pct(1 - (1 - pS) ** info.cartasPorSobre)}.</p>`
     // Las LEGACY no están entre las cartas del sobre: de vez en cuando sale una de regalo, como carta extra
-    + (legado && info.probabilidadLegacy ? `<p class="resumen-prob prob-legacy"><b>LEGACY.</b> Aparte de sus ${info.cartasPorSobre} cartas, el ${pct(info.probabilidadLegacy)} de los sobres trae una carta extra del equipo Legacy (hay ${legado}). Son de colección: no se alinean en el fantasy.</p>` : '');
+    + (legado && info.probabilidadLegacy ? `<p class="resumen-prob prob-legacy"><b>LEGACY.</b> Aparte de sus ${info.cartasPorSobre} cartas, el ${pct(info.probabilidadLegacy)} de las tiradas trae una carta extra del equipo Legacy (hay ${legado}). Son de colección: no se alinean en el fantasy.</p>` : '');
 }
 
 function pintarPuntos() {
@@ -194,7 +195,7 @@ $('.canje').addEventListener('submit', async e => {
   estado.classList.toggle('mal', !r.ok);
   if (!r.ok) { estado.textContent = r.error; return; }
   campo.value = '';
-  estado.textContent = r.sobres === 1 ? '¡Código canjeado! Tienes un sobre más.' : `¡Código canjeado! Tienes ${r.sobres} sobres más.`;
+  estado.textContent = r.sobres === 1 ? '¡Código canjeado! Tienes una tirada más.' : `¡Código canjeado! Tienes ${r.sobres} tiradas más.`;
   est.info.usuario = r.usuario;
   pintarCuenta();
 });

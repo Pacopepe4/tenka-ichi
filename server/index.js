@@ -22,7 +22,7 @@ import { cargarTierlistsPublico, candidatos, tierlistDe, guardarTierlistPublico 
 import { aplicarImportaciones } from './importaciones.js';
 import { cargarGacha, catalogo, cartasDeColeccion, probabilidades, abrirSobre, abrirSobres, fundirPorTier, darAlta, darSobres, estadoUsuario, buscarUsuario, resumenGacha, fundirRepetidas,
   vincularTwitch, desvincularTwitch, vincularKick, desvincularKick, sobresListos, reparto, estrenarTemporada, estadoTemporada,
-  PESOS, CARTAS_POR_SOBRE, SOBRES_INICIALES, REPETIDAS_POR_SOBRE, PROBABILIDAD_LEGACY, CARPETA_ARTE, reversoCarta,
+  PESOS, CARTAS_POR_SOBRE, SOBRES_INICIALES, REPETIDAS_POR_SOBRE, PROBABILIDAD_LEGACY, CARPETA_ARTE, reversosCartas,
   GARANTIA_A, GARANTIA_S, MAXIMO_TIRADAS, REPETIDAS_POR_MEJORA, TIER_SIGUIENTE, CARTAS_CONMEMORATIVA } from './gacha.js';
 import { crearCodigo, cerrarCodigo, mostrarCodigo, estadoCodigo, codigoEnPantalla, canjearCodigo as canjearCodigoDirecto } from './codigos.js';
 import { estadoJornadas, terminarJornada, jornadasCerradas, premiosPublicos } from './jornada.js';
@@ -618,7 +618,7 @@ function infoGacha(u) {
     sobresListos: sobresListos(cat), temporada: { numero: temporada.numero, estreno: temporada.estreno?.fecha || null },
     catalogo: cat.map(({ peso, ...carta }) => carta),
     publicarDiscord: discordActivo('coleccion'),
-    reverso: reversoCarta(),
+    reversos: reversosCartas(),
     recompensa: c.conectado && c.recompensa ? { titulo: c.titulo, coste: c.coste } : null,
     canalKick: CANAL_KICK,
     recompensaKick: k.conectado && k.recompensa ? { titulo: k.titulo, coste: k.coste } : null,

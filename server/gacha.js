@@ -289,15 +289,15 @@ async function cargarCampeones() {
 }
 
 // Arte propio de cada carta en public/cartas/ID.webp|png|jpg (p. ej. KAIJU-TOP.png o BOOST-NOMBRE.png).
-// Marcos de cada clase y tier en public/cartas/marcos/jugador/ y boost/ (TIER.webp; la S+ es SP) y el reverso,
-// igual para todas, en public/cartas/marcos/reverso.webp. Salen de diseno/marcos/. Mientras no estén, la carta
+// Marcos de cada clase y tier en public/cartas/marcos/jugador/ y boost/ (TIER.webp; la S+ es SP). Salen de
+// diseno/marcos/. Mientras no estén, la carta
 // lleva el splash de su campeón, si no la imagen de su clan (o el sol partido si es BOOST), y el marco dibujado con CSS.
 // Carta «full art»: si además hay un dibujo vertical (1000×1400) en public/cartas/fullart/ID.webp, la carta se pinta
 // con él a carta completa en vez de con el marco (lo llevan las BOOST S+). El cuadrado sigue haciendo falta: es el
 // que usan las imágenes de compartir.
 // La dirección lleva la fecha del archivo: se puede guardar en caché y, si cambia el dibujo, cambia la dirección.
 const EXTENSIONES = ['.webp', '.png', '.jpg', '.jpeg'];
-let artes = new Map(), completas = new Map(), marcos = { jugador: new Map(), boost: new Map() }, reverso = null;
+let artes = new Map(), completas = new Map(), marcos = { jugador: new Map(), boost: new Map() }, reversos = new Map();
 
 async function indiceImagenes(carpeta, prefijo) {
   let archivos = [];
@@ -317,14 +317,13 @@ async function cargarCartas() {
   await Promise.all([cargarBoosts(), cargarCampeones()]);
   await cargarLegacy();
   const carpeta = path.join(CARPETA_ARTE, 'marcos');
-  const [a, full, jugador, boost, sueltos] = await Promise.all([indiceImagenes(CARPETA_ARTE, '/cartas/'),
+  const [a, full, jugador, boost] = await Promise.all([indiceImagenes(CARPETA_ARTE, '/cartas/'),
     indiceImagenes(path.join(CARPETA_ARTE, 'fullart'), '/cartas/fullart/'),
-    indiceImagenes(path.join(carpeta, 'jugador'), '/cartas/marcos/jugador/'), indiceImagenes(path.join(carpeta, 'boost'), '/cartas/marcos/boost/'),
-    indiceImagenes(carpeta, '/cartas/marcos/')]);
+    indiceImagenes(path.join(carpeta, 'jugador'), '/cartas/marcos/jugador/'), indiceImagenes(path.join(carpeta, 'boost'), '/cartas/marcos/boost/')]);
   artes = a;
   completas = full;
   marcos = { jugador, boost };
-  reverso = sueltos.get('REVERSO') || null;
+  reversos = await indiceImagenes(path.join(CARPETA_ARTE, 'reversos'), '/cartas/reversos/');
 }
 // Si se añaden dibujos o cartas BOOST con la web encendida, aparecen en un minuto
 setInterval(() => cargarCartas().catch(() => {}), 60000).unref();
@@ -335,8 +334,10 @@ const splashDe = c => (c.campeon && splashes.has(`${c.campeon.id}.jpg`) ? `/ddra
 const arteProvisional = c => (c.tipo === 'jefe' ? `/personajes/${c.clan}.jpg` : c.tipo === 'temporada' ? '/marca/gokudo-neon.png' : null);
 const arteDe = c => artes.get(c.id) || splashDe(c) || arteProvisional(c) || (c.clan ? `/clanes/${c.clan}.jpg` : '/marca/sol-partido.jpg');
 const marcoDe = c => marcos[c.tipo]?.get(claveTier(c.tier)) || null;
-// El reverso es el mismo para todas las cartas: al abrir el sobre no se sabe qué ha tocado hasta darle la vuelta
-export const reversoCarta = () => reverso;
+// Los reversos (08/11/2026): un coche del color de la familia de la carta, uno por familia (id del clan), BOOST y
+// TEMPORADA, en public/cartas/reversos/<CLAVE>.webp. El que falte lo pinta la página (public/gachapon/reverso.js).
+// Antes había un reverso igual para todas (marcos/reverso.webp), con el emblema de Koryu Budo: ya no se usa
+export const reversosCartas = () => Object.fromEntries(reversos);
 
 // ---------- cartas y probabilidades ----------
 export function catalogo() {

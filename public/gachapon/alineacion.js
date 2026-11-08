@@ -20,7 +20,7 @@ export function pintarFantasy() {
   const info = est.info, fantasia = est.fantasia, yo = fantasia.yo, caja = $('.alineacion');
   const estado = $('.estado-alineacion');
   if (!info.usuario) {
-    estado.textContent = 'Entra con Discord y abre sobres para alinear a tus jugadores.';
+    estado.textContent = 'Entra con Discord y tira de la tragaperras para alinear a tus jugadores.';
   } else if (fantasia.cerrado) {
     estado.innerHTML = `Las alineaciones están <b>cerradas</b> mientras se juega la jornada. Llevas ${puntosTexto(yo.puntos)}${yo.puesto ? `, ${yo.puesto}.º en la clasificación` : ''}.`;
   } else {
@@ -86,12 +86,12 @@ function pintarClasificacion() {
   $('.clasificacion-fantasy').innerHTML = filas.length
     ? filas.map(c => `<li class="${c.yo ? 'yo' : ''}"><span class="puesto">${c.puesto}</span><span class="quien">${escapar(c.nombre)}</span>
         <span class="cuanto">${c.puntos.toLocaleString('es-ES')}${jornadaVista
-          ? (sobresDe(c.puesto) ? `<small>+${sobresDe(c.puesto)} ${sobresDe(c.puesto) === 1 ? 'sobre' : 'sobres'}</small>` : '')
+          ? (sobresDe(c.puesto) ? `<small>+${sobresDe(c.puesto)} ${sobresDe(c.puesto) === 1 ? 'tirada' : 'tiradas'}</small>` : '')
           : fantasia.ultimaJornada ? `<small>${c.ultima.toLocaleString('es-ES')} en ${escapar(fantasia.ultimaJornada)}</small>` : ''}</span></li>`).join('')
     : '<li class="vacio">La clasificación empieza con la primera jornada.</li>';
   const [uno, dos, tres] = fantasia.sobresPremio || [];
   $('.premios-fantasy').textContent = uno || dos || tres
-    ? `Al terminar cada jornada, sus tres primeros se llevan sobres: ${uno} el 1.º, ${dos} el 2.º y ${tres} el 3.º.`
+    ? `Al terminar cada jornada, sus tres primeros se llevan tiradas: ${uno} el 1.º, ${dos} el 2.º y ${tres} el 3.º.`
       + (jornadaVista ? (premio ? ' Los de esta jornada ya están repartidos.' : ' Los de esta jornada se reparten cuando termine.') : '')
     : '';
 }
@@ -105,7 +105,7 @@ function elegir(rol) {
   $('#titulo-elegir').textContent = `Elige tu ${ROL[rol]}`;
   $('.elegir .opciones').innerHTML = opciones.length
     ? opciones.map(c => `<button type="button" class="opcion" data-id="${c.id}" aria-pressed="${c.id === actual}">${cartaHTML(c, mias.get(c.id))}</button>`).join('')
-    : `<p class="sin-cartas">No tienes ninguna carta de ${ROL[rol]} todavía. Abre sobres para conseguirla.</p>`;
+    : `<p class="sin-cartas">No tienes ninguna carta de ${ROL[rol]} todavía. Tira de la tragaperras para conseguirla.</p>`;
   dialogoElegir.querySelectorAll('.opcion').forEach(b => b.addEventListener('click', () => guardarHueco(rol, b.dataset.id)));
   dialogoElegir.querySelector('.quitar').onclick = () => guardarHueco(rol, null);
   dialogoElegir.querySelector('.cancelar').onclick = () => dialogoElegir.close();
@@ -126,7 +126,7 @@ function elegirBoost(i) {
   $('#titulo-elegir').textContent = `Elige tu BOOST ${i + 1}`;
   $('.elegir .opciones').innerHTML = opciones.length
     ? opciones.map(c => `<button type="button" class="opcion" data-id="${c.id}" aria-pressed="${c.id === boosts[i]?.carta}">${cartaHTML(c, mias.get(c.id))}</button>`).join('')
-    : '<p class="sin-cartas">No tienes ninguna carta BOOST para este hueco. Abre sobres para conseguirla.</p>';
+    : '<p class="sin-cartas">No tienes ninguna carta BOOST para este hueco. Tira de la tragaperras para conseguirla.</p>';
   dialogoElegir.querySelectorAll('.opcion').forEach(b => b.addEventListener('click', () => vincularBoost(i, b.dataset.id)));
   dialogoElegir.querySelector('.quitar').onclick = () => guardarBoost(i, null, null);
   dialogoElegir.querySelector('.cancelar').onclick = () => dialogoElegir.close();

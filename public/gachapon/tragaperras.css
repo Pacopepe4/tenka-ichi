@@ -246,6 +246,16 @@
 .volteable .dorso img { width: 58%; opacity: .9; }
 .volteable .dorso.con-reverso { background: none; box-shadow: 0 12px 26px rgba(0, 0, 0, .6); overflow: hidden; }
 .volteable .dorso.con-reverso img { width: 100%; height: 100%; opacity: 1; display: block; }
+/* El reverso de cada carta mientras no estén los dibujos de Flow del coche (public/cartas/reversos/, reverso.js): la carta
+   oscura con el filo y el resplandor de neón del color de su familia (--coche), 極道 en el centro y GOKUDŌ abajo */
+.volteable .dorso.reverso-coche { position: absolute; display: block; overflow: hidden; container-type: inline-size;
+  background: radial-gradient(120% 60% at 50% 78%, color-mix(in srgb, var(--coche) 26%, transparent), transparent 70%), linear-gradient(180deg, #11121A, #07080C);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--coche) 70%, #000), inset 0 0 0 5px #07080C, inset 0 0 0 6px color-mix(in srgb, var(--coche) 35%, transparent), 0 12px 26px rgba(0, 0, 0, .6); }
+.reverso-coche .kanji-reverso { position: absolute; top: 50%; left: 0; right: 0; transform: translateY(-50%); text-align: center; writing-mode: vertical-rl; margin: 0 auto;
+  font-family: var(--pincel, 'Yuji Boku'), serif; font-size: 24cqw; line-height: 1;
+  color: var(--coche); text-shadow: 0 0 6px var(--coche), 0 0 16px color-mix(in srgb, var(--coche) 60%, transparent); }
+.reverso-coche .marca-reverso { position: absolute; bottom: 8%; left: 0; right: 0; text-align: center; font-family: var(--dela, 'Dela Gothic One'), sans-serif; font-size: 7cqw; letter-spacing: .3em;
+  color: color-mix(in srgb, var(--coche) 55%, #E7DFD2); }
 .volteable .frente { transform: rotateY(180deg); overflow: hidden; }
 .volteable .frente .carta-g { width: 100%; height: 100%; }
 

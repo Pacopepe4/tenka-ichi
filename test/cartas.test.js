@@ -1,5 +1,5 @@
 // Cartas del gachapon: dos clases (Jugador y BOOST), la parte del sorteo de cada tier, arte, marcos por clase y
-// tier, y el reverso común. Todo con datos temporales: plantilla inventada, tier list, BOOST y dibujos de prueba.
+// tier, y los reversos de cada familia. Todo con datos temporales: plantilla inventada, tier list, BOOST y dibujos de prueba.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
@@ -37,7 +37,8 @@ before(async () => {
   // Campeones: uno con el id en minúsculas, uno que Data Dragon no conoce y uno de BOOST
   await writeFile(path.join(carpeta, 'campeones.json'), JSON.stringify({
     'KAIJU-TOP': 'Rumble', 'kaiju-jungla': 'RekSai', 'TORA-TOP': 'NoExisteEsteCampeon', 'BOOST-KAMI': 'Ornn' }));
-  // Dibujo de una carta (con el nombre en minúsculas), marcos de Jugador C y BOOST S+, y el reverso
+  // Dibujo de una carta (con el nombre en minúsculas), marcos de Jugador C y BOOST S+, el reverso de una familia y el
+  // viejo reverso común, que ya no se usa
   const cartas = path.join(carpeta, 'cartas');
   await mkdir(path.join(cartas, 'marcos', 'jugador'), { recursive: true });
   await mkdir(path.join(cartas, 'marcos', 'boost'), { recursive: true });
@@ -46,6 +47,8 @@ before(async () => {
   await writeFile(path.join(cartas, 'marcos', 'jugador', 'C.webp'), 'webp');
   await writeFile(path.join(cartas, 'marcos', 'boost', 'SP.webp'), 'webp');
   await writeFile(path.join(cartas, 'marcos', 'reverso.webp'), 'webp');
+  await mkdir(path.join(cartas, 'reversos'), { recursive: true });
+  await writeFile(path.join(cartas, 'reversos', 'KAIJU.webp'), 'webp');
   // Dibujo «full art» (vertical) de una BOOST; el de la carpeta fullart no cuenta como dibujo cuadrado
   await mkdir(path.join(cartas, 'fullart'), { recursive: true });
   await writeFile(path.join(cartas, 'fullart', 'boost-kami.webp'), 'webp');
@@ -132,8 +135,10 @@ test('carta «full art»: solo la que tiene dibujo vertical en fullart/, y conse
   assert.equal(cat.get('KAIJU-TOP').fullart, null, 'un dibujo cuadrado no es full art');
 });
 
-test('el reverso es el mismo para todas las cartas', () => {
-  assert.match(g.reversoCarta(), /^\/cartas\/marcos\/reverso\.webp\?v=/);
+test('un reverso por familia, de reversos/; el viejo reverso común (con el emblema de Koryu Budo) ya no se usa', () => {
+  const r = g.reversosCartas();
+  assert.deepEqual(Object.keys(r), ['KAIJU']);
+  assert.match(r.KAIJU, /^\/cartas\/reversos\/KAIJU\.webp\?v=/);
 });
 
 const cerca = (a, b, texto) => assert.ok(Math.abs(a - b) < 1e-12, `${texto || ''} ${a} frente a ${b}`);

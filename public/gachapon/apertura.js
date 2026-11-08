@@ -9,6 +9,7 @@
 import { logo } from '/comun.js';
 import { TIERS, claveTier, escapar } from '/carta.js';
 import { $, est, clanes, nombreClan, cartaHTML, ganchos } from './estado.js';
+import { reversoHTML } from './reverso.js';
 
 const raiz = $('.tragaperras'), dialogo = $('.apertura'), escena = $('.escena');
 const palanca = raiz.querySelector('.palanca'), botones = [...raiz.querySelectorAll('.tirar')];
@@ -204,11 +205,10 @@ async function tirarPalanca() {
   setTimeout(() => palanca.classList.remove('tirando'), 600);
 }
 
-// Unas cartas boca abajo asoman por la bandeja de la máquina
+// Unas cartas boca abajo asoman por la bandeja de la máquina: sin reverso (solo se ve el canto), para no adelantar nada
 function sacarPorBandeja(n) {
   const bandeja = raiz.querySelector('.bandeja-cartas');
-  const reverso = est.info.reverso ? `background-image: url('${escapar(est.info.reverso)}');` : '';
-  bandeja.innerHTML = Array.from({ length: Math.min(n, 5) }, (_, i) => `<i style="--i: ${i}; ${reverso}"></i>`).join('');
+  bandeja.innerHTML = Array.from({ length: Math.min(n, 5) }, (_, i) => `<i style="--i: ${i}"></i>`).join('');
 }
 
 // Lo que se dice al parar los rodillos
@@ -280,11 +280,8 @@ botones.forEach(b => b.addEventListener('click', () => tirar(b.dataset.cuantas =
 palanca.addEventListener('click', () => tirar(1));
 
 // ---------- la apertura ----------
-// Todas las cartas salen boca abajo con el mismo reverso: no se sabe si es Jugador o BOOST hasta darle la vuelta (la
-// pista de su color sí deja intuir la tier). Sin el reverso dibujado, el sol partido sobre la noche
-const dorso = () => (est.info.reverso
-  ? `<div class="cara dorso con-reverso"><img src="${escapar(est.info.reverso)}" alt=""></div>`
-  : '<div class="cara dorso"><img src="/marca/sol-partido-sin-fondo.png" alt=""></div>');
+// Las cartas salen boca abajo con el reverso de su familia (reverso.js: un coche de su color), que adelanta de qué
+// familia es pero no quién; la pista de su brillo deja intuir la tier
 
 // El sello de cada carta al girarla: NUEVA, o Repetida ×N con las copias que tienes; y Segura si la trajo la garantía
 const selloHTML = (c, copias = c.copias) => (c.nueva ? '<span class="sello nueva">Nueva</span>' : `<span class="sello repetida">Repetida ×${copias}</span>`)
@@ -296,7 +293,7 @@ const avisoFamilia = p => `Familia completa (${nombreClan(p.clan)}): +${plural(p
 const volteableHTML = (item, i, n, giro = 7) => `<div class="volteable${item.aviso ? ' extra' : ''}" style="--giro: ${((i - (n - 1) / 2) * giro).toFixed(1)}deg" data-tier="${claveTier(item.c.tier)}" data-i="${i}"
     tabindex="0" role="button" aria-label="${item.aviso ? `${item.aviso}, boca abajo` : `Carta ${i + 1} de ${n}, boca abajo`}: dale la vuelta">
     ${item.aviso ? `<span class="aviso-extra${item.premio ? ' familia' : ''}">${item.aviso}</span>` : ''}<span class="pista" aria-hidden="true"></span>
-    <div class="giro">${dorso()}<div class="cara frente">${cartaHTML(item.c)}</div></div>${selloHTML(item.c)}</div>`;
+    <div class="giro">${reversoHTML(item.c)}<div class="cara frente">${cartaHTML(item.c)}</div></div>${selloHTML(item.c)}</div>`;
 
 // Las cartas grandes se celebran al descubrirlas: chispas alrededor de la carta y un fogonazo de su color en la
 // escena, con centro en la carta. Cuántas chispas, según la tier; las demás cartas se descubren sin más
