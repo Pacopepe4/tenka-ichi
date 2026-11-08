@@ -118,5 +118,18 @@
    "TORA-MEDIO": "A",
    "TORA-SUPPORT": "C"
   }
+ },
+ {
+  "nombre": "2026-11-08 Yasha medio: REIKO pasa a ser DRAGON",
+  "dicho": "Pacopepe: REIKO pasa a ser DRAGON (Yasha, medio) y su carta KAIJU-MEDIO pasa de Aurora a Zoe (el campeón va en campeones-cartas.json). Solo cambia ese puesto",
+  "plantillas": {
+   "KAIJU": [
+    null,
+    null,
+    "DRAGON",
+    null,
+    null
+   ]
+  }
  }
 ]
