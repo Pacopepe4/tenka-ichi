@@ -11,8 +11,9 @@ body[data-vista="replay"] #replay { opacity: 1; visibility: visible; transition:
 body[data-vista="replay"] #lienzo { opacity: 0; visibility: hidden; transition: opacity .5s ease, visibility 0s .5s; }
 body[data-vista="replay"] .codigo-directo { display: none; }
 
-/* Compacto y pegado a la esquina: la repetición lleva el marcador de la partida arriba en el centro, y el cartel no puede
-   tapar el nombre de la familia azul, que empieza hacia x 465 (estilo B) o 491 (A). Mide unos 410 px de ancho (acaba hacia x 435) */
+/* En las repeticiones solo queda este cartel: el marcador de la partida se quita (Pacopepe, 08/11). Va compacto y pegado
+   a la esquina, porque así «está bien de grande»: mide unos 416×93 px y acaba hacia x 440. Si algún día conviviera con
+   el marcador, tampoco lo taparía (la placa azul empieza hacia x 465 con el estilo B y x 491 con el A) */
 .replay-cartel { position: absolute; left: 24px; top: 24px; display: grid; grid-template-columns: auto auto auto; align-items: center; gap: 12px;
   padding: 12px 14px 12px 18px; border-radius: 8px; border: 1px solid var(--sumi-linea);
   background: linear-gradient(180deg, rgba(21, 22, 31, .96), rgba(12, 13, 19, .96));
