@@ -42,11 +42,46 @@
       </form>
       <p class="como-mas"></p>
     </div>
-    <button class="sobre" type="button" aria-label="Abrir un sobre" disabled>
-      <span class="sobre-papel"><img src="/marca/sol-partido-sin-fondo.png" alt=""></span>
-      <span class="sobre-banda"><span class="sobre-kanji">極道</span><span class="sobre-texto">Sobre de Gokudō</span></span>
-      <span class="sobre-contador"></span>
-    </button>
+    <!-- La tragaperras (apertura.js y tragaperras.css). Cada tirada es una moneda: entra por la ranura, baja la palanca,
+         giran los rodillos y las cartas salen por la bandeja. Las piezas dibujadas en Flow se ponen en
+         tragaperras/piezas.json; mientras no estén, la máquina va en CSS (ver tragaperras.css) -->
+    <div class="tragaperras">
+      <div class="maquina">
+        <div class="maquina-cuerpo">
+          <div class="cartel solo-css" aria-hidden="true"><span class="cartel-kanji">極道</span><span class="cartel-nombre">Gokudō</span></div>
+          <span class="bombillas solo-css" aria-hidden="true"></span>
+          <div class="ventana">
+            <div class="rodillos" role="img" aria-label="Los rodillos de la tragaperras, parados">
+              <div class="rodillo"><div class="cinta"></div></div>
+              <div class="rodillo"><div class="cinta"></div></div>
+              <div class="rodillo"><div class="cinta"></div></div>
+            </div>
+            <span class="linea-premio" aria-hidden="true"></span>
+          </div>
+          <div class="mandos">
+            <span class="ranura" aria-hidden="true"><span class="ranura-boca"></span><small>Moneda</small></span>
+            <div class="botones-tirar" role="group" aria-label="Cuántas tiradas">
+              <button type="button" class="tirar" data-cuantas="1" aria-label="Una tirada: gasta 1 moneda" disabled><b>×1</b></button>
+              <button type="button" class="tirar" data-cuantas="5" aria-label="Cinco tiradas: gastan 5 monedas" disabled><b>×5</b></button>
+              <button type="button" class="tirar" data-cuantas="todos" aria-label="Todas las tiradas" disabled><b>Todas</b></button>
+            </div>
+          </div>
+          <div class="bandeja" aria-hidden="true"><span class="bandeja-cartas"></span><span class="bandeja-labio"></span></div>
+        </div>
+        <!-- La palanca es la tirada ×1. Lleva la clase «sobre» porque gachapon.js la activa o la desactiva al pintar la cuenta -->
+        <button class="sobre palanca" type="button" aria-label="Tirar de la palanca: una tirada" disabled>
+          <span class="palanca-caja" aria-hidden="true"></span><span class="palanca-brazo" aria-hidden="true"></span><span class="palanca-bola" aria-hidden="true"></span>
+        </button>
+      </div>
+      <div class="monedero" hidden>
+        <span class="monedas" aria-hidden="true"></span>
+        <span class="monedero-cifra"></span>
+        <span class="monedero-texto"></span>
+      </div>
+      <p class="maquina-estado" role="status"></p>
+      <!-- gachapon.js escribe aquí las tiradas (×N) cada vez que pinta la cuenta: la máquina lo escucha (y .cuenta) para repintarse -->
+      <span class="sobre-contador" hidden></span>
+    </div>
   </section>
 
   <section class="fantasy" id="fantasy">
@@ -121,18 +156,19 @@
   <nav aria-label="Más de Gokudō"><a href="/">Portada</a><a href="https://twitch.tv/gokudo_zoku" target="_blank" rel="noopener">Twitch</a><a href="https://kbstats.es/" target="_blank" rel="noopener">KB Stats</a></nav>
 </footer>
 
-<dialog class="apertura" aria-label="Abriendo un sobre">
+<!-- Lo que sale de la tragaperras. Con una tirada, las cartas salen de la bandeja boca abajo y se giran una a una; con
+     varias, un resumen (resumen-tiradas). Lo pinta apertura.js -->
+<dialog class="apertura" aria-labelledby="titulo-apertura">
+  <h2 class="titulo-apertura" id="titulo-apertura">Tu tirada</h2>
   <div class="escena">
-    <div class="sobre-abriendo" aria-hidden="true">
-      <span class="mitad arriba"><span class="sobre-papel"><img src="/marca/sol-partido-sin-fondo.png" alt=""></span></span>
-      <span class="mitad abajo"><span class="sobre-papel"><img src="/marca/sol-partido-sin-fondo.png" alt=""></span></span>
-      <span class="corte"></span>
-    </div>
     <div class="reparto"></div>
+    <div class="resumen-tiradas" hidden></div>
+    <span class="boca-bandeja" aria-hidden="true"></span>
   </div>
+  <p class="aviso-premio" role="status"></p>
   <div class="acciones-apertura">
-    <button type="button" class="boton-claro descubrir">Descubrir todas</button>
-    <button type="button" class="boton-claro otro" hidden>Abrir otro</button>
+    <button type="button" class="boton-claro descubrir" autofocus>Descubrir todas</button>
+    <button type="button" class="boton-claro otro" hidden>Otra tirada</button>
     <button type="button" class="boton-secundario cerrar-apertura" hidden>Guardar en la colección</button>
   </div>
 </dialog>
