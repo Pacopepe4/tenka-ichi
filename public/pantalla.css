@@ -1,0 +1,108 @@
+/* Sección Directo de la portada (public/pantalla.js): la pantalla grande y la columna de cartas de Kick, Twitch, el
+   tráiler y las redes. Las cartas se levantan y brillan con el color de su red al pasarles el ratón, como las de
+   familia; la elegida se adelanta hacia la pantalla. Va después de inicio.css y directo.css. */
+.directo-rejilla { grid-template-columns: minmax(0, 1fr) minmax(250px, 300px); align-items: stretch; gap: clamp(20px, 3vw, 40px); }
+
+/* La pantalla: un marco 16:9 con el filo de la marca y un halo del color de lo que se ve */
+.pantalla { --red: var(--shu); position: relative; aspect-ratio: 16 / 9; align-self: center; background: #0B0C11; border-radius: 8px;
+  box-shadow: 0 0 0 1px var(--sumi-linea, #2A2B38), 0 0 0 6px var(--noche, #0C0D13), 0 0 0 7px color-mix(in srgb, var(--red) 45%, transparent),
+    0 0 46px color-mix(in srgb, var(--red) 22%, transparent), 0 34px 70px rgba(0, 0, 0, .55);
+  transition: box-shadow .35s ease; }
+.pantalla-panel { position: absolute; inset: 0; overflow: hidden; border-radius: 8px; animation: encender-pantalla .35s ease both; }
+.pantalla-panel[hidden] { display: none; }
+@keyframes encender-pantalla { from { opacity: 0; filter: brightness(1.6) saturate(.4); } }
+.pantalla-panel .directo-marco { position: absolute; inset: 0; aspect-ratio: auto; box-shadow: none; border-radius: 0; }
+.pantalla-video { display: block; width: 100%; height: 100%; border: 0; background: #000; }
+
+/* Tráiler: la miniatura con el botón; sin vídeo todavía, «Muy pronto en YouTube» */
+.trailer-portada { position: absolute; inset: 0; display: block; width: 100%; padding: 0; border: 0; background: #000; cursor: pointer; }
+.trailer-portada:disabled { cursor: default; }
+.trailer-portada img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .6s ease, filter .3s ease; }
+.trailer-portada:not(:disabled):hover img { transform: scale(1.03); filter: brightness(1.08); }
+.trailer-boton { position: absolute; left: 50%; bottom: 8%; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 12px;
+  padding: 12px 22px; border-radius: 8px; background: rgba(12, 13, 19, .86); border: 1px solid var(--shu); color: var(--washi);
+  font-family: var(--dela, sans-serif); font-size: clamp(14px, 1.5vw, 18px); white-space: nowrap; box-shadow: 0 0 22px rgba(224, 48, 58, .45); }
+.trailer-play { width: 0; height: 0; border-style: solid; border-width: 8px 0 8px 13px; border-color: transparent transparent transparent var(--shu-claro); }
+
+/* X y TikTok: su widget dentro de la pantalla, con su cabecera y desplazable */
+.pantalla-red { position: absolute; inset: 0; display: flex; flex-direction: column; background: linear-gradient(180deg, #13141C, #0B0C11); }
+.pantalla-red-cabeza { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 18px; border-bottom: 1px solid var(--sumi-linea, #2A2B38); }
+.pantalla-red-cabeza b { font-family: var(--dela, sans-serif); font-weight: 400; color: var(--washi); }
+.pantalla-red-cuerpo { flex: 1; min-height: 0; overflow-y: auto; padding: 8px clamp(8px, 3vw, 40px); scrollbar-color: var(--sumi-linea, #2A2B38) transparent; }
+.pantalla-red-cuerpo .twitter-timeline, .pantalla-red-cuerpo .tiktok-embed { margin: 0 auto !important; }
+.pantalla-abrir { color: var(--hai); font-size: 14px; text-decoration: none; white-space: nowrap; }
+.pantalla-abrir:hover { color: var(--red, var(--washi)); }
+
+/* Tarjeta de perfil (YouTube, y X o TikTok si su widget no se ve): la miniatura del tráiler de fondo */
+.pantalla-perfil { position: absolute; inset: 0; display: grid; align-items: end; }
+.pantalla-perfil > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: brightness(.45) saturate(.8); }
+.pantalla-perfil-texto { position: relative; display: grid; gap: 6px; padding: clamp(16px, 4vw, 40px); background: linear-gradient(transparent, rgba(11, 12, 17, .92) 45%); }
+.pantalla-perfil-texto b { font-family: var(--dela, sans-serif); font-weight: 400; font-size: clamp(22px, 3vw, 38px); color: var(--washi); }
+.pantalla-perfil-texto > span:not(.carta-red-kanji) { color: var(--hai); }
+.pantalla-perfil-texto .carta-red-kanji { font-size: 34px; width: 56px; height: 56px; }
+.pantalla-perfil-botones { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 22px; margin-top: 10px; }
+
+/* La columna: el título de la sección y las cartas */
+.directo-lado { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.directo-lado .directo-texto { display: flex; align-items: center; gap: 14px; }
+.directo-lado .directo-texto .marca-seccion { margin: 0; }
+.directo-lado .directo-texto h2 { font-size: clamp(30px, 3vw, 42px); margin: 0 0 4px; }
+.directo-lado .directo-texto .directo-estado { margin: 0; font-size: 14px; }
+.cartas-red { display: flex; flex-direction: column; gap: 10px; }
+
+.carta-red { --red: var(--shu); position: relative; display: grid; grid-template-columns: 46px 1fr auto; align-items: center; gap: 12px;
+  width: 100%; padding: 10px 14px 10px 10px; text-align: left; cursor: pointer; color: var(--washi);
+  background: linear-gradient(135deg, var(--sumi-alzado, #15161F), #101118); border: 1px solid var(--sumi-linea, #2A2B38); border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .35);
+  transition: transform .25s cubic-bezier(.2, .8, .2, 1), box-shadow .25s ease, border-color .25s ease; }
+/* El filo de color a la izquierda, como el canto de una carta */
+.carta-red::before { content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 0 3px 3px 0; background: var(--red); opacity: .55; transition: opacity .25s ease; }
+.carta-red:hover, .carta-red:focus-visible { transform: translateY(-4px) rotate(-1deg); border-color: color-mix(in srgb, var(--red) 60%, transparent);
+  box-shadow: 0 0 28px color-mix(in srgb, var(--red) 40%, transparent), 0 14px 28px rgba(0, 0, 0, .55); }
+.carta-red[aria-selected="true"] { transform: translateX(-10px); border-color: var(--red);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--red) 45%, transparent), 0 0 30px color-mix(in srgb, var(--red) 35%, transparent), 0 14px 28px rgba(0, 0, 0, .5); }
+.carta-red[aria-selected="true"]::before { opacity: 1; }
+.carta-red[aria-selected="true"]:hover { transform: translateX(-10px) translateY(-3px); }
+.carta-red-kanji { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 6px; background: #0B0C11;
+  font-family: var(--pincel, serif); font-size: 30px; line-height: 1; color: var(--red); text-shadow: 0 0 8px color-mix(in srgb, var(--red) 70%, transparent); }
+.carta-red-texto { display: grid; min-width: 0; }
+.carta-red-texto b { font-family: var(--dela, sans-serif); font-weight: 400; font-size: 18px; line-height: 1.15; }
+.carta-red-texto small { color: var(--hai); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.carta-red-vivo { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase; color: #0B0C11; background: var(--red); }
+.carta-red-vivo::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: pulso 1.6s ease-in-out infinite; }
+.carta-red-vivo[hidden] { display: none; }
+
+/* El directo en una ventanita en la esquina cuando la pantalla sale de la vista */
+.pantalla-mini-barra { display: none; }
+.pantalla-panel.flotando { position: fixed; inset: auto 16px 16px auto; width: min(380px, calc(100vw - 32px)); height: auto; aspect-ratio: 16 / 9;
+  z-index: 60; overflow: visible; box-shadow: 0 18px 44px rgba(0, 0, 0, .65); animation: asomar .35s cubic-bezier(.2, .8, .2, 1); }
+.pantalla-panel.flotando > :is(iframe, .directo-marco) { border-radius: 0 0 6px 6px; }
+.pantalla-panel.flotando .pantalla-mini-barra { display: flex; align-items: center; gap: 10px; position: absolute; left: 0; right: 0; bottom: 100%;
+  padding: 7px 8px 7px 12px; background: var(--sumi-alzado); border-radius: 6px 6px 0 0; font-size: 13px; color: var(--washi); }
+.pantalla-mini-barra a { margin-left: auto; color: var(--hai); }
+.pantalla-mini-barra a:hover { color: var(--washi); }
+
+/* Móvil y tabletas: el título y las cartas en una fila que se desliza, como pestañas, y debajo la pantalla */
+@media (max-width: 860px) {
+  .directo-rejilla { grid-template-columns: 1fr; }
+  .directo-lado { order: -1; }
+  .cartas-red { flex-direction: row; overflow-x: auto; padding: 6px 2px 10px; margin: 0 calc(var(--margen) * -1); padding-inline: var(--margen);
+    scroll-snap-type: x proximity; scroll-padding-inline: var(--margen); scrollbar-width: none; }
+  .cartas-red::-webkit-scrollbar { display: none; }
+  .carta-red { flex: 0 0 auto; width: auto; grid-template-columns: 36px auto; gap: 10px; padding: 8px 12px 8px 8px; scroll-snap-align: start; }
+  .carta-red-kanji { width: 36px; height: 36px; font-size: 23px; }
+  .carta-red-texto small { display: none; }
+  .carta-red-vivo { position: absolute; top: -8px; right: -6px; padding: 2px 6px; font-size: 9.5px; }
+  .carta-red[aria-selected="true"], .carta-red[aria-selected="true"]:hover { transform: translateY(-3px); }
+  .pantalla-red-cabeza { padding: 10px 12px; }
+  .trailer-boton { padding: 9px 14px; }
+  .pantalla-panel.flotando { width: min(300px, 64vw); inset: auto 12px 12px auto; }
+  .pantalla-panel.flotando .pantalla-mini-barra { font-size: 12px; }
+  .pantalla-panel.flotando .pantalla-mini-barra a { display: none; }
+  .pantalla-panel.flotando .directo-cerrar { margin-left: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pantalla-panel, .pantalla-panel.flotando, .carta-red-vivo::before { animation: none; }
+  .carta-red, .carta-red:hover, .carta-red[aria-selected="true"] { transition: none; }
+}

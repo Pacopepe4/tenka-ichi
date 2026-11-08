@@ -3,6 +3,7 @@
 //   npm run discord-aplicar -- --prueba             → solo enseña lo que haría, no cambia nada
 //   npm run discord-aplicar                          → crea lo que falta y cambia lo que es distinto
 //   npm run discord-aplicar -- --borrar-sobrantes    → además borra los canales y roles que no están en el archivo
+//   npm run discord-aplicar -- --env <archivo>       → usa el .env de otra carpeta (lo lee y guarda ahí los webhooks)
 // Necesita DISCORD_BOT_TOKEN en el .env. Si el bot está en más de un servidor, DISCORD_GUILD_ID dice cuál.
 // Es idempotente: si lo lanzas dos veces seguidas, la segunda no hace nada. Las direcciones de los webhooks
 // (son secretas) se guardan en el .env, nunca se enseñan. Los ids de lo creado van a discord/ids.json para
@@ -466,9 +467,13 @@ export async function aplicar({ api, config, familias, prueba = false, borrarSob
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const archivoEnv = path.join(RAIZ, '.env');
-  if (existsSync(archivoEnv)) process.loadEnvFile(archivoEnv);
   const argumentos = process.argv.slice(2);
+  // --env <archivo>: el .env de otra carpeta (el que tiene el token y las direcciones de los webhooks), para lanzar el
+  // código al día de un worktree sin copiar secretos. Se lee de ahí y las direcciones nuevas se guardan ahí
+  const iEnv = argumentos.indexOf('--env');
+  const archivoEnv = iEnv >= 0 && argumentos[iEnv + 1] ? path.resolve(argumentos[iEnv + 1]) : path.join(RAIZ, '.env');
+  if (iEnv >= 0 && !existsSync(archivoEnv)) { console.error(`No existe el .env que se ha pedido: ${archivoEnv}`); process.exit(1); }
+  if (existsSync(archivoEnv)) process.loadEnvFile(archivoEnv);
   const token = process.env.DISCORD_BOT_TOKEN;
   if (!token) { console.error('Falta DISCORD_BOT_TOKEN en el .env'); process.exit(1); }
   try {

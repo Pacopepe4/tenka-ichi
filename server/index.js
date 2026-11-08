@@ -29,8 +29,9 @@ import { clasificacionJornada } from './fantasy.js';
 import { previa, fichaJugador, fichaClan } from './previa.js';
 import { cargarCanal, conectarCanal, cambiarCoste, sondear, sondearSiHaceFalta, estadoCanal, SCOPE_CANAL } from './canal.js';
 import { cargarCanalKick, conectarCanalKick, cambiarCosteKick, recogerCanjesKick, estadoCanalKick, asegurarSuscripciones, SCOPE_CANAL_KICK } from './canal-kick.js';
-import { atenderWebhookKick, alAlertar, alertaDePrueba, contextoComandos, cargarBotKick, conectarBotKick, quitarBotKick, estadoBotKick, SCOPE_BOT_KICK } from './kick-bot.js';
+import { atenderWebhookKick, alAlertar, alertaDePrueba, contextoComandos, cargarBotKick, conectarBotKick, quitarBotKick, estadoBotKick, estadoDirectoKick, SCOPE_BOT_KICK } from './kick-bot.js';
 import { textoPartido } from './comandos-kick.js';
+import { cargarCronicas, cronicaDe, publicarCronica, estadoCronicas, claveRealizador, MAXIMO_TEXTO } from './cronicas.js';
 import { formatoTemporada } from './competicion.js';
 import { kickActivo, pkce, urlAutorizar as urlAutorizarKick, canjearCodigo as canjearCodigoKick, usuarioDeToken as usuarioDeKick, CANAL_KICK } from './kick.js';
 import { firmar, verificar, leerCookies, ponerCookie, cifrar, descifrar } from './sesion.js';
@@ -38,7 +39,7 @@ import { twitchActivo, urlAutorizar, canjearCodigo, usuarioDeToken, usuarioPorNo
 import { loginDiscordActivo, urlAutorizarDiscord, sesionDeDiscord } from './entrada-discord.js';
 import crypto from 'node:crypto';
 import { cargarFantasy, infoFantasy, cambiarAlineacion, guardarEstadisticas, cerrarAlineaciones, alineacionesCerradas } from './fantasy.js';
-import { atenderPublicacion, discordActivo } from './discord.js';
+import { atenderPublicacion, discordActivo, publicarCronica as cronicaEnDiscord, resultadosDiscordActivo } from './discord.js';
 import { crearComandos } from './discord-comandos.js';
 import { cargarPartida, recibir as recibirPartida, resumen as resumenPartida, empezarPrueba, pararPrueba, enPrueba, olvidarPartida,
   ponerContexto, marcarObjetivo, deshacerMarca, ajustarIngame } from './partida.js';
@@ -610,7 +611,8 @@ const volverSeguro = v => (/^\/(?![/\\])/.test(v || '') ? v : '/gachapon/');
 
 function estadoGachaPanel() {
   return { login: loginDiscordActivo(), canal: estadoCanal(), kick: { ...estadoCanalKick(), activo: kickActivo(), bot: estadoBotKick() }, resumen: resumenGacha(), probabilidades: probabilidades(), reparto: reparto(), cerrado: infoFantasy(null).cerrado,
-    codigo: estadoCodigo(), jornadas: estadoJornadas(), publicarDiscord: discordActivo('clasificacion'), temporada: estadoTemporada() };
+    codigo: estadoCodigo(), jornadas: estadoJornadas(), publicarDiscord: discordActivo('clasificacion'), temporada: estadoTemporada(),
+    cronicas: { ...estadoCronicas(), discord: resultadosDiscordActivo() } };
 }
 
 function infoGacha(u) {
@@ -655,6 +657,58 @@ function redirigir(res, destino) {
 const escaparHTML = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 // Página mínima para contar el resultado de conectar el canal o de entrar; el enlace de salida es el panel salvo que se diga otro
+// ---------- Crónicas ----------
+// Los enfrentamientos del último día con partidas (en la liguilla, los tres de la jornada), con su ganador y la crónica
+// que haya mandado el realizador. Sin partidas, cuándo es la primera
+function ultimoDiaDePartidas() {
+  const ps = todas().filter(p => p.clanAzul && p.clanRojo);
+  const hoy = new Date().toISOString().slice(0, 10);
+  const proxima = formatoTemporada().liguilla.find(j => j.fecha >= hoy) || null;
+  if (!ps.length) return { dia: null, jornada: null, enfrentamientos: [], proxima };
+  const dia = ps.map(p => p.fecha).sort().at(-1);
+  const delDia = ps.filter(p => p.fecha === dia);
+  return {
+    dia, jornada: delDia[0].jornada || null, proxima,
+    enfrentamientos: delDia.map(p => {
+      const c = cronicaDe(p.clanAzul, p.clanRojo, p.fecha);
+      return { azul: p.clanAzul, rojo: p.clanRojo, ganador: p.ganador === 'azul' ? p.clanAzul : p.clanRojo, partida: p.partida,
+        titulo: c?.titulo || '', texto: c?.texto || '', resumen: c?.resumen || '' };
+    }),
+  };
+}
+
+// Familia por su id (SARU) o por su nombre (Tsuki, tsuki, Ryujin…)
+const sinTildes = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+const idDeFamilia = t => CLANES.find(c => c.id === String(t || '').toUpperCase() || sinTildes(c.nombre) === sinTildes(t))?.id || null;
+const nombreFamilia = id => CLANES.find(c => c.id === id)?.nombre || id;
+
+// POST /api/cronicas/partida, con Authorization: Bearer CRONICAS_CLAVE.
+// Cuerpo: { texto, resumen, titulo?, azul?, rojo? }. Sin las familias, es la última partida guardada.
+async function recibirCronica(req, res) {
+  const clave = claveRealizador();
+  if (!clave) return json(res, { ok: false, error: 'Falta CRONICAS_CLAVE en Render' }, 503);
+  const dada = Buffer.from(String(req.headers.authorization || '').replace(/^Bearer\s+/i, ''));
+  const buena = Buffer.from(clave);
+  if (dada.length !== buena.length || !crypto.timingSafeEqual(dada, buena)) return json(res, { ok: false, error: 'Clave incorrecta' }, 401);
+  let d;
+  try { d = await leerCuerpo(req, 3 * MAXIMO_TEXTO); } catch (e) { return json(res, { ok: false, error: e.message }, 400); }
+  const texto = String(d.texto || '').trim(), resumen = String(d.resumen || '').trim(), titulo = String(d.titulo || '').trim().slice(0, 200);
+  if (!texto && !resumen) return json(res, { ok: false, error: 'Falta el texto o el resumen de la partida' }, 400);
+  if (texto.length > MAXIMO_TEXTO || resumen.length > MAXIMO_TEXTO) return json(res, { ok: false, error: `Como mucho ${MAXIMO_TEXTO} letras` }, 413);
+  const [a, r] = [idDeFamilia(d.azul), idDeFamilia(d.rojo)];
+  const ps = todas().filter(p => p.clanAzul && p.clanRojo);
+  const p = a && r ? ps.filter(x => (x.clanAzul === a && x.clanRojo === r) || (x.clanAzul === r && x.clanRojo === a)).at(-1) : ps.at(-1);
+  if (!p) return json(res, { ok: false, error: a && r ? 'No hay ninguna partida guardada de esas dos familias' : 'No hay ninguna partida guardada todavía' }, 409);
+  const ganador = p.ganador === 'azul' ? p.clanAzul : p.clanRojo;
+  const enfrentamiento = `${nombreFamilia(p.clanAzul)} contra ${nombreFamilia(p.clanRojo)}: gana ${nombreFamilia(ganador)}`;
+  const web = origen(req), familia = CLANES.find(c => c.id === ganador);
+  // Se contesta enseguida; se guarda y se publica en #resultados después
+  publicarCronica({ azul: p.clanAzul, rojo: p.clanRojo, titulo, texto, resumen }, () => cronicaEnDiscord({
+    enfrentamiento, titulo, texto, resumen, jornada: p.jornada || '', color: familia?.color, logo: `${web}/logos/${ganador}.png`, enlace: `${web}/#liga`,
+  })).catch(e => console.error('Crónicas:', e.message));
+  return json(res, { ok: true, partida: { azul: p.clanAzul, rojo: p.clanRojo, ganador, jornada: p.jornada || null } }, 202);
+}
+
 function paginaAviso(res, titulo, texto, codigo = 200, enlace = ['/panel/', 'Volver al panel']) {
   res.writeHead(codigo, { 'Content-Type': 'text/html; charset=utf-8' });
   res.end(`<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${titulo}</title>
@@ -992,6 +1046,13 @@ const servidor = http.createServer(async (req, res) => {
     if (!res.headersSent) return json(res, { ok: false, error: 'Algo ha fallado en la web: prueba otra vez' }, 500);
     return;
   }
+  // ---------- Crónicas de las partidas (server/cronicas.js) ----------
+  // Lo que enseña la portada: los enfrentamientos del último día de partidas, con su resultado y su crónica
+  if (url.pathname === '/api/cronicas' && req.method === 'GET') return json(res, ultimoDiaDePartidas());
+  // El realizador manda el texto y el resumen de una partida que acaba de terminar: se guardan y van a #resultados
+  if (url.pathname === '/api/cronicas/partida' && req.method === 'POST') return recibirCronica(req, res);
+  // La portada: si el canal está en directo en Kick (lo sabe por el aviso de Kick, server/kick-bot.js)
+  if (url.pathname === '/api/directo') return json(res, { kick: estadoDirectoKick() });
   if (url.pathname === '/api/clanes') {
     await refrescarPlantillas();
     res.writeHead(200, { 'Content-Type': TIPOS['.json'], 'Cache-Control': 'no-cache' });
@@ -1143,7 +1204,7 @@ wss.on('connection', (ws, req) => {
 setInterval(() => { for (const ws of clientes) if (ws.readyState === 1) ws.ping(); }, 25000);
 
 await Promise.all([cargar(), cargarPlantillas(), cargarCalendario(), cargarAjustes()]);
-await Promise.all([cargarTierlist(), cargarGacha(), cargarTierlistsPublico()]);
+await Promise.all([cargarTierlist(), cargarGacha(), cargarTierlistsPublico(), cargarCronicas()]);
 // El sorteo que estaba en marcha cuando la web se reinició sigue en la misma bola (si no se guardó ya el calendario)
 try {
   const enCurso = JSON.parse(ajuste('sorteo_en_curso') || 'null');

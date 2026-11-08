@@ -437,6 +437,16 @@ function pintarGacha(g) {
     .filter(Boolean).join(' ');
   $('#conectarBotKick').textContent = b.conectado ? 'Cambiar la cuenta del bot' : 'Conectar la cuenta del bot';
   $('#quitarBotKick').hidden = !b.conectado;
+  // Crónicas: cuántas hay, qué falta configurar y cómo fue la última
+  const cr = g.cronicas;
+  if (cr) {
+    const u = cr.ultima, falta = [!cr.realizador && 'CRONICAS_CLAVE', !cr.discord && 'DISCORD_WEBHOOK_RESULTADOS'].filter(Boolean);
+    $('#estadoCronicas').className = `estado ${falta.length || (u && !u.publicada) ? 'mal' : 'ok'}`;
+    $('#estadoCronicas').textContent = [`${cr.cronicas} ${cr.cronicas === 1 ? 'crónica guardada' : 'crónicas guardadas'}.`,
+      falta.length ? `Falta en Render: ${falta.join(' y ')}.` : '',
+      u ? `Última (${new Date(u.fecha).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}, ${u.partida}): ${u.publicada ? 'publicada en Discord' : `no se pudo publicar en Discord (${u.error})`}.` : '']
+      .filter(Boolean).join(' ');
+  }
   // Sin cartas de jugador los sobres no se abren: se enseña el reparto con el que saldrán, no el de las BOOST solas
   const r = g.resumen, p = r.listos ? g.probabilidades : g.reparto;
   const n = (x, uno, varios) => `${x} ${x === 1 ? uno : varios}`;
