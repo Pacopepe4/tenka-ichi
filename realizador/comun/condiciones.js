@@ -12,7 +12,9 @@ export function condiciones(d) {
     },
     {
       id: 'obs', texto: 'OBS abierto (PC 2)', ok: d.obs === true, bloquea: true,
-      ayuda: d.pc2 === false ? 'Primero tiene que estar conectado el PC 2.' : 'Abre OBS en el PC 2 (se abre solo con «Realizador PC2»). Si ya está abierto, vuelve a pasar «INSTALAR-PC2.bat» con OBS cerrado.',
+      ayuda: d.pc2 === false ? 'Primero tiene que estar conectado el PC 2.'
+        : d.obsProblema ? `${d.obsProblema}.`
+          : 'Abre OBS en el PC 2 (se abre solo con «Realizador PC2»). Si ya está abierto, vuelve a pasar «INSTALAR-PC2.bat» con OBS cerrado.',
     },
     {
       id: 'partidaPc1', texto: 'Partida en el LoL del PC 1', ok: Boolean(d.partidaPc1), bloquea: true,

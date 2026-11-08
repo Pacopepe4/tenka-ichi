@@ -31,7 +31,7 @@ export const INTERFAZ = { interfaceFrames: false };
 export function interfazEspectador(r = {}) {
   return { ...INTERFAZ, ...(r.interfaz || {}) };
 }
-
+
 export function draftDeTenka(e) {
   if (!e) return null;
   if (e.vistaOverlay === 'postdraft') return 'postdraft';
@@ -94,7 +94,8 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
   const obs = typeof conObs === 'object' ? conObs : conObs && o.obs?.activo && o.obs?.enRele
     ? new Obs({ url: `ws://127.0.0.1:${new URL(o.obs.url.replace(/auto/i, '127.0.0.1')).port || 4455}`, clave: o.obs.clave || o.clave || '' })
     : null;
-  if (typeof conObs !== 'object') obs?.on('conexion', v => registrar(v ? '[obs] conectado' : '[obs] sin conexión (¿está abierto?)'));
+  if (typeof conObs !== 'object') obs?.on('conexion', v => { if (v) registrar('[obs] conectado'); });
+  if (typeof conObs !== 'object') obs?.on('problema', t => registrar(`[obs] ${t}`));
   if (typeof conObs !== 'object') obs?.conectar();
 
   // El botón de «Empezar directo»: arranca OBS justo para que la partida salga desde el principio
@@ -347,7 +348,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
   function condicionesAhora() {
     return condiciones({
       papel: 'pc2', pc1: pc1Conectado(), pc2: true, partidaPc1: partidaPc1(), partidaPc2: Boolean(estado.playback),
-      obs: obs ? Boolean(obs.listo) : null, bufer: emision.salidas ? emision.salidas.bufer : null,
+      obs: obs ? Boolean(obs.listo) : null, obsProblema: obs?.problema || null, bufer: emision.salidas ? emision.salidas.bufer : null,
     });
   }
   function tAntenaAhora() {

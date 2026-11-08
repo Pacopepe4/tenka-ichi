@@ -6,10 +6,13 @@ call windows\_node.bat || (pause & exit /b 1)
 echo Instalacion del realizador en el PC 2.
 echo Usa la contrasena del panel de TENKA ICHI, la misma en los dos PCs: con ella se encuentran y se conectan.
 echo.
+rem OBS tiene que estar cerrado: si no, no se puede dejar configurado (y al cerrarse pisaria los cambios)
+:esperarObs
 tasklist /FI "IMAGENAME eq obs64.exe" /NH | find /I "obs64.exe" >nul
 if not errorlevel 1 (
-  echo OBS esta abierto. Cierralo ^(tambien de la bandeja, junto al reloj^) y pulsa una tecla.
+  echo OBS esta abierto. Cierralo ^(tambien el icono de la bandeja, junto al reloj^) y pulsa una tecla.
   pause >nul
+  goto :esperarObs
 )
 set "CLAVE="
 set /p "CLAVE=Contrasena del panel de TENKA ICHI: "

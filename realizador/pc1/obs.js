@@ -22,8 +22,15 @@ export class Obs extends EventEmitter {
     let ws;
     try { ws = new WebSocket(this.url); } catch (e) { this.programarReintento(); return; }
     this.ws = ws;
+    let abierto = false;
+    ws.addEventListener('open', () => { abierto = true; });
     ws.addEventListener('message', m => this.mensaje(JSON.parse(m.data)));
-    ws.addEventListener('close', () => {
+    ws.addEventListener('close', e => {
+      // Por qué no hay conexión, para que se vea en el registro y en la página del PC 2
+      const motivo = e?.code === 4009 ? 'OBS no acepta la contraseña del WebSocket: vuelve a pasar INSTALAR-PC2.bat con OBS cerrado, o pon la contraseña del panel en OBS, Herramientas → Ajustes del servidor WebSocket'
+        : !abierto ? 'OBS no contesta en el WebSocket: está cerrado o tiene el servidor apagado (en OBS, Herramientas → Ajustes del servidor WebSocket → Activar)'
+          : this.listo ? 'OBS se ha cerrado o ha cortado la conexión' : `OBS ha cortado la conexión al identificarse (código ${e?.code})`;
+      if (motivo !== this.problema) { this.problema = motivo; this.emit('problema', motivo); }
       this.listo = false;
       this.emit('conexion', false);
       for (const { rechazar } of this.pendientes.values()) rechazar(new Error('OBS desconectado'));
@@ -50,6 +57,7 @@ export class Obs extends EventEmitter {
       this.ws.send(JSON.stringify({ op: 1, d }));
     } else if (m.op === 2) {
       this.listo = true;
+      this.problema = null;
       this.emit('conexion', true);
     } else if (m.op === 5) {
       this.emit('evento', m.d);
