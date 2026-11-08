@@ -1,5 +1,5 @@
 /* Tokens de marca TENKA ICHI, compartidos por portada, panel y overlay */
-@import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Shippori+Mincho+B1:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap');
 
 :root {
   --sumi: #161412;        /* tinta: fondo */
@@ -25,6 +25,8 @@
 
   --mincho:'Shippori Mincho B1', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
   --gothic: 'Zen Kaku Gothic New', 'Hiragino Sans', 'Yu Gothic', 'Segoe UI', sans-serif;
+  /* La letra de rótulo de Gokudō: el nombre, los títulos y los marcadores */
+  --rotulo: 'Dela Gothic One', 'Zen Kaku Gothic New', 'Segoe UI', sans-serif;
 }
 
 /* Sello hanko: cuadrado bermellón con un kanji en blanco */
