@@ -30,7 +30,7 @@ async function arrancarWeb() {
       CARPETA_DATOS: carpeta, ARCHIVO_PLANTILLAS: path.join(carpeta, 'plantillas.json'),
       // Sin las BOOST ni los campeones del proyecto: la prueba alinea la primera carta que le sale y tiene que ser de jugador
       ARCHIVO_BOOSTS: path.join(carpeta, 'boosts.json'), ARCHIVO_CAMPEONES: path.join(carpeta, 'campeones.json'),
-      ARCHIVO_LEGACY: path.join(carpeta, 'legacy.json') },   // sin las LEGACY del proyecto: los sobres traen siempre tres cartas
+      ARCHIVO_LEGACY: path.join(carpeta, 'legacy.json') },   // sin las LEGACY del proyecto: los sobres traen siempre cuatro cartas
   });
   web.stderr.on('data', d => { if (process.env.VER_WEB) process.stderr.write(d); });
   for (let i = 0; i < 60; i++) {
@@ -131,11 +131,11 @@ test('si cancela en Twitch vuelve al gachapon sin sesión', async () => {
   assert.equal(otro.cookies.get('tk_sesion'), undefined);
 });
 
-test('abre un sobre y le salen 3 cartas del catálogo', async () => {
+test('abre un sobre y le salen 4 cartas del catálogo', async () => {
   const r = await ana.ir(`${urlWeb}/api/gacha/abrir`, { method: 'POST' });
   const j = await r.json();
   assert.equal(j.ok, true);
-  assert.equal(j.sobre.length, 3);
+  assert.equal(j.sobre.length, 4);
   for (const c of j.sobre) assert.match(c.id, /^(KAIJU|TORA)-(TOP|JUNGLA|MEDIO|ADC|SUPPORT)$/);
   assert.equal(j.usuario.sobres, 2);
 });

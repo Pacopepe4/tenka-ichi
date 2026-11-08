@@ -178,11 +178,13 @@ test('el sorteo respeta la parte de cada tier, también la de la S+, que es muy 
   assert.ok(veces['S+'] > 0, 'la S+ sale alguna vez');
 });
 
-test('un sobre da 3 cartas con su clase, su dibujo y su marco, sin el peso del sorteo', async () => {
+test('un sobre da 4 cartas con su clase, su dibujo y su marco, sin el peso del sorteo', async () => {
   const u = { id: 'u1', nombre: 'Ana' };
   assert.equal(await g.darAlta(u), true);
   const sobre = await g.abrirSobre(u);
-  assert.equal(sobre.length, 3);
+  assert.equal(sobre.length, 4);
+  assert.equal(g.CARTAS_POR_SOBRE, 4, 'cuatro cartas por sobre');
+  assert.equal(g.PROBABILIDAD_LEGACY, 0.05, 'y una LEGACY de regalo en el 5 % de los sobres');
   for (const c of sobre) {
     assert.ok(['jugador', 'boost'].includes(c.tipo));
     assert.ok(c.arte, 'lleva arte');

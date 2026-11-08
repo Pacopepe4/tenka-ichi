@@ -128,7 +128,7 @@ function pintarProbabilidades() {
       <span class="cifra">${pct(p)}<small>${quienes}</small></span></div>`;
   }).join('') + (listos ? '' : '<p class="resumen-prob">Los sobres todavía no se abren: así saldrán las cartas cuando estén las de los jugadores.</p>')
     + `<p class="resumen-prob">En cada sobre, la probabilidad de que salga al menos una S${hayS ? ' o una S+' : ''} es del ${pct(1 - (1 - pS) ** info.cartasPorSobre)}.</p>`
-    // Las LEGACY no están entre las tres del sobre: de vez en cuando sale una de regalo, como carta extra
+    // Las LEGACY no están entre las cartas del sobre: de vez en cuando sale una de regalo, como carta extra
     + (legado && info.probabilidadLegacy ? `<p class="resumen-prob prob-legacy"><b>LEGACY.</b> Aparte de sus ${info.cartasPorSobre} cartas, el ${pct(info.probabilidadLegacy)} de los sobres trae una carta extra del equipo Legacy (hay ${legado}). Son de colección: no se alinean en el fantasy.</p>` : '');
 }
 

@@ -24,8 +24,13 @@ const [A, B, C] = clanes;
 let semilla = 11;
 const azar = n => { semilla = (semilla * 9301 + 49297) % 233280; return Math.floor(semilla / 233280 * n); };
 
-// Tier de cada jugador (S, A, B y C repartidas) y otros campeones que juega cada puesto además del de su carta
+// Tier de cada jugador (S, A, B y C repartidas) y otros campeones que juega cada puesto además del de su carta.
+// Los demás jugadores con nombre en la plantilla también llevan tier (B, C y D): con uno sin tier, los sobres no se
+// abren (sobresListos en server/gacha.js)
 const tiers = Object.fromEntries(clanes.flatMap((c, i) => ROLES.map((r, j) => [`${c}-${r}`, ['A', 'S', 'B', 'A', 'B', 'S', 'C', 'A', 'B'][(i * 5 + j) % 9]])));
+Object.keys(plantillas).filter(c => !clanes.includes(c)).forEach((c, i) => ROLES.forEach((r, j) => {
+  if (plantillas[c].jugadores?.[j]) tiers[`${c}-${r}`] = ['B', 'C', 'D', 'C', 'D'][(i + j) % 5];
+}));
 const OTROS = { TOP: ['Gnar', 'Renekton', 'Jax'], JUNGLA: ['LeeSin', 'Vi', 'Sejuani'], MEDIO: ['Ahri', 'Orianna', 'Syndra'], ADC: ['Jinx', 'Ezreal', 'Xayah'], SUPPORT: ['Rakan', 'Leona', 'Lulu'] };
 const BANS = ['Yasuo', 'Zed', 'Akali', 'Yone', 'Kaisa', 'Lucian', 'Nautilus', 'Maokai', 'Vayne', 'Draven', 'Skarner', 'Ambessa', 'Aurora', 'Poppy', 'Corki'];
 const cruces = [['Jornada 1', A, B, 'azul'], ['Jornada 1', C, A, 'rojo'], ['Jornada 2', B, C, 'azul'], ['Jornada 2', A, C, 'azul'], ['Jornada 3', B, A, 'rojo'], ['Jornada 3', C, B, 'rojo']];
@@ -83,12 +88,12 @@ await Promise.all([escribir('plantillas.json', plantillas), escribir('tierlist.j
 
 // Nada de la hoja de Google, de Discord ni del canal de Twitch reales
 for (const k of Object.keys(process.env)) if (/^(GOOGLE_|TWITCH_|DISCORD_|RENDER)/.test(k)) delete process.env[k];
-// En la demo, la carta extra LEGACY sale en la mitad de los sobres para poder verla (en la web de verdad, en un 3 %),
+// En la demo, la carta extra LEGACY sale en la mitad de los sobres para poder verla (en la web de verdad, en un 5 %),
 // y salen todas aunque aún no tengan su dibujo (en la web de verdad, una LEGACY sin dibujo no existe)
 Object.assign(process.env, { PORT: puerto, CARPETA_DATOS: carpeta, ARCHIVO_PLANTILLAS: path.join(carpeta, 'plantillas.json'), ESPERA_VISTA_MS: process.env.ESPERA_VISTA_MS || '3000',
   PROBABILIDAD_LEGACY: process.env.PROBABILIDAD_LEGACY || '0.5', LEGACY_SIN_DIBUJO: process.env.LEGACY_SIN_DIBUJO || '1' });
 
 console.log(`Liga de prueba en ${carpeta}: ${clanes.join(', ')}, ${registro.length} partidas`);
 console.log(`Entra en el gachapon sin Discord: http://localhost:${puerto}/auth/prueba?nombre=Koryu`);
-console.log('En esta demo, la carta extra LEGACY sale en la mitad de los sobres (en la web de verdad, en un 3 %) y aunque no tenga dibujo.');
+console.log('En esta demo, la carta extra LEGACY sale en la mitad de los sobres (en la web de verdad, en un 5 %) y aunque no tenga dibujo.');
 await import('../server/index.js');

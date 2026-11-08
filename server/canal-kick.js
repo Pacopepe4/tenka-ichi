@@ -17,7 +17,7 @@ export const SCOPE_CANAL_KICK = 'user:read channel:rewards:read channel:rewards:
 const COSTE_INICIAL = 3000;
 const COLOR = '#BE2A2F';   // el bermellón de la marca (--shu)
 // Lo que lee el espectador en Kick al canjear (máximo 200 caracteres)
-const TEXTO_OMAMORI = 'Un sobre de 3 cartas del gachapon de Gokudō. Entra en tenka-ichi.onrender.com/gachapon/ y vincula tu Kick: el sobre te llega en un minuto.';
+const TEXTO_OMAMORI = 'Un sobre de 4 cartas del gachapon de Gokudō. Entra en tenka-ichi.onrender.com/gachapon/ y vincula tu Kick: el sobre te llega en un minuto.';
 export const idKick = userId => `kick-${userId}`;
 
 let tokens = null;

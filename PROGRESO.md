@@ -377,3 +377,12 @@ Diseño aprobado en `docs/superpowers/specs/2026-10-04-ingame-mejoras-design.md`
 - **Byakko completa** (de cc98bbc, tampoco estaba en master): PABLO top (Varus), EL 64 jungla (Viego), «SPORFU / MANU» medio (una carta mitad Anivia, mitad Yone), NARCISO adc (Kai'Sa), JEEDA support (Thresh), con su importación de una vez para la hoja.
 - **Los 40 dibujos, nuevos**, hechos en Google Flow con el estilo de los personajes de Gokudō: cada campeón de LoL como yakuza de su familia, manga oscuro a color, noche de Tokio con lluvia y neón. Las de jugador (y GYPSICUACK) en cuadrado y solo con el neón de su familia; las S+ y las LEGACY a carta completa y a todo color (LEGACY con luna dorada y lirios rojos de Shinigami). Referencias: el splash del campeón y la maestra del personaje de la familia (`gokudo/diseno/personajes/`). Prompts, lista y lo aprendido en `gokudo/diseno/cartas/LEEME-cartas.md`; originales 2K en `koryu-budo/gachapón/` (los de Tenka Ichi pasan a `gachapón/tenka-ichi/`).
 - **Retoque:** el dibujo de DOMENACHE (Samira, Tengu adc) salió de Flow con un borde crema; se le recortaron los 86 px de cada lado antes de convertirlo (el original con borde se guarda como `gachapón/KEMONO-ADC-con-borde.jpg`).
+
+## 08/11: cuatro cartas por sobre y LEGACY en el 5 %
+
+- **Lo que pidió el usuario:** «Igual deberíamos ponerle 4, y subir el porcentaje de las de legacy a un 5».
+- `CARTAS_POR_SOBRE = 4` y `PROBABILIDAD_LEGACY` por defecto 0,05 (`server/gacha.js`). Con cuatro cartas, uno de cada 17 sobres trae alguna S o S+ (antes, uno de cada 23). Fundir sigue siendo 5 repetidas por un sobre, que ahora da 4 cartas.
+- Textos: la página («Cada sobre trae cuatro cartas»), las recompensas de Twitch y Kick («Un sobre de 4 cartas»; solo se escribe al crear la recompensa), README y pruebas.
+- Apertura en el móvil: con cuatro cartas y la extra no cabía en la pantalla; el reparto se desplaza (`.escena` con `overflow-y: auto` y `place-items: safe center` por debajo de 640 px).
+- Demo (`scripts/prueba-directo.js`): pone tier también a los jugadores de los demás clanes, que si no los sobres no se abren.
+- Si en Render está puesta la variable `PROBABILIDAD_LEGACY`, manda ella: hay que quitarla o ponerla a 0.05.

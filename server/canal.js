@@ -13,7 +13,7 @@ export const TITULO_RECOMPENSA = 'Sobre de Gokudō';
 export const SCOPE_CANAL = 'channel:manage:redemptions';
 const COSTE_INICIAL = 3000;
 // Lo que lee el espectador en Twitch al canjear
-const TEXTO_RECOMPENSA = 'Un sobre de 3 cartas del gachapon de Gokudō. Entra en tenka-ichi.onrender.com/gachapon/ y vincula tu Twitch: el sobre te llega en un minuto.';
+const TEXTO_RECOMPENSA = 'Un sobre de 4 cartas del gachapon de Gokudō. Entra en tenka-ichi.onrender.com/gachapon/ y vincula tu Twitch: el sobre te llega en un minuto.';
 
 let tokens = null;
 const estado = { conectado: false, login: null, recompensa: null, coste: null, error: null, ultimoSondeo: null };

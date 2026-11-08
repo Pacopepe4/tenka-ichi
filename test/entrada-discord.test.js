@@ -30,7 +30,7 @@ async function lanzar(extra = {}) {
       CARPETA_DATOS: carpeta, ARCHIVO_PLANTILLAS: path.join(carpeta, 'plantillas.json'),
       // Sin las BOOST ni los campeones del proyecto: las cartas que salen son de jugador
       ARCHIVO_BOOSTS: path.join(carpeta, 'boosts.json'), ARCHIVO_CAMPEONES: path.join(carpeta, 'campeones.json'),
-      ARCHIVO_LEGACY: path.join(carpeta, 'legacy.json'), ...extra },   // sin las LEGACY del proyecto: los sobres traen siempre tres cartas
+      ARCHIVO_LEGACY: path.join(carpeta, 'legacy.json'), ...extra },   // sin las LEGACY del proyecto: los sobres traen siempre cuatro cartas
   });
   proceso.stderr.on('data', d => { if (process.env.VER_WEB) process.stderr.write(d); });
   for (let i = 0; i < 60; i++) {
@@ -223,10 +223,10 @@ test('sin sesión no se puede abrir un sobre, y el aviso habla de Discord', asyn
   assert.match((await r.json()).error, /Discord/);
 });
 
-test('abre un sobre y le salen 3 cartas del catálogo', async () => {
+test('abre un sobre y le salen 4 cartas del catálogo', async () => {
   const j = await (await ana.ir(`${urlWeb}/api/gacha/abrir`, { method: 'POST' })).json();
   assert.equal(j.ok, true);
-  assert.equal(j.sobre.length, 3);
+  assert.equal(j.sobre.length, 4);
   for (const c of j.sobre) assert.match(c.id, /^(KAIJU|TORA)-(TOP|JUNGLA|MEDIO|ADC|SUPPORT)$/);
   assert.equal(j.usuario.sobres, 2);
 });

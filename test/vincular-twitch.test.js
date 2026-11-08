@@ -62,7 +62,7 @@ test('lo que ese Twitch ya tenía a su nombre (canjes de antes de vincularse) se
   await g.vincularTwitch(beto, twBeto);
   const e = g.estadoUsuario(beto.id);
   assert.deepEqual([e.sobres, e.abiertos], [3 + 1, 1], 'los tres de bienvenida y el que le quedaba sin abrir');
-  assert.equal(e.cartas.reduce((s, c) => s + c.cantidad, 0), 3, 'y las tres cartas del que abrió');
+  assert.equal(e.cartas.reduce((s, c) => s + c.cantidad, 0), 4, 'y las cuatro cartas del que abrió');
   assert.deepEqual(g.estadoUsuario(twBeto.id), { sobres: 0, abiertos: 0, cartas: [], twitch: null, kick: null });
   assert.deepEqual([g.resumenGacha().coleccionistas, g.resumenGacha().conTwitch], [2, 2]);
 });

@@ -110,7 +110,7 @@ test('después todo sigue como siempre, en el registro y las alineaciones de la 
   assert.equal(await g.darAlta(ana), false, 'volver a entrar no da otros tres sobres');
   assert.equal(await g.darAlta(eva), true);
   assert.equal(g.estadoUsuario(eva.id).sobres, 3);
-  assert.equal((await g.abrirSobre(ana)).length, 3);
+  assert.equal((await g.abrirSobre(ana)).length, g.CARTAS_POR_SOBRE);
   assert.deepEqual([g.estadoUsuario(ana.id).sobres, g.estadoUsuario(ana.id).abiertos], [2, 1]);
   const carta = g.estadoUsuario(ana.id).cartas[0].id;
   await fantasy.cambiarAlineacion(ana, { [carta.split('-')[1]]: carta });
@@ -297,8 +297,8 @@ test('en la hoja de Google: la temporada nueva va en pestañas nuevas, las de an
     assert.equal(g.sobresListos, true);
     for (const [t, parte] of Object.entries({ S: 0.012, A: 0.065, B: 0.22, C: 0.3, D: 0.4 })) assert.ok(Math.abs(g.probabilidades[t] - parte / 0.997) < 1e-9, t);
     r = await ana.json('/api/gacha/abrir', {});
-    assert.deepEqual([r.ok, r.sobre.length], [true, 3]);
-    assert.deepEqual(await usuario(ana), [2, 1, 3]);
+    assert.deepEqual([r.ok, r.sobre.length], [true, 4]);
+    assert.deepEqual(await usuario(ana), [2, 1, 4]);
     // Y alinea una de sus cartas: va a las alineaciones de la temporada nueva
     const carta = (await ana.json('/api/gacha')).usuario.cartas[0].id;
     assert.equal((await ana.json('/api/fantasy/alineacion', { [carta.split('-')[1]]: carta })).ok, true);
@@ -314,7 +314,7 @@ test('en la hoja de Google: la temporada nueva va en pestañas nuevas, las de an
     hoja.peticiones.length = 0;
     await arrancarWeb(url);
     assert.deepEqual(escrituras(hoja, 'Gachapon', 'GachaponT2', 'Alineaciones', 'AlineacionesT2'), [], 'al arrancar solo se lee');
-    assert.deepEqual(await usuario(ana), [2, 1, 3], 'Ana sigue con lo que tenía, y con la sesión abierta');
+    assert.deepEqual(await usuario(ana), [2, 1, 4], 'Ana sigue con lo que tenía, y con la sesión abierta');
     assert.deepEqual(await usuario(beto), [3, 0, 0]);
     assert.equal(Object.values((await ana.json('/api/fantasy')).yo.alineacion).filter(x => typeof x === 'string').length, 1);
     assert.equal(hoja.leer('GachaponT2').filter(f => f[3] === 'temporada').length, 1);

@@ -1,7 +1,7 @@
 // Gachapon de Tenka Ichi. Tres clases de carta:
 // - Jugador: los jugadores de la liga, con la rareza de su tier en la tier list (S, A, B, C y D).
 // - BOOST: personajes de fuera de los clanes, de tier S+, S, A o B (data-proyecto/cartas-boost.json).
-// - LEGACY: los jugadores del equipo Legacy (data-proyecto/cartas-legacy.json). No están entre las tres cartas del
+// - LEGACY: los jugadores del equipo Legacy (data-proyecto/cartas-legacy.json). No están entre las cuatro cartas del
 //   sobre: de vez en cuando un sobre trae, además, una LEGACY de regalo. Son de colección: no sirven en el fantasy.
 // Cada tier tiene su parte del sorteo (PESOS): cuanto mejor es, más difícil es que salga.
 // Todo se guarda como un registro de movimientos (altas, canjes, regalos, aperturas y cartas) en la
@@ -23,7 +23,7 @@ export const TIERS_BOOST = ['S+', 'S', 'A', 'B'];
 // cartas, sean de Jugador o BOOST, así que no depende de cuántas haya en cada tier; si una tier no tiene ninguna
 // carta, su parte se reparte entre las demás en proporción. La página enseña las probabilidades que salen de verdad
 export const PESOS = { 'S+': 0.3, S: 1.2, A: 6.5, B: 22, C: 30, D: 40 };
-export const CARTAS_POR_SOBRE = 3;
+export const CARTAS_POR_SOBRE = 4;      // desde el 08/11/2026, cuatro (antes tres)
 export const SOBRES_INICIALES = 3;
 export const REPETIDAS_POR_SOBRE = 5;   // cartas repetidas que hay que fundir para llevarse un sobre
 
@@ -177,7 +177,7 @@ function bonusBoost(e) {
 
 // ---------- cartas LEGACY ----------
 // Los jugadores del equipo Legacy (el que está apartado de la competición, server/clanes.js). No son de las que salen
-// normalmente: quedan fuera del sorteo de las tres cartas y, en una parte muy pequeña de los sobres (PROBABILIDAD_LEGACY),
+// normalmente: quedan fuera del sorteo de las cartas del sobre y, en una parte muy pequeña de los sobres (PROBABILIDAD_LEGACY),
 // sale una de regalo como carta extra. No sirven en el fantasy (ni se alinean ni dan bonus): son de colección. Se pintan
 // como las S+ «full art», con «LEGACY» en el sello y solo su título debajo del nombre.
 // data-proyecto/cartas-legacy.json: [{ "id": "LEGACY-NOMBRE", "nombre": "…", "subtitulo": "…", "clan": "AMATERATSU", "activa": true }]
@@ -185,7 +185,7 @@ function bonusBoost(e) {
 // Riot. En cuanto se sube el dibujo, entra sola. LEGACY_SIN_DIBUJO=1 las deja salir sin él (lo usa la demo).
 export const TIER_LEGACY = 'LEGACY';
 const LEGACY_SIN_DIBUJO = /^(1|si|sí|true)$/i.test(process.env.LEGACY_SIN_DIBUJO || '');
-const probabilidadDe = v => (v == null || v === '' || !Number.isFinite(Number(v)) ? 0.03 : Math.max(0, Math.min(1, Number(v))));
+const probabilidadDe = v => (v == null || v === '' || !Number.isFinite(Number(v)) ? 0.05 : Math.max(0, Math.min(1, Number(v))));
 export const PROBABILIDAD_LEGACY = probabilidadDe(process.env.PROBABILIDAD_LEGACY);   // parte de los sobres que traen una LEGACY de regalo
 const ARCHIVO_LEGACY = process.env.ARCHIVO_LEGACY
   ? path.resolve(process.env.ARCHIVO_LEGACY) : path.join(RAIZ, 'data-proyecto', 'cartas-legacy.json');
@@ -294,7 +294,7 @@ export function catalogo() {
   // Cada carta pesa en el sorteo la parte de su tier repartida entre las cartas de esa tier
   const deTier = new Map();
   for (const c of [...boosts, ...jugadores]) deTier.set(c.tier, (deTier.get(c.tier) || 0) + 1);
-  // Las LEGACY pesan 0: no entran en el sorteo de las tres cartas del sobre. Y solo cuentan las que ya tienen su dibujo
+  // Las LEGACY pesan 0: no entran en el sorteo de las cartas del sobre. Y solo cuentan las que ya tienen su dibujo
   return [...legacy.filter(c => LEGACY_SIN_DIBUJO || completas.has(c.id)), ...boosts, ...jugadores].map(c => ({ ...c, campeon: campeones.get(c.id) || null }))
     .map(c => ({ ...c, arte: arteDe(c), fullart: completas.get(c.id) || null, marco: marcoDe(c), peso: c.tipo === 'legacy' ? 0 : (PESOS[c.tier] || 0) / deTier.get(c.tier) }));
 }
@@ -336,7 +336,7 @@ export function sacarSobre(cat, cuantas = CARTAS_POR_SOBRE) {
   return cartas;
 }
 
-// La carta extra: en una parte muy pequeña de los sobres sale, además de las tres, una LEGACY al azar
+// La carta extra: en una parte muy pequeña de los sobres sale, además de las del sobre, una LEGACY al azar
 const azarSeguro = () => crypto.randomInt(MAXIMO_AZAR) / MAXIMO_AZAR;
 export function sacarLegacy(especiales, probabilidad = PROBABILIDAD_LEGACY, azar = azarSeguro) {
   if (!especiales.length || !(azar() < probabilidad)) return null;

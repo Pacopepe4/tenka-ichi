@@ -1,4 +1,4 @@
-// Cartas LEGACY: los jugadores del equipo Legacy. No salen entre las tres cartas del sobre: de vez en cuando un sobre
+// Cartas LEGACY: los jugadores del equipo Legacy. No salen entre las cuatro cartas del sobre: de vez en cuando un sobre
 // trae, además, una de regalo. Son de colección: no se alinean en el fantasy ni sirven de BOOST.
 // Una LEGACY no existe hasta que tiene su dibujo vertical: nunca sale con el splash de Riot.
 // Todo con datos temporales y con la probabilidad de la carta extra al 100 % para que salga siempre.
@@ -68,23 +68,23 @@ test('el catálogo lleva las LEGACY como clase aparte, sin peso en el sorteo', (
   assert.deepEqual([g.resumenGacha().cartas, g.resumenGacha().legacy], [6, 2]);
 });
 
-test('la carta extra: sale según la probabilidad y nunca entre las tres del sobre', async () => {
+test('la carta extra: sale según la probabilidad y nunca entre las cuatro del sobre', async () => {
   const legacy = g.catalogo().filter(c => c.tipo === 'legacy');
   assert.equal(g.PROBABILIDAD_LEGACY, 1);
   assert.equal(g.sacarLegacy(legacy, 0), null);
   assert.equal(g.sacarLegacy([], 1), null);
-  assert.equal(g.sacarLegacy(legacy, 0.03, () => 0.5), null, 'con un 3 %, la mayoría de los sobres no la traen');
-  assert.equal(g.sacarLegacy(legacy, 0.03, () => 0.01).id, 'LEGACY-UNO');
+  assert.equal(g.sacarLegacy(legacy, 0.05, () => 0.5), null, 'con un 5 %, la mayoría de los sobres no la traen');
+  assert.equal(g.sacarLegacy(legacy, 0.05, () => 0.01).id, 'LEGACY-UNO');
   assert.equal(g.sacarLegacy(legacy, 1, () => 0.999999).id, 'LEGACY-DOS');
 
   await g.darAlta(ana);
   await g.darSobres(ana, 10, 'regalo', 'prueba');
   for (let i = 0; i < 12; i++) {
     const sobre = await g.abrirSobre(ana);
-    assert.equal(sobre.length, 4, 'tres cartas y la extra');
-    assert.ok(sobre.slice(0, 3).every(c => c.tipo !== 'legacy' && !c.extra), 'las tres del sobre son de las normales');
-    assert.deepEqual([sobre[3].tipo, sobre[3].extra, sobre[3].tier], ['legacy', true, 'LEGACY']);
-    assert.equal(sobre[3].peso, undefined);
+    assert.equal(sobre.length, 5, 'cuatro cartas y la extra');
+    assert.ok(sobre.slice(0, 4).every(c => c.tipo !== 'legacy' && !c.extra), 'las cuatro del sobre son de las normales');
+    assert.deepEqual([sobre[4].tipo, sobre[4].extra, sobre[4].tier], ['legacy', true, 'LEGACY']);
+    assert.equal(sobre[4].peso, undefined);
   }
   const mias = Object.fromEntries(g.estadoUsuario(ana.id).cartas.map(c => [c.id, c.cantidad]));
   assert.equal((mias['LEGACY-UNO'] || 0) + (mias['LEGACY-DOS'] || 0), 12);

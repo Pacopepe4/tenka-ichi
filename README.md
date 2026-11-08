@@ -250,14 +250,14 @@ Se edita en el panel, apartado **Tier list**: cada jugador (por su puesto en la 
 
 ## Gachapon
 
-`/gachapon/`: cada espectador entra con su cuenta de Discord y recibe **3 sobres**. Cada sobre trae **3 cartas**, de dos clases:
+`/gachapon/`: cada espectador entra con su cuenta de Discord y recibe **3 sobres**. Cada sobre trae **4 cartas** (`CARTAS_POR_SOBRE`; hasta el 08/11/2026 eran 3), de dos clases:
 
 - **Jugador:** los jugadores de la liga, con la rareza de su tier en la tier list (S, A, B, C; la D sigue funcionando mientras exista en la tier list).
 - **BOOST:** personajes de fuera de los clanes, de tier **S+**, S, A o B (abajo). No tienen clan ni rol, así que no se alinean en el fantasy.
 
-Aparte están las **LEGACY** (abajo): no salen entre las tres cartas; de vez en cuando un sobre trae una de regalo, como carta extra.
+Aparte están las **LEGACY** (abajo): no salen entre las cuatro cartas; de vez en cuando un sobre trae una de regalo, como carta extra.
 
-En el sorteo cada tier tiene su parte de las cartas que salen: **S+ 0,3 %, S 1,2 %, A 6,5 %, B 22 %, C 30 % y D 40 %**. Casi todo es de las tiers bajas y una S o una S+ es difícil de ver: 3 de cada 200 cartas, o un sobre de cada 23. La parte de una tier se la reparten por igual sus cartas, sean de Jugador o BOOST, así que no cambia con cuántas haya en ella; si una tier no tiene ninguna carta, su parte se reparte entre las demás en proporción, y la página enseña las probabilidades que salen de verdad. Se cambia en `PESOS` de `server/gacha.js`. Dentro de un mismo sobre no sale dos veces la misma carta.
+En el sorteo cada tier tiene su parte de las cartas que salen: **S+ 0,3 %, S 1,2 %, A 6,5 %, B 22 %, C 30 % y D 40 %**. Casi todo es de las tiers bajas y una S o una S+ es difícil de ver: 3 de cada 200 cartas; con cuatro por sobre, uno de cada 17 trae alguna. La parte de una tier se la reparten por igual sus cartas, sean de Jugador o BOOST, así que no cambia con cuántas haya en ella; si una tier no tiene ninguna carta, su parte se reparte entre las demás en proporción, y la página enseña las probabilidades que salen de verdad. Se cambia en `PESOS` de `server/gacha.js`. Dentro de un mismo sobre no sale dos veces la misma carta.
 
 **Los sobres no se abren hasta que todos los jugadores de las plantillas tienen tier** (cada uno con nombre en su plantilla tiene que tener su tier en la tier list; un hueco sin nombre no cuenta). Con la tier list a medias, los sobres de todos saldrían de unos pocos clanes y de las BOOST. Mientras tanto cada uno conserva sus sobres, la página lo avisa y enseña el reparto con el que saldrán, y el panel dice cuántos jugadores faltan y de qué clanes. En cuanto el último tiene tier, se abren.
 
@@ -281,7 +281,7 @@ El `id` es el nombre del dibujo (mayúsculas, números y guiones) y `tier` es `S
 
 ### Cartas LEGACY
 
-Los jugadores del equipo Legacy (Amateratsu). Son **de colección**: no se alinean en el fantasy ni sirven de BOOST, y no están entre las tres cartas del sobre. De vez en cuando (un **3 %** de los sobres; `PROBABILIDAD_LEGACY`, de 0 a 1) un sobre trae, además de sus tres cartas, una LEGACY de regalo: sale la última, con el aviso «Carta extra». Se pintan como las S+ a carta completa, con «LEGACY» en una placa de oro en lugar del sello de la tier y, debajo del nombre, solo su título (ni estrellas ni multiplicador); igual en la web que en las imágenes de Discord. Van las primeras en el álbum y las repetidas se funden como las demás.
+Los jugadores del equipo Legacy (Amateratsu). Son **de colección**: no se alinean en el fantasy ni sirven de BOOST, y no están entre las cuatro cartas del sobre. De vez en cuando (un **5 %** de los sobres; `PROBABILIDAD_LEGACY`, de 0 a 1; hasta el 08/11/2026 era un 3 %) un sobre trae, además de sus cuatro cartas, una LEGACY de regalo: sale la última, con el aviso «Carta extra». Se pintan como las S+ a carta completa, con «LEGACY» en una placa de oro en lugar del sello de la tier y, debajo del nombre, solo su título (ni estrellas ni multiplicador); igual en la web que en las imágenes de Discord. Van las primeras en el álbum y las repetidas se funden como las demás.
 
 Van en `data-proyecto/cartas-legacy.json`:
 
@@ -299,7 +299,7 @@ Van en `data-proyecto/cartas-legacy.json`:
 
 - **Dibujo de cada carta:** `public/cartas/ID.png` (también `.webp` o `.jpg`), donde el ID es el puesto del jugador (`KAIJU-TOP`, `TORA-ADC`…) o el de la BOOST (`BOOST-KAMI`). Mientras no exista, la carta lleva el arte de su clan (y las BOOST, el sol partido).
 - **Marcos:** en `public/cartas/marcos/jugador/` (S, A, B, C y D, en papel washi) y `boost/` (SP, que es la S+, S, A y B, en laca de armadura con cordones: oro, rojo, blanco y añil). Tienen la ventana del arte transparente (750×750 en x 125, y 282 de 1000×1400), y el sello con la letra y las estrellas ya dibujados. Sin marco, la carta se dibuja como antes.
-- **Reverso:** `public/cartas/marcos/reverso.webp`, el mismo para las dos clases y todas las tiers: al abrir el sobre las tres cartas salen boca abajo y no se sabe qué ha tocado hasta darles la vuelta.
+- **Reverso:** `public/cartas/marcos/reverso.webp`, el mismo para las dos clases y todas las tiers: al abrir el sobre las cartas salen boca abajo y no se sabe qué ha tocado hasta darles la vuelta.
 - Los marcos se hacen en `diseno/marcos/`: `node diseno/marcos/generar.mjs` los dibuja en SVG y `node diseno/marcos/exportar.mjs` los pasa a PNG de 1000×1400 (originales, en `diseno/marcos/png/`, fuera del repositorio) y a WebP ligeros para la web (usa Chrome o Edge sin ventana). Ahí están también **guardados** para ediciones especiales la alternativa de laca completa, la S+ washi con torii, la S de Jugador anterior y la de pan de oro (`exportar.mjs --guardadas` los pasa a PNG). Con un trozo del nombre solo se exportan esas piezas: `node diseno/marcos/exportar.mjs jugador/S`.
 - Las posiciones del nombre, el emblema y el rol sobre el marco se ajustan en el bloque «Carta con marco» de `public/gachapon/gachapon.css`.
 - La web mira la carpeta cada minuto: los dibujos nuevos aparecen sin reiniciar. Las direcciones llevan la fecha del archivo, así que al cambiar un dibujo nadie ve el antiguo en caché.

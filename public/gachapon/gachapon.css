@@ -388,6 +388,9 @@ html.con-movimiento .tabla-prob.revelar.visto .barra-prob span { transform: scal
   .tabla-puntos th:nth-child(3), .tabla-puntos td:nth-child(3) { display: none; }
   .tabla-puntos td, .tabla-puntos th { padding-left: 8px; padding-right: 8px; }
   .fila-prob { grid-template-columns: 54px minmax(0, 1fr) 88px; gap: 10px; }
+  /* Cuatro cartas y la extra no caben en la pantalla del móvil: el reparto se desplaza, sin cortarse por arriba */
+  .escena { overflow-y: auto; place-items: safe center; }
+  .reparto { row-gap: 30px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
