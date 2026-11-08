@@ -60,6 +60,8 @@
 .carta-g.fullart[data-tier="A"] .pie::before { content: '★★★★'; }
 .carta-g.fullart[data-tier="B"] .pie::before { content: '★★★'; }
 .carta-g.fullart .nick { font-size: 10cqw; color: #F5EFE2; text-shadow: 0 .4cqw 1.4cqw rgba(0, 0, 0, .95); }
+/* Los nombres largos también caben a carta completa («TEMPORADA 2», «SHINIGAMI»…) */
+.carta-g.fullart.nombre-largo .nick { font-size: 7.6cqw; }
 .carta-g.fullart .rol { color: #EBD28A; text-shadow: 0 .3cqw .8cqw rgba(0, 0, 0, .9); }
 .carta-g.fullart .bonus { color: #F5EFE2; text-shadow: 0 .3cqw .8cqw rgba(0, 0, 0, .9); }
 .carta-g.fullart .cantidad { right: 8cqw; bottom: 8cqw; }
