@@ -42,8 +42,8 @@ let registro = [];
 const usuarios = new Map();
 const canjes = new Set();
 const usosCodigo = new Map();   // código de directo → cuántas personas lo han canjeado
-// Twitch vinculado: id de Twitch → id de la cuenta del gachapon. Lo que le llegue a ese id de Twitch (los canjes de
-// puntos del canal, un regalo por su nombre de Twitch) cuenta para la cuenta vinculada
+// Twitch o Kick vinculado: id de Twitch (o «kick-» y el id de Kick) → id de la cuenta del gachapon. Lo que le llegue a
+// ese id (los canjes de puntos del canal, un regalo por su nombre de Twitch) cuenta para la cuenta vinculada
 const vinculos = new Map();
 let sinGuardar = [];
 
@@ -51,7 +51,7 @@ function aplicar(e) {
   if (e.tipo === 'temporada') return;   // la marca del estreno de la temporada (estrenarTemporada): no es de nadie
   const id = vinculos.get(String(e.id)) || e.id;
   let u = usuarios.get(id);
-  if (!u) { u = { id, nombre: e.usuario, sobres: 0, abiertos: 0, cartas: new Map(), codigos: new Set(), twitch: null }; usuarios.set(id, u); }
+  if (!u) { u = { id, nombre: e.usuario, sobres: 0, abiertos: 0, cartas: new Map(), codigos: new Set(), twitch: null, kick: null }; usuarios.set(id, u); }
   // El nombre es el de la cuenta: un canje llega con el nombre de Twitch y no lo pisa
   if (e.usuario && id === e.id) u.nombre = e.usuario;
   if (e.tipo === 'vinculo') vincular(u, e.detalle);
@@ -71,30 +71,35 @@ function aplicar(e) {
   }
 }
 
-// Un vínculo con Twitch («tw:id:nombre» en el detalle) o, con el detalle vacío, su retirada. Una cuenta lleva un solo
-// Twitch y un Twitch va a una sola cuenta: manda el último vínculo. Si ese Twitch ya tenía sobres o cartas a su
+// Un vínculo con Twitch («tw:id:nombre» en el detalle) o con Kick («kk:id:nombre») o, sin id, su retirada (el detalle
+// vacío, que es como se apuntó siempre la de Twitch, o «kk:» la de Kick). Una cuenta lleva un solo Twitch y un solo
+// Kick, y cada uno va a una sola cuenta: manda el último vínculo. Si ese Twitch o Kick ya tenía sobres o cartas a su
 // nombre (canjes de antes de vincularse), se juntan con los de la cuenta
+const PLATAFORMAS = { tw: { campo: 'twitch', clave: id => id }, kk: { campo: 'kick', clave: id => `kick-${id}` } };
 function vincular(u, detalle) {
-  const [twitch, login = ''] = String(detalle || '').replace(/^tw:/, '').split(':');
-  if (u.twitch) vinculos.delete(u.twitch.id);
-  u.twitch = null;
-  if (!twitch || twitch === String(u.id)) return;
-  const otra = usuarios.get(vinculos.get(twitch));
-  if (otra) otra.twitch = null;
-  const suya = usuarios.get(twitch);
+  const d = String(detalle || '');
+  const { campo, clave } = PLATAFORMAS[d.startsWith('kk:') ? 'kk' : 'tw'];
+  const [externo, login = ''] = d.replace(/^(tw|kk):/, '').split(':');
+  if (u[campo]) vinculos.delete(clave(u[campo].id));
+  u[campo] = null;
+  const suId = externo && clave(externo);
+  if (!externo || suId === String(u.id)) return;
+  const otra = usuarios.get(vinculos.get(suId));
+  if (otra) otra[campo] = null;
+  const suya = usuarios.get(suId);
   if (suya) {
     u.sobres += suya.sobres;
     u.abiertos += suya.abiertos;
     for (const [carta, n] of suya.cartas) u.cartas.set(carta, (u.cartas.get(carta) || 0) + n);
     for (const codigo of suya.codigos) u.codigos.add(codigo);
-    usuarios.delete(twitch);
+    usuarios.delete(suId);
   }
-  vinculos.set(twitch, u.id);
-  u.twitch = { id: twitch, login };
+  vinculos.set(suId, u.id);
+  u[campo] = { id: externo, login };
 }
 
 // El detalle de un vínculo empieza por letras para que la hoja no lo tome por una hora (hay nombres de Twitch que son números)
-const detalleVinculo = t => `tw:${t.id}:${t.login || ''}`;
+const detalleVinculo = (t, prefijo = 'tw') => `${prefijo}:${t.id}:${t.login || ''}`;
 
 const aFila = e => [e.fecha, e.id, e.usuario || '', e.tipo, e.detalle || '', e.cantidad ?? 0, e.rareza || ''];
 const deFila = f => ({ fecha: f[0], id: f[1], usuario: f[2], tipo: f[3], detalle: f[4], cantidad: Number(f[5]) || 0, rareza: f[6] || '' });
@@ -371,7 +376,7 @@ export const canjeProcesado = id => canjes.has(id);
 
 // ---------- temporada nueva ----------
 // Al estrenar una temporada todos empiezan de cero, con los sobres de bienvenida: quien ya había entrado en la anterior
-// conserva su cuenta (no tiene que registrarse otra vez) y su Twitch vinculado, y no arrastra ni cartas, ni sobres, ni
+// conserva su cuenta (no tiene que registrarse otra vez) y su Twitch y su Kick vinculados, y no arrastra ni cartas, ni sobres, ni
 // historial. El registro de la temporada anterior no se toca: se queda como estaba, en su pestaña o en su archivo.
 // Se hace una sola vez: queda apuntado en el registro nuevo con un movimiento «temporada», que va en la misma escritura
 // que las altas. Devuelve { cuentas } o null si ya estaba estrenada (o si es la primera, que no tiene anterior)
@@ -387,13 +392,14 @@ export const estrenarTemporada = () => enCola(async () => {
     if (marcaDeEstreno()) { errorDeEstreno = null; return null; }
     // Las cuentas de la temporada anterior salen de leer su registro igual que se lee el de esta
     reconstruir(await leerRegistro(TEMPORADA - 1));
-    const cuentas = [...usuarios.values()].filter(u => u.alta).map(u => ({ id: u.id, nombre: u.nombre, twitch: u.twitch }));
+    const cuentas = [...usuarios.values()].filter(u => u.alta).map(u => ({ id: u.id, nombre: u.nombre, twitch: u.twitch, kick: u.kick }));
     reconstruir();
     const fecha = ahora(), tiene = id => usuarios.get(id);
     const eventos = [{ fecha, id: 'tenka-ichi', usuario: 'Tenka Ichi', tipo: 'temporada', detalle: `T${TEMPORADA}`, cantidad: cuentas.length },
       ...cuentas.flatMap(c => [
         ...(tiene(c.id)?.alta ? [] : [{ fecha, id: c.id, usuario: c.nombre, tipo: 'alta', detalle: '', cantidad: SOBRES_INICIALES }]),
-        ...(c.twitch && !tiene(c.id)?.twitch ? [{ fecha, id: c.id, usuario: c.nombre, tipo: 'vinculo', detalle: detalleVinculo(c.twitch), cantidad: 0 }] : [])])];
+        ...(c.twitch && !tiene(c.id)?.twitch ? [{ fecha, id: c.id, usuario: c.nombre, tipo: 'vinculo', detalle: detalleVinculo(c.twitch), cantidad: 0 }] : []),
+        ...(c.kick && !tiene(c.id)?.kick ? [{ fecha, id: c.id, usuario: c.nombre, tipo: 'vinculo', detalle: detalleVinculo(c.kick, 'kk'), cantidad: 0 }] : [])])];
     if (hojaActiva()) {
       // Todo en una sola escritura. Después manda lo que haya quedado en la hoja: puede haberse escrito aunque la
       // respuesta no llegara, y repetirlo daría los sobres dos veces
@@ -439,6 +445,22 @@ export const desvincularTwitch = u => enCola(async () => {
   return true;
 });
 
+// ---------- Kick vinculado ----------
+// Lo mismo con Kick, para la recompensa «Omamori» de sus puntos del canal. kick: { id, login } de quien ha autorizado
+export const vincularKick = (u, kick) => enCola(async () => {
+  const id = String(kick?.id || '');
+  if (!id) throw new Error('Kick no ha dicho de quién es la cuenta');
+  if (usuarios.get(u.id)?.kick?.id === id) return false;
+  await registrar([{ fecha: ahora(), id: u.id, usuario: u.nombre, tipo: 'vinculo', detalle: detalleVinculo({ id, login: kick.login }, 'kk'), cantidad: 0 }]);
+  return true;
+});
+
+export const desvincularKick = u => enCola(async () => {
+  if (!usuarios.get(u.id)?.kick) return false;
+  await registrar([{ fecha: ahora(), id: u.id, usuario: u.nombre, tipo: 'vinculo', detalle: 'kk:', cantidad: 0 }]);
+  return true;
+});
+
 // ---------- códigos de directo ----------
 // Cada persona canjea un código una sola vez; cuántas lo han canjeado sale del registro
 export const usosDeCodigo = codigo => usosCodigo.get(codigo) || 0;
@@ -474,9 +496,9 @@ export const fundirRepetidas = (u, pedidas, minimo = () => 1) => enCola(async ()
 
 export function estadoUsuario(id) {
   const u = usuarios.get(id);
-  if (!u) return { sobres: 0, abiertos: 0, cartas: [], twitch: null };
+  if (!u) return { sobres: 0, abiertos: 0, cartas: [], twitch: null, kick: null };
   return { sobres: u.sobres, abiertos: u.abiertos, cartas: [...u.cartas].map(([carta, cantidad]) => ({ id: carta, cantidad })),
-    twitch: u.twitch ? { login: u.twitch.login } : null };
+    twitch: u.twitch ? { login: u.twitch.login } : null, kick: u.kick ? { login: u.kick.login } : null };
 }
 
 export function buscarUsuario(nombre) {
@@ -488,7 +510,8 @@ export function resumenGacha() {
   let abiertos = 0, sobres = 0;
   for (const u of usuarios.values()) { abiertos += u.abiertos; sobres += u.sobres; }
   const cat = catalogo();
-  return { coleccionistas: usuarios.size, sobresAbiertos: abiertos, sobresSinAbrir: sobres, conTwitch: vinculos.size,
+  const con = campo => [...usuarios.values()].filter(u => u[campo]).length;
+  return { coleccionistas: usuarios.size, sobresAbiertos: abiertos, sobresSinAbrir: sobres, conTwitch: con('twitch'), conKick: con('kick'),
     cartas: cat.filter(c => c.tipo !== 'legacy').length, legacy: cat.filter(c => c.tipo === 'legacy').length, listos: sobresListos(cat),
     faltanTiers: faltanTiers() };
 }

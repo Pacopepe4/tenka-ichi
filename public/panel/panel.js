@@ -414,10 +414,19 @@ function pintarGacha(g) {
       : `Sin conectar. Hay que entrar con la cuenta del canal (${c.canal}); la web crea la recompensa «${c.titulo}».`;
   $('#conectarCanal').textContent = c.conectado ? 'Volver a conectar el canal' : 'Conectar el canal de Twitch';
   if (c.coste && document.activeElement !== $('#costeSobre')) $('#costeSobre').value = c.coste;
+  // Kick: la recompensa «Omamori»
+  const k = g.kick, estK = $('#estadoKick');
+  estK.className = `estado ${k.error || !k.activo ? 'mal' : k.conectado ? 'ok' : ''}`;
+  estK.textContent = !k.activo ? 'Falta configurar la app de Kick en Render (KICK_CLIENT_ID y KICK_CLIENT_SECRET). Los pasos están en la guía del README.'
+    : k.error ? k.error
+      : k.conectado ? `Conectado como ${k.login}. La recompensa «${k.titulo}» cuesta ${k.coste} puntos.${k.ultimoSondeo ? ` Última recogida de canjes: ${new Date(k.ultimoSondeo).toLocaleTimeString('es-ES')}.` : ''}`
+        : `Sin conectar. Hay que entrar con la cuenta del canal (kick.com/${k.canal}); la web crea la recompensa «${k.titulo}».`;
+  $('#conectarKick').textContent = k.conectado ? 'Volver a conectar el canal de Kick' : 'Conectar el canal de Kick';
+  if (k.coste && document.activeElement !== $('#costeKick')) $('#costeKick').value = k.coste;
   // Sin cartas de jugador los sobres no se abren: se enseña el reparto con el que saldrán, no el de las BOOST solas
   const r = g.resumen, p = r.listos ? g.probabilidades : g.reparto;
   const n = (x, uno, varios) => `${x} ${x === 1 ? uno : varios}`;
-  $('#resumenGacha').textContent = `${n(r.coleccionistas, 'coleccionista', 'coleccionistas')}${r.conTwitch ? ` (${r.conTwitch} con su Twitch vinculado)` : ''}, ${n(r.sobresAbiertos, 'sobre abierto', 'sobres abiertos')} y ${n(r.sobresSinAbrir, 'sin abrir', 'sin abrir')}. ${n(r.cartas, 'carta', 'cartas')} en los sobres. `
+  $('#resumenGacha').textContent = `${n(r.coleccionistas, 'coleccionista', 'coleccionistas')}${r.conTwitch || r.conKick ? ` (${[r.conTwitch && `${r.conTwitch} con su Twitch vinculado`, r.conKick && `${r.conKick} con su Kick`].filter(Boolean).join(' y ')})` : ''}, ${n(r.sobresAbiertos, 'sobre abierto', 'sobres abiertos')} y ${n(r.sobresSinAbrir, 'sin abrir', 'sin abrir')}. ${n(r.cartas, 'carta', 'cartas')} en los sobres. `
     + (r.listos ? 'Probabilidad por carta: ' : `Los sobres no se pueden abrir hasta que todos los jugadores de las plantillas tengan tier${r.faltanTiers?.length ? ` (faltan ${r.faltanTiers.length}, de ${[...new Set(r.faltanTiers.map(id => id.split('-')[0]))].join(', ')})` : ''}. Cuando se abran, por carta: `)
     + [...(p['S+'] ? ['S+'] : []), ...TIERS].map(t => `${t} ${porcentaje(p[t] || 0)}`).join(', ') + '.'
     + textoTemporada(g.temporada);
@@ -442,6 +451,12 @@ $('#conectarCanal').onclick = async () => {
 };
 $('#recogerCanjes').onclick = async () => { const r = await enviar('gachaSondear'); if (r.ok) { pintarGacha(r.gacha); aviso('Canjes recogidos'); } };
 $('#guardarCoste').onclick = async () => { const r = await enviar('gachaCoste', { coste: $('#costeSobre').value }); if (r.ok) { pintarGacha(r.gacha); aviso('Coste cambiado en Twitch'); } };
+$('#conectarKick').onclick = async () => {
+  const r = await enviar('kickCanal');
+  if (r.ok) window.open(r.url, '_blank', 'noopener');
+};
+$('#recogerCanjesKick').onclick = $('#recogerCanjes').onclick;
+$('#guardarCosteKick').onclick = async () => { const r = await enviar('kickCoste', { coste: $('#costeKick').value }); if (r.ok) { pintarGacha(r.gacha); aviso('Coste cambiado en Kick'); } };
 $('#regalar').onclick = async () => {
   const usuario = $('#regaloUsuario').value.trim();
   if (!usuario) return aviso('Escribe el nombre en Discord');

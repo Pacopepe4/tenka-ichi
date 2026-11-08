@@ -385,12 +385,32 @@ En la pestaña Gachapon de la hoja, cada canje queda a nombre del id de Twitch d
 
 Como pide Twitch, los tokens guardados se validan al arrancar y cada hora (`/oauth2/validate`). Si el canal cambia la contraseña o retira el permiso, el panel avisa «vuelve a conectarlo» y deja de recoger canjes hasta que se conecte otra vez.
 
+### Puntos del canal de Kick: la recompensa «Omamori»
+
+Lo mismo que en Twitch, en el canal de Kick (kick.com/gokudo-zoku): los espectadores canjean sus puntos del canal por la recompensa **Omamori** y les llega un sobre del gachapon. Cada espectador **vincula su Kick** a su cuenta una vez («vincula tu Kick» en el gachapon, ya dentro con Discord); si canjea antes, el sobre se le guarda y le llega al vincular. Una cuenta puede llevar a la vez su Twitch y su Kick.
+
+Para activarlo:
+
+1. En Kick, con la cuenta **Gokudo_zoku**: **Ajustes › Developer** (kick.com/settings/developer) › **Create new app**:
+   - Nombre: `Gokudō` (o el que quieras).
+   - Redirect URL: `https://tenka-ichi.onrender.com/auth/kick/callback` (y, para probar en local, `http://localhost:3030/auth/kick/callback`).
+   - Si pide permisos (*scopes*): **Read user information** (`user:read`), **Read channel points rewards** (`channel:rewards:read`) y **Manage channel points rewards** (`channel:rewards:write`). Los webhooks no hacen falta.
+2. Copia el **Client ID** y el **Client Secret** de la app y ponlos en Render, en Environment: `KICK_CLIENT_ID` y `KICK_CLIENT_SECRET` (nunca en el chat ni en el repo).
+3. En el panel, apartado **Gachapon**, pulsa **Conectar el canal de Kick** y entra con la cuenta **Gokudo_zoku**. La web crea la recompensa «Omamori» a 3000 puntos, en el bermellón de la marca; el coste se cambia desde el panel. Si en Kick ya hay una recompensa «Omamori» creada a mano, hay que borrarla antes: Kick solo deja a cada app aceptar los canjes de las recompensas que ha creado ella.
+
+La web recoge cada minuto (y cuando alguien entra en el gachapon) los canjes **pendientes** de la cola de Kick, da el sobre y acepta el canje. Por eso la recompensa no se salta la cola: si la web está dormida, los canjes esperan pendientes en Kick y no se pierden. No usa webhooks. Si el canal retira el permiso a la app, el panel avisa «vuelve a conectarlo».
+
+En la hoja, los canjes de Kick quedan a nombre de `kick-` y el id de Kick de quien canjea, y cada vínculo es un movimiento `vinculo` con `kk:id:nombre` en el detalle (`kk:` al desvincular). Los ids de Kick y de Twitch son números distintos que pueden coincidir; por eso los de Kick llevan delante `kick-`.
+
+Lo que no dice la documentación de Kick (docs.kick.com) y hay que mirar la primera vez: cuánto dura el token del canal (se renueva solo con el de refresco) y el tope de llamadas por minuto.
+
 ### Probarlo sin Discord ni Twitch de verdad
 
-`npm test` arranca la web con datos temporales contra un **Discord falso** (`scripts/entrada-discord-falso.js`), un **Twitch falso** (`scripts/twitch-falso.js`) y un **Google Sheets falso** (`scripts/sheets-falso.js`):
+`npm test` arranca la web con datos temporales contra un **Discord falso** (`scripts/entrada-discord-falso.js`), un **Twitch falso** (`scripts/twitch-falso.js`), un **Kick falso** (`scripts/kick-falso.js`) y un **Google Sheets falso** (`scripts/sheets-falso.js`):
 
 - Inicio de sesión con Discord (`test/entrada-discord.test.js`): entrar y recibir 3 sobres una sola vez, cancelar, estados y códigos inválidos, que `volver` no saque de la web, nombres que no puedan ser fórmulas, regalos por nombre, reinicio de la web y que en Render sin claves no haya ni inicio de sesión ni entrada de prueba.
 - Twitch (`test/twitch.test.js`): entrar, abrir sobres, conectar el canal, canjes que dan sobres una sola vez, renovación de tokens, regalos, reinicio, permiso retirado y una partida del fantasy.
+- Kick (`test/kick.test.js`): conectar el canal solo con su cuenta, crear «Omamori» sin saltarse la cola, vincular, canjes de varias páginas que dan sobres una sola vez, los de antes de vincular, coste, token caducado, reinicio, desvincular y permiso retirado.
 - Google Sheets (`test/sheets.test.js` y `test/temporada.test.js`): el estreno de una temporada del gachapon con la web entera, también cuando la hoja falla a medias (no se puede leer el registro de una u otra temporada, falla al escribir el estreno o se pierde la respuesta), con miles de filas en la temporada anterior y con la versión anterior de la web escribiendo todavía en su pestaña.
 
 No tocan `data/`, las plantillas ni la hoja de Google de verdad.

@@ -40,3 +40,8 @@ services:
         sync: false
       - key: TWITCH_CLIENT_SECRET
         sync: false
+      # Opcional: puntos del canal de Kick, la recompensa «Omamori» (app gratis en kick.com/settings/developer)
+      - key: KICK_CLIENT_ID
+        sync: false
+      - key: KICK_CLIENT_SECRET
+        sync: false
