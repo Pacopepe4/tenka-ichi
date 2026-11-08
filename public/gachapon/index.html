@@ -56,12 +56,74 @@
       <p class="nota">Alinea una carta de cada rol. Tus cinco jugadores suman los puntos que hagan en las partidas de Gokudō, y el que más sume manda en la clasificación. Puedes llevar hasta 2 cartas BOOST, cada una vinculada a uno de tus jugadores: si en la partida cumple su condición, sus puntos se multiplican.</p>
     </div>
     <div class="fantasy-rejilla">
-      <div>
+      <div class="lado-grieta">
         <h3>Tu alineación</h3>
         <p class="estado-alineacion"></p>
-        <div class="alineacion"></div>
+        <!-- La grieta: un plano de metro de Tokio de noche visto desde arriba (grieta.css). Las tres calles son líneas de
+             metro (la de arriba por el borde izquierdo y el de arriba, la del medio en diagonal y la de abajo por el borde
+             de abajo y el derecho), el río es un canal en la otra diagonal y la jungla, los callejones entre las líneas.
+             Encima, en .alineacion, alineacion.js pone las cinco estaciones: los huecos de las cartas -->
+        <div class="grieta">
+          <svg class="plano" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+            <defs>
+              <!-- Las calles de la ciudad: una cuadrícula fina -->
+              <pattern id="calles-grieta" width="5" height="5" patternUnits="userSpaceOnUse">
+                <path d="M5 0H0V5" fill="none" stroke="#2A2B38" stroke-width=".22"/>
+              </pattern>
+              <!-- El halo de neón de las líneas -->
+              <filter id="neon-grieta" x="-10%" y="-10%" width="120%" height="120%">
+                <feGaussianBlur stdDeviation=".8" result="halo"/>
+                <feMerge><feMergeNode in="halo"/><feMergeNode in="halo"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
+            <rect class="ciudad" width="100" height="100" fill="url(#calles-grieta)"/>
+            <!-- Manzanas de la ciudad, fuera de las líneas y entre ellas -->
+            <g class="manzanas">
+              <rect x="3" y="40" width="9" height="7" rx="1"/><rect x="3" y="58" width="9" height="9" rx="1"/><rect x="3" y="72" width="9" height="5" rx="1"/>
+              <rect x="44" y="3" width="8" height="9" rx="1"/><rect x="57" y="3" width="9" height="9" rx="1"/><rect x="70" y="3" width="6" height="9" rx="1"/>
+              <rect x="88" y="24" width="9" height="7" rx="1"/><rect x="88" y="36" width="9" height="9" rx="1"/><rect x="88" y="52" width="9" height="6" rx="1"/>
+              <rect x="22" y="88" width="9" height="9" rx="1"/><rect x="35" y="88" width="9" height="9" rx="1"/>
+              <rect x="44" y="21" width="9" height="6" rx="1"/><rect x="57" y="20" width="7" height="7" rx="1"/><rect x="30" y="20" width="6" height="5" rx="1"/>
+              <rect x="76" y="36" width="5" height="9" rx="1"/><rect x="64" y="72" width="6" height="5" rx="1"/><rect x="36" y="74" width="7" height="5" rx="1"/>
+            </g>
+            <!-- El canal (el río): cruza en la otra diagonal, de arriba a la izquierda a abajo a la derecha -->
+            <g class="canal">
+              <path class="canal-orilla" d="M-4 -4L104 104"/>
+              <path class="canal-agua" d="M-4 -4L104 104"/>
+              <path class="canal-corriente" d="M-4 -4L104 104"/>
+              <text class="canal-kanji" x="63" y="63">川</text>
+            </g>
+            <!-- Los callejones de la jungla: el de la estación de JUNGLA va de la línea de arriba a la del medio -->
+            <g class="callejones">
+              <path class="callejon-jungla" d="M16 50H28V72"/>
+              <path d="M40 16V40"/><path d="M84 50H72V28"/><path d="M60 84V60"/>
+            </g>
+            <!-- Las tres líneas de metro, de nuestra terminal (abajo a la izquierda) a la de enfrente (arriba a la derecha) -->
+            <g class="lineas" filter="url(#neon-grieta)">
+              <path class="linea linea-top" d="M16 84V24L24 16H84"/>
+              <path class="linea linea-medio" d="M16 84L84 16"/>
+              <path class="linea linea-bot" d="M16 84H76L84 76V16"/>
+            </g>
+            <!-- Los trenes: un destello que recorre cada línea -->
+            <g class="trenes">
+              <path class="tren tren-top" pathLength="100" d="M16 84V24L24 16H84"/>
+              <path class="tren tren-medio" pathLength="100" d="M16 84L84 16"/>
+              <path class="tren tren-bot" pathLength="100" d="M16 84H76L84 76V16"/>
+            </g>
+            <!-- Las dos terminales: la nuestra (極, Gokudō) y la del rival (敵) -->
+            <g class="terminales">
+              <circle class="terminal nuestra" cx="16" cy="84" r="4.4"/><text x="16" y="84">極</text>
+              <circle class="terminal rival" cx="84" cy="16" r="4.4"/><text x="84" y="16">敵</text>
+            </g>
+          </svg>
+          <div class="alineacion"></div>
+        </div>
+        <p class="leyenda-grieta" aria-hidden="true">
+          <span class="clave clave-top">Línea de arriba</span><span class="clave clave-medio">Línea del medio</span>
+          <span class="clave clave-bot">Línea de abajo</span><span class="clave clave-callejon">Callejones</span><span class="clave clave-canal">Canal</span>
+        </p>
         <h4 class="titulo-boost">BOOST</h4>
-        <div class="alineacion alineacion-boost"></div>
+        <div class="alineacion-boost"></div>
       </div>
       <div>
         <h3>Clasificación</h3>

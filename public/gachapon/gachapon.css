@@ -113,21 +113,7 @@ button.boton-secundario { background: transparent; font: inherit; font-weight: 7
 .fantasy::before, .puntos-jugadores::before { clip-path: polygon(0 var(--sesgo), 100% 0, 100% 2px, 0 calc(var(--sesgo) + 2px)); }
 .fantasy::after, .puntos-jugadores::after { clip-path: polygon(0 calc(100% - 2px), 100% calc(100% - var(--sesgo) - 2px), 100% calc(100% - var(--sesgo)), 0 100%); }
 .fantasy h3 { margin: 0 0 10px; font-family: var(--mincho); font-weight: 800; font-size: var(--t-h3); line-height: 1.15; }
-.fantasy-rejilla { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(260px, 1fr); gap: clamp(24px, 4vw, 56px); align-items: start; }
-.estado-alineacion { margin: -2px 0 16px; color: var(--hai); font-size: 15px; transition: color .3s; }
-.estado-alineacion b { color: var(--oro); }
-.alineacion { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
-.hueco-ali { display: flex; flex-direction: column; gap: 6px; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
-.hueco-ali:disabled { cursor: default; }
-.hueco-ali .rol-ali { font-family: var(--mincho); font-weight: 800; font-size: 16px; color: var(--washi); }
-.hueco-ali .carta-g { transition: transform .3s var(--curva), box-shadow .3s; }
-.hueco-ali:not(:disabled):hover .carta-g, .hueco-ali:focus-visible .carta-g { transform: translateY(-5px); }
-.hueco-ali .vacio-ali { display: grid; place-items: center; aspect-ratio: 5 / 7; border: 1.5px dashed rgba(179, 154, 94, .55); border-radius: 8px; background: rgba(22, 20, 18, .45); color: var(--hai); font-size: 14px; font-weight: 700;
-  transition: border-color .2s, color .2s, background-color .2s; }
-.hueco-ali:not(:disabled):hover .vacio-ali { border-color: var(--oro); color: var(--oro); background: rgba(235, 210, 138, .06); }
-.hueco-ali .puntos-ali { font-size: 13px; color: var(--hai); font-variant-numeric: tabular-nums; }
-.hueco-ali .boost-ali { font-size: 12px; font-weight: 700; color: var(--oro); overflow-wrap: anywhere; }
-.titulo-boost { margin: 28px 0 10px; font-family: var(--mincho); font-weight: 800; font-size: 20px; color: var(--oro); }
+/* La alineación (la grieta) y la rejilla del fantasy van en grieta.css */
 
 /* La clasificación: placas, con el podio en oro, plata y bronce (como en la portada y en la imagen de Discord) */
 .filtros-jornada { margin-bottom: 14px; }
@@ -371,9 +357,6 @@ html.con-movimiento .tabla-prob.revelar.visto .barra-prob span { transform: scal
 .opcion-fundir small { color: var(--hai); font-size: 12.5px; }
 .cuenta-fundir { margin-right: auto; align-self: center; color: var(--hai); font-size: 14px; }
 
-@media (max-width: 900px) {
-  .fantasy-rejilla { grid-template-columns: 1fr; }
-}
 @media (max-width: 760px) {
   .cabeza-gacha { grid-template-columns: 1fr; padding-left: calc(var(--margen) + 12px); padding-right: calc(var(--margen) + 12px); }
   .sobre { width: min(220px, 60vw); }
@@ -381,7 +364,6 @@ html.con-movimiento .tabla-prob.revelar.visto .barra-prob span { transform: scal
   .elegir, .fundir { padding: 20px 16px; }
 }
 @media (max-width: 640px) {
-  .alineacion { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .tabla-puntos th:nth-child(3), .tabla-puntos td:nth-child(3) { display: none; }
   .tabla-puntos td, .tabla-puntos th { padding-left: 8px; padding-right: 8px; }
   .fila-prob { grid-template-columns: 54px minmax(0, 1fr) 88px; gap: 10px; }

@@ -1,1 +1,161 @@
-/* La grieta de la alineación del fantasy (alineacion.js). Ver docs/gachapon-tiradas.md */
+/* La grieta de la alineación del fantasy (alineacion.js). Ver docs/gachapon-tiradas.md
+   La alineación va sobre un plano de metro de Tokio de noche, en neón y visto desde arriba (el SVG está en index.html):
+   las tres calles son líneas de metro, el río es un canal en la otra diagonal y la jungla, los callejones. Cada puesto es
+   una estación: el hueco de su carta, con los puntos debajo y, si lleva BOOST, la BOOST colgada al lado en un ramal.
+   El plano mide 100 × 100 (el viewBox) y las estaciones se colocan en % de ese cuadrado (--x, --y): así el SVG y las
+   cartas escalan juntos. Las medidas de dentro van en cqw (centésimas del ancho del plano).
+   En el móvil (≤ 640 px) el plano se cambia por una sola línea vertical con las cinco estaciones, una debajo de otra. */
+
+/* Los colores de cada línea: los comparten el plano, las estaciones y los huecos de BOOST */
+.fantasy { --linea-top: #E0303A; --linea-medio: #EBD28A; --linea-bot: #39C6F0; --linea-callejon: #B9B4C6; --canal: #39C6F0; }
+.estacion[data-rol="TOP"], .hueco-boost[data-rol-boost="TOP"] { --linea: var(--linea-top); }
+.estacion[data-rol="JUNGLA"], .hueco-boost[data-rol-boost="JUNGLA"] { --linea: var(--linea-callejon); }
+.estacion[data-rol="MEDIO"], .hueco-boost[data-rol-boost="MEDIO"] { --linea: var(--linea-medio); }
+:is(.estacion, .hueco-boost):is([data-rol="ADC"], [data-rol="SUPPORT"], [data-rol-boost="ADC"], [data-rol-boost="SUPPORT"]) { --linea: var(--linea-bot); }
+
+/* La rejilla: el plano a la izquierda y la clasificación a la derecha; por debajo de 1100 px, la clasificación debajo */
+.fantasy-rejilla { display: grid; grid-template-columns: minmax(0, 2fr) minmax(270px, 1fr); gap: clamp(24px, 4vw, 56px); align-items: start; }
+.estado-alineacion { margin: -2px 0 16px; color: var(--hai); font-size: 15px; transition: color .3s; }
+.estado-alineacion b { color: var(--oro); }
+
+/* ---------- El plano ---------- */
+.grieta { --linea: var(--linea-top); position: relative; container-type: inline-size; aspect-ratio: 1; max-width: 820px;
+  border: 1px solid var(--sumi-linea); border-radius: 8px;
+  background: radial-gradient(60% 60% at 50% 50%, rgba(57, 198, 240, .06), transparent 70%),
+    radial-gradient(40% 40% at 12% 88%, rgba(224, 48, 58, .12), transparent 70%), #0C0D13; }
+.grieta .plano { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: inherit; }
+.plano .manzanas rect { fill: #12131B; stroke: #23242F; stroke-width: .25; }
+/* El canal: una franja de agua oscura con las orillas en cian apagado y la corriente que baja despacio */
+.plano .canal path { fill: none; stroke-linecap: butt; }
+.plano .canal-orilla { stroke: var(--canal); stroke-width: 9.6; opacity: .22; }
+.plano .canal-agua { stroke: #0F1A26; stroke-width: 9; }
+.plano .canal-corriente { stroke: var(--canal); stroke-width: .35; stroke-dasharray: 1.4 2.6; opacity: .5; animation: corriente-grieta 6s linear infinite; }
+.plano .canal-kanji { fill: var(--canal); opacity: .55; font-family: var(--pincel); font-size: 5px; text-anchor: middle; dominant-baseline: central; }
+/* Los callejones de la jungla: discontinuos, en gris; el de la estación de JUNGLA, algo más claro */
+.plano .callejones path { fill: none; stroke: var(--linea-callejon); stroke-width: .5; stroke-dasharray: 1.2 1; opacity: .35; }
+.plano .callejones .callejon-jungla { stroke-width: .8; opacity: .8; }
+/* Las líneas de metro, en neón */
+.plano .linea { fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.plano .linea-top { stroke: var(--linea-top); }
+.plano .linea-medio { stroke: var(--linea-medio); }
+.plano .linea-bot { stroke: var(--linea-bot); }
+/* Los trenes: un destello blanco que sale de nuestra terminal y recorre la línea */
+.plano .tren { fill: none; stroke: #F5EFE2; stroke-width: .9; stroke-linecap: round; stroke-dasharray: 2.5 97.5; animation: tren-grieta 9s linear infinite; }
+.plano .tren-medio { animation-duration: 7s; animation-delay: -2s; }
+.plano .tren-bot { animation-duration: 10s; animation-delay: -5s; }
+.plano .terminal { fill: #0C0D13; stroke-width: .8; }
+.plano .terminal.nuestra { stroke: var(--shu-claro); filter: drop-shadow(0 0 1.2px var(--shu)); }
+.plano .terminal.rival { stroke: var(--sumi-linea); }
+.plano .terminales text { font-family: var(--pincel); font-size: 4.6px; text-anchor: middle; dominant-baseline: central; fill: #F5EFE2; }
+.plano .terminales text:first-of-type { fill: #FF5A63; }
+.plano .terminales text:last-of-type { fill: var(--hai); }
+@keyframes tren-grieta { to { stroke-dashoffset: -100; } }
+@keyframes corriente-grieta { to { stroke-dashoffset: -8; } }
+/* Con las alineaciones cerradas el plano se apaga y los trenes se paran */
+.grieta.cerrada .plano .lineas, .grieta.cerrada .plano .canal { opacity: .55; }
+.grieta.cerrada .plano .tren { display: none; }
+.grieta.cerrada .plano .canal-corriente { animation-play-state: paused; }
+
+/* ---------- Las estaciones ---------- */
+.grieta .alineacion { position: absolute; inset: 0; }
+/* Dónde va cada estación (en % del plano) y a qué lado se cuelga su BOOST para no pisar a la de al lado */
+.estacion[data-rol="TOP"] { --x: 18; --y: 19; }
+.estacion[data-rol="JUNGLA"] { --x: 28; --y: 50; }
+.estacion[data-rol="MEDIO"] { --x: 50; --y: 50; }
+.estacion[data-rol="ADC"] { --x: 60; --y: 83; }
+.estacion[data-rol="SUPPORT"] { --x: 78; --y: 83; }
+.grieta .estacion { position: absolute; left: calc(var(--x) * 1%); top: calc(var(--y) * 1%); width: 16cqw; transform: translate(-50%, -50%); }
+.grieta .estacion:is(:hover, :focus-within) { z-index: 2; }
+
+.hueco-ali { display: flex; flex-direction: column; align-items: center; gap: .7cqw; width: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
+.hueco-ali:disabled { cursor: default; }
+/* El cartel de la estación: una placa redonda con el filo del color de su línea, el kanji y el puesto */
+.hueco-ali .rol-ali { display: inline-flex; align-items: center; gap: .4em; padding: .28em .8em .32em .6em; border: 1.5px solid var(--linea); border-radius: 999px; background: #0C0D13;
+  font-family: var(--dela); font-weight: 400; font-size: clamp(11px, 1.45cqw, 14px); line-height: 1.1; color: #F5EFE2; white-space: nowrap;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--linea) 45%, transparent); transition: box-shadow .25s; }
+.hueco-ali .kanji-ali { font-family: var(--pincel); font-size: 1.2em; line-height: 1; color: var(--linea); text-shadow: 0 0 6px var(--linea); }
+.hueco-ali .carta-g { width: 100%; transition: transform .3s var(--curva), box-shadow .3s; }
+.hueco-ali:not(:disabled):hover .carta-g, .hueco-ali:focus-visible .carta-g { transform: translateY(-5px); }
+.hueco-ali:not(:disabled):is(:hover, :focus-visible) .rol-ali { box-shadow: 0 0 16px color-mix(in srgb, var(--linea) 75%, transparent); }
+/* El hueco vacío: el andén sin nadie, discontinuo en el color de la línea */
+.hueco-ali .vacio-ali { display: grid; place-items: center; width: 100%; aspect-ratio: 5 / 7; border: 1.5px dashed color-mix(in srgb, var(--linea) 70%, transparent); border-radius: 8px;
+  background: rgba(12, 13, 19, .82); color: var(--linea); font-family: var(--dela); font-size: clamp(12px, 1.6cqw, 16px);
+  transition: border-color .2s, background-color .2s, box-shadow .2s; }
+.hueco-ali:not(:disabled):is(:hover, :focus-visible) .vacio-ali { border-color: var(--linea); background: rgba(21, 22, 31, .92); box-shadow: 0 0 18px color-mix(in srgb, var(--linea) 35%, transparent); }
+.hueco-ali:disabled .vacio-ali { opacity: .6; }
+/* Los puntos, en una placa bajo la carta */
+.hueco-ali .puntos-ali { padding: .25em .7em; border: 1px solid var(--sumi-linea); border-radius: 8px; background: #15161F;
+  font-family: var(--dela); font-size: clamp(11px, 1.4cqw, 14px); line-height: 1.15; color: #F5EFE2; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.estacion.libre .puntos-ali { font-family: var(--gothic); font-weight: 700; color: var(--hai); }
+
+/* La BOOST en su ramal: una carta pequeña colgada al lado de la estación, unida por un tramo de su línea */
+.boost-estacion { --lado: 2.2cqw; position: absolute; top: 4.2cqw; left: calc(100% + var(--lado)); width: 8.6cqw; display: flex; flex-direction: column; align-items: center; gap: .5cqw;
+  padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
+.boost-estacion:disabled { cursor: default; }
+.boost-estacion::before { content: ''; position: absolute; top: 5.4cqw; right: 100%; width: var(--lado); height: max(2px, .35cqw); border-radius: 2px;
+  background: var(--linea); box-shadow: 0 0 6px var(--linea); }
+.boost-estacion .carta-g { width: 100%; outline: max(1.5px, .2cqw) solid var(--oro); outline-offset: 1px; transition: transform .25s var(--curva); }
+.boost-estacion:not(:disabled):is(:hover, :focus-visible) .carta-g { transform: translateY(-3px) scale(1.04); }
+.boost-estacion .etiqueta-boost { padding: .15em .5em; border-radius: 999px; background: var(--oro); color: #0C0D13; font-family: var(--dela); font-size: clamp(10px, 1.2cqw, 13px); line-height: 1.15; white-space: nowrap; }
+/* JUNGLA y ADC la llevan a la izquierda: a su derecha tienen el MEDIO y el SUPPORT */
+.estacion:is([data-rol="JUNGLA"], [data-rol="ADC"]) .boost-estacion { left: auto; right: calc(100% + var(--lado)); }
+.estacion:is([data-rol="JUNGLA"], [data-rol="ADC"]) .boost-estacion::before { right: auto; left: 100%; }
+
+/* La leyenda del plano, como en los mapas de metro */
+.leyenda-grieta { display: flex; flex-wrap: wrap; gap: 6px 18px; max-width: 820px; margin: 12px 0 0; color: var(--hai); font-size: 13px; }
+.leyenda-grieta .clave { display: inline-flex; align-items: center; gap: 8px; }
+.leyenda-grieta .clave::before { content: ''; width: 22px; height: 4px; border-radius: 2px; background: var(--c); box-shadow: 0 0 6px var(--c); }
+.clave-top { --c: var(--linea-top); } .clave-medio { --c: var(--linea-medio); } .clave-bot { --c: var(--linea-bot); }
+.clave-callejon::before { background: repeating-linear-gradient(90deg, var(--linea-callejon) 0 5px, transparent 5px 9px) !important; box-shadow: none !important; }
+.clave-canal { --c: rgba(57, 198, 240, .35); }
+.clave-canal::before { height: 8px !important; background: #0F1A26 !important; border: 1px solid rgba(57, 198, 240, .4); box-shadow: none !important; }
+
+/* ---------- Los dos huecos de BOOST, debajo del plano ---------- */
+.titulo-boost { margin: 26px 0 10px; font-family: var(--dela); font-weight: 400; font-size: 20px; color: var(--oro); }
+.alineacion-boost { --linea: var(--oro); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: 820px; }
+.hueco-boost { flex-direction: row; align-items: center; gap: 14px; padding: 10px 14px 10px 10px; border: 1px solid var(--sumi-linea); border-left: 4px solid var(--linea);
+  border-radius: 8px; background: #0C0D13; text-align: left; transition: border-color .2s, box-shadow .2s; }
+.hueco-boost .carta-g, .hueco-boost .vacio-ali { flex: none; width: 64px; }
+.hueco-boost .vacio-ali { font-size: 22px; }
+.hueco-boost:not(:disabled):is(:hover, :focus-visible) { border-color: color-mix(in srgb, var(--linea) 60%, var(--sumi-linea)); box-shadow: 0 0 16px color-mix(in srgb, var(--linea) 25%, transparent); }
+.hueco-boost:not(:disabled):hover .carta-g, .hueco-boost:focus-visible .carta-g { transform: translateY(-3px); }
+.hueco-boost .texto-boost { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
+.hueco-boost .rol-ali { border-color: var(--oro); box-shadow: none; padding-left: .8em; font-size: 12px; }
+.hueco-boost .nombre-boost { max-width: 100%; font-family: var(--dela); font-weight: 400; font-size: 17px; line-height: 1.15; color: #F5EFE2; overflow-wrap: anywhere; }
+.hueco-boost .bonus-boost { font-size: 13px; font-weight: 700; color: var(--oro); }
+.hueco-boost .puntos-ali { padding: 0; border: 0; background: none; font-family: var(--gothic); font-weight: 700; font-size: 13px; color: var(--hai); white-space: normal; }
+
+/* ---------- Tamaños ---------- */
+@media (max-width: 1100px) {
+  .fantasy-rejilla { grid-template-columns: 1fr; }
+}
+/* En el móvil: una sola línea vertical, con las cinco estaciones una debajo de otra. La línea cambia al color de cada
+   puesto (arriba, callejones, medio y la de abajo para ADC y SUPPORT) y cada estación es un punto en ella */
+@media (max-width: 640px) {
+  .grieta { aspect-ratio: auto; container-type: normal; border: 0; background: none; }
+  .grieta .plano, .leyenda-grieta { display: none; }
+  .grieta .alineacion { position: static; display: flex; flex-direction: column; gap: 16px; }
+  .grieta .estacion { position: relative; left: auto; top: auto; width: auto; transform: none; display: flex; align-items: center; gap: 12px; padding-left: 32px; }
+  /* El tramo de línea hasta la estación siguiente y el punto de la estación */
+  .grieta .estacion::before { content: ''; position: absolute; left: 11px; top: 0; bottom: -16px; width: 4px; border-radius: 2px; background: var(--linea); box-shadow: 0 0 8px var(--linea); }
+  .grieta .estacion:first-child::before { top: 50%; }
+  .grieta .estacion:last-child::before { bottom: 50%; }
+  .grieta .estacion::after { content: ''; position: absolute; left: 4px; top: 50%; width: 18px; height: 18px; margin-top: -9px; box-sizing: border-box; border: 4px solid var(--linea); border-radius: 50%;
+    background: #F5EFE2; box-shadow: 0 0 10px var(--linea); }
+  .grieta .hueco-ali { flex: 1; min-width: 0; display: grid; grid-template-columns: 104px minmax(0, 1fr); grid-template-areas: 'carta rol' 'carta puntos'; align-content: center;
+    gap: 8px 12px; text-align: left; }
+  .grieta .hueco-ali .rol-ali { grid-area: rol; align-self: end; justify-self: start; font-size: 14px; }
+  .grieta .hueco-ali :is(.carta-g, .vacio-ali) { grid-area: carta; }
+  .grieta .hueco-ali .vacio-ali { font-size: 15px; }
+  .grieta .hueco-ali .puntos-ali { grid-area: puntos; align-self: start; justify-self: start; font-size: 13px; white-space: normal; }
+  .grieta .boost-estacion, .grieta .estacion:is([data-rol="JUNGLA"], [data-rol="ADC"]) .boost-estacion { --lado: 14px; position: relative; top: auto; left: auto; right: auto; flex: none; width: 58px; gap: 4px; }
+  .grieta .boost-estacion::before, .grieta .estacion:is([data-rol="JUNGLA"], [data-rol="ADC"]) .boost-estacion::before { top: 40px; left: auto; right: 100%; height: 2px; }
+  .grieta .boost-estacion .etiqueta-boost { font-size: 11px; }
+  .alineacion-boost { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plano .tren { display: none; }
+  .plano .canal-corriente { animation: none; }
+  .hueco-ali .carta-g, .boost-estacion .carta-g { transition: none; }
+}
