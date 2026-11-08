@@ -155,3 +155,30 @@ export async function anunciarDirecto({ titulo, enlace, imagen = null, avatar = 
   catch { throw new ErrorDiscord('No hay conexión con Discord', 502); }
   if (!r.ok) throw new ErrorDiscord(`Discord no ha aceptado el aviso del directo (${r.status})`, 502);
 }
+// La crónica de una partida (server/cronicas.js) en el canal #resultados: el enfrentamiento y quién gana, con el color y
+// el kamon de la familia ganadora, el título y el texto del realizador y su resumen. Va al webhook DISCORD_WEBHOOK_RESULTADOS
+// o, si no hay, al de siempre. Un embed admite 4096 letras de texto y 1024 en cada campo: lo que sobre se corta y se enlaza la web
+const WEBHOOK_RESULTADOS = () => process.env.DISCORD_WEBHOOK_RESULTADOS || process.env.DISCORD_WEBHOOK_URL;
+export const resultadosDiscordActivo = () => Boolean(WEBHOOK_RESULTADOS());
+const cortar = (t, n, enlace) => (t.length <= n ? t : `${t.slice(0, n - 60).replace(/\s+\S*$/, '')}… [Sigue en la web](${enlace})`);
+export async function publicarCronica({ enfrentamiento, titulo = '', texto = '', resumen = '', jornada = '', color = '#BE2A2F', logo = null, enlace }) {
+  const webhook = WEBHOOK_RESULTADOS();
+  if (!webhook) throw new ErrorDiscord('Falta el webhook de #resultados en Render (DISCORD_WEBHOOK_RESULTADOS)', 503);
+  const cuerpo = [titulo && `**${escaparMarkdown(titulo)}**`, escaparMarkdown(texto)].filter(Boolean).join('\n\n');
+  const formulario = new FormData();
+  formulario.append('payload_json', JSON.stringify({
+    username: 'Gokudō', allowed_mentions: { parse: [] },
+    embeds: [{
+      title: String(enfrentamiento).slice(0, 256), url: enlace, color: parseInt(String(color).replace('#', ''), 16) || 0xBE2A2F,
+      description: cortar(cuerpo || 'Sin crónica.', 4096, enlace),
+      ...(resumen ? { fields: [{ name: 'Resumen', value: cortar(escaparMarkdown(resumen), 1024, enlace) }] } : {}),
+      ...(logo ? { thumbnail: { url: logo } } : {}),
+      footer: { text: ['Gokudō 極道', jornada].filter(Boolean).join(' · ') },
+    }],
+  }));
+  let r;
+  try { r = await fetch(`${webhook}${webhook.includes('?') ? '&' : '?'}wait=true`, { method: 'POST', body: formulario }); }
+  catch { throw new ErrorDiscord('No hay conexión con Discord', 502); }
+  if (r.status === 401 || r.status === 404) throw new ErrorDiscord('El webhook de #resultados ya no existe: hay que crearlo otra vez (npm run discord-aplicar) y cambiarlo en Render', 502);
+  if (!r.ok) throw new ErrorDiscord(`Discord no ha aceptado la crónica (${r.status})`, 502);
+}

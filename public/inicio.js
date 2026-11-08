@@ -275,15 +275,57 @@ function pintarLiga() {
 }
 pintarLiga();
 
-// Sorteo del calendario en directo: el bombo sale en la zona de la liga mientras sale y, mientras no haya
-// calendario, como anuncio. Al terminar, el servidor ya lo ha guardado y se vuelve a pintar la liga con él
+// Sorteo del calendario en directo: el bombo sale en la zona de la liga mientras sale. Antes también salía como anuncio
+// mientras no hubiera calendario; el 08/11/2026 Pacopepe pidió ocultarlo («de momento no hace falta») y poner ahí las
+// crónicas de las partidas, así que se le dice que ya hay calendario: solo aparece si el staff lanza un sorteo en directo.
+// Al terminar, el servidor ya lo ha guardado y se vuelve a pintar la liga con él
 if (!simulacion) {
   const bombo = montarSorteo($('.sorteo'), {
-    clan, logo, formato: comp.formato, hayCalendario: () => Boolean(comp.calendario),
+    clan, logo, formato: comp.formato, hayCalendario: () => true,
     alTerminar: async () => { comp = await fetch('/api/competicion').then(r => r.json()); pintarLiga(); },
   });
   conectarDirecto({ canal: 'sorteo', alSorteo: v => bombo.recibir(v) });
 }
+
+// ---------- Crónicas de las partidas ----------
+// Los enfrentamientos del último día de partidas (en la liguilla, los tres de la jornada) con su ganador y la crónica del
+// realizador; sin partidas, cuándo llega la primera. Las crónicas salen también en el canal #resultados de Discord.
+// DISCORD_INVITACION: el enlace para entrar en el servidor de Gokudō (discord.gg/…); vacío, no sale el botón
+const DISCORD_INVITACION = '';
+const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+const diaLargo = f => { const [a, m, d] = f.split('-').map(Number); return `${DIAS[new Date(Date.UTC(a, m - 1, d)).getUTCDay()]} ${d}/${m}`; };
+async function pintarCronicas() {
+  const n = await fetch('/api/cronicas').then(r => r.json()).catch(() => null);
+  if (!n) return;
+  const sub = $('.cronicas-sub'), listaCr = $('.cronicas-lista');
+  if (!n.enfrentamientos.length) {
+    sub.textContent = n.proxima ? `${n.proxima.nombre} · ${diaLargo(n.proxima.fecha)}` : '';
+    listaCr.innerHTML = `<p class="cronicas-vacio">La primera crónica sale al acabar la primera partida${n.proxima ? ` de la ${n.proxima.nombre}, el ${diaLargo(n.proxima.fecha)}` : ''}.</p>`;
+    return;
+  }
+  sub.textContent = [n.jornada, diaLargo(n.dia)].filter(Boolean).join(' · ');
+  listaCr.innerHTML = n.enfrentamientos.map(e => {
+    const lado = id => `<span class="cronica-familia${id === e.ganador ? ' gana' : ''}" style="--color: ${clan(id)?.color || 'var(--oro)'}">
+      <img src="${logo(id)}" alt=""><b>${escapar(nombre(id))}</b></span>`;
+    return `<article class="cronica" style="--color: ${clan(e.ganador)?.color || 'var(--oro)'}; --color-texto: ${clan(e.ganador)?.texto || 'var(--oro)'}">
+      <div class="cronica-cruce">${lado(e.azul)}<span class="cronica-vs" aria-hidden="true">対</span>${lado(e.rojo)}</div>
+      <p class="cronica-resultado">Gana <b>${escapar(nombre(e.ganador))}</b></p>
+      ${e.titulo ? `<h4>${escapar(e.titulo)}</h4>` : ''}
+      ${e.texto || e.resumen
+        ? `<div class="cronica-texto">${[e.texto, e.resumen].filter(Boolean).map(t => `<p>${escapar(t).replace(/\n+/g, '</p><p>')}</p>`).join('')}</div>
+           <button type="button" class="cronica-mas">Leer la crónica entera</button>`
+        : '<p class="cronica-pendiente">La crónica llega en cuanto la mande el realizador.</p>'}
+    </article>`;
+  }).join('');
+  for (const b of listaCr.querySelectorAll('.cronica-mas')) {
+    const t = b.previousElementSibling;
+    if (t.scrollHeight <= t.clientHeight + 2) { b.hidden = true; continue; }
+    b.addEventListener('click', () => { const abierta = t.classList.toggle('abierta'); b.textContent = abierta ? 'Cerrar' : 'Leer la crónica entera'; });
+  }
+}
+pintarCronicas();
+
+if (DISCORD_INVITACION) Object.assign($('.cronicas-discord-boton'), { href: DISCORD_INVITACION, hidden: false });
 
 // Campeones con más presencia
 $('.campeones').innerHTML = liga.campeones.length
@@ -293,10 +335,8 @@ $('.campeones').innerHTML = liga.campeones.length
   : '<li class="vacio">Sin partidas todavía.</li>';
 
 // ---------- Directo ----------
-import('/directo.js').then(({ iniciarDirecto }) => iniciarDirecto({
-  marco: $('.directo-marco'),
-  alCambiar: vivo => { $('.directo-estado').textContent = vivo ? 'Ahora en directo en Twitch.' : 'Sin directo ahora mismo.'; },
-}));
+// La pantalla con Kick, Twitch, el tráiler y las redes (public/pantalla.js)
+import('/pantalla.js');
 
 // ---------- Tier list ----------
 const TIERS = ['S', 'A', 'B', 'C', 'D'];

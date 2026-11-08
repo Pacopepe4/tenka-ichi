@@ -45,6 +45,12 @@ services:
         sync: false
       - key: KICK_CLIENT_SECRET
         sync: false
-      # Opcional: el aviso de «empieza el directo en Kick» en otro canal de Discord (si no, va al de DISCORD_WEBHOOK_URL)
+      # El aviso de «empieza el directo en Kick», en #avisos-directo (lo crea npm run discord-aplicar; si no, va al de DISCORD_WEBHOOK_URL)
       - key: DISCORD_WEBHOOK_DIRECTO
+        sync: false
+      # Crónicas de las partidas: la clave con la que las manda el realizador y el webhook del canal #resultados
+      # (lo crea npm run discord-aplicar)
+      - key: CRONICAS_CLAVE
+        sync: false
+      - key: DISCORD_WEBHOOK_RESULTADOS
         sync: false

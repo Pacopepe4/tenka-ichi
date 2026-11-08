@@ -132,9 +132,13 @@ test('los webhooks se crean una vez y sus direcciones van al .env sin tocar lo d
   assert.doesNotMatch(env, /vieja/);
   const hook = discord.estado.webhooks.find(w => w.channel_id === canal('colecciones').id);
   assert.match(env, new RegExp(`^DISCORD_WEBHOOK_URL=http://127\\.0\\.0\\.1:\\d+/api/v10/webhooks/${hook.id}/${hook.token}$`, 'm'));
-  for (const v of ['DISCORD_WEBHOOK_ALINEACION', 'DISCORD_WEBHOOK_TIERLIST', 'DISCORD_WEBHOOK_CLASIFICACION']) assert.match(env, new RegExp(`^${v}=`, 'm'));
+  for (const v of ['DISCORD_WEBHOOK_ALINEACION', 'DISCORD_WEBHOOK_TIERLIST', 'DISCORD_WEBHOOK_CLASIFICACION', 'DISCORD_WEBHOOK_RESULTADOS', 'DISCORD_WEBHOOK_DIRECTO']) assert.match(env, new RegExp(`^${v}=`, 'm'));
   await aplicar(opciones);
-  assert.equal(discord.estado.webhooks.length, 4, 'no repite webhooks');
+  assert.equal(discord.estado.webhooks.length, 6, 'no repite webhooks');
+  // Las crónicas van a #resultados y el aviso de directo de Kick a #avisos-directo
+  const de = v => { const id = env.match(new RegExp(`^${v}=.*/webhooks/([^/]+)/`, 'm'))[1]; return discord.estado.webhooks.find(w => String(w.id) === id); };
+  assert.equal(de('DISCORD_WEBHOOK_RESULTADOS').channel_id, canal('resultados').id);
+  assert.equal(de('DISCORD_WEBHOOK_DIRECTO').channel_id, canal('avisos-directo').id);
 });
 
 test('espera y reintenta si Discord pide calma (429), y explica los errores', async () => {

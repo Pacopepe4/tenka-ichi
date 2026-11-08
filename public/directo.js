@@ -2,6 +2,8 @@
 // - Con un marco en la página: el reproductor vive dentro y, si hay directo y el marco sale de la vista,
 //   el vídeo pasa a una ventanita flotante en la esquina sin recargarse; el marco guarda el sitio.
 // - Sin marco: crea la ventanita flotante, que solo aparece cuando hay directo.
+// - Con flotar: false (la portada, public/pantalla.js): no flota por su cuenta; la portada decide y lo pausa o lo pone
+//   en marcha con mostrar() según se vea o no su carta.
 export const CANAL = 'gokudo_zoku';
 const SCRIPT = 'https://player.twitch.tv/js/embed/v1.js';
 
@@ -14,7 +16,7 @@ function cargarScript() {
   });
 }
 
-export async function iniciarDirecto({ marco = null, alCambiar = () => {} } = {}) {
+export async function iniciarDirecto({ marco = null, alCambiar = () => {}, flotar = true, autoplay = Boolean(marco) } = {}) {
   const caja = document.createElement('div');
   caja.className = marco ? 'directo-caja' : 'directo-caja solo-flotante';
   caja.innerHTML = `<div class="directo-video" id="directo-video"></div>
@@ -26,16 +28,20 @@ export async function iniciarDirecto({ marco = null, alCambiar = () => {} } = {}
   let enDirecto = false, cerrado = false, visible = true;
   const aplicar = () => {
     document.documentElement.dataset.directo = enDirecto ? 'si' : 'no';
-    caja.classList.toggle('flotando', enDirecto && !cerrado && (!marco || !visible));
+    caja.classList.toggle('flotando', flotar && enDirecto && !cerrado && (!marco || !visible));
     alCambiar(enDirecto);
   };
   caja.querySelector('.directo-cerrar').addEventListener('click', () => { cerrado = true; aplicar(); });
   if (marco) new IntersectionObserver(([e]) => { visible = e.isIntersecting; aplicar(); }, { threshold: 0.2 }).observe(marco);
 
-  try { await cargarScript(); } catch { return; }
+  const control = { mostrar() {}, enDirecto: () => enDirecto };
+  try { await cargarScript(); } catch { return control; }
   const player = new window.Twitch.Player('directo-video', {
-    channel: CANAL, parent: [location.hostname], width: '100%', height: '100%', muted: true, autoplay: Boolean(marco),
+    channel: CANAL, parent: [location.hostname], width: '100%', height: '100%', muted: true, autoplay,
   });
   player.addEventListener(window.Twitch.Player.ONLINE, () => { enDirecto = true; aplicar(); });
   player.addEventListener(window.Twitch.Player.OFFLINE, () => { enDirecto = false; aplicar(); });
+  // Si no se ve, en pausa (no gasta datos); al volver a verse, sigue
+  control.mostrar = visto => { try { if (visto) player.play(); else player.pause(); } catch {} };
+  return control;
 }

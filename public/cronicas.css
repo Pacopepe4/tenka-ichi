@@ -1,0 +1,52 @@
+/* Crónicas de la jornada (en la liga, donde estaba el anuncio del sorteo). Placas de noche con filo fino, el ganador
+   con el color de su familia y una franja que lleva al canal #resultados de Discord, donde también salen. */
+.cronicas { max-width: var(--ancho); margin: 0 auto clamp(28px, 4vw, 48px); padding: 0 var(--margen); }
+.cronicas-cabeza { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.cronicas-cabeza .marca-seccion { margin: 0; }
+.cronicas-cabeza h3 { margin: 0; font-family: var(--dela, sans-serif); font-weight: 400; font-size: clamp(22px, 2.4vw, 30px); }
+.cronicas-sub { margin: 2px 0 0; color: var(--hai); font-size: 14px; }
+.cronicas-sub:empty { display: none; }
+
+.cronicas-lista { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.cronicas-vacio { grid-column: 1 / -1; margin: 0; padding: 22px 24px; border: 1px dashed var(--sumi-linea, #2A2B38); border-radius: 8px; color: var(--hai); }
+
+.cronica { --color: var(--oro); display: flex; flex-direction: column; gap: 10px; padding: 18px 18px 16px; border-radius: 8px;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--color) 10%, var(--sumi-alzado, #15161F)), var(--sumi-alzado, #15161F) 55%);
+  border: 1px solid var(--sumi-linea, #2A2B38); box-shadow: inset 3px 0 0 var(--color), 0 10px 24px rgba(0, 0, 0, .35);
+  transition: transform .25s cubic-bezier(.2, .8, .2, 1), box-shadow .25s ease; }
+.cronica:hover { transform: translateY(-4px); box-shadow: inset 3px 0 0 var(--color), 0 0 28px color-mix(in srgb, var(--color) 30%, transparent), 0 16px 30px rgba(0, 0, 0, .5); }
+.cronica-cruce { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
+.cronica-familia { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; opacity: .55; filter: grayscale(.6); }
+.cronica-familia.gana { opacity: 1; filter: none; }
+.cronica-familia img { width: 54px; height: 54px; object-fit: contain; }
+.cronica-familia.gana img { filter: drop-shadow(0 0 10px color-mix(in srgb, var(--color) 60%, transparent)); }
+.cronica-familia b { font-family: var(--dela, sans-serif); font-weight: 400; font-size: 16px; }
+.cronica-vs { font-family: var(--pincel, serif); font-size: 26px; color: var(--shu-claro); text-shadow: 0 0 10px rgba(224, 48, 58, .5); }
+.cronica-resultado { margin: 0; text-align: center; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--hai); }
+.cronica-resultado b { color: var(--color-texto, var(--color)); letter-spacing: .06em; }
+.cronica h4 { margin: 4px 0 0; font-family: var(--dela, sans-serif); font-weight: 400; font-size: 18px; line-height: 1.25; color: var(--washi); }
+.cronica-texto { max-height: 8.6em; overflow: hidden; color: var(--tinta-papel, var(--washi)); font-size: 14.5px; line-height: 1.55;
+  -webkit-mask-image: linear-gradient(#000 65%, transparent); mask-image: linear-gradient(#000 65%, transparent); }
+.cronica-texto.abierta { max-height: none; -webkit-mask-image: none; mask-image: none; }
+.cronica-texto p { margin: 0 0 .7em; }
+.cronica-mas { align-self: flex-start; padding: 0; border: 0; background: none; color: var(--oro); font: inherit; font-size: 13.5px; cursor: pointer; }
+.cronica-mas:hover { text-decoration: underline; }
+.cronica-pendiente { margin: 0; color: var(--hai); font-size: 14px; font-style: italic; }
+
+/* La franja de Discord: dónde salen las crónicas, con el blurple de Discord en el filo */
+.cronicas-discord { display: flex; align-items: center; gap: 18px; margin-top: 18px; padding: 18px 22px; border-radius: 8px;
+  border: 1px solid rgba(88, 101, 242, .55); background: linear-gradient(120deg, rgba(88, 101, 242, .16), var(--sumi-alzado, #15161F) 60%);
+  box-shadow: 0 0 30px rgba(88, 101, 242, .12); }
+.cronicas-discord-canal { display: grid; place-items: center; flex: 0 0 auto; width: 52px; height: 52px; border-radius: 8px; background: #0B0C11;
+  font-family: var(--dela, sans-serif); font-size: 30px; color: #8B95FF; text-shadow: 0 0 10px rgba(88, 101, 242, .7); }
+.cronicas-discord-texto { display: grid; gap: 4px; flex: 1; min-width: 0; }
+.cronicas-discord-texto > b { font-family: var(--dela, sans-serif); font-weight: 400; font-size: 19px; color: var(--washi); }
+.cronicas-discord-texto span { color: var(--hai); font-size: 14px; }
+.cronicas-discord-texto span b { color: var(--washi); }
+.cronicas-discord-boton { flex: 0 0 auto; }
+.cronicas-discord-boton[hidden] { display: none; }
+@media (max-width: 760px) {
+  .cronicas-discord { flex-wrap: wrap; }
+  .cronicas-discord-boton { width: 100%; text-align: center; }
+}
+@media (prefers-reduced-motion: reduce) { .cronica, .cronica:hover { transition: none; transform: none; } }

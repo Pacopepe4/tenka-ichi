@@ -12,6 +12,8 @@
 <link rel="stylesheet" href="/carta.css">
 <link rel="stylesheet" href="/inicio.css">
 <link rel="stylesheet" href="/directo.css">
+<link rel="stylesheet" href="/pantalla.css">
+<link rel="stylesheet" href="/cronicas.css">
 <link rel="stylesheet" href="/sorteo.css">
 <link rel="stylesheet" href="/gokudo.css">
 </head>
@@ -42,17 +44,26 @@
   </section>
 
   <section id="directo" class="directo">
+    <!-- La pantalla grande y, al lado, las cartas: al pasar el ratón por una (o tocarla) la pantalla cambia a eso.
+         Kick es el directo principal y Twitch el segundo; sin directo sale el tráiler (public/pantalla.js) -->
     <div class="directo-rejilla">
-      <div class="directo-marco"></div>
-      <div class="directo-texto">
-        <span class="marca-seccion" aria-hidden="true">生</span>
-        <h2>Directo</h2>
-        <p class="directo-estado">Sin directo ahora mismo.</p>
-        <p>Las jornadas de Gokudō se emiten en su canal de Twitch, con el draft en directo y los casters.</p>
-        <div class="directo-acciones">
-          <a class="boton" href="https://twitch.tv/gokudo_zoku" target="_blank" rel="noopener">Ver en Twitch</a>
-          <a class="boton-secundario" href="https://www.twitch.tv/popout/gokudo_zoku/chat" target="_blank" rel="noopener">Abrir el chat</a>
+      <div class="pantalla">
+        <div class="pantalla-panel" id="panel-kick" role="tabpanel" aria-labelledby="carta-kick" data-red="kick" hidden></div>
+        <div class="pantalla-panel" id="panel-twitch" role="tabpanel" aria-labelledby="carta-twitch" data-red="twitch" hidden><div class="directo-marco"></div></div>
+        <div class="pantalla-panel" id="panel-trailer" role="tabpanel" aria-labelledby="carta-trailer" data-red="trailer" hidden></div>
+        <div class="pantalla-panel" id="panel-x" role="tabpanel" aria-labelledby="carta-x" data-red="x" hidden></div>
+        <div class="pantalla-panel" id="panel-tiktok" role="tabpanel" aria-labelledby="carta-tiktok" data-red="tiktok" hidden></div>
+        <div class="pantalla-panel" id="panel-youtube" role="tabpanel" aria-labelledby="carta-youtube" data-red="youtube" hidden></div>
+      </div>
+      <div class="directo-lado">
+        <div class="directo-texto">
+          <span class="marca-seccion" aria-hidden="true">生</span>
+          <div>
+            <h2>Directo</h2>
+            <p class="directo-estado">Sin directo ahora mismo.</p>
+          </div>
         </div>
+        <div class="cartas-red" role="tablist" aria-label="Directo, tráiler y redes de Gokudō" aria-orientation="vertical"></div>
       </div>
     </div>
   </section>
@@ -115,6 +126,23 @@
       <div class="cuenta-atras" data-cuenta hidden></div>
     </div>
     <div class="sorteo" hidden></div>
+    <!-- Crónicas (08/11/2026): donde estaba el anuncio del sorteo. Los enfrentamientos del último día con su resultado y la
+         crónica del realizador, que también sale en el canal #resultados de Discord (public/inicio.js, server/cronicas.js) -->
+    <section class="cronicas" aria-labelledby="cronicas-titulo">
+      <div class="cronicas-cabeza">
+        <span class="marca-seccion" aria-hidden="true">報</span>
+        <div><h3 id="cronicas-titulo">Crónicas de la jornada</h3><p class="cronicas-sub"></p></div>
+      </div>
+      <div class="cronicas-lista"></div>
+      <div class="cronicas-discord">
+        <span class="cronicas-discord-canal" aria-hidden="true">#</span>
+        <div class="cronicas-discord-texto">
+          <b>La crónica de cada partida, en Discord</b>
+          <span>Al acabar cada enfrentamiento sale en el canal <b>#resultados</b> del servidor de Gokudō, con el resultado y lo que pasó en la calle.</span>
+        </div>
+        <a class="boton cronicas-discord-boton" target="_blank" rel="noopener" hidden>Entrar en el Discord</a>
+      </div>
+    </section>
     <div class="liga-rejilla">
       <div class="bloque">
         <h3>Clasificación</h3>

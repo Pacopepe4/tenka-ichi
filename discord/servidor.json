@@ -159,7 +159,7 @@
         {
           "nombre": "resultados",
           "emoji": "🎯",
-          "tema": "Resultados de cada partida."
+          "tema": "El resultado y la crónica de cada partida."
         },
         {
           "nombre": "clasificacion",
@@ -276,6 +276,16 @@
       "canal": "fantasy",
       "nombre": "Gokudō",
       "variable": "DISCORD_WEBHOOK_CLASIFICACION"
+    },
+    {
+      "canal": "resultados",
+      "nombre": "Gokudō",
+      "variable": "DISCORD_WEBHOOK_RESULTADOS"
+    },
+    {
+      "canal": "avisos-directo",
+      "nombre": "Gokudō",
+      "variable": "DISCORD_WEBHOOK_DIRECTO"
     }
   ],
   "comandos": [
