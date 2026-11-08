@@ -123,11 +123,6 @@ button.boton-secundario { background: transparent; font: inherit; font-weight: 7
 .hueco-ali .vacio-ali { display: grid; place-items: center; aspect-ratio: 5 / 7; border: 1.5px dashed rgba(179, 154, 94, .55); border-radius: 8px; background: rgba(22, 20, 18, .45); color: var(--hai); font-size: 14px; font-weight: 700;
   transition: border-color .2s, color .2s, background-color .2s; }
 .hueco-ali:not(:disabled):hover .vacio-ali { border-color: var(--oro); color: var(--oro); background: rgba(235, 210, 138, .06); }
-/* Tamaños para la carta sin marco; con marco, todo va en proporción a su ancho (carta.css) */
-.hueco-ali .carta-g:not(.con-marco):not(.fullart) .nick { font-size: 18px; }
-.hueco-ali .carta-g:not(.con-marco):not(.fullart) .rareza { width: 32px; height: 32px; font-size: 19px; }
-.hueco-ali .carta-g:not(.con-marco):not(.fullart) .logo { width: 30px; height: 28px; }
-.hueco-ali .carta-g:not(.con-marco):not(.fullart) .rol { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
 .hueco-ali .puntos-ali { font-size: 13px; color: var(--hai); font-variant-numeric: tabular-nums; }
 .hueco-ali .boost-ali { font-size: 12px; font-weight: 700; color: var(--oro); overflow-wrap: anywhere; }
 .titulo-boost { margin: 28px 0 10px; font-family: var(--mincho); font-weight: 800; font-size: 20px; color: var(--oro); }
@@ -358,7 +353,6 @@ html.con-movimiento .tabla-prob.revelar.visto .barra-prob span { transform: scal
 .elegir .opcion .carta-g { transition: transform .25s var(--curva), outline-color .2s; outline: 2px solid transparent; outline-offset: 3px; }
 .elegir .opcion:hover .carta-g { transform: translateY(-4px); }
 .elegir .opcion[aria-pressed="true"] .carta-g { outline-color: var(--oro); }
-.elegir .opcion .carta-g:not(.con-marco):not(.fullart) .nick { font-size: 19px; }
 .elegir .sin-cartas { color: var(--hai); }
 .elegir .condicion-boost { grid-column: 1 / -1; margin: 0 0 4px; color: var(--hai); }
 .elegir .opcion-rol { display: flex; flex-direction: column; gap: 2px; padding: 14px 16px; border: 1px solid var(--sumi-linea); border-radius: var(--radio); background: var(--sumi); color: inherit; font: inherit; text-align: left; cursor: pointer; }
@@ -386,7 +380,6 @@ html.con-movimiento .tabla-prob.revelar.visto .barra-prob span { transform: scal
   .cabeza-gacha { grid-template-columns: 1fr; padding-left: calc(var(--margen) + 12px); padding-right: calc(var(--margen) + 12px); }
   .sobre { width: min(220px, 60vw); }
   .album { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
-  .carta-g:not(.con-marco):not(.fullart) .nick { font-size: 19px; }
   .titulo-seccion[data-kanji]::after { top: 10px; }
   .elegir, .fundir { padding: 20px 16px; }
 }

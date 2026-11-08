@@ -99,5 +99,24 @@
     "descripcion": "Los veteranos de la organización. Ya no compiten: vigilan desde la sombra a quien se atreva a reinar."
    }
   }
+ },
+ {
+  "nombre": "2026-11-07 Kitsune completa",
+  "dicho": "Kitsune (TORA): PABLO top (Varus, B), EL 64 jungla (Viego, C), SPORFU y MANU medio (Anivia y Yone, carta mitad y mitad, A), NARCISO adc (Kai'Sa), JEEDA support (Thresh, C). Lo dio el usuario el 07/11/2026",
+  "plantillas": {
+   "TORA": [
+    "PABLO",
+    "EL 64",
+    "SPORFU / MANU",
+    null,
+    "JEEDA"
+   ]
+  },
+  "tiers": {
+   "TORA-TOP": "B",
+   "TORA-JUNGLA": "C",
+   "TORA-MEDIO": "A",
+   "TORA-SUPPORT": "C"
+  }
  }
 ]
