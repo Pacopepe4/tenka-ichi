@@ -44,8 +44,9 @@ async function recorrer(carpeta, prefijo = '') {
 const puente = (prefijo = '') => ARCHIVOS_PUENTE.map(n => ({ ruta: path.join(CARPETA_PUENTE, n), nombre: `${prefijo}${n}` }));
 
 async function realizador(papel, { carpetaRealizador = CARPETA_REALIZADOR } = {}) {
-  const otro = papel === 'pc1' ? 'INSTALAR-PC2.bat' : 'INSTALAR-PC1.bat';
-  const lista = (await recorrer(carpetaRealizador)).filter(a => a.nombre !== otro);
+  // Cada PC lleva solo su instalador; el modo IA (INSTALAR-IA.bat) es solo del PC 1
+  const fuera = papel === 'pc1' ? ['INSTALAR-PC2.bat'] : ['INSTALAR-PC1.bat', 'INSTALAR-IA.bat'];
+  const lista = (await recorrer(carpetaRealizador)).filter(a => !fuera.includes(a.nombre));
   return papel === 'pc2' ? [...lista, ...puente('puente/')] : lista;
 }
 

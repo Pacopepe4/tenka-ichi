@@ -15,6 +15,7 @@
     "cadaMs": 250,
     "toleranciaSegundos": 4,
     "seleccionarPor": "jugador",
+    "interfaz": { "interfaceFrames": false },
     "desplazamientoCamara": { "x": 0, "y": 1911.85, "z": -1200 },
     "degradadoTrasSegundos": 15,
     "zoom": {
@@ -24,6 +25,13 @@
       "transicionSegundos": 1.2,
       "salidaSegundos": 0.5,
       "pasosPorSegundo": 25
+    },
+    "bordes": {
+      "activo": true,
+      "zona": { "arriba": 3200, "abajo": 2200, "izquierda": 2600, "derecha": 2600 },
+      "desplazamiento": { "arriba": 900, "abajo": 600, "izquierda": 700, "derecha": 700 },
+      "zoomMaximo": 0.7,
+      "suavizadoSegundos": 0.6
     }
   },
 
@@ -64,7 +72,9 @@
       "objetivos": ["BaronKill", "Ace"],
       "segundos": 12,
       "colchon": 1.5,
-      "calmaNecesaria": 15
+      "calmaNecesaria": 15,
+      "grupoSegundos": 30,
+      "esperaIaSegundos": 15
     },
     "cerca": {
       "activo": true,
@@ -72,11 +82,24 @@
       "segundos": 4,
       "retraso": 0.5
     },
-    "lineaPorLinea": {
-      "desdeSegundo": 240,
-      "calmaNecesaria": 40,
-      "segundos": 20,
-      "cadaSegundosComoMinimo": 180
+    "overlay": {
+      "base": "lineas",
+      "baseDesdeSegundo": 0,
+      "oro": {
+        "activo": true,
+        "desdeSegundo": 480,
+        "calmaNecesaria": 35,
+        "segundos": 15,
+        "cadaSegundosComoMinimo": 180
+      },
+      "ficha": {
+        "activo": true,
+        "rachas": [3, 5, 8],
+        "segundos": 10,
+        "retraso": 3,
+        "buscarSegundos": 45,
+        "cadaSegundosComoMinimo": 120
+      }
     }
   },
 
@@ -88,13 +111,16 @@
     "fuenteRepeticion": "Repeticion clip",
     "escenaCasters": "Casters",
     "escenaPausa": "Pausa",
+    "escenaDraft": "Draft",
+    "camarasDraft": ["", "", "", ""],
     "repeticion": {
-      "transicionEntrada": "",
-      "transicionSalida": "",
-      "overlay": ""
+      "transicionEntrada": "Repeticion entrada",
+      "transicionSalida": "Repeticion salida",
+      "overlay": "Overlay REPLAY"
     },
     "segundosBufer": 45,
     "codificador": "x264",
+    "emision": { "servidor": "rtmps://fa723fc1b171.global-contribute.live-video.net/app" },
     "overlay": ""
   },
 
@@ -132,6 +158,20 @@
     "velocidadExploracion": 8,
     "desde": 0,
     "reproducirAlAcabar": false
+  },
+
+  "ia": {
+    "activo": false,
+    "modelo": "claude-sonnet-5-5",
+    "modeloRapido": "claude-haiku-5-5",
+    "rapido": false,
+    "esfuerzo": "low",
+    "cadaSegundos": 25,
+    "repreguntarSegundos": 180,
+    "tiempoSegundos": 20,
+    "archivoClave": "",
+    "titulares": true,
+    "resumenFinal": true
   },
 
   "registro": {

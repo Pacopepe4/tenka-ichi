@@ -1,13 +1,8 @@
 @echo off
 chcp 65001 >nul
 cd /d "%~dp0.."
-where node >nul 2>nul
-if errorlevel 1 (
-  echo No encuentro Node.js. Instala la version LTS desde https://nodejs.org y vuelve a abrir este archivo.
-  start https://nodejs.org
-  pause
-  exit /b 1
-)
+call "%~dp0_node.bat" || (pause & exit /b 1)
+cd /d "%~dp0.."
 echo Prepara OBS para el realizador: escenas Juego, Repeticion, Casters y Pausa, bufer de repeticion y WebSocket.
 echo Tus escenas y perfiles de siempre no se tocan: siguen en los menus Coleccion de escenas y Perfil de OBS.
 echo.
@@ -16,7 +11,7 @@ if not errorlevel 1 (
   echo OBS esta abierto. Cierralo ^(tambien de la bandeja, junto al reloj^) y pulsa una tecla.
   pause >nul
 )
-node instalar\configurar-obs.js
+"%NODE%" instalar\configurar-obs.js
 if errorlevel 1 (
   echo.
   pause

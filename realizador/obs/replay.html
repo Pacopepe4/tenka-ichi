@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Overlay REPLAY · Gokudō</title>
+<!-- Fuente de navegador de OBS (escena Repeticion), fondo transparente. El realizador la enciende justo antes del
+     stinger de entrada y la apaga al salir; OBS la reinicia al encenderla, así que la animación sale cada vez.
+     Es el mismo cartel que la vista REPLAY de la web (public/overlay/replay.css de tenka-ichi, estilo Gokudō):
+     rótulo de neón compacto en la esquina, con 再 a pincel, REPLAY en Dela Gothic One y el sol en neón.
+     En la repetición solo se ve este cartel: el marcador no (Pacopepe, 08/11).
+     ?retraso=0.85 espera esos segundos antes de entrar: lo que tarda el stinger en destapar la pantalla (0,85 s). -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Yuji+Boku&family=Zen+Kaku+Gothic+New:wght@700&display=swap">
+<style>
+  :root {
+    --sumi-linea: #2A2B38; --shu: #E0303A; --shu-claro: #FF4C56; --shu-neon: #FF5A63;
+    --dela: 'Dela Gothic One', 'Zen Kaku Gothic New', sans-serif;
+    --pincel: 'Yuji Boku', 'Yu Mincho', serif;
+    --gothic: 'Zen Kaku Gothic New', 'Yu Gothic', 'Segoe UI', sans-serif;
+    --retraso: .85s;
+  }
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
+  body { font-synthesis: none; }
+  .cartel { position: absolute; left: 24px; top: 24px; display: grid; grid-template-columns: auto auto auto; align-items: center; gap: 12px;
+    padding: 12px 14px 12px 18px; border-radius: 8px; border: 1px solid var(--sumi-linea);
+    background: linear-gradient(180deg, rgba(21, 22, 31, .96), rgba(12, 13, 19, .96));
+    outline: 2px solid var(--shu-claro); outline-offset: -7px;
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, .6), 0 18px 50px rgba(0, 0, 0, .55), 0 0 26px rgba(224, 48, 58, .5), inset 0 0 22px rgba(224, 48, 58, .22);
+    animation: bajar .5s cubic-bezier(.2, .9, .25, 1.15) var(--retraso) both,
+      encender 1s steps(1, end) calc(var(--retraso) + .25s) both; }
+  .sello { font-family: var(--pincel); font-size: 58px; line-height: 1; color: var(--shu-neon);
+    text-shadow: 0 0 6px var(--shu-claro), 0 0 18px var(--shu), 0 0 40px var(--shu); }
+  .texto { display: flex; flex-direction: column; }
+  .palabra { font-family: var(--dela); font-weight: 400; font-size: 44px; line-height: 1.1; letter-spacing: .03em; color: #fff;
+    text-shadow: 0 2px 0 rgba(0, 0, 0, .5); }
+  .pie { margin-top: 2px; font-family: var(--gothic); font-weight: 700; font-size: 10.5px; letter-spacing: .22em; text-transform: uppercase;
+    color: var(--shu-neon); text-shadow: 0 0 10px var(--shu); }
+  /* El PNG del sol en neón lleva mucho margen para el halo: se agranda y se le come ese margen */
+  .sol { width: 92px; height: 92px; margin: -18px -18px -18px -14px; object-fit: contain; }
+  .sello, .sol { animation: zumbido 4s ease-in-out calc(var(--retraso) + 1.4s) infinite; }
+  @keyframes bajar { from { opacity: 0; transform: translateY(-40px); } to { opacity: 1; transform: none; } }
+  /* Un tubo que arranca: falla un par de veces y se queda encendido */
+  @keyframes encender {
+    0% { outline-color: transparent; } 12% { outline-color: var(--shu-claro); } 22% { outline-color: transparent; }
+    36% { outline-color: var(--shu-claro); } 44% { outline-color: transparent; } 58%, 100% { outline-color: var(--shu-claro); }
+  }
+  @keyframes zumbido { 0%, 100%, 48%, 52% { opacity: 1; } 50% { opacity: .8; } }
+</style>
+</head>
+<body>
+  <div class="cartel">
+    <span class="sello" aria-hidden="true">再</span>
+    <div class="texto"><b class="palabra">REPLAY</b><small class="pie">Gokudō · repetición</small></div>
+    <img class="sol" src="gokudo-neon.png" alt="">
+  </div>
+  <script>
+    const r = Number(new URLSearchParams(location.search).get('retraso'));
+    if (location.search.includes('retraso') && Number.isFinite(r) && r >= 0) document.documentElement.style.setProperty('--retraso', `${r}s`);
+  </script>
+</body>
+</html>

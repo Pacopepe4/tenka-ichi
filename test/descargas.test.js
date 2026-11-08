@@ -10,7 +10,8 @@ test('Realizador PC 2: el realizador con su instalador y el puente del marcador 
   const n = nombres(lista);
   for (const f of ['INSTALAR-PC2.bat', 'pc2/rele.js', 'comun/sala.js', 'instalar/instalar.js', 'windows/realizador-pc2.bat', 'opciones.json',
     'puente/Abrir el puente.bat', 'puente/puente-tenka-ichi.ps1', 'puente/LEEME.txt']) assert.ok(n.includes(f), `falta ${f}`);
-  assert.ok(!n.includes('INSTALAR-PC1.bat'));
+  assert.ok(!n.includes('INSTALAR-PC1.bat') && !n.includes('INSTALAR-IA.bat'), 'ni el instalador del PC 1 ni el de la IA');
+  for (const f of ['obs/replay.html', 'obs/repeticion-entrada.webm', 'obs/repeticion-salida.webm', 'obs/gokudo-neon.png', 'pc2/bordes.js', 'windows/_instalar-node.ps1']) assert.ok(n.includes(f), `falta ${f}`);
   assert.ok(!n.some(f => /clave\.txt|opciones\.local\.json|^test\//.test(f)), 'nada de contraseñas ni pruebas');
   const bat = lista.find(a => a.nombre === 'INSTALAR-PC2.bat').datos.toString('utf8');
   assert.ok(bat.includes('\r\n') && !/[^\r]\n/.test(bat), 'los .bat van con CRLF');
@@ -19,6 +20,7 @@ test('Realizador PC 2: el realizador con su instalador y el puente del marcador 
 test('Realizador PC 1: solo su instalador y sin el puente', async () => {
   const n = nombres(await archivosDescarga('realizador-pc1.zip'));
   assert.ok(n.includes('INSTALAR-PC1.bat') && n.includes('pc1/agente.js') && n.includes('pc1/panel/index.html'));
+  assert.ok(n.includes('INSTALAR-IA.bat') && n.includes('pc1/ia.js'), 'el PC 1 lleva el modo IA');
   assert.ok(!n.includes('INSTALAR-PC2.bat'));
   assert.ok(!n.some(f => f.startsWith('puente/')));
 });

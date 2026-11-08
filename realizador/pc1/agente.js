@@ -14,9 +14,11 @@ import { buscar } from '../comun/puente.js';
 import { Sala } from '../comun/sala.js';
 import { aplicarPerfil, restaurarPerfil, rutaConfig } from '../instalar/configurar-lol.js';
 import { condiciones } from '../comun/condiciones.js';
+import { Ia } from './ia.js';
 
 // «explorador» permite cambiar de dónde salen los sucesos (el modo grabada pone el suyo)
-export function arrancarAgente(o, { perfilMinimo = false, log = console.log, explorador: otroExplorador = null, sala: otraSala = null } = {}) {
+// «ia»: para las pruebas (un Ia con cliente de mentira). Sin él, se crea si ia.activo está encendido.
+export function arrancarAgente(o, { perfilMinimo = false, log = console.log, explorador: otroExplorador = null, sala: otraSala = null, ia: otraIa = null } = {}) {
   // Perfil mínimo del juego (ventana pequeña, gráficos al mínimo, sin sonido) mientras corre el agente
   let perfilAplicado = null;
   if (perfilMinimo) {
@@ -73,6 +75,33 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
   }
   ejecutor = new Ejecutor({ opciones: o, cerebro, explorador, obs, tenka, sala });
 
+  // Modo IA (opcional): consejos para el overlay, elección de repetición y resumen final. Si falla, reglas.
+  const ia = otraIa || new Ia({ opciones: o, log });
+  conexiones.ia = o.ia?.activo || otraIa ? false : null;
+  ia.preparar().then(ok => {
+    conexiones.ia = conexiones.ia === null ? null : ok;
+    if (ok) log(`IA encendida (${ia.nombreModelo}): elige el overlay en los ratos tranquilos, la repetición si coinciden varias y escribe el resumen final`);
+    else if (o.ia?.activo) avisar(`IA: ${ia.estado.motivo}. El realizador sigue con sus reglas`);
+    panel?.emitir();
+  }).catch(e => avisar(`IA: ${e.message}`));
+  ia.arrancar({
+    cerebro: () => cerebro,
+    jugadores: () => explorador.jugadores,
+    tAntena: () => ejecutor.tAntena(),
+    tDirecto: () => explorador.conocido?.() ?? explorador.ahora(),
+    enPartida: () => Boolean(explorador.enPartida && partida),
+    manual: () => ejecutor.manual,
+    hayCambios: () => { ejecutor.hayCambios(); panel?.emitir(); },
+    apuntar: (quien, que, datos) => ejecutor.apuntar(quien, que, datos),
+  });
+  let fallosIa = 0;
+  const vigiaIa = setInterval(() => {
+    // Si la IA empieza a fallar, se avisa una vez (y el realizador sigue con las reglas)
+    if (ia.estado.fallos > fallosIa && ia.estado.seguidos >= 3) avisar(`IA: ${ia.estado.ultimoError?.texto || 'no contesta'}. Sigo con las reglas 2 minutos y vuelvo a probar`);
+    fallosIa = ia.estado.fallos;
+    if (conexiones.ia !== null && conexiones.ia !== (ia.estado.activa && ia.estado.seguidos < 3)) { conexiones.ia = ia.estado.activa && ia.estado.seguidos < 3; panel?.emitir(); }
+  }, 2000).unref?.();
+
   // Puente en la misma red: con rele.ip "auto" se busca el PC 2 en la red con la contraseña
   let buscador = null;
   if (!sala && !ejecutor.urlRele) {
@@ -97,6 +126,7 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
   explorador.on('partida', info => {
     partida = { ...info, id: info.inicio.replace(/[:.]/g, '-') };
     cerebro = new Cerebro(o.reglas);
+    ia.partidaNueva();
     const buzon = new Buzon(join(o.registro.raiz || RAIZ, o.registro.carpeta), partida.id);
     ejecutor.reiniciar(cerebro, buzon);
     ejecutor.apuntar('realizador', 'partida nueva', info);
@@ -107,6 +137,11 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
     ejecutor.tFin = info?.t ?? explorador.tiempo?.t ?? explorador.ahora();
     ejecutor.hayCambios();
     ejecutor.apuntar('realizador', 'fin de la partida', { ...info, t: ejecutor.tFin });
+    cerebro.finPartida = ejecutor.tFin;
+    const c = cerebro;
+    ia.resumenFinal({ cerebro: c, jugadores: explorador.jugadores, tFin: ejecutor.tFin, carpeta: ejecutor.buzon?.carpeta })
+      .then(r => { ejecutor.apuntar(r.hecho === 'ia' ? 'ia' : 'realizador', 'resumen final', { titular: r.titular || null }); panel?.emitir(); })
+      .catch(() => {});
   });
   explorador.on('evento', e => {
     const j = cerebro.agregar(e);
@@ -157,6 +192,7 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
       })),
       registro: registro.slice(0, 40),
       avisos: avisos.slice(0, 10),
+      ia: o.ia?.activo || otraIa ? ia.foto() : null,
     };
   }
 
@@ -188,12 +224,15 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
 
   return {
     foto,
+    ia,
     get cerebro() { return cerebro; },
     ejecutor,
     explorador,
     parar() {
       explorador.parar();
       ejecutor.parar();
+      ia.parar();
+      clearInterval(vigiaIa);
       buscador?.parar();
       clearInterval(fotoSala);
       sala?.cerrar();

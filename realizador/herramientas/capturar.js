@@ -63,7 +63,8 @@ export function crearCaptura(o, { carpeta, cadaMs = 1000, fotoMs = 5000, log = c
 
   const base = ruta => (ruta.startsWith('/replay') ? replay : api);
   async function pedir(ruta, tiempoMs = 2000) {
-    const d = (e.direcciones[ruta] ||= { ok: 0, fallos: 0, ultimoError: null });
+    // Una fila por dirección, sin la parte de ?eventID=...
+    const d = (e.direcciones[ruta.replace(/\?.*/, '')] ||= { ok: 0, fallos: 0, ultimoError: null });
     try {
       const r = await pedirJSON(`${base(ruta)}${ruta}`, { tiempoMs });
       d.ok++;
@@ -187,7 +188,7 @@ export function crearCaptura(o, { carpeta, cadaMs = 1000, fotoMs = 5000, log = c
     }
     r.push('', '## Direcciones', '', '| Dirección | Bien | Fallos | Último error |', '|---|---|---|---|');
     for (const [ruta, d] of Object.entries(e.direcciones).sort()) {
-      r.push(`| \`${ruta.replace(/\?.*/, '')}\` | ${d.ok} | ${d.fallos} | ${d.ok ? '' : (d.ultimoError || '').replace(/\|/g, '/').slice(0, 120)} |`);
+      r.push(`| \`${ruta}\` | ${d.ok} | ${d.fallos} | ${d.ok ? '' : (d.ultimoError || '').replace(/\|/g, '/').slice(0, 120)} |`);
     }
     r.push('', '## Sucesos de la Live Client Data', '');
     const suc = Object.entries(e.sucesos).sort((a, b) => b[1] - a[1]);

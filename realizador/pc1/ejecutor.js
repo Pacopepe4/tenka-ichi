@@ -1,5 +1,6 @@
 // Ejecutor (PC 1): lleva el guion al relé del PC 2, sigue por dónde va la antena y, al llegar cada momento,
-// lanza las acciones que no son de cámara (repeticiones en OBS, línea por línea en el panel de TENKA ICHI).
+// lanza las acciones que no son de cámara (repeticiones en OBS) y lleva el overlay de TENKA ICHI: de base, el
+// línea por línea siempre puesto; en los ratos que decide el cerebro, la gráfica de oro o la ficha de quien va en racha.
 // La cámara la mueve el relé en local: le llega el guion por adelantado y un corte de red no se nota.
 import { EventEmitter } from 'node:events';
 import { pedirJSON } from '../comun/http.js';
@@ -34,6 +35,10 @@ export class Ejecutor extends EventEmitter {
     this.temporizador = null;
     this.ultimoEnvio = 0;
     this.cambios = true;
+    this.overlayPuesto = null;   // lo último que se mandó al overlay de TENKA ICHI (firma)
+    this.overlayMandando = false;
+    // Si el panel de TENKA ICHI se reconecta, se le vuelve a decir qué tiene que enseñar
+    tenka?.on?.('conexion', v => { if (v) this.overlayPuesto = null; });
   }
 
   arrancar() {
@@ -58,6 +63,7 @@ export class Ejecutor extends EventEmitter {
     this.vistas = new Set();
     this.tFin = null;
     this.cambios = true;
+    this.overlayPuesto = null;
   }
 
   // Botón de empezar el directo: lo hace el relé del PC 2, que es donde está OBS
@@ -135,8 +141,46 @@ export class Ejecutor extends EventEmitter {
       this.lanzar(a).catch(e => this.emit('aviso', `${a.tipo}: ${e.message}`));
     }
 
-    // 4. Cada jugada a su carpeta del buzón
+    // 4. Overlay de TENKA ICHI
+    this.overlay(tA).catch(e => this.emit('aviso', `overlay: ${e.message}`));
+
+    // 5. Cada jugada a su carpeta del buzón
     this.repartir(tA, tD);
+  }
+
+  // Qué tiene que enseñar el overlay de TENKA ICHI con la antena en tA: lo que toque del cerebro (gráfica de oro,
+  // ficha) o, si no, el línea por línea. Nada antes de la partida ni después del final.
+  overlayEn(tA) {
+    const ov = this.o.reglas.overlay || {};
+    if (tA === null || tA < (ov.baseDesdeSegundo ?? 0)) return null;
+    if (Number.isFinite(this.tFin) && tA >= this.tFin) return { tipo: null };
+    const a = this.cerebro.acciones.find(x => (x.tipo === 'oro' || x.tipo === 'ficha') && x.t <= tA && tA < x.t + x.segundos);
+    if (a?.tipo === 'oro') return { tipo: 'oro', id: a.id };
+    if (a?.tipo === 'ficha') return { tipo: 'ficha', id: a.id, campeon: a.campeon, jugador: a.jugador, lado: a.equipo };
+    return ov.base === null || ov.base === '' ? { tipo: null } : { tipo: ov.base || 'lineas' };
+  }
+
+  // Solo se manda cuando cambia (así el panel de TENKA ICHI puede tocarlo a mano entre medias)
+  async overlay(tA) {
+    if (!this.tenka?.listo || this.overlayMandando) return;
+    if (this.manual) return;  // con el control tomado, el overlay tampoco se toca
+    const quiero = this.overlayEn(tA);
+    if (!quiero) return;
+    const firma = JSON.stringify(quiero);
+    if (firma === this.overlayPuesto) return;
+    this.overlayMandando = true;
+    try {
+      const { id, ...datos } = quiero;
+      // segundos 0: se queda puesto hasta que se mande otra cosa (el ejecutor lo cambia en su momento)
+      await this.tenka.accion('grafico', { ...datos, segundos: 0 });
+      this.overlayPuesto = firma;
+      this.apuntar('realizador', 'overlay', { grafico: quiero.tipo || 'nada', ...(quiero.campeon ? { campeon: quiero.campeon } : {}), t: tA });
+      if (id) this.emit('accion', this.cerebro.acciones.find(x => x.id === id));
+    } catch (e) {
+      // Una ficha que el panel no encuentra (otro nombre de campeón) no bloquea: se sigue con el resto
+      this.overlayPuesto = firma;
+      this.apuntar('realizador', 'salta', { accion: `overlay ${quiero.tipo}`, motivo: e.message });
+    } finally { this.overlayMandando = false; }
   }
 
   // El clip acaba más o menos en el segundo de antena en que se guarda (tA)
@@ -202,10 +246,8 @@ export class Ejecutor extends EventEmitter {
         setTimeout(() => this.obs.escena(o.escenaJuego).catch(() => {}), a.segundos * 1000).unref?.();
       }
       this.apuntar('realizador', 'repeticion', { jugada: a.jugada, t: a.t });
-    } else if (a.tipo === 'lineas') {
-      if (!this.tenka?.listo) { this.apuntar('realizador', 'salta', { accion: 'lineas', motivo: 'sin panel de TENKA ICHI' }); return; }
-      await this.tenka.accion('grafico', { tipo: 'lineas', segundos: a.segundos });
-      this.apuntar('realizador', 'lineas', { t: a.t, segundos: a.segundos });
+    } else if (a.tipo === 'oro' || a.tipo === 'ficha') {
+      return;  // el overlay lo lleva overlay() según el segundo de antena
     }
     this.emit('accion', a);
   }

@@ -19,6 +19,13 @@ if not exist "%RUTA%\Config" (
   echo No encuentro LoL en %RUTA%.
   set /p "RUTA=Escribe la carpeta de League of Legends (por ejemplo E:\Riot Games\League of Legends): "
 )
+echo.
+echo Clave de retransmision de Kick ^(en Kick: Panel del creador, Ajustes, Stream key^).
+echo Se guarda solo en este PC y OBS la usa para emitir. Pulsa Enter sin escribir nada para dejar la que ya tenga OBS.
+set "REALIZADOR_EMISION="
+set /p "REALIZADOR_EMISION=Clave de retransmision de Kick: "
+cls
 "%NODE%" instalar\instalar.js pc2 --clave "%CLAVE%" --ruta "%RUTA%"
+set "REALIZADOR_EMISION="
 echo.
 pause

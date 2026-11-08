@@ -5,7 +5,7 @@ Realizador automático para directos de League of Legends. Decide la cámara del
 - **PC 1 (el tuyo, poco potente):** el **agente**. Mira la partida en directo en segundo plano, agrupa los sucesos en jugadas, escribe el guion de planos y lleva el panel de supervisión.
 - **PC 2 (el de emisión, potente):** el **relé**. No decide nada: mantiene la antena 120 s por detrás y mueve la cámara cuando llega cada plano del guion. OBS y el overlay de TENKA ICHI siguen como siempre.
 
-Node 22 o superior, sin dependencias: `npm install` no hace falta.
+Node 22 o superior. Sin dependencias salvo el modo IA (opcional), que usa la librería oficial de Anthropic: `INSTALAR-IA.bat` la instala si falta.
 
 ## Probarlo sin LoL
 
@@ -48,7 +48,7 @@ Una vez en cada PC:
 2. **PC 1 (explorador):** descomprime la carpeta y doble clic en `INSTALAR-PC1.bat`. Pide la misma contraseña, activa la Replay API y LiveEvents y crea **Realizador PC1**.
 3. Si el cliente de LoL estaba abierto, reinícialo en los dos.
 
-Si falta Node.js, el instalador intenta ponerlo con winget; si no puede, abre nodejs.org.
+Si el PC no tiene Node.js 22 o superior, cualquier `.bat` lo baja solo: la versión LTS portátil oficial de nodejs.org (comprobada con su suma SHA-256) en la carpeta `node` del realizador, sin pedir permisos ni instalar nada en el PC. Solo si no hay internet abre nodejs.org.
 
 Cada directo: abre **Realizador PC2** (abre OBS con el búfer en marcha, el puente del marcador y el relé) y **Realizador PC1** (el agente y su panel en http://localhost:4600/). Los dos se encuentran solos en la sala del realizador del servidor de TENKA ICHI (`puente.url`, `wss://tenka-ichi.onrender.com/realizador`) con la contraseña, aunque estén en redes distintas. Luego, espectead la partida en los dos: el PC 1 la encuentra y empieza a realizar solo, y el PC 2 pone la antena 2 minutos por detrás.
 
@@ -68,6 +68,9 @@ Otros modos (en `opciones.local.json`): `"puente": { "modo": "red" }` con los do
 - **Prueba: solo grabar** hace lo mismo pero grabando en el disco en vez de emitir.
 - Si OBS no puede emitir (por ejemplo, sin clave de emisión en el perfil), sale el aviso en rojo y lo reintenta cada 10 s.
 
+- **Draft:** si el panel de TENKA ICHI tiene un draft en marcha (DraftCore conectado), el PC 2 pone la escena `Draft` (el overlay del draft con las cámaras en sus huecos). Si se pulsa el botón durante el draft, la emisión empieza ya, con el draft. Al cerrar el draft y salir de su pantalla pasa a `Pausa`, y la partida entra sola como siempre. Entre partidas de una serie: `Casters` → `Draft` → `Pausa` → `Juego`.
+- Lo único que no hace solo es **empezar**: el botón, o empezar a emitir a mano en OBS (entonces el realizador se arma solo y se encarga de las escenas). Si se corta la emisión en OBS, deja de cambiar escenas.
+
 Todo lo hace el relé del PC 2, que es donde está OBS (`pc2/emision.js`). Opciones en `emision` de `opciones.json`: `modo`, `previaSegundos`, `segundosTrasFin`, `sinJuegoSegundos`, `pararAlAcabar` y `pararTrasSegundos`. Sin LoL: `npm run demo` y abre las dos páginas.
 
 ## El panel (pestaña Realización del PC 1)
@@ -86,7 +89,11 @@ Todo lo hace el relé del PC 2, que es donde está OBS (`pc2/emision.js`). Opcio
 5. La cámara sigue al que hace la primera muerte. Si cae, pasa al implicado vivo que más ha participado.
 6. Una pelea de 3 muertes o más, un Barón o un ace se repiten, pero solo si después vienen 15 s sin nada importante. Como hay margen, eso ya se sabe al decidirlo.
 7. **Zoom.** De base, un poco más abierto que el del juego (`abierto`). El plano general, más abierto todavía (`general`). Zoom in (`cerca`) solo justo después de una muerte o un objetivo hecho por un campeón, y solo si en los 10 s siguientes no pasa nada más: 4 s sobre quien lo ha hecho y vuelta. Cada cambio de zoom se hace poco a poco (1,2 s). Valores en `rele.zoom` (campo de visión `fov` y `distancia` de la cámara al seguido) y `reglas.cerca`.
-8. Desde el minuto 4, en un rato de 40 s sin nada, sale el línea por línea de TENKA ICHI (20 s, como mucho cada 3 min).
+7b. **Interfaz del juego en la emisión.** El PC 2 quita del LoL de la antena los campeones de los lados (`interfaceFrames` de la Replay API), porque ya los enseña el overlay. Va en cada orden de cámara, así que se mantiene aunque alguien pulse una tecla del espectador. Para quitar o dejar otras partes: `rele.interfaz` en `opciones.json` (por ejemplo `"interfaceMinimap": false`).
+8. **Overlay de TENKA ICHI.** De base, siempre el línea por línea (con el marcador y el reloj de arriba). Se cambia un rato por otra cosa y luego vuelve solo:
+   - **Ficha del jugador en racha:** cuando alguien llega a 3, 5 u 8 asesinatos sin morir, su ficha (carta y números) durante 10 s en el primer hueco tranquilo de los 45 s siguientes, después de la repetición si la hay. Como mucho una por jugador cada 2 min.
+   - **Gráfica de oro:** desde el minuto 8, en un rato de 35 s sin nada, 15 s (como mucho cada 3 min).
+   - Al acabar la partida se quita. Con el control tomado, no se toca. Lo manda el PC 1 al panel de TENKA ICHI en el segundo de antena que toca. Valores en `reglas.overlay`.
 
 Todos los tiempos están en `reglas` de `opciones.json`.
 
@@ -94,12 +101,16 @@ Todos los tiempos están en `reglas` de `opciones.json`.
 
 En el PC donde va OBS (el PC 2, o el mismo PC en las pruebas), con OBS **cerrado**: doble clic en `windows/4-configurar-obs.bat` (o `npm run configurar-obs`). Deja hecho:
 
-- **Colección de escenas `Realizador`** con `Juego` (captura de la ventana de LoL + overlay de TENKA ICHI), `Repeticion` (fuente multimedia `Repeticion clip`, overlay y rótulo REPETICIÓN), `Casters` (fondo, cámara y rótulo) y `Pausa` (fondo y rótulo). Los nombres salen de `obs` en `opciones.json`.
+- **Colección de escenas `Realizador`** con `Juego` (captura de la ventana de LoL + overlay de TENKA ICHI), `Repeticion` (fuente multimedia `Repeticion clip`, overlay y `Overlay REPLAY`, la placa REPETICIÓN de `obs/replay.html`), `Casters` (fondo, cámara y rótulo), `Pausa` (fondo y rótulo) y `Draft` (cuatro cámaras `Camara draft 1…4` debajo del overlay). Los nombres salen de `obs` en `opciones.json`.
+- **Transiciones `Repeticion entrada` y `Repeticion salida`**: stingers de `obs/repeticion-entrada.webm` y `obs/repeticion-salida.webm` (0,9 s con transparencia; tapan la pantalla a los 400 ms, que es cuando OBS cambia de escena). Se usan desde la carpeta del realizador: si la mueves, vuelve a ejecutar el instalador.
+- **Cámaras del draft:** se eligen una vez en la página del PC 2 (http://localhost:4601/, pestaña **Cámaras**): qué cámara del PC va en cada hueco. Cuántas salen y qué es cada una se pone en el panel de TENKA ICHI (apartado Cámaras); el relé las encaja solo en los huecos del overlay. Sin elegir nada, van las cámaras del PC por orden.
 - **Perfil `Realizador`**: copia del perfil que usas ahora (clave de emisión, codificador, resolución) con el búfer de repetición activado (`obs.segundosBufer`, 45 s), el codificador x264 (`obs.codificador`; pon `""` para dejar el de tu perfil) y los clips en `Vídeos\Realizador`. Si no tenías perfil, uno nuevo a 1080p60.
 - **Servidor WebSocket** activado en el puerto de `obs.url` con contraseña. La contraseña se apunta en `opciones.local.json` (`obs.clave`, `obs.activo: true`). Si el agente va en el otro PC, copia allí la contraseña que sale en pantalla y pon `"url": "ws://IP-DEL-PC-2:4455"`.
 - OBS arranca con esa colección y ese perfil.
 
 Tus colecciones y perfiles de siempre no se tocan (siguen en los menús de OBS), y lo que se cambia se copia antes en `%APPDATA%\obs-studio\realizador-copia\<fecha>\`. Se puede repetir las veces que haga falta: mantiene la contraseña.
+
+**Clave de retransmisión (Kick):** `INSTALAR-PC2.bat` la pide (Enter para dejar la que ya tenga OBS) y la guarda solo en `opciones.local.json` de ese PC (`obs.emision.clave`), que nunca va en las descargas ni en git; `configurar-obs` la pone en el `service.json` del perfil `Realizador` con el servidor de `obs.emision.servidor` (el de Kick por defecto). No sale nunca en pantalla.
 
 Queda a mano: la URL del overlay si no la encuentra en tus escenas (doble clic en `Overlay TENKA ICHI`, o `obs.overlay` en `opciones.json`, o `--overlay URL`) y elegir la cámara en `Camara casters`.
 
@@ -109,7 +120,9 @@ Al acabar la jugada, el agente guarda el búfer. Cuando llega el hueco tranquilo
 
 ## TENKA ICHI (opcional)
 
-`"tenkaIchi": { "activo": true, "url": "wss://TU-WEB/ws", "clave": "contraseña del panel" }`. El agente manda las mismas acciones que el panel (de momento, el línea por línea). El draft, el overlay y el marcador siguen funcionando igual.
+Los instaladores lo dejan activado en los dos PCs con la contraseña del panel (`"tenkaIchi": { "activo": true, "url": "wss://tenka-ichi.onrender.com/ws", "clave": "…" }`). El PC 1 manda al panel lo que enseña el overlay (línea por línea, gráfica de oro, ficha); el PC 2 solo mira si hay draft y cuántas cámaras lleva.
+
+Los **enlaces de DraftCore** los crea la web de TENKA ICHI por adelantado (todas las partidas del calendario que quedan, sin cuenta en DraftCore) y, al cargar una partida en el panel, se conecta sola a su draft: en el apartado DraftCore salen los enlaces de azul, rojo y espectador para copiarlos.
 
 ## El registro de cada partida
 
@@ -150,3 +163,17 @@ windows/                   archivos .bat para hacer todo con doble clic
 simulador/                 LoL de mentira y demo
 test/                      pruebas
 ```
+
+## Modo IA (opcional, solo PC 1)
+
+Claude ayuda al realizador en lo que no es mecánico. **La cámara, los cortes, las transiciones y cuándo cabe cada cosa siguen siendo reglas**; la IA solo elige:
+
+- **Overlay en los ratos tranquilos:** cada 25 s recibe un resumen de la partida (marcador en antena y real, rachas, jugadas que aún no se han emitido, ratos tranquilos por venir) y dice qué sale en el próximo hueco: gráfica de oro, ficha de un jugador o dejar el línea por línea porque se prepara una pelea.
+- **Qué repetición va** si acaban a la vez varias jugadas que la merecen (en 30 s): solo se repite la que elige. Sin IA se repiten todas, como antes.
+- **Titulares** y un **resumen final** al acabar la partida (en la pestaña Realización y en `partidas/<partida>/resumen.txt`).
+
+Si la IA no contesta a tiempo (15 s para la repetición), falla o no hay clave, el realizador hace lo de siempre. Tras 3 fallos seguidos descansa 2 minutos. Si desde la última pregunta no ha cambiado nada (ni jugadas ni rachas) y su consejo aún no se ha usado, no vuelve a preguntar: el consejo sigue valiendo (por ejemplo, durante los 2 minutos de espera antes de que la partida llegue a la antena). Por si acaso, pregunta igual cada `repreguntarSegundos` (180).
+
+Para encenderla: guarda la clave de la API en un archivo llamado `realizado` en Documentos del PC 1 y doble clic en `INSTALAR-IA.bat`. Pregunta el modelo (Sonnet 5.5 recomendado, Haiku 5.5 más rápido y barato), instala la librería si falta y hace una prueba. Vuelve a abrirlo para cambiar de modelo o apagarla. En `opciones.json` → `ia`: `cadaSegundos`, `repreguntarSegundos`, `esfuerzo`, `titulares`, `resumenFinal`, `archivoClave`.
+
+La clave solo se lee en el PC 1 y solo va a la API de Anthropic: no se escribe en `opciones.local.json`, no sale en el registro ni en el panel, y no va al PC 2 ni al servidor de TENKA ICHI. Si la pegas en el instalador, queda en `clave-ia.txt` (fuera de git).

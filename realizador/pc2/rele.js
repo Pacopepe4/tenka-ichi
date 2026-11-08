@@ -14,6 +14,30 @@ import { Obs, segundosAtras } from '../pc1/obs.js';
 import { Emision } from './emision.js';
 import { condiciones } from '../comun/condiciones.js';
 import { arrancarPanel } from '../pc1/panel.js';
+import { POR_DEFECTO as BORDES, ajusteBorde, suavizar, zoomConBorde, posicionSeguido } from './bordes.js';
+import { Tenka } from '../pc1/tenka.js';
+import { CamarasDraft } from './camaras.js';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { RAIZ } from '../comun/opciones.js';
+
+// Qué enseña el panel de TENKA ICHI: un draft en marcha (DraftCore conectado o con turnos), el draft recién
+// cerrado (postdraft) o nada de draft
+// Interfaz del espectador en el LoL de la antena (Replay API, /replay/render): lo que no tiene que salir en la
+// emisión porque ya lo enseña el overlay. Por defecto se quitan los campeones de los lados (interfaceFrames).
+// Va en cada orden de cámara, así que se queda quitado aunque alguien pulse una tecla del espectador.
+// En opciones.json → rele.interfaz se puede quitar o dejar cualquier otra parte (interfaceScoreboard, interfaceMinimap...).
+export const INTERFAZ = { interfaceFrames: false };
+export function interfazEspectador(r = {}) {
+  return { ...INTERFAZ, ...(r.interfaz || {}) };
+}
+
+export function draftDeTenka(e) {
+  if (!e) return null;
+  if (e.vistaOverlay === 'postdraft') return 'postdraft';
+  if (e.vistaOverlay === 'draft' && (e.fuente?.conectado || (Number(e.draft?.turno) > 0 && Number(e.draft?.turno) <= 20))) return 'draft';
+  return null;
+}
 
 // Segundo de partida que veía el PC 1 a la hora «hora», con su historial. Entre dos muestras avanza al ritmo
 // del reloj, pero sin pasar de la siguiente (si el reloj se paró, se queda parado). Antes de la primera muestra,
@@ -36,7 +60,7 @@ export function segundoHace(historial, hora) {
 
 // obs: false para no tocar OBS desde el relé (modo de un solo PC, donde lo lleva el agente). En las pruebas,
 // obs y sala pueden ser objetos de mentira.
-export function crearRele(o, { registrar: registrarFuera = console.log, obs: conObs = true, sala: otraSala = null, panel: conPanel = false } = {}) {
+export function crearRele(o, { registrar: registrarFuera = console.log, obs: conObs = true, sala: otraSala = null, panel: conPanel = false, tenka: otroTenka = undefined, rutaLocal = join(RAIZ, 'opciones.local.json') } = {}) {
   const r = o.rele;
   // Lo que se apunta también se guarda para la página del PC 2
   const registro = [];
@@ -76,8 +100,30 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
   // El botón de «Empezar directo»: arranca OBS justo para que la partida salga desde el principio
   const emision = new Emision({
     opciones: o.emision, obs, registrar,
-    escenas: { juego: o.obs?.escenaJuego, previa: o.obs?.escenaPausa, final: o.obs?.escenaCasters },
+    escenas: { juego: o.obs?.escenaJuego, previa: o.obs?.escenaPausa, final: o.obs?.escenaCasters, draft: o.obs?.escenaDraft || 'Draft' },
   });
+
+  // Panel de TENKA ICHI (solo para mirar): si hay draft, y cuántas cámaras tiene puestas
+  const tenka = otroTenka !== undefined ? otroTenka
+    : (o.tenkaIchi?.activo && o.tenkaIchi?.url ? new Tenka({ url: o.tenkaIchi.url, clave: o.tenkaIchi.clave || o.clave || '' }) : null);
+  if (tenka && otroTenka === undefined) {
+    tenka.on('conexion', v => registrar(v ? '[tenka] conectado al panel de TENKA ICHI' : '[tenka] sin conexión con el panel de TENKA ICHI'));
+    tenka.conectar();
+  }
+  // Cámaras de la escena de draft, encajadas en los huecos del overlay
+  const camaras = obs ? new CamarasDraft({ obs, escena: o.obs?.escenaDraft || 'Draft', registrar, elegidos: o.obs?.camarasDraft || [] }) : null;
+  tenka?.on?.('estado', e => camaras?.desdeTenka(e));
+  function elegirCamaras(lista) {
+    if (!camaras) throw new Error('Este PC no lleva OBS');
+    camaras.elegir(lista);
+    // Se guarda en opciones.local.json para la próxima vez
+    try {
+      const local = existsSync(rutaLocal) ? JSON.parse(readFileSync(rutaLocal, 'utf8').replace(/^\uFEFF/, '')) : {};
+      local.obs = { ...(local.obs || {}), camarasDraft: camaras.elegidos };
+      writeFileSync(rutaLocal, JSON.stringify(local, null, 2) + '\n');
+    } catch (e) { registrar(`[cámaras] no se pudo guardar la elección: ${e.message}`); }
+    registrar('[cámaras] cámaras del draft elegidas');
+  }
 
   async function hacerObs(tA) {
     if (!obs) return;
@@ -116,15 +162,22 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
   const nivel = n => zooms[n] || zooms.abierto || { fov: 50, distancia: 1 };
   const zoomDe = p => (!p || p.tipo === 'general' || !p.objetivo ? 'general' : (p.zoom === 'cerca' ? 'cerca' : 'abierto'));
 
-  function camara(p, z) {
-    const lente = { fieldOfView: z.fov };
-    if (!p || p.tipo === 'general' || !p.objetivo) return { cameraAttached: false, cameraMode: 'top', ...lente };
+  // Cerca de los bordes del mapa el plano se mueve hacia dentro y se cierra un poco (ver bordes.js)
+  const cb = { ...BORDES, ...(r.bordes || {}) };
+  cb.zona = { ...BORDES.zona, ...(r.bordes?.zona || {}) };
+  cb.desplazamiento = { ...BORDES.desplazamiento, ...(r.bordes?.desplazamiento || {}) };
+  estado.borde = { k: 0, dx: 0, dz: 0 };
+
+  const interfaz = interfazEspectador(r);
+  function camara(p, zBase) {
+    if (!p || p.tipo === 'general' || !p.objetivo) return { ...interfaz, cameraAttached: false, cameraMode: 'top', fieldOfView: zBase.fov };
+    const b = cb.activo ? estado.borde : { k: 0, dx: 0, dz: 0 };
+    const z = zoomConBorde(zBase, nivel('cerca'), b.k);
     const nombre = r.seleccionarPor === 'campeon' ? p.objetivo.campeon : (p.objetivo.jugador || p.objetivo.campeon);
     const d = r.desplazamientoCamara;
-    return {
-      cameraMode: 'fps', cameraAttached: true, selectionName: nombre,
-      selectionOffset: { x: d.x * z.distancia, y: d.y * z.distancia, z: d.z * z.distancia }, ...lente,
-    };
+    const offset = { x: d.x * z.distancia + b.dx, y: d.y * z.distancia, z: d.z * z.distancia + b.dz };
+    estado.offsetEnviado = offset;
+    return { ...interfaz, cameraMode: 'fps', cameraAttached: true, selectionName: nombre, selectionOffset: offset, fieldOfView: z.fov };
   }
 
   const clave = p => (p ? `${p.tipo}:${p.objetivo?.campeon || ''}:${p.objetivo?.jugador || ''}` : 'general');
@@ -138,6 +191,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
     const desde = { ...estado.zoom };
     if (desde.fov === destino.fov && desde.distancia === destino.distancia) return;
     const pasos = Math.max(1, Math.round(segundos * (r.zoom?.pasosPorSegundo ?? 25)));
+    estado.animando = yo;
     for (let i = 1; i <= pasos; i++) {
       if (yo !== animacion) return;
       const k = suave(i / pasos);
@@ -145,6 +199,39 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
       try { await render(camara(p, estado.zoom)); } catch { return; }
       if (i < pasos) await new Promise(f => setTimeout(f, 1000 / (r.zoom?.pasosPorSegundo ?? 25)));
     }
+    if (estado.animando === yo) estado.animando = null;
+  }
+
+  // Vigila dónde está el seguido y ajusta el plano si se acerca a un borde del mapa. Mientras hay una
+  // transición de zoom en marcha no manda nada: la transición ya usa el ajuste en cada paso.
+  let temporizadorBordes = null;
+  let ultimaVueltaBordes = Date.now();
+  let bordeCerca = false;
+  let parado = false;
+  async function vigilarBordes() {
+    const ahora = Date.now();
+    const dt = Math.min(1, (ahora - ultimaVueltaBordes) / 1000);
+    ultimaVueltaBordes = ahora;
+    const p = estado.planoCamara;
+    if (!cb.activo || !p || p.tipo !== 'seguir' || !p.objetivo) { estado.borde = { k: 0, dx: 0, dz: 0 }; return; }
+    let pos = null;
+    try { pos = posicionSeguido(await pedirJSON(`${api}/replay/render`, { tiempoMs: 1000 }), estado.offsetEnviado); } catch { return; }
+    if (p !== estado.planoCamara) return;  // cambió de plano mientras se preguntaba
+    const objetivo = ajusteBorde(pos, cb);
+    const antes = estado.borde;
+    // Recién cambiado de seguido (corte): el ajuste del anterior no vale, se pone el del nuevo de golpe
+    estado.borde = estado.bordeDeGolpe ? objetivo : suavizar(antes, objetivo, dt, cb.suavizadoSegundos);
+    estado.bordeDeGolpe = false;
+    const ahoraCerca = objetivo.k > 0.05 || Math.abs(objetivo.dx) + Math.abs(objetivo.dz) > 50;
+    if (ahoraCerca !== bordeCerca) {
+      bordeCerca = ahoraCerca;
+      registrar(`[cámara] ${ahoraCerca ? `${p.objetivo.campeon} cerca del borde del mapa: plano hacia dentro` : 'fuera de los bordes: plano normal'}`);
+    }
+    const cambio = Math.abs(estado.borde.k - antes.k) > 0.005 || Math.abs(estado.borde.dx - antes.dx) > 3 || Math.abs(estado.borde.dz - antes.dz) > 3;
+    if (cambio && !estado.animando) await render(camara(p, estado.zoom)).catch(() => {});
+  }
+  function bucleBordes() {
+    vigilarBordes().catch(() => {}).finally(() => { if (!parado) temporizadorBordes = setTimeout(bucleBordes, cb.cadaMs); });
   }
 
   async function aplicar(p, motivo) {
@@ -162,11 +249,14 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
     estado.aplicado = k;
     estado.zoomAplicado = z;
     estado.planoCamara = p;
+    // En el corte, el ajuste de bordes del anterior no vale: se quita y se pone de golpe el del nuevo
+    const corte = () => { estado.borde = { k: 0, dx: 0, dz: 0 }; estado.bordeDeGolpe = true; };
     if (cambioDeSeguido) {
       (async () => {
         await transicion(anterior, nivel('general'), salida);
         if (sec !== secuencia) return;
         animacion++;
+        corte();
         await render(camara(p, estado.zoom)).catch(() => {});
         if (sec !== secuencia) return;
         await transicion(p, destino);
@@ -174,6 +264,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
     } else {
       if (previo !== k) {
         animacion++;  // un corte para cualquier transición a medias
+        corte();
         await render(camara(p, estado.zoom));
       }
       transicion(p, destino);  // sin esperar: el relé sigue con la antena mientras se mueve el zoom
@@ -268,8 +359,10 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
       await emision.paso({
         meta: estado.meta, tAntena: tAntenaAhora(), pausado: estado.playback?.paused ?? true,
         juego: Boolean(estado.playback), listo: condicionesAhora().listo, tFin: estado.tFin,
+        draft: draftDeTenka(tenka?.estado),
       });
     } catch (e) { registrar(`[emisión] ${e.message}`); }
+    camaras?.paso().catch(() => {});
   }
   // Segundos que faltan para que la partida salga en antena (desde el principio)
   const faltan = () => (Number.isFinite(estado.meta) && estado.meta < 0 ? -estado.meta : null);
@@ -293,7 +386,9 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
     const tD = partidaPc1() ? estado.directo.t + (Date.now() - estado.directo.hora) / 1000 : null;
     return {
       papel: 'pc2',
-      conexiones: { ...(sala ? { puente: sala.unido } : {}), pc1: pc1Conectado(), obs: obs ? Boolean(obs.listo) : null },
+      conexiones: { ...(sala ? { puente: sala.unido } : {}), pc1: pc1Conectado(), obs: obs ? Boolean(obs.listo) : null, tenka: tenka ? Boolean(tenka.listo) : null },
+      camaras: camaras ? camaras.publico() : null,
+      draft: draftDeTenka(tenka?.estado),
       condiciones: c.lista, listo: c.listo,
       emision: emision.publico(), faltan: faltan(),
       tDirecto: tD, tAntena: tA, margenReal: tA !== null && tD !== null ? tD - tA : null, margen: o.margenSegundos,
@@ -383,12 +478,18 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
   return {
     estado,
     emision,
+    camaras,
+    elegirCamaras,
     foto,
     arrancar(puerto = r.puerto) {
       if (conPanel) {
         panel = arrancarPanel({
           puerto: o.panelPc2?.puerto ?? 4601, host: '127.0.0.1', foto,
           emision: d => emision.orden(d),
+          camaras: async d => {
+            if (d?.leer) { await camaras?.leerDisponibles(); return; }
+            elegirCamaras(d?.elegidos);
+          },
         });
       }
       servidor.listen(puerto, '0.0.0.0');
@@ -398,10 +499,12 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
         latido = setInterval(() => sala.enviar({ tipo: 'estado', ...estadoPublico() }), 1000);
       }
       vuelta();
+      if (cb.activo) bucleBordes();
       return servidor;
     },
     parar() {
-      clearTimeout(temporizador); clearInterval(latido); anuncio?.parar(); sala?.cerrar();
+      clearTimeout(temporizador); parado = true; clearTimeout(temporizadorBordes); clearInterval(latido); anuncio?.parar(); sala?.cerrar();
+      if (otroTenka === undefined) tenka?.cerrar();
       if (typeof conObs !== 'object') obs?.cerrar();
       servidor.close();
       if (panel) { panel.parar(); panel = null; }

@@ -1,6 +1,6 @@
 // Cerebro: agrupa los sucesos en jugadas y decide qué sale en antena en cada momento.
 // No sabe nada de redes ni de LoL: recibe sucesos con su segundo de partida y devuelve un guion de planos
-// y unas acciones (repeticiones, línea por línea). Así se puede probar entero sin el juego.
+// y unas acciones (repeticiones, ficha de un jugador en racha, gráfica de oro). Así se puede probar entero sin el juego.
 //
 // Con 2 minutos de margen, cuando la antena llega a un momento el cerebro ya sabe qué pasó después:
 // la cámara llega antes de que empiece la pelea y una repetición solo se lanza si viene un rato tranquilo.
@@ -15,7 +15,66 @@ export class Cerebro {
     this.jugadas = [];
     this.acciones = [];
     this.siguiente = 1;
-    this.ultimaLineas = -Infinity;
+    this.ultimaOro = -Infinity;
+    // Rachas de asesinatos sin morir (para la ficha del jugador en racha)
+    this.rachas = new Map();       // campeón → asesinatos seguidos sin morir
+    this.hitos = [];               // { t, quien, racha }: alguien llega a una racha que merece ficha
+    this.muertesVistas = new Set();
+    this.ultimaFicha = new Map();  // campeón → segundo de su última ficha
+    // Modo IA (opcional, pc1/ia.js). La cámara, las transiciones y cuándo cabe cada cosa siguen siendo reglas:
+    // la IA solo elige qué sale en el overlay en un rato tranquilo y qué jugada se repite si coinciden varias.
+    // Si no contesta a tiempo o falla, todo sigue como sin ella.
+    this.usarIa = false;
+    this.consejo = null;            // { tipo: oro|ficha|lineas, campeon, jugador, equipo, motivo, desde, hasta }
+    this.eleccionesRep = new Map(); // grupo de jugadas → id de la elegida (null: sin respuesta, se repiten como siempre)
+    this.gruposPedidos = new Map(); // grupo → segundo conocido en que empezó a esperar a la IA
+    this.finPartida = null;         // segundo en que acabó (ya no llega nada más)
+  }
+
+  // Jugadas que se repetirían y acaban casi a la vez («grupoSegundos»): con la IA se repite solo la mejor.
+  // Un grupo está cerrado cuando ya no le puede entrar ninguna jugada más.
+  gruposRepeticion(conocidoHasta) {
+    const g = this.r.repeticion.grupoSegundos ?? 30;
+    const candidatas = this.jugadas.filter(j => j.repetir && !j.repeticion).sort((a, b) => a.fin - b.fin);
+    const grupos = [];
+    for (const j of candidatas) {
+      const u = grupos.at(-1);
+      if (u && j.fin - u[0].fin <= g) u.push(j);
+      else grupos.push([j]);
+    }
+    return grupos.map(js => ({
+      id: js.map(j => j.id).join('+'),
+      jugadas: js,
+      cerrado: this.finPartida !== null || conocidoHasta >= js[0].fin + g,
+    }));
+  }
+
+  // Grupos que esperan a que la IA elija (los lee pc1/ia.js)
+  gruposSinElegir() {
+    return [...this.gruposPedidos.keys()].filter(id => !this.eleccionesRep.has(id))
+      .map(id => ({ id, jugadas: id.split('+').map(x => this.jugadas.find(j => j.id === x)).filter(Boolean) }))
+      .filter(g => g.jugadas.length >= 2);
+  }
+
+  elegirRepeticion(grupo, jugada) { this.eleccionesRep.set(grupo, jugada ?? null); }
+
+  // Consejo de la IA para un hueco tranquilo en el segundo t (vale para un solo hueco)
+  consejoPara(t) {
+    const c = this.consejo;
+    if (!c || c.usado || t < c.desde - 5 || t > c.hasta) return null;
+    return c;
+  }
+
+  // Racha de cada campeón: suma al que mata y se pone a cero al que muere
+  contarRacha(e) {
+    if (e.id && this.muertesVistas.has(e.id)) return;
+    if (e.id) this.muertesVistas.add(e.id);
+    const f = this.r.overlay?.ficha;
+    if (e.victima) this.rachas.set(e.victima.campeon, 0);
+    if (!e.asesino || e.asesino.campeon === e.victima?.campeon) return;
+    const n = (this.rachas.get(e.asesino.campeon) || 0) + 1;
+    this.rachas.set(e.asesino.campeon, n);
+    if (f && (f.rachas || [3, 5, 8]).includes(n)) this.hitos.push({ t: e.t, quien: e.asesino, racha: n });
   }
 
   // ---------- sucesos → jugadas ----------
@@ -65,6 +124,7 @@ export class Cerebro {
   }
 
   agregarMuerte(e) {
+    this.contarRacha(e);
     let j = this.abierta(e.t, ['muerte', 'pelea', 'objetivo']);
     if (!j) {
       j = this.nueva('muerte', e, this.r.anticipacion);
@@ -245,7 +305,7 @@ export class Cerebro {
     return juntar(planos);
   }
 
-  // ---------- acciones: repeticiones y línea por línea ----------
+  // ---------- acciones: repeticiones y lo que se cambia en el overlay (ficha en racha, gráfica de oro) ----------
   // Solo se decide lo que ya se puede saber: hace falta ver «calma» segundos después de cada momento
   planificarAcciones(desde, conocidoHasta) {
     const r = this.r;
@@ -253,8 +313,28 @@ export class Cerebro {
     const ocupado = (a, b, minimo) => this.jugadas.some(j => this.prioridad(j) >= minimo && j.inicio < b && j.fin > a)
       || this.acciones.some(x => x.t < b && x.t + x.segundos > a);
 
+    // Con la IA: se espera a que cada grupo se cierre y, si hay varias, a que diga cuál (como mucho «esperaIaSegundos»)
+    const esperando = new Set();
+    if (this.usarIa) {
+      const espera = r.repeticion.esperaIaSegundos ?? 10;
+      for (const g of this.gruposRepeticion(conocidoHasta)) {
+        if (!g.cerrado) { for (const j of g.jugadas) esperando.add(j.id); continue; }
+        if (g.jugadas.length < 2) continue;
+        if (this.eleccionesRep.has(g.id)) {
+          const elegida = this.eleccionesRep.get(g.id);
+          if (elegida && g.jugadas.some(j => j.id === elegida)) {
+            for (const j of g.jugadas) if (j.id !== elegida) j.repeticion = 'otra-elegida';
+            g.jugadas.find(j => j.id === elegida).eleccionIa = true;
+          }
+          continue;
+        }
+        if (!this.gruposPedidos.has(g.id)) this.gruposPedidos.set(g.id, conocidoHasta);
+        if (this.finPartida === null && conocidoHasta - this.gruposPedidos.get(g.id) < espera) for (const j of g.jugadas) esperando.add(j.id);
+      }
+    }
+
     for (const j of this.jugadas) {
-      if (!j.repetir || j.repeticion || j.fin < desde) continue;
+      if (!j.repetir || j.repeticion || j.fin < desde || esperando.has(j.id)) continue;
       // Barón: no se repite el Barón, sino la pelea de antes, y solo si el otro equipo quedó entero muerto (ace)
       let hastaT = j.fin;
       if (j.objetivos.includes('BaronKill')) {
@@ -267,7 +347,7 @@ export class Cerebro {
       for (let t = j.fin + 2; t <= j.fin + 60; t += 2) {
         if (t + calma > conocidoHasta) break;  // aún no se sabe
         if (!ocupado(t, t + calma, r.prioridades.objetivo)) {
-          const a = { id: `rep-${j.id}`, tipo: 'repeticion', t: red(t), segundos: r.repeticion.segundos, jugada: j.id, desdeT: red(j.inicio), hastaT: red(hastaT) };
+          const a = { id: `rep-${j.id}`, tipo: 'repeticion', t: red(t), segundos: r.repeticion.segundos, jugada: j.id, desdeT: red(j.inicio), hastaT: red(hastaT), ...(j.eleccionIa ? { ia: true } : {}) };
           j.repeticion = a.id;
           this.acciones.push(a);
           nuevas.push(a);
@@ -277,16 +357,63 @@ export class Cerebro {
       if (!j.repeticion && j.fin + 60 + calma <= conocidoHasta) j.repeticion = 'sin-hueco';
     }
 
-    const ll = r.lineaPorLinea;
-    // El rato tranquilo tiene que cubrir, como poco, todo lo que el gráfico está en pantalla
-    const ventana = Math.max(ll.calmaNecesaria, 3 + ll.segundos);
-    for (let t = Math.max(desde, ll.desdeSegundo || 0, this.ultimaLineas + ll.cadaSegundosComoMinimo); t + ventana <= conocidoHasta; t += 5) {
-      if (!ocupado(t, t + ventana, 1)) {
-        const a = { id: `lineas-${Math.round(t)}`, tipo: 'lineas', t: red(t + 3), segundos: ll.segundos };
-        this.ultimaLineas = t;
-        this.acciones.push(a);
-        nuevas.push(a);
-        t += ll.cadaSegundosComoMinimo;
+    // ---------- overlay de TENKA ICHI ----------
+    // De base siempre está el línea por línea (y el marcador de arriba): eso lo pone el ejecutor solo. Aquí se
+    // deciden los ratos en que se cambia por otra cosa y luego se vuelve al línea por línea.
+    const ov = r.overlay || {};
+
+    // Ficha de un jugador en racha: poco después de su asesinato, en cuanto haya unos segundos sin nada
+    const f = ov.ficha;
+    if (f?.activo !== false && f) {
+      // Una repetición aún por decidir va antes: la ficha espera a que tenga su sitio
+      const repPendiente = this.jugadas.some(j => j.repetir && !j.repeticion && j.fin >= desde);
+      for (const h of this.hitos) {
+        if (h.hecho || repPendiente) continue;
+        const ultima = this.ultimaFicha.get(h.quien.campeon) ?? -Infinity;
+        if (h.t - ultima < (f.cadaSegundosComoMinimo ?? 120)) { h.hecho = 'reciente'; continue; }
+        const ventana = (f.segundos ?? 10) + 2;
+        for (let t = h.t + (f.retraso ?? 3); t <= h.t + (f.buscarSegundos ?? 45); t += 1) {
+          if (t + ventana > conocidoHasta) break;  // aún no se sabe
+          if (t < desde) continue;
+          if (!ocupado(t, t + ventana, 1)) {
+            const a = { id: `ficha-${h.quien.campeon}-${Math.round(h.t)}`, tipo: 'ficha', t: red(t + 1), segundos: f.segundos ?? 10,
+              campeon: h.quien.campeon, jugador: h.quien.jugador || null, equipo: h.quien.equipo || null, racha: h.racha };
+            h.hecho = a.id;
+            this.ultimaFicha.set(h.quien.campeon, h.t);
+            this.acciones.push(a);
+            nuevas.push(a);
+            break;
+          }
+        }
+        if (!h.hecho && h.t + (f.buscarSegundos ?? 45) + ventana <= conocidoHasta) h.hecho = 'sin-hueco';
+      }
+    }
+
+    // Gráfica de oro en los huecos largos sin nada
+    const g = ov.oro;
+    // Una repetición aún por decidir (o esperando a la IA) va antes: el rato tranquilo es suyo
+    if (g && g.activo !== false && !this.jugadas.some(j => j.repetir && !j.repeticion && j.fin >= desde)) {
+      // El rato tranquilo tiene que cubrir, como poco, todo lo que la gráfica está en pantalla
+      const ventana = Math.max(g.calmaNecesaria ?? 35, 3 + (g.segundos ?? 15));
+      for (let t = Math.max(desde, g.desdeSegundo ?? 480, this.ultimaOro + (g.cadaSegundosComoMinimo ?? 180)); t + ventana <= conocidoHasta; t += 5) {
+        if (!ocupado(t, t + ventana, 1)) {
+          // Con la IA, ella elige qué sale en este rato: la gráfica de oro, la ficha de alguien o dejar el línea por línea
+          const c = this.usarIa ? this.consejoPara(t) : null;
+          if (c) c.usado = true;
+          let a;
+          if (c?.tipo === 'lineas') a = null;
+          else if (c?.tipo === 'ficha' && c.campeon) {
+            a = { id: `ficha-ia-${c.campeon}-${Math.round(t)}`, tipo: 'ficha', t: red(t + 3), segundos: f?.segundos ?? 10,
+              campeon: c.campeon, jugador: c.jugador || null, equipo: c.equipo || null, ia: true, motivo: c.motivo || null };
+            this.ultimaFicha.set(c.campeon, t);
+          } else {
+            a = { id: `oro-${Math.round(t)}`, tipo: 'oro', t: red(t + 3), segundos: g.segundos ?? 15, ...(c ? { ia: true, motivo: c.motivo || null } : {}) };
+          }
+          this.ultimaOro = t;
+          if (a) { this.acciones.push(a); nuevas.push(a); }
+          if (c?.tipo === 'lineas') this.decisionesIa = [...(this.decisionesIa || []), { t: red(t), tipo: 'lineas', motivo: c.motivo || null }].slice(-20);
+          t += g.cadaSegundosComoMinimo ?? 180;
+        }
       }
     }
     return nuevas;

@@ -29,8 +29,20 @@ export function overlayDeTenka(urlPuente) {
   } catch { return ''; }
 }
 
-export function opcionesLocales(papel, clave, actuales = {}, ruta) {
-  const comun = { papel, clave, ...(ruta ? { rutaLoL: ruta } : {}) };
+// El panel de TENKA ICHI (su WebSocket /ws) también: wss://x/realizador → wss://x/ws
+export function wsDeTenka(urlPuente) {
+  try {
+    const u = new URL(urlPuente);
+    u.pathname = '/ws';
+    return u.href;
+  } catch { return ''; }
+}
+
+export function opcionesLocales(papel, clave, actuales = {}, ruta, urlPuente) {
+  // Los dos PCs hablan con el panel de TENKA ICHI con la misma contraseña: el PC 1 lleva el overlay (línea por
+  // línea, gráfica de oro, ficha) y el PC 2 mira el draft para poner su escena
+  const tenka = wsDeTenka(urlPuente || actuales.puente?.url || 'wss://tenka-ichi.onrender.com/realizador');
+  const comun = { papel, clave, ...(ruta ? { rutaLoL: ruta } : {}), ...(tenka ? { tenkaIchi: { activo: true, url: actuales.tenkaIchi?.url || tenka, clave } } : {}) };
   // Los dos PCs se encuentran en la sala del realizador del servidor de TENKA ICHI. OBS va en el PC 2 y lo
   // maneja su relé: el PC 1 solo le dice qué guardar y qué repetir.
   const puente = { modo: 'tenka' };
@@ -51,7 +63,7 @@ function accesoDirecto(nombre, bat) {
   return nombre;
 }
 
-export function instalar({ papel, clave, ruta, rutaLocal = join(RAIZ, 'opciones.local.json'), carpeta = carpetaObs(), atajo = true, carpetaPuente }) {
+export function instalar({ papel, clave, ruta, emision = '', rutaLocal = join(RAIZ, 'opciones.local.json'), carpeta = carpetaObs(), atajo = true, carpetaPuente }) {
   if (papel !== 'pc1' && papel !== 'pc2') throw new Error('Di qué PC es: pc1 o pc2');
   if (!clave || clave.length < 4) throw new Error('La contraseña tiene que tener al menos 4 caracteres');
   const hechos = [];
@@ -59,8 +71,14 @@ export function instalar({ papel, clave, ruta, rutaLocal = join(RAIZ, 'opciones.
 
   // 1. opciones.local.json
   const actuales = existsSync(rutaLocal) ? JSON.parse(readFileSync(rutaLocal, 'utf8').replace(/^\uFEFF/, '')) : {};
-  writeFileSync(rutaLocal, JSON.stringify(opcionesLocales(papel, clave, actuales, ruta), null, 2) + '\n');
+  const locales = opcionesLocales(papel, clave, actuales, ruta, cargarOpciones().puente?.url);
+  // Clave de retransmisión de Kick (solo PC 2): se queda en opciones.local.json de este PC y de ahí la lee
+  // configurar-obs para el perfil de OBS. No sale nunca en pantalla ni en las descargas.
+  const conEmision = papel === 'pc2' && Boolean(emision.trim());
+  if (conEmision) locales.obs = { ...locales.obs, emision: { ...(locales.obs?.emision || {}), clave: emision.trim() } };
+  writeFileSync(rutaLocal, JSON.stringify(locales, null, 2) + '\n');
   hechos.push('Contraseña guardada');
+  if (conEmision) hechos.push('Clave de retransmisión guardada solo en este PC');
   const o = cargarOpciones();
 
   // 2. LoL
@@ -104,7 +122,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const args = process.argv.slice(2);
   const arg = n => { const i = args.indexOf(n); return i !== -1 ? args[i + 1] : undefined; };
   try {
-    const { hechos, avisos } = instalar({ papel: args[0], clave: arg('--clave'), ruta: arg('--ruta') });
+    // La clave de retransmisión llega por el entorno (REALIZADOR_EMISION) para que no se vea en la lista de procesos
+    const { hechos, avisos } = instalar({ papel: args[0], clave: arg('--clave'), ruta: arg('--ruta'), emision: process.env.REALIZADOR_EMISION || '' });
     console.log('');
     for (const h of hechos) console.log(`  OK  ${h}`);
     for (const a of avisos) console.log(`  !!  ${a}`);
