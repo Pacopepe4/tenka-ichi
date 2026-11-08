@@ -73,6 +73,19 @@ export function ocultar(texto, clave) {
   return s.replace(/sk-ant-[A-Za-z0-9_-]+/g, '[clave]');
 }
 
+// Por qué no hay conexión, en palabras: lo que más pasa es un antivirus que revisa las conexiones seguras
+// (certificado que Node no conoce), un firewall que no deja salir a node.exe o un PC sin internet
+export function causaConexion(e) {
+  const c = e?.cause;
+  const codigo = c?.code || c?.cause?.code || '';
+  const texto = `${codigo} ${c?.message || ''} ${c?.cause?.message || ''}`;
+  if (/CERT|certificate|SELF_SIGNED|UNABLE_TO_VERIFY|issuer/i.test(texto)) return ' (certificado no reconocido: seguramente el antivirus revisa las conexiones seguras; abre el realizador con su .bat, que usa los certificados de Windows)';
+  if (/ENOTFOUND|EAI_AGAIN/i.test(texto)) return ' (no encuentra api.anthropic.com: ¿hay internet?)';
+  if (/ECONNREFUSED|ECONNRESET|EACCES|EPERM/i.test(texto)) return ` (${codigo || 'conexión cortada'}: puede ser el firewall o el antivirus bloqueando node.exe)`;
+  if (/ETIMEDOUT|timed? ?out|UND_ERR_CONNECT_TIMEOUT/i.test(texto) || e?.name === 'APIConnectionTimeoutError') return ' (no contesta a tiempo: internet lento o bloqueado)';
+  return codigo ? ` (${codigo})` : (c?.message ? ` (${String(c.message).slice(0, 80)})` : '');
+}
+
 // ---------- lo que se le cuenta a la IA ----------
 
 const reloj = t => (t === null || t === undefined ? '--:--' : `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`);
@@ -282,7 +295,7 @@ export class Ia extends EventEmitter {
         this.estado.motivo = msg;
       } else if (A && e instanceof A.PermissionDeniedError) msg = 'la clave no tiene permiso o se acabó el límite de gasto';
       else if (A && e instanceof A.RateLimitError) msg = 'demasiadas peticiones o límite de gasto: espera un poco';
-      else if (A && e instanceof A.APIConnectionError) msg = 'sin conexión con la IA';
+      else if (A && e instanceof A.APIConnectionError) msg = `sin conexión con la IA${causaConexion(e)}`;
       msg = ocultar(msg, this.clave).slice(0, 200);
       this.estado.ultimoError = { hora: new Date().toISOString(), texto: msg };
       // Tras 3 fallos seguidos, 2 minutos sin preguntar: mientras, reglas

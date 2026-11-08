@@ -10,7 +10,7 @@ import { execFileSync } from 'node:child_process';
 import { createInterface } from 'node:readline/promises';
 import { pathToFileURL } from 'node:url';
 import { RAIZ, mezclar } from '../comun/opciones.js';
-import { leerClave, sacarClave, ocultar, MODELOS, NOMBRE_MODELO } from '../pc1/ia.js';
+import { leerClave, sacarClave, ocultar, causaConexion, MODELOS, NOMBRE_MODELO } from '../pc1/ia.js';
 
 export function guardarOpcionesIa(rutaLocal, ia) {
   const actuales = existsSync(rutaLocal) ? JSON.parse(readFileSync(rutaLocal, 'utf8').replace(/^﻿/, '')) : {};
@@ -40,7 +40,7 @@ async function probar(Anthropic, clave, modelo) {
     if (e instanceof Anthropic.AuthenticationError) return { ok: false, motivo: 'la clave no vale. Revisa que la copiaste entera en el archivo «realizado»' };
     if (e instanceof Anthropic.PermissionDeniedError) return { ok: false, motivo: 'la clave no tiene permiso para ese modelo' };
     if (e instanceof Anthropic.RateLimitError) return { ok: false, motivo: 'límite de gasto o de peticiones: revisa Limits en la consola de Anthropic' };
-    if (e instanceof Anthropic.APIConnectionError) return { ok: false, motivo: 'no hay conexión con la API de Anthropic' };
+    if (e instanceof Anthropic.APIConnectionError) return { ok: false, motivo: `no hay conexión con la API de Anthropic${causaConexion(e)}` };
     return { ok: false, motivo: ocultar(e?.message || String(e), clave).slice(0, 200) };
   }
 }
