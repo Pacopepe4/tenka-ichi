@@ -37,7 +37,7 @@ const ARCHIVO = archivoDeTemporada('gacha');
 const PESTANA = pestanaDeTemporada('Gachapon');
 const CABECERA = ['Fecha', 'ID de usuario', 'Usuario', 'Tipo', 'Detalle', 'Cantidad', 'Rareza'];
 
-// «apoyo»: los sobres por suscribirse, regalar suscripciones o mandar kicks en Kick (server/kick-eventos.js)
+// «apoyo»: los sobres por suscribirse, regalar suscripciones o mandar kicks en Kick (server/kick-bot.js)
 const TIPOS_CON_SOBRES = new Set(['alta', 'regalo', 'canje', 'premio', 'codigo', 'fundido', 'apoyo']);
 // Los que llevan en el detalle el aviso que los dio: se apuntan para no darlos dos veces
 const UNA_VEZ = new Set(['canje', 'apoyo']);

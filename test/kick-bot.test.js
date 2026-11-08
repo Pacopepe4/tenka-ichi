@@ -1,6 +1,7 @@
-// Avisos de Kick (webhooks) con un Kick falso que los firma como Kick (scripts/kick-falso.js) y un Discord falso:
-// suscripción al conectar el canal, firma y avisos repetidos, sobres por subs, regalos y kicks, el Omamori al momento,
-// alertas para OBS, el aviso de directo en Discord y los comandos del chat. La web arranca con datos temporales.
+// El bot de Gokudō en Kick (server/kick-bot.js) con un Kick falso que firma los avisos como Kick (scripts/kick-falso.js)
+// y un Discord falso: suscripción al conectar el canal, firma y avisos repetidos, sobres por subs, regalos y kicks,
+// anuncios en el chat, el Omamori sin consultas periódicas (y los canjes que quedan sin resolver), alertas para OBS,
+// el aviso de directo, los comandos del chat y la cuenta aparte del bot. La web arranca con datos temporales.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
@@ -30,7 +31,7 @@ async function hasta(fn, ms = 4000) {
 }
 
 async function arrancarWeb() {
-  const puerto = 3700 + Math.floor(Math.random() * 90);
+  const puerto = 4800 + Math.floor(Math.random() * 90);   // un tramo propio: las pruebas corren a la vez
   urlWeb = `http://127.0.0.1:${puerto}`;
   const entorno = { ...process.env };
   for (const k of Object.keys(entorno)) if (/^(GOOGLE_|TWITCH_|DISCORD_|KICK_|RENDER)/.test(k)) delete entorno[k];
@@ -39,6 +40,7 @@ async function arrancarWeb() {
     env: { ...entorno, PORT: String(puerto), PANEL_CLAVE: CLAVE, SESION_SECRETO: 'secreto-de-las-pruebas',
       KICK_CLIENT_ID: CLIENTE_KICK.id, KICK_CLIENT_SECRET: CLIENTE_KICK.secreto,
       KICK_URL_ID: urlKick, KICK_URL_API: `${urlKick}/public/v1`,
+      KICK_BOT_RESPIRO_MS: '0',
       DISCORD_WEBHOOK_URL: `${urlDiscord}/api/webhooks/1/general`, DISCORD_WEBHOOK_DIRECTO: `${urlDiscord}/api/webhooks/2/directos`,
       CARPETA_DATOS: carpeta, ARCHIVO_PLANTILLAS: path.join(carpeta, 'plantillas.json'),
       ARCHIVO_BOOSTS: path.join(carpeta, 'boosts.json'), ARCHIVO_CAMPEONES: path.join(carpeta, 'campeones.json'),
@@ -88,6 +90,9 @@ const control = (orden, datos = {}) => fetch(`${urlKick}/_control/${orden}`, { m
 const estadoKick = () => control('estado');
 const gacha = nav => nav.ir(`${urlWeb}/api/gacha`).then(r => r.json());
 const sobresDe = async nav => (await gacha(nav)).usuario.sobres;
+// Lo que ha escrito el bot en el chat desde un momento dado
+const chatDesde = async n => (await estadoKick()).chat.slice(n);
+const enChat = async (re, desde = 0) => hasta(async () => (await chatDesde(desde)).find(m => re.test(m.content)));
 const registro = async () => JSON.parse(await readFile(path.join(carpeta, 'gacha.json'), 'utf8'));
 
 // Personas de Kick como vienen en los avisos
@@ -102,7 +107,7 @@ const alertas = [], otros = [];
 let wsAlertas;
 
 before(async () => {
-  carpeta = await mkdtemp(path.join(os.tmpdir(), 'tenka-kick-eventos-'));
+  carpeta = await mkdtemp(path.join(os.tmpdir(), 'tenka-kick-bot-'));
   const plantillas = JSON.parse(await readFile(path.join(RAIZ, 'data-proyecto', 'plantillas.json'), 'utf8'));
   for (const c of Object.values(plantillas)) c.jugadores = Array(5).fill('');
   await writeFile(path.join(carpeta, 'plantillas.json'), JSON.stringify(plantillas));
@@ -176,6 +181,10 @@ test('una sub nueva da 3 sobres a la cuenta vinculada y su alerta; el mismo avis
   assert.equal(await sobresDe(ana), antes + 3);
   const a = await hasta(() => alertas.find(x => x.alerta.tipo === 'sub'));
   assert.deepEqual([a.alerta.nombre, a.alerta.sobres, a.alerta.meses], ['ana_kick', 3, 1]);
+  const m = await enChat(/ana_kick bebe del sakazuki/);
+  assert.match(m.content, /\+3 sobres del gachapon\.$/, 'Ana ya ha vinculado su Kick: no se le dice que lo vincule');
+  assert.equal(m.type, 'bot');
+  assert.equal(m.de, 'Gokudo_zoku');
   assert.equal(otros.filter(x => x.tipo === 'estado' || x.tipo === 'partida').length, 0, 'la fuente de alertas no recibe el estado del draft');
 });
 
@@ -185,6 +194,7 @@ test('una renovación da 2 sobres y su alerta dice los meses', async () => {
   assert.equal(await hasta(async () => (await sobresDe(ana)) === antes + 2), true);
   const a = await hasta(() => alertas.find(x => x.alerta.tipo === 'renovacion'));
   assert.equal(a.alerta.meses, 6);
+  assert.ok(await enChat(/ana_kick renueva el sakazuki: 6 meses en la familia\. \+2 sobres/));
 });
 
 test('subs regaladas: 2 sobres por sub a quien regala (aunque no haya vinculado) y 1 a cada una que la recibe; si es anónimo, solo a quien recibe', async () => {
@@ -201,11 +211,13 @@ test('subs regaladas: 2 sobres por sub a quien regala (aunque no haya vinculado)
   assert.equal(r.find(e => e.id === 'kick-6002').usuario, 'Beto_K');
   const a = await hasta(() => alertas.find(x => x.alerta.tipo === 'regalo'));
   assert.deepEqual([a.alerta.nombre, a.alerta.cantidad, a.alerta.sobres], ['Beto_K', 2, 4]);
+  assert.match((await enChat(/Beto_K regala 2 subs/)).content, /\+4 sobres del gachapon para Beto_K y 1 para cada kobun nuevo\. Vincula tu Kick en http/);
 
   await aviso('channel.subscription.gifts', { gifter: { is_anonymous: true, user_id: null, username: null }, giftees: [ANA] });
   assert.equal(await hasta(async () => (await sobresDe(ana)) === antes + 2), true);
   const anon = await hasta(() => alertas.find(x => x.alerta.tipo === 'regalo' && x.alerta.nombre === 'Anónimo'));
   assert.equal(anon.alerta.sobres, 0);
+  assert.ok(await enChat(/Alguien regala 1 sub: 1 sobre/));
 });
 
 test('kicks: 1 sobre por cada 100 (redondeando hacia abajo); con menos de 100 solo sale la alerta', async () => {
@@ -218,14 +230,18 @@ test('kicks: 1 sobre por cada 100 (redondeando hacia abajo); con menos de 100 so
   await esperar(150);
   assert.equal(await sobresDe(ana), antes + 2);
   assert.equal(alertas.find(x => x.alerta.cantidad === 250).alerta.mensaje, 'vamos');
+  assert.ok(await enChat(/ana_kick manda 250 kicks: \+2 sobres/));
+  assert.ok(await enChat(/ana_kick manda 50 kicks\. ¡Gracias por el tributo!/));
 });
 
-test('un seguidor nuevo sale como alerta y no da sobres', async () => {
-  const antes = await sobresDe(ana);
+test('un seguidor nuevo sale como alerta y no da sobres ni se anuncia en el chat', async () => {
+  const antes = await sobresDe(ana), n = (await estadoKick()).chat.length;
   await aviso('channel.followed', { follower: ANA });
   const a = await hasta(() => alertas.find(x => x.alerta.tipo === 'seguidor'));
   assert.equal(a.alerta.nombre, 'ana_kick');
   assert.equal(await sobresDe(ana), antes);
+  await esperar(150);
+  assert.equal((await estadoKick()).chat.length, n);
 });
 
 test('los avisos de otro canal no hacen nada', async () => {
@@ -235,14 +251,43 @@ test('los avisos de otro canal no hacen nada', async () => {
   assert.equal(await sobresDe(ana), antes);
 });
 
-test('el Omamori que llega por aviso da el sobre al momento y se acepta en Kick; la consulta de cada minuto no lo repite', async () => {
+test('la web no pregunta a Kick por su cuenta: un canje sin aviso espera pendiente hasta el primer aviso de un Omamori', async () => {
   const antes = await sobresDe(ana);
+  const llamadas = (await estadoKick()).llamadas.length;
+  const [perdido] = (await control('canje', { login: 'ana' })).ids;   // canjeado sin que llegue aviso (la web dormida)
+  await gacha(ana);   // entrar en el gachapon tampoco pregunta a Kick
+  await esperar(300);
+  assert.equal(await sobresDe(ana), antes);
+  assert.deepEqual((await estadoKick()).llamadas.slice(llamadas).filter(l => l.includes('/public/v1/')), [], 'ninguna llamada a Kick');
+
   const r = await control('canje-avisado', { login: 'ana' });
   assert.equal(r.estado, 200);
-  assert.equal(await hasta(async () => (await sobresDe(ana)) === antes + 1), true);
-  assert.equal(await hasta(async () => (await estadoKick()).canjes.find(c => c.id === r.canje)?.status === 'accepted'), true);
+  // El suyo y, como es el primer Omamori desde que arrancó la web, también el que esperaba
+  assert.equal(await hasta(async () => (await sobresDe(ana)) === antes + 2), true);
+  assert.equal(await hasta(async () => (await estadoKick()).canjes.filter(c => [r.canje, perdido].includes(c.id)).every(c => c.status === 'accepted')), true);
+  assert.match((await enChat(/お守り ana_kick canjea un Omamori/)).content, /\+1 sobre del gachapon\./);
+});
+
+test('si Kick falla al aceptar, el canje queda sin resolver y se arregla con el siguiente Omamori, sin dar el sobre dos veces', async () => {
+  const antes = await sobresDe(ana);
+  await control('fallar-aceptar', { veces: 1 });
+  const a = await control('canje-avisado', { login: 'ana' });
+  assert.equal(await hasta(async () => (await accion('gachaEstado')).gacha.kick.canjesSinResolver), true);
+  assert.equal(await sobresDe(ana), antes + 1, 'el sobre ya está dado');
+  assert.equal((await estadoKick()).canjes.find(c => c.id === a.canje).status, 'pending');
+
+  const b = await control('canje-avisado', { login: 'ana' });
+  assert.equal(await hasta(async () => (await estadoKick()).canjes.filter(c => [a.canje, b.canje].includes(c.id)).every(c => c.status === 'accepted')), true);
+  assert.equal(await sobresDe(ana), antes + 2);
+  assert.equal(await hasta(async () => !(await accion('gachaEstado')).gacha.kick.canjesSinResolver), true);
+});
+
+test('«Recoger canjes pendientes» del panel los recoge a mano', async () => {
+  const antes = await sobresDe(ana);
+  await control('canje', { login: 'ana', veces: 2 });
   await accion('gachaSondear');
-  assert.equal(await sobresDe(ana), antes + 1);
+  assert.equal(await sobresDe(ana), antes + 2);
+  assert.ok((await accion('gachaEstado')).gacha.kick.ultimaRecogida);
 });
 
 test('al empezar el directo se avisa en Discord con @everyone, una sola vez por directo', async () => {
@@ -260,30 +305,73 @@ test('al empezar el directo se avisa en Discord con @everyone, una sola vez por 
   await aviso('livestream.status.updated', { ...datos, is_live: false, ended_at: '2026-11-15T20:00:00+01:00' });
   await esperar(300);
   assert.equal(discord.estado.mensajes.filter(x => x.canal === 'directos').length, 1);
+  assert.equal((await chatDesde(0)).filter(x => /Empieza el directo de Gokudō/.test(x.content)).length, 1, 'y una vez en el chat');
 });
 
 test('comandos del chat: contesta !sobres a quien lo pide (una vez cada 30 s), !clasificacion, !partido, !comandos y no se contesta a sí mismo', async () => {
+  const n = (await estadoKick()).chat.length;
+  const respuestas = async () => (await chatDesde(n)).filter(x => x.reply_to_message_id);
   await chat(ANA, '!sobres');
-  const m = await hasta(async () => (await estadoKick()).chat.at(-1));
+  const m = await hasta(async () => (await respuestas())[0]);
   assert.equal(m.type, 'bot');
   assert.ok(m.reply_to_message_id, 'contesta al mensaje');
   assert.match(m.content, /@ana_kick tienes \d+ sobres sin abrir y 0 cartas en el gachapon/);
   await chat(ANA, '!sobres');
   await esperar(250);
-  assert.equal((await estadoKick()).chat.length, 1, 'no repite enseguida');
+  assert.equal((await respuestas()).length, 1, 'no repite enseguida');
 
   await chat(BETO, '!SOBRES');
-  assert.match((await hasta(async () => (await estadoKick()).chat[1])).content, /@Beto_K tienes 4 sobres esperándote: vincula tu Kick/);
+  assert.match((await hasta(async () => (await respuestas())[1])).content, /@Beto_K tienes 4 sobres esperándote: vincula tu Kick/);
   await chat(CARLA, '!clasificación');
-  assert.match((await hasta(async () => (await estadoKick()).chat[2])).content, /aún no tiene puntos/);
+  assert.match((await hasta(async () => (await respuestas())[2])).content, /aún no tiene puntos/);
   await chat(CARLA, '!partido');
-  assert.match((await hasta(async () => (await estadoKick()).chat[3])).content, /Jornada 1|Ahora|Próximo|terminado/);
+  assert.match((await hasta(async () => (await respuestas())[3])).content, /Jornada 1|Ahora|Próximo|terminado/);
   await chat(CARLA, '!comandos');
-  assert.equal((await hasta(async () => (await estadoKick()).chat[4])).content, 'Comandos de Gokudō: !sobres · !clasificacion · !gachapon · !partido');
+  assert.equal((await hasta(async () => (await respuestas())[4])).content, 'Comandos de Gokudō: !sobres · !clasificacion · !gachapon · !partido');
   await chat(CANAL, '!gachapon');
   await chat(ANA, 'hola a todos');
   await esperar(250);
-  assert.equal((await estadoKick()).chat.length, 5);
+  assert.equal((await chatDesde(n)).length, 5);
+});
+
+test('con la cuenta del bot conectada, el bot escribe como GokudoBot en el canal; sin ella, otra vez como el canal', async () => {
+  const conectarBot = async login => {
+    await control('sesion', { login });
+    const r = await accion('kickBot');
+    assert.equal(r.ok, true, r.error);
+    return navegador().ir(new URL(r.url, urlWeb).toString());
+  };
+  const mal = await conectarBot('gokudo_zoku');
+  assert.equal(mal.status, 500);
+  assert.match(await mal.text(), /Esa es la cuenta del canal/);
+
+  const bien = await conectarBot('gokudobot');
+  assert.equal(bien.status, 200);
+  assert.match(await bien.text(), /como GokudoBot/);
+  const b = (await accion('gachaEstado')).gacha.kick.bot;
+  assert.deepEqual([b.conectado, b.login, b.escribeComo], [true, 'GokudoBot', 'GokudoBot']);
+
+  let n = (await estadoKick()).chat.length;
+  await chat(CARLA, '!gachapon');
+  const m = await enChat(/Gachapon de Gokudō/, n);
+  assert.deepEqual([m.de, m.type, m.canal], ['GokudoBot', 'user', 5001]);
+  // Lo que escribe la cuenta del bot no lo contesta
+  await chat(persona(5002, 'GokudoBot'), '!comandos');
+  await esperar(250);
+  assert.equal((await chatDesde(n)).length, 1);
+
+  // Si Kick cierra la cuenta del bot, escribe el canal y el panel lo dice
+  await control('revocar', { login: 'gokudobot' });
+  n = (await estadoKick()).chat.length;
+  await aviso('kicks.gifted', { sender: CARLA, gift: { amount: 100, name: 'Hype', message: '' } });
+  const m2 = await enChat(/carla_k manda 100 kicks/, n);
+  assert.deepEqual([m2.de, m2.type], ['Gokudo_zoku', 'bot']);
+  assert.match((await accion('gachaEstado')).gacha.kick.bot.error, /vuelve a conectarla/);
+
+  await conectarBot('gokudobot');
+  const q = await accion('kickBotQuitar');
+  assert.equal(q.gacha.kick.bot.conectado, false);
+  assert.equal(q.gacha.kick.bot.escribeComo, 'Gokudo_zoku');
 });
 
 test('si Kick da de baja un aviso, «Volver a suscribir» lo recupera; si no lo acepta, el panel lo dice', async () => {

@@ -74,7 +74,7 @@ function pintarCuenta() {
 // Puntos del canal de Twitch y de Kick: se ganan viendo el directo y se canjean allí por sobres (en Twitch, «Sobre de
 // Gokudō»; en Kick, «Omamori»). Para que el sobre llegue a esta colección, cada uno vincula su cuenta (una vez)
 const TWITCH = { clave: 'twitch', nombre: 'Twitch', canal: () => `twitch.tv/${info.canal}`, recompensa: () => info.recompensa };
-// En Kick, además, las subs, las subs regaladas y los kicks dan sobres (server/kick-eventos.js)
+// En Kick, además, las subs, las subs regaladas y los kicks dan sobres (server/kick-bot.js)
 const KICK = { clave: 'kick', nombre: 'Kick', canal: () => `kick.com/${info.canalKick}`, recompensa: () => info.recompensaKick,
   extra: ' Suscribirte, regalar subs o mandar kicks también da sobres.' };
 function comoCanjear(u, p) {

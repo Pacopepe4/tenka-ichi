@@ -111,8 +111,3 @@ export async function avisoDeKick(aviso) {
   const nueva = await clavePublica({ renovar: true });
   return nueva !== null && firmaKickValida(aviso, nueva);
 }
-
-// Mensaje en el chat del canal: con el token del canal y type «bot», sale como la cuenta del canal (máximo 500 letras)
-export const escribirEnChat = (token, content, responderA = null) => api('chat', { token, method: 'POST',
-  body: { type: 'bot', content: recortar(content, 500), ...(responderA ? { reply_to_message_id: responderA } : {}) } });
-const recortar = (s, n) => { const l = [...String(s)]; return l.length > n ? `${l.slice(0, n - 1).join('')}…` : String(s); };

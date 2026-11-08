@@ -343,21 +343,26 @@
       </div>
       <div class="caja-gacha">
         <h3>Puntos del canal de Kick</h3>
-        <p class="ayuda">Lo mismo en Kick, con la recompensa «Omamori»: el sobre le llega a quien haya vinculado su Kick en el gachapon (entra con Discord y pulsa «vincula tu Kick»); si canjea antes de vincularlo, se le guarda. Necesita la app de Kick en Render y conectar el canal con la cuenta Gokudo_zoku.</p>
+        <p class="ayuda">En Kick, con la recompensa «Omamori»: el sobre le llega a quien haya vinculado su Kick en el gachapon (entra con Discord y pulsa «vincula tu Kick»); si canjea antes de vincularlo, se le guarda. Los canjes llegan por aviso de Kick, sin consultas cada minuto: si alguno no se pudo resolver, espera en Kick y se recoge con el siguiente Omamori o con «Recoger canjes pendientes». Necesita la app de Kick en Render y conectar el canal con la cuenta Gokudo_zoku.</p>
         <p class="estado" id="estadoKick"></p>
         <div class="fila">
           <button type="button" id="conectarKick">Conectar el canal de Kick</button>
-          <button type="button" id="recogerCanjesKick" class="secundario">Recoger canjes ahora</button>
+          <button type="button" id="recogerCanjesKick" class="secundario">Recoger canjes pendientes</button>
         </div>
         <div class="fila">
           <label class="coste">Puntos por omamori <input id="costeKick" type="number" min="1" step="100"></label>
           <button type="button" id="guardarCosteKick" class="secundario">Cambiar el coste</button>
         </div>
-        <p class="ayuda">Avisos de Kick: subs, renovaciones, subs regaladas y kicks dan sobres (sub 3, renovación 2, cada sub regalada 2 a quien la regala y 1 a quien la recibe, 1 por cada 100 kicks); seguidores, subs y kicks salen como alerta en la fuente de OBS <a href="/alertas/" target="_blank">/alertas/</a> (1920×1080); al empezar el directo se avisa en Discord con @everyone; y el chat tiene !sobres, !clasificacion, !gachapon, !partido y !comandos.</p>
+        <p class="ayuda">Bot de Gokudō en Kick: subs, renovaciones, subs regaladas y kicks dan sobres (sub 3, renovación 2, cada sub regalada 2 a quien la regala y 1 a quien la recibe, 1 por cada 100 kicks); seguidores, subs y kicks salen como alerta en la fuente de OBS <a href="/alertas/" target="_blank">/alertas/</a> (1920×1080); al empezar el directo se avisa en Discord con @everyone; en el chat anuncia los sobres que da, las subs, los kicks y el directo, y contesta !sobres, !clasificacion, !gachapon, !partido y !comandos.</p>
         <p class="estado" id="estadoAvisosKick"></p>
         <div class="fila">
           <button type="button" id="suscribirKick" class="secundario">Volver a suscribir los avisos</button>
           <button type="button" id="probarAlertaKick" class="secundario">Probar alerta</button>
+        </div>
+        <p class="estado" id="estadoBotKick"></p>
+        <div class="fila">
+          <button type="button" id="conectarBotKick" class="secundario">Conectar la cuenta del bot</button>
+          <button type="button" id="quitarBotKick" class="secundario" hidden>Quitar la cuenta del bot</button>
         </div>
       </div>
       <div class="caja-gacha">

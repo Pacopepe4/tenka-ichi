@@ -1,5 +1,5 @@
 // Comandos del chat de Kick (los eligió Pacopepe el 08/11/2026): !sobres, !clasificacion, !gachapon, !partido y !comandos.
-// Llegan con el aviso chat.message.sent (server/kick-eventos.js) y la web contesta en el chat como la cuenta del canal.
+// Llegan con el aviso chat.message.sent (server/kick-bot.js) y la web contesta en el chat como la cuenta del canal.
 // Aquí solo se decide qué contestar: lo que hace falta saber (la cuenta de quien escribe, el fantasy, el calendario)
 // llega en «ctx», así se prueba sin Kick.
 

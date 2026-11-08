@@ -135,7 +135,7 @@ export function leerImagen(req, maximo = MAXIMO_IMAGEN) {
     req.on('error', mal);
   });
 }
-// Aviso de «empieza el directo en Kick» (lo manda server/kick-eventos.js al llegar livestream.status.updated): al canal
+// Aviso de «empieza el directo en Kick» (lo manda server/kick-bot.js al llegar livestream.status.updated): al canal
 // del webhook DISCORD_WEBHOOK_DIRECTO o, si no hay, al de siempre. Menciona a @everyone (lo eligió Pacopepe el 08/11/2026)
 const WEBHOOK_DIRECTO = () => process.env.DISCORD_WEBHOOK_DIRECTO || process.env.DISCORD_WEBHOOK_URL;
 export const directoDiscordActivo = () => Boolean(WEBHOOK_DIRECTO());

@@ -1,7 +1,8 @@
 // Kick falso para probar la recompensa «Omamori» sin conectar nada de verdad. Imita lo que usa la app (docs.kick.com):
 //   id.kick.com            → /oauth/authorize (con PKCE S256), /oauth/token (código y refresco), /oauth/token/introspect
 //   api.kick.com/public/v1 → /users, /channels/rewards y sus canjes (listar los pendientes y aceptarlos), /public-key,
-//                            /events/subscriptions (suscribirse a los avisos) y /chat (escribir en el chat)
+//                            /events/subscriptions (suscribirse a los avisos) y /chat (escribir en el chat, como el canal o
+//                            como la cuenta del bot, GokudoBot)
 // y tiene órdenes de control (/_control/…) para simular canjes, tokens caducados, permisos retirados y avisos (webhooks)
 // firmados con su propia clave, como los de Kick: /_control/evento manda uno a la dirección de /_control/webhook.
 //
@@ -18,6 +19,7 @@ const ulid = () => crypto.randomBytes(13).toString('hex').toUpperCase().slice(0,
 export function crearKickFalso() {
   const usuarios = new Map([
     ['gokudo_zoku', { user_id: 5001, name: 'Gokudo_zoku' }],
+    ['gokudobot', { user_id: 5002, name: 'GokudoBot' }],
     ['ana', { user_id: 6001, name: 'ana_kick' }],
     ['beto', { user_id: 6002, name: 'Beto_K' }],
   ].map(([k, u]) => [k, { ...u, email: `${k}@ejemplo.test`, profile_picture: '' }]));
@@ -33,7 +35,8 @@ export function crearKickFalso() {
     suscripciones: [],      // { id, app_id, broadcaster_user_id, event, version, method }
     chat: [],               // { canal, type, content, reply_to_message_id }
     webhook: null,          // a dónde manda los avisos (la «Webhook URL» de la app)
-    rechazar: new Set(),    // avisos a los que Kick no deja suscribirse (para probar el error)
+    rechazar: new Set(),
+    fallarAceptar: 0,       // las próximas N veces que se acepten canjes, Kick falla (500)    // avisos a los que Kick no deja suscribirse (para probar el error)
     llamadas: [],
   };
   // Kick firma los avisos con RSA y SHA-256; la web pide la clave pública a /public/v1/public-key
@@ -153,7 +156,10 @@ export function crearKickFalso() {
       if (ruta === '/chat' && req.method === 'POST') {
         if (!tiene('chat:write')) return error(res, 403, 'Forbidden: missing scope chat:write');
         if (!['user', 'bot'].includes(cuerpo.type) || !cuerpo.content || [...cuerpo.content].length > 500) return error(res, 400, 'invalid message');
-        estado.chat.push({ canal: yo.user_id, type: cuerpo.type, content: cuerpo.content, reply_to_message_id: cuerpo.reply_to_message_id || null });
+        // Como «bot», al canal del token; como «user», al canal que diga broadcaster_user_id
+        if (cuerpo.type === 'user' && !cuerpo.broadcaster_user_id) return error(res, 400, 'broadcaster_user_id is required');
+        const canal = cuerpo.type === 'bot' ? yo.user_id : cuerpo.broadcaster_user_id;
+        estado.chat.push({ canal, de: yo.name, type: cuerpo.type, content: cuerpo.content, reply_to_message_id: cuerpo.reply_to_message_id || null });
         return enviar(res, 200, { data: { is_sent: true, message_id: crypto.randomUUID() }, message: 'OK' });
       }
       if (ruta.startsWith('/channels/rewards')) {
@@ -193,6 +199,7 @@ export function crearKickFalso() {
           return enviar(res, 200, { data: grupos, message: 'OK', pagination: { next_cursor: siguiente } });
         }
         if (ruta === '/channels/rewards/redemptions/accept' && req.method === 'POST') {
+          if (estado.fallarAceptar > 0) { estado.fallarAceptar--; return error(res, 500, 'Internal Server Error'); }
           const ids = cuerpo.ids || [];
           if (!ids.length || ids.length > 25 || new Set(ids).size !== ids.length) return error(res, 400, 'ids must have 1 to 25 unique items');
           const fallos = [];
@@ -239,6 +246,7 @@ export function crearKickFalso() {
         return enviar(res, 200, { ok: true });
       }
       if (p === '/_control/webhook') { estado.webhook = c.url; return enviar(res, 200, { ok: true }); }
+      if (p === '/_control/fallar-aceptar') { estado.fallarAceptar = c.veces || 1; return enviar(res, 200, { ok: true }); }
       if (p === '/_control/rechazar') { estado.rechazar = new Set(c.eventos || []); return enviar(res, 200, { ok: true }); }
       if (p === '/_control/baja') {   // Kick da de baja una suscripción (el webhook falló más de un día)
         estado.suscripciones = estado.suscripciones.filter(x => x.event !== c.evento);

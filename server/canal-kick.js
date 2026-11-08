@@ -1,10 +1,12 @@
 // Puntos del canal de Kick → sobres del gachapon, con la recompensa «Omamori».
-// Igual que con Twitch (server/canal.js): el staff conecta el canal una vez desde el panel, la web crea la recompensa
-// y cada minuto recoge los canjes pendientes de la cola de Kick: da el sobre y acepta el canje.
+// El staff conecta el canal una vez desde el panel y la web crea la recompensa. Cada canje llega por aviso de Kick
+// (webhook, server/kick-bot.js): la web da el sobre y acepta el canje. A diferencia de Twitch, la web NO pregunta a Kick
+// cada minuto (lo pidió Pacopepe el 08/11/2026): si un canje no se puede resolver, se queda pendiente en Kick y se
+// recoge con el siguiente aviso de un Omamori o a mano desde el panel («Recoger canjes pendientes»).
 // El sobre va a «kick-» y el id de Kick de quien canjea: si ha vinculado su Kick en el gachapon, le llega a su cuenta de
 // siempre; si no, se le guarda y lo recibe en cuanto lo vincule (server/gacha.js).
 // Los canjes esperan en la cola de Kick (pendientes) hasta que la web los acepta, así que no se pierde ninguno aunque la
-// web esté dormida. Por eso la recompensa NO se salta la cola: un canje que se la salta ya no se puede listar.
+// web esté dormida o falle. Por eso la recompensa NO se salta la cola: un canje que se la salta ya no se puede listar.
 import { ajuste, guardarAjustes } from './ajustes.js';
 import { cifrar, descifrar } from './sesion.js';
 import { CANAL_KICK, ErrorKick, api, examinarToken, kickActivo, refrescarToken, slugDe, usuariosPorId } from './kick.js';
@@ -12,8 +14,8 @@ import { canjeProcesado, darSobres } from './gacha.js';
 
 export const TITULO_OMAMORI = 'Omamori';
 // user:read para saber con qué cuenta se conecta (y los nombres de quien canjea); las recompensas, para crearla,
-// cambiar su coste, listar los canjes y aceptarlos; events:subscribe para recibir los avisos de Kick (server/kick-eventos.js),
-// chat:write para contestar los comandos del chat y kicks:read por si Kick lo pide para el aviso de los kicks
+// cambiar su coste, listar los canjes y aceptarlos; events:subscribe para recibir los avisos de Kick (server/kick-bot.js),
+// chat:write para que el bot escriba en el chat y kicks:read por si Kick lo pide para el aviso de los kicks
 export const SCOPE_CANAL_KICK = 'user:read channel:rewards:read channel:rewards:write events:subscribe chat:write kicks:read';
 // Los avisos a los que se suscribe la web (versión 1, por webhook a la dirección que tiene la app en kick.com/settings/developer)
 export const EVENTOS_KICK = ['channel.reward.redemption.updated', 'livestream.status.updated', 'channel.followed',
@@ -21,11 +23,12 @@ export const EVENTOS_KICK = ['channel.reward.redemption.updated', 'livestream.st
 const COSTE_INICIAL = 3000;
 const COLOR = '#BE2A2F';   // el bermellón de la marca (--shu)
 // Lo que lee el espectador en Kick al canjear (máximo 200 caracteres)
-const TEXTO_OMAMORI = 'Un sobre de 3 cartas del gachapon de Gokudō. Entra en tenka-ichi.onrender.com/gachapon/ y vincula tu Kick: el sobre te llega en un minuto.';
+const TEXTO_OMAMORI = 'Un sobre de 3 cartas del gachapon de Gokudō. Entra en tenka-ichi.onrender.com/gachapon/ y vincula tu Kick: el sobre te llega al momento.';
 export const idKick = userId => `kick-${userId}`;
 
 let tokens = null;
-const estado = { conectado: false, login: null, recompensa: null, coste: null, error: null, ultimoSondeo: null,
+// canjesSinResolver: algún canje no se pudo dar o aceptar y espera pendiente en Kick
+const estado = { conectado: false, login: null, recompensa: null, coste: null, error: null, ultimaRecogida: null, canjesSinResolver: false,
   // Avisos de Kick: a qué está suscrita la web, el último que ha llegado y lo que haya fallado al suscribirse
   eventos: { suscritos: [], ultimo: null, error: null } };
 export const idCanalKick = () => ajuste('kick_id') || null;
@@ -40,7 +43,6 @@ export async function cargarCanalKick() {
   if (!estado.conectado) return;
   await asegurarRecompensa();
   await asegurarSuscripciones();
-  iniciarSondeo();
 }
 
 // El token del canal caduca y se renueva con el de refresco. Si Kick ya no acepta ni ese (permiso retirado), el canal
@@ -53,7 +55,6 @@ async function renovar() {
   } catch (e) {
     Object.assign(estado, { conectado: false,
       error: 'Kick ha cerrado la conexión del canal (permiso retirado o caducado): vuelve a conectarlo desde el panel' });
-    clearInterval(temporizador);
     throw e;
   }
 }
@@ -91,7 +92,6 @@ export async function conectarCanalKick(t, u) {
   Object.assign(estado, { conectado: true, login: u.name, error: null });
   await asegurarRecompensa();
   await asegurarSuscripciones();
-  iniciarSondeo();
 }
 
 // Que la web esté suscrita a todos sus avisos de Kick: pide los que falten (con el token del canal, Kick ya sabe de qué
@@ -118,14 +118,26 @@ export async function asegurarSuscripciones() {
 export const avisoRecibido = () => { estado.eventos.ultimo = new Date().toISOString(); };
 
 // Un canje del Omamori que llega por aviso (channel.reward.redemption.updated): el sobre al momento y se acepta en Kick.
-// La consulta de cada minuto sigue de respaldo por si algún aviso no llega
+// Si falla, el canje sigue pendiente en Kick y queda apuntado para repasar: el siguiente aviso de un Omamori recoge
+// también los que esperan (una sola vez, sin bucles). Tras arrancar la web también se repasa con el primer aviso, por si
+// se canjeó algo mientras estaba dormida y Kick no llegó a reintentarlo. Devuelve { nuevo, nombre } o null si no es suyo
+let repasar = true;
 export async function canjeAvisado(d) {
-  if (!estado.conectado || !estado.recompensa || d?.reward?.id !== estado.recompensa || d.status !== 'pending') return false;
+  if (!estado.conectado || !estado.recompensa || d?.reward?.id !== estado.recompensa || d.status !== 'pending') return null;
   const quien = String(d.redeemer?.user_id || '');
-  if (!quien || !d.id) return false;
-  if (!canjeProcesado(d.id)) await darSobres({ id: idKick(quien), nombre: d.redeemer.username || `Kick ${quien}` }, 1, 'canje', d.id);
-  await conToken(tk => api('channels/rewards/redemptions/accept', { token: tk, method: 'POST', body: { ids: [d.id] } })).catch(() => {});
-  return true;
+  if (!quien || !d.id) return null;
+  const nombre = d.redeemer.username || `Kick ${quien}`;
+  let nuevo = false;
+  try {
+    if (!canjeProcesado(d.id)) { await darSobres({ id: idKick(quien), nombre }, 1, 'canje', d.id); nuevo = true; }
+    await conToken(tk => api('channels/rewards/redemptions/accept', { token: tk, method: 'POST', body: { ids: [d.id] } }));
+  } catch (e) {
+    Object.assign(estado, { canjesSinResolver: true });
+    repasar = true;
+    throw e;
+  }
+  if (repasar) recogerCanjesKick();
+  return { nuevo, nombre, quien };
 }
 
 function explicar(e) {
@@ -164,19 +176,13 @@ export async function cambiarCosteKick(coste) {
   await guardarAjustes({ kick_coste: estado.coste });
 }
 
-// ---------- recogida de canjes ----------
-let temporizador = null, sondeando = false;
+// ---------- recogida de los canjes pendientes ----------
+// Solo cuando hace falta: a mano desde el panel o con el aviso de un Omamori si había algo por repasar. Nunca cada X tiempo
+let recogiendo = false;
 
-function iniciarSondeo() {
-  clearInterval(temporizador);
-  temporizador = setInterval(() => sondearKick(), 60000);
-  temporizador.unref();
-  sondearKick();
-}
-
-export async function sondearKick() {
-  if (!estado.conectado || !estado.recompensa || sondeando) return;
-  sondeando = true;
+export async function recogerCanjesKick() {
+  if (!estado.conectado || !estado.recompensa || recogiendo) return;
+  recogiendo = true;
   try {
     // Los pendientes de la recompensa, página a página (vienen agrupados por recompensa)
     const pendientes = [];
@@ -207,17 +213,13 @@ export async function sondearKick() {
         await conToken(tk => api('channels/rewards/redemptions/accept', { token: tk, method: 'POST', body: { ids: pendientes.slice(i, i + 25).map(c => c.id) } }));
       }
     }
-    Object.assign(estado, { error: null, ultimoSondeo: new Date().toISOString() });
+    Object.assign(estado, { error: null, canjesSinResolver: false, ultimaRecogida: new Date().toISOString() });
+    repasar = false;
   } catch (e) {
     if (estado.conectado) estado.error = explicar(e);  // si se ha desconectado, queda su aviso
   } finally {
-    sondeando = false;
+    recogiendo = false;
   }
-}
-
-// Cuando alguien entra en el gachapon, se recogen canjes si hace más de 20 s de la última vez
-export function sondearKickSiHaceFalta() {
-  if (!estado.ultimoSondeo || Date.now() - Date.parse(estado.ultimoSondeo) > 20000) sondearKick();
 }
 
 export const estadoCanalKick = () => ({ ...estado, eventos: { ...estado.eventos, total: EVENTOS_KICK.length }, canal: CANAL_KICK, titulo: TITULO_OMAMORI });

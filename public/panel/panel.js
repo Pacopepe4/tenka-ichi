@@ -419,7 +419,7 @@ function pintarGacha(g) {
   estK.className = `estado ${k.error || !k.activo ? 'mal' : k.conectado ? 'ok' : ''}`;
   estK.textContent = !k.activo ? 'Falta configurar la app de Kick en Render (KICK_CLIENT_ID y KICK_CLIENT_SECRET). Los pasos están en la guía del README.'
     : k.error ? k.error
-      : k.conectado ? `Conectado como ${k.login}. La recompensa «${k.titulo}» cuesta ${k.coste} puntos.${k.ultimoSondeo ? ` Última recogida de canjes: ${new Date(k.ultimoSondeo).toLocaleTimeString('es-ES')}.` : ''}`
+      : k.conectado ? `Conectado como ${k.login}. La recompensa «${k.titulo}» cuesta ${k.coste} puntos.${k.canjesSinResolver ? ' Hay canjes sin resolver esperando en Kick: pulsa «Recoger canjes pendientes».' : ''}${k.ultimaRecogida ? ` Última recogida a mano: ${new Date(k.ultimaRecogida).toLocaleTimeString('es-ES')}.` : ''}`
         : `Sin conectar. Hay que entrar con la cuenta del canal (kick.com/${k.canal}); la web crea la recompensa «${k.titulo}».`;
   $('#conectarKick').textContent = k.conectado ? 'Volver a conectar el canal de Kick' : 'Conectar el canal de Kick';
   if (k.coste && document.activeElement !== $('#costeKick')) $('#costeKick').value = k.coste;
@@ -429,6 +429,14 @@ function pintarGacha(g) {
   estA.textContent = !k.conectado ? 'Avisos: se suscriben al conectar el canal de Kick.'
     : ev.error ? ev.error
       : `Avisos: suscrita a ${suscritos} de ${ev.total}.${ev.ultimo ? ` Último aviso de Kick: ${new Date(ev.ultimo).toLocaleTimeString('es-ES')}.` : ' Todavía no ha llegado ninguno.'}`;
+  // Quién escribe en el chat: la cuenta del bot si se ha conectado (p. ej. GokudoBot) o, si no, la del canal
+  const b = k.bot || {}, estB = $('#estadoBotKick');
+  estB.className = `estado ${b.error || b.errorChat ? 'mal' : ''}`;
+  estB.textContent = [b.error, b.errorChat,
+    b.conectado ? `El bot escribe en el chat como ${b.login}.` : `El bot escribe en el chat como la cuenta del canal${k.login ? ` (${k.login})` : ''}. Si quieres que tenga nombre propio, crea una cuenta de Kick (p. ej. GokudoBot), hazla moderadora del canal y conéctala aquí.`]
+    .filter(Boolean).join(' ');
+  $('#conectarBotKick').textContent = b.conectado ? 'Cambiar la cuenta del bot' : 'Conectar la cuenta del bot';
+  $('#quitarBotKick').hidden = !b.conectado;
   // Sin cartas de jugador los sobres no se abren: se enseña el reparto con el que saldrán, no el de las BOOST solas
   const r = g.resumen, p = r.listos ? g.probabilidades : g.reparto;
   const n = (x, uno, varios) => `${x} ${x === 1 ? uno : varios}`;
@@ -463,6 +471,8 @@ $('#conectarKick').onclick = async () => {
 };
 $('#recogerCanjesKick').onclick = $('#recogerCanjes').onclick;
 $('#suscribirKick').onclick = async () => { const r = await enviar('kickAvisos'); if (r.ok) { pintarGacha(r.gacha); aviso('Avisos de Kick revisados'); } };
+$('#conectarBotKick').onclick = async () => { const r = await enviar('kickBot'); if (r.ok) window.open(r.url, '_blank', 'noopener'); };
+$('#quitarBotKick').onclick = async () => { const r = await enviar('kickBotQuitar'); if (r.ok) { pintarGacha(r.gacha); aviso('Ahora el bot escribe como la cuenta del canal'); } };
 $('#probarAlertaKick').onclick = async () => { const r = await enviar('kickAlertaPrueba'); if (r.ok) aviso(`Alerta de prueba enviada a /alertas/ (${r.alerta.tipo})`); };
 $('#guardarCosteKick').onclick = async () => { const r = await enviar('kickCoste', { coste: $('#costeKick').value }); if (r.ok) { pintarGacha(r.gacha); aviso('Coste cambiado en Kick'); } };
 $('#regalar').onclick = async () => {
