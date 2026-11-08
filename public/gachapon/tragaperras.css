@@ -43,6 +43,16 @@
   border: 1px solid #2A2B38; box-shadow: 0 0 0 1px rgba(224, 48, 58, .25), 0 0 26px rgba(224, 48, 58, .22), 0 30px 50px rgba(0, 0, 0, .6); }
 .con-maquina .maquina-cuerpo { background: var(--arte-maquina) center / 100% 100% no-repeat; border: 0; box-shadow: none; filter: drop-shadow(0 30px 40px rgba(0, 0, 0, .6)); }
 .con-maquina .solo-css { display: none; }
+/* Los huecos del mueble de Flow (maquina.webp, medidos sobre el dibujo de 900×1200): la ventana de los rodillos en el
+   panel de arriba, los mandos en el panel grande de abajo (la franja estrecha de en medio se queda como adorno) y la
+   bandeja en la boca de abajo. El cartel 極道 va, sin placa, en el arco negro de arriba; las bombillas ya las pinta el
+   neón del dibujo */
+.con-maquina .maquina-cuerpo { --ventana-x: 21.5%; --ventana-y: 25%; --ventana-ancho: 57%; --ventana-alto: 18.5%;
+  --mandos-x: 15%; --mandos-y: 65%; --mandos-ancho: 70%; --mandos-alto: 11.5%;
+  --bandeja-x: 27%; --bandeja-y: 84.5%; --bandeja-ancho: 46%; --bandeja-alto: 8.5%; }
+.con-maquina .cartel.solo-css { display: flex; left: 16%; right: 16%; top: 8.5%; height: 9%; gap: 2.6cqw; border: 0; background: none; box-shadow: none; white-space: nowrap; }
+.con-maquina .cartel-kanji { font-size: 8.4cqw; }
+.con-maquina .cartel-nombre { font-size: 5cqw; }
 
 /* El cartel de arriba: el kanji en pincel con neón y el nombre en letra de rótulo */
 .cartel { position: absolute; left: 9%; right: 9%; top: 3.5%; height: 16%; display: flex; align-items: center; justify-content: center; gap: 4cqw;

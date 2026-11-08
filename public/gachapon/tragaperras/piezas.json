@@ -1,9 +1,9 @@
 {
   "_nota": "Las piezas de la tragaperras dibujadas en Flow. Deja el archivo en esta carpeta y pon aquí su nombre; con null, esa pieza va en CSS. Tamaños y cómo encajan, al principio de tragaperras.css",
-  "maquina": null,
-  "palanca": null,
-  "pomo": null,
-  "moneda": null,
+  "maquina": "maquina.webp",
+  "palanca": "palanca.webp",
+  "pomo": "pomo.webp",
+  "moneda": "moneda.webp",
   "bandeja": null,
-  "rodillo": null
+  "rodillo": "rodillo.webp"
 }
