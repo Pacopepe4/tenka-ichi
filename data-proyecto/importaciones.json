@@ -131,5 +131,18 @@
     null
    ]
   }
+ },
+ {
+  "nombre": "2026-11-09 Akuma: SRLEEMON medio, SRGALLEGO adc y KOKU support",
+  "dicho": "Pacopepe: SrLeemon será mid de Akuma, SrGallego el adc y Koku support; ALEX sale. Las cartas BUSHI-MEDIO, BUSHI-ADC y BUSHI-SUPPORT conservan su tier",
+  "plantillas": {
+   "BUSHI": [
+    null,
+    null,
+    "SRLEEMON",
+    "SRGALLEGO",
+    "KOKU"
+   ]
+  }
  }
 ]
