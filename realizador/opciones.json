@@ -136,7 +136,7 @@
     },
     "segundosBufer": 45,
     "codificador": "auto",
-    "emision": { "servidor": "rtmps://fa723fc1b171.global-contribute.live-video.net/app" },
+    "emision": { "servidor": "rtmps://fa723fc1b171.global-contribute.live-video.net/" },
     "overlay": ""
   },
 
