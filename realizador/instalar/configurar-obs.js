@@ -32,6 +32,31 @@ const ALTO = 1080;
 export const RECURSOS = join(dirname(fileURLToPath(import.meta.url)), '..', 'obs');
 export const TRANSICIONES = { entrada: 'Repeticion entrada', salida: 'Repeticion salida' };
 export const OVERLAY_REPLAY = 'Overlay REPLAY';
+export const ALERTAS = 'Alertas Kick';
+
+// Fuentes de Gokudō que vienen en obs/fuentes (recortadas a lo que se usa, licencia OFL). Los rótulos de texto de
+// OBS (Casters, Pausa) solo pueden usar fuentes instaladas en Windows: se instalan para este usuario, sin pedir
+// permisos de administrador (carpeta %LOCALAPPDATA%\Microsoft\Windows\Fonts y su entrada en el registro).
+export const FUENTES = [
+  { archivo: 'DelaGothicOne-Regular.ttf', nombre: 'Dela Gothic One Regular (TrueType)' },
+  { archivo: 'ZenKakuGothicNew-Bold.ttf', nombre: 'Zen Kaku Gothic New Bold (TrueType)' },
+  { archivo: 'YujiBoku-Regular.ttf', nombre: 'Yuji Boku Regular (TrueType)' },
+];
+const regAdd = (nombre, ruta) => execFileSync('reg', ['add', 'HKCU\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Fonts', '/v', nombre, '/t', 'REG_SZ', '/d', ruta, '/f'], { stdio: 'ignore' });
+export function instalarFuentes({ origen = join(RECURSOS, 'fuentes'), destino = process.env.LOCALAPPDATA ? join(process.env.LOCALAPPDATA, 'Microsoft', 'Windows', 'Fonts') : null, registrar = regAdd } = {}) {
+  if (!destino || !existsSync(origen)) return [];
+  mkdirSync(destino, { recursive: true });
+  const hechas = [];
+  for (const f of FUENTES) {
+    const desde = join(origen, f.archivo);
+    if (!existsSync(desde)) continue;
+    const hasta = join(destino, f.archivo);
+    try { copyFileSync(desde, hasta); } catch { if (!existsSync(hasta)) continue; /* en uso: ya estaba instalada */ }
+    try { registrar(f.nombre, hasta); hechas.push(f.nombre.replace(/ \(TrueType\)$/, '')); } catch { /* sin registro: OBS no la verá */ }
+  }
+  return hechas;
+}
+
 const VENTANA_LOL = 'League of Legends (TM) Client:RiotWindowClass:League of Legends.exe';
 
 export function carpetaObs() {
@@ -106,7 +131,7 @@ function stinger(nombre, archivo) {
   };
 }
 
-export function crearColeccion({ escenas, fuenteRepeticion, overlay = '', recursos = null }) {
+export function crearColeccion({ escenas, fuenteRepeticion, overlay = '', recursos = null, alertas = '' }) {
   const juego = fuente('Juego LoL', 'game_capture', {
     capture_mode: 'window', window: VENTANA_LOL, priority: 2, capture_cursor: false, allow_transparency: false,
   });
@@ -135,13 +160,20 @@ export function crearColeccion({ escenas, fuenteRepeticion, overlay = '', recurs
   const camarasDraft = CAMARAS_DRAFT.map(n => fuente(n, 'dshow_input', {}));
   const huecos = disposicionCamaras(4);
 
+  // Alertas de Kick (seguidores, subs, kicks…): página de la web, transparente, encima de todo en todas las escenas
+  const fAlertas = alertas ? fuente(ALERTAS, 'browser_source', {
+    url: alertas, width: ANCHO, height: ALTO, fps: 30, shutdown: false, restart_when_active: false,
+    reroute_audio: true, css: 'body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }',
+  }) : null;
+  const conAlertas = partes => (fAlertas ? [...partes, [fAlertas]] : partes);
+
   const lista = [
-    escena(escenas.juego, [[juego], [marcador]]),
+    escena(escenas.juego, conAlertas([[juego], [marcador]])),
     // En la repetición solo el cartel REPLAY: el marcador se quita (Pacopepe, 08/11)
-    escena(escenas.repeticion, [[clip], [rRepeticion, recursos ? { x: 0, y: 0, w: ANCHO, h: ALTO, oculto: true } : { x: 220, y: 80 }]]),
-    escena(escenas.casters, [[fondo], [camara], [rCasters, { x: ANCHO / 2, y: 980 }]]),
-    escena(escenas.pausa, [[fondo], [rPausa, { x: ANCHO / 2, y: ALTO / 2 }]]),
-    escena(escenas.draft || 'Draft', [[fondo], ...camarasDraft.map((c, i) => [c, { ...huecos[i], oculto: true }]), [marcador]]),
+    escena(escenas.repeticion, conAlertas([[clip], [rRepeticion, recursos ? { x: 0, y: 0, w: ANCHO, h: ALTO, oculto: true } : { x: 220, y: 80 }]])),
+    escena(escenas.casters, conAlertas([[fondo], [camara], [rCasters, { x: ANCHO / 2, y: 980 }]])),
+    escena(escenas.pausa, conAlertas([[fondo], [rPausa, { x: ANCHO / 2, y: ALTO / 2 }]])),
+    escena(escenas.draft || 'Draft', conAlertas([[fondo], ...camarasDraft.map((c, i) => [c, { ...huecos[i], oculto: true }]), [marcador]])),
   ];
 
   return {
@@ -149,7 +181,7 @@ export function crearColeccion({ escenas, fuenteRepeticion, overlay = '', recurs
     current_scene: lista[0].name,
     current_program_scene: lista[0].name,
     scene_order: lista.map(e => ({ name: e.name })),
-    sources: [...lista, juego, marcador, clip, fondo, camara, ...camarasDraft, rRepeticion, rCasters, rPausa],
+    sources: [...lista, juego, marcador, clip, fondo, camara, ...camarasDraft, rRepeticion, rCasters, rPausa, ...(fAlertas ? [fAlertas] : [])],
     groups: [],
     DesktopAudioDevice1: fuente('Audio del escritorio', 'wasapi_output_capture', { device_id: 'default' }, { audio: true }),
     AuxAudioDevice1: fuente('Mic/Aux', 'wasapi_input_capture', { device_id: 'default' }, { audio: true }),
@@ -247,7 +279,7 @@ export function servicioEmision({ servidor, clave }) {
   return { type: 'rtmp_custom', settings: { server: servidor, key: clave, use_auth: false, bwtest: false } };
 }
 
-export function configurarObs({ carpeta, opciones, rutaLocal, overlay, overlayPorDefecto, carpetaClips, recursos = RECURSOS }) {
+export function configurarObs({ carpeta, opciones, rutaLocal, overlay, overlayPorDefecto, carpetaClips, recursos = RECURSOS, instalarLasFuentes = !process.env.NODE_TEST_CONTEXT }) {
   const o = opciones.obs;
   const hechos = [];
   const fecha = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 19);
@@ -275,9 +307,18 @@ export function configurarObs({ carpeta, opciones, rutaLocal, overlay, overlayPo
   const nombres = { juego: o.escenaJuego, repeticion: o.escenaRepeticion, casters: o.escenaCasters, pausa: o.escenaPausa, draft: o.escenaDraft || 'Draft' };
   const rutaColeccion = join(escenas, `${NOMBRE}.json`);
   guardarCopia(rutaColeccion, `${NOMBRE}.json`);
-  escribir(rutaColeccion, JSON.stringify(crearColeccion({ escenas: nombres, fuenteRepeticion: o.fuenteRepeticion, overlay: url, recursos: recursos && existsSync(recursos) ? recursos : null }), null, 4));
+  // Las alertas de Kick salen de la misma web que el overlay (/alertas/), salvo que opciones.json diga otra
+  let alertas = o.alertas ?? '';
+  if (o.alertas === undefined && /^https?:/i.test(url)) { try { alertas = new URL('/alertas/', url).href; } catch { /* sin dirección */ } }
+  escribir(rutaColeccion, JSON.stringify(crearColeccion({ escenas: nombres, fuenteRepeticion: o.fuenteRepeticion, overlay: url, alertas, recursos: recursos && existsSync(recursos) ? recursos : null }), null, 4));
   hechos.push(`Colección "${NOMBRE}": ${Object.values(nombres).join(', ')}`);
   if (recursos && existsSync(recursos)) hechos.push(`Transiciones de la repetición ("${TRANSICIONES.entrada}", "${TRANSICIONES.salida}") y "${OVERLAY_REPLAY}"`);
+  if (alertas) hechos.push(`Alertas de Kick en todas las escenas (${alertas})`);
+  // Fuentes de Gokudō para los rótulos (solo en Windows; en las pruebas se pasa instalarFuentes: false)
+  if (instalarLasFuentes && process.platform === 'win32') {
+    const f = instalarFuentes({ origen: join(recursos || RECURSOS, 'fuentes') });
+    if (f.length) hechos.push(`Fuentes instaladas para los rótulos: ${f.join(', ')}`);
+  }
 
   // 3. Perfil: copia del actual (clave de emisión, codificador...) con el búfer de repetición
   const perfiles = join(carpeta, 'basic', 'profiles');

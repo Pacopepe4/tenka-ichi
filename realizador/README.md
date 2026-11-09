@@ -110,6 +110,8 @@ En el PC donde va OBS (el PC 2, o el mismo PC en las pruebas), con OBS **cerrado
 
 Tus colecciones y perfiles de siempre no se tocan (siguen en los menús de OBS), y lo que se cambia se copia antes en `%APPDATA%\obs-studio\realizador-copia\<fecha>\`. Se puede repetir las veces que haga falta: mantiene la contraseña.
 
+**Todo lo de OBS viene en la descarga:** las transiciones y el cartel REPLAY (`obs/`), sus fuentes (`obs/fuentes`: Dela Gothic One, Yuji Boku y Zen Kaku Gothic New, recortadas a lo que se usa, licencia OFL), que `configurar-obs` instala para el usuario sin pedir permisos para que los rótulos de Casters y Pausa salgan con la letra de Gokudō, el overlay de la web (`/overlay/`) y las **alertas de Kick** (`/alertas/`, encima de todo en todas las escenas; `obs.alertas` en `opciones.json` para otra dirección o `""` para quitarlas).
+
 **Clave de retransmisión (Kick):** `INSTALAR-PC2.bat` la pide (Enter para dejar la que ya tenga OBS) y la guarda solo en `opciones.local.json` de ese PC (`obs.emision.clave`), que nunca va en las descargas ni en git; `configurar-obs` la pone en el `service.json` del perfil `Realizador` con el servidor de `obs.emision.servidor` (el de Kick por defecto). No sale nunca en pantalla.
 
 Queda a mano: la URL del overlay si no la encuentra en tus escenas (doble clic en `Overlay Gokudō`, o `obs.overlay` en `opciones.json`, o `--overlay URL`) y elegir la cámara en `Camara casters`.
