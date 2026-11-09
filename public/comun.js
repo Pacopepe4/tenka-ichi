@@ -109,9 +109,9 @@ export function disposicionCamaras(n) {
 // Cámaras de los casters en el línea por línea del marcador de partida: dos huecos en 16:9, uno a cada lado del panel
 // (izquierda y derecha), abajo, con la placa del nombre de 44 px pegada debajo. Mismas coordenadas del lienzo y sin
 // la placa. El panel (y la gráfica de oro, que sale en su mismo hueco) va siempre encogido a ESCALA_LINEAS, que el
-// marcador pone en .zona-lineas, haya cámaras o no: así queda de x 352 a 1568 y de y 740 al borde de abajo.
+// marcador pone en .zona-lineas, haya cámaras o no: así queda de x 430 a 1490 y de y 784 al borde de abajo.
 // Si se toca el tamaño del línea por línea o la escala, se tocan los huecos. Desde el 08/11 solo hay un estilo (el A)
-export const ESCALA_LINEAS = 0.78;
+export const ESCALA_LINEAS = 0.68;  // 09/11: Pacopepe lo quiere más pequeño aún (antes 0.78)
 export function camarasLineas() {
   const w = 320, h = 180, x = 16, y = 856;
   return [{ x, y, w, h }, { x: 1920 - x - w, y, w, h }];

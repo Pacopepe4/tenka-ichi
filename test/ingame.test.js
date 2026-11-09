@@ -206,7 +206,7 @@ test('las cámaras de los casters vuelven con el estado guardado; uno anterior a
 test('los huecos de las cámaras: dos en 16:9, en espejo, a los lados del línea por línea encogido y sin pisarlo', () => {
   // Lo que mide el panel (ingame.css), el filo del marco de la cámara por fuera del hueco (estilo-a.css) y la placa
   const ANCHO_PANEL = 1560, ALTO_PANEL = 436, FILO_MARCO = 3, PLACA = 44;
-  assert.ok(ESCALA_LINEAS > 0.7 && ESCALA_LINEAS < 1, 'el panel se encoge, pero sigue leyéndose');
+  assert.ok(ESCALA_LINEAS >= 0.6 && ESCALA_LINEAS < 1, 'el panel se encoge, pero sigue leyéndose');
   const izquierdaDelPanel = 960 - ANCHO_PANEL * ESCALA_LINEAS / 2, arribaDelPanel = 1080 - ALTO_PANEL * ESCALA_LINEAS;
   const [izquierda, derecha] = camarasLineas();
   assert.equal(camarasLineas().length, 2);
