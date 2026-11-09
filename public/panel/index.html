@@ -3,17 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Panel de draft · Gokudō</title>
+<title>Retransmisión · Gokudō</title>
 <link rel="icon" href="/marca/gokudo.png">
 <link rel="stylesheet" href="/marca.css">
+<link rel="stylesheet" href="/obs-gokudo.css">
 <link rel="stylesheet" href="panel.css">
 </head>
-<body>
+<body data-momento="draft">
 <!-- Entrada: tapa el panel hasta que el servidor da por buena la contraseña (entrada.js). Sin botón de cerrar -->
 <div class="entrada" id="entrada" role="dialog" aria-modal="true" aria-labelledby="entradaTitulo">
   <form class="entrada-caja" id="formClave">
-    <span class="hanko sello" aria-hidden="true">天</span>
-    <h1 id="entradaTitulo">Panel de Gokudō</h1>
+    <img class="sol-entrada" src="/marca/gokudo-neon.png" alt="">
+    <h1 id="entradaTitulo">Retransmisión de Gokudō</h1>
     <p>Escribe la contraseña del panel. Es la misma para el draft, la partida, el puente, el realizador, los directos y el gachapon.</p>
     <label for="claveEntrada">Contraseña</label>
     <input id="claveEntrada" type="password" autocomplete="current-password" required>
@@ -21,140 +22,89 @@
     <p id="claveEstado" class="clave-estado" aria-live="polite"></p>
   </form>
 </div>
+
+<!-- La barra: la marca, el estado de todo de un vistazo (cada pastilla lleva a su apartado), las pestañas y la ayuda -->
 <header class="barra" inert>
-  <a class="marca" href="/"><span class="hanko sello">天</span><span>Panel de draft</span></a>
-  <p id="estadoConexion" class="pastilla">Conectando…</p>
+  <a class="marca" href="/"><img src="/marca/gokudo.png" alt=""><span>Gokudō <small>Retransmisión</small></span></a>
+  <div class="estados" aria-label="Estado de la retransmisión">
+    <a class="pastilla" id="estadoConexion" href="#mesa" data-etiqueta="Web" title="La conexión del panel con la web">Conectando…</a>
+    <a class="pastilla" id="chipDraftcore" href="#draftcore" data-ir="preparar" data-etiqueta="DraftCore" title="El draft de DraftCore: pulsa para conectarlo">Sin conectar</a>
+    <a class="pastilla" id="chipPartida" href="#en-partida" data-ir="directo" data-etiqueta="Partida" title="El puente del PC del espectador y la partida">Sin puente</a>
+    <a class="pastilla" id="realizadorConexion" href="#realizador" data-ir="directo" data-etiqueta="Realizador" title="El realizador automático (PC 1 y PC 2)">Sin conectar</a>
+  </div>
   <!-- La contraseña buena, la que usan panel.js y realizador.js: la pone entrada.js -->
   <input id="clave" type="hidden">
-  <div class="clave"><button type="button" id="salir" class="secundario" title="Olvida la contraseña en este navegador y vuelve a la entrada">Salir</button></div>
-  <!-- Qué enseña el overlay de OBS: cambia solo (draft, postdraft, partida y pantalla final) y aquí se puede forzar -->
-  <div class="vistas" role="group" aria-label="Qué enseña el overlay">
-    <span class="vistas-titulo">En el overlay</span>
-    <button type="button" data-vista="auto" title="El overlay cambia solo: del draft al postdraft al completarse, al marcador cuando empieza la partida y a la pantalla final cuando acaba">Automático</button>
-    <button type="button" data-vista="draft" title="El draft en directo">Draft</button>
-    <button type="button" data-vista="postdraft" title="El draft cerrado con las estadísticas de cada jugador y de los dos clanes">Postdraft</button>
-    <button type="button" data-vista="partida" title="El marcador de la partida; el puente se pone a buscarla, haya draft o no">Partida</button>
-    <button type="button" data-vista="final" title="La pantalla de fin de partida">Final</button>
-    <button type="button" data-vista="replay" title="Lo quita todo y deja solo el cartel REPLAY (se suelta sola a los 30 segundos)">Replay</button>
+  <div class="clave">
+    <button type="button" id="verAyuda" class="secundario" aria-pressed="false" title="Enseña u oculta las explicaciones largas de cada apartado">Ayuda</button>
+    <button type="button" id="salir" class="secundario" title="Olvida la contraseña en este navegador y vuelve a la entrada">Salir</button>
   </div>
-  <!-- Fases de la retransmisión: en cada una, solo los apartados que tocan -->
-  <nav class="fases" aria-label="Fase de la retransmisión">
-    <button type="button" data-fase="antes"><b>1</b> Antes del partido</button>
-    <button type="button" data-fase="draft"><b>2</b> Draft</button>
-    <button type="button" data-fase="partida"><b>3</b> Partida</button>
-    <button type="button" data-fase="resultado"><b>4</b> Resultado</button>
+  <!-- Pestañas: en cada una, solo los apartados que tocan. «Cambiar sola» sigue a lo que enseña el overlay -->
+  <nav class="fases" aria-label="Pestañas del panel">
+    <button type="button" data-fase="preparar"><b>1</b> Preparar</button>
+    <button type="button" data-fase="directo"><b>2</b> Directo</button>
+    <button type="button" data-fase="resultado"><b>3</b> Resultado</button>
     <button type="button" data-fase="liga">Liga y gachapon</button>
     <button type="button" data-fase="todo">Todo</button>
-    <label class="casilla seguir" title="La fase cambia sola con lo que enseña el overlay"><input type="checkbox" id="seguirFase"> Cambiar sola</label>
+    <label class="casilla seguir" title="La pestaña cambia sola con lo que enseña el overlay"><input type="checkbox" id="seguirFase"> Cambiar sola</label>
   </nav>
 </header>
 <p id="versionNueva" class="version-nueva" hidden inert>Hay una versión nueva de la web. <button type="button" id="recargar">Recargar el panel</button></p>
 
 <div class="disposicion" inert>
   <main>
-    <section id="competicion" data-fases="antes">
-      <h2>Competición</h2>
-      <div class="sorteo-vivo-panel">
-        <h3>Sorteo en directo</h3>
-        <p class="ayuda">El bombo sale en la zona de la liga de la web: cada bola que saques la ve al momento todo el que tenga la web abierta. Los clanes son los seis de la temporada y el calendario no se guarda hasta que sale la última bola (24). La semilla es opcional: con el mismo número, el sorteo sale igual. En la web, cada bola tarda unos 5 s en salir y llegar a su hueco; si sacas más deprisa, la web acelera para ponerse al día.</p>
-        <p class="estado" id="sorteoEstado">Sin sorteo en marcha.</p>
-        <div class="fila">
-          <label class="semilla">Semilla <input id="semillaVivo" type="number" placeholder="Al azar"></label>
-          <label class="casilla"><input type="checkbox" id="sorteoEnsayo"> Ensayo (no guarda nada)</label>
-          <button id="sorteoEmpezar">Empezar el sorteo</button>
-        </div>
-        <div class="fila">
-          <button id="sorteoBola" disabled>Sacar bola</button>
-          <label class="casilla"><input type="checkbox" id="sorteoAuto" disabled> Automático: una bola cada <input id="sorteoSegundos" type="number" min="5" max="30" value="8" class="corto"> s</label>
-          <button id="sorteoCancelar" class="secundario" disabled>Cancelar el sorteo</button>
-        </div>
+    <!-- ================= DIRECTO: la mesa ================= -->
+    <section id="mesa" class="mesa" data-fases="directo">
+      <div class="mesa-cabeza">
+        <h2>En pantalla</h2>
+        <p class="pista">El overlay cambia solo; pulsa una vista para dejarla fija y «Automático» para soltarla.</p>
       </div>
-      <div class="sin-calendario" hidden>
-        <p class="ayuda">Aún no hay calendario. Para sortearlo en directo, usa el bloque de arriba; este botón lo sortea de golpe y sin bombo (por si algo falla). Vienen marcados los seis clanes de la temporada.</p>
-        <p class="ayuda" id="fechasTemporada"></p>
-        <div class="participantes"></div>
-        <div class="fila"><label class="semilla">Semilla <input id="semilla" type="number" placeholder="Al azar"></label><button id="sortear" class="secundario">Sortear de golpe</button></div>
+      <!-- Qué enseña el overlay de OBS: cambia solo (draft, postdraft, partida y pantalla final) y aquí se puede forzar -->
+      <div class="vistas" role="group" aria-label="Qué enseña el overlay">
+        <button type="button" data-vista="auto" title="El overlay cambia solo: del draft al postdraft al completarse, al marcador cuando empieza la partida y a la pantalla final cuando acaba"><b>Automático</b><small>Cambia solo</small></button>
+        <button type="button" data-vista="draft" title="El draft en directo"><b>Draft</b><small>Picks y bans</small></button>
+        <button type="button" data-vista="postdraft" title="El draft cerrado con las estadísticas de cada jugador y de las dos familias"><b>Postdraft</b><small>Estadísticas</small></button>
+        <button type="button" data-vista="partida" title="El marcador de la partida; el puente se pone a buscarla, haya draft o no"><b>Partida</b><small>Marcador</small></button>
+        <button type="button" data-vista="final" title="La pantalla de fin de partida"><b>Final</b><small>Resultado</small></button>
+        <button type="button" data-vista="replay" class="replay" title="Lo quita todo y deja solo el cartel REPLAY (se suelta solo a los 30 segundos)"><b>Replay</b><small>Solo el cartel</small></button>
       </div>
-      <div class="con-calendario" hidden>
-        <p class="ayuda" id="resumenCompeticion"></p>
-        <div class="fila">
-          <select id="proxima" aria-label="Partida del calendario"></select>
-          <button id="cargarProxima">Cargar en el panel</button>
-        </div>
-        <p class="estado" id="notaProxima"></p>
-      </div>
-    </section>
 
-    <section id="draftcore" data-fases="antes draft">
-      <h2>DraftCore</h2>
-      <p class="ayuda">Pega el enlace de espectador del draft, el que acaba en el código del draft.</p>
-      <div class="fila">
-        <input id="enlace" placeholder="https://lol.draftcore.net/…" aria-label="Enlace de espectador de DraftCore">
-        <button id="conectar">Conectar</button>
-        <button id="desconectar" class="secundario">Desconectar</button>
+      <div class="mesa-cabeza">
+        <h2>Grafismos de la partida</h2>
+        <p class="pista">Sale uno a la vez y se quita solo cuando pasa su tiempo.</p>
       </div>
-      <p id="fuente" class="estado"></p>
-    </section>
-
-    <section id="enfrentamiento" data-fases="antes">
-      <h2>Enfrentamiento</h2>
-      <div class="rejilla">
-        <label>Jornada <input id="jornada"></label>
-        <label>Fase <select id="fase"><option>Fase de liga</option><option>Desempate</option><option>Fase final</option></select></label>
-        <label>Formato <select id="formato"><option value="bo1">Bo1</option><option value="bo3f">Bo3 fearless</option></select></label>
-        <label>Partida <input id="partida" type="number" min="1" max="5"></label>
-      </div>
-      <button id="guardarConfig">Guardar enfrentamiento</button>
-    </section>
-
-    <section id="equipos" data-fases="antes">
-      <h2>Equipos</h2>
-      <p class="ayuda">Al elegir un clan se rellena su plantilla. Si cambias algún jugador, guárdalo en la plantilla para la próxima vez.</p>
-      <div class="dos">
-        <div class="equipo azul" data-lado="azul">
-          <div class="equipo-cabeza"><img class="escudo" alt=""><div><h3>Lado azul</h3><select class="clan" aria-label="Clan del lado azul"></select></div></div>
-          <div class="jugadores"></div>
-          <button class="guardarPlantilla secundario">Guardar en la plantilla del clan</button>
+      <div class="grafismos">
+        <div class="grafismo">
+          <button id="verLineas" class="secundario">Sacar el línea por línea</button>
+          <select id="duracionLineas" aria-label="Cuánto tiempo se queda el línea por línea">
+            <option value="20">20 s</option><option value="45">45 s</option><option value="0">Hasta quitarlo</option>
+          </select>
         </div>
-        <div class="equipo rojo" data-lado="rojo">
-          <div class="equipo-cabeza"><img class="escudo" alt=""><div><h3>Lado rojo</h3><select class="clan" aria-label="Clan del lado rojo"></select></div></div>
-          <div class="jugadores"></div>
-          <button class="guardarPlantilla secundario">Guardar en la plantilla del clan</button>
+        <div class="grafismo">
+          <button id="verOro" class="secundario">Sacar la gráfica de oro</button>
+          <select id="duracionOro" aria-label="Cuánto tiempo se queda la gráfica de oro">
+            <option value="15">15 s</option><option value="30">30 s</option><option value="0">Hasta quitarla</option>
+          </select>
+        </div>
+        <div class="grafismo ancho">
+          <button id="verFicha" class="secundario">Sacar la ficha</button>
+          <select id="fichaLado" aria-label="Familia de la ficha"><option value="azul">Lado azul</option><option value="rojo">Lado rojo</option></select>
+          <select id="fichaJugador" aria-label="Jugador de la ficha"></select>
+          <select id="duracionFicha" aria-label="Cuánto tiempo se queda la ficha">
+            <option value="15">15 s</option><option value="30">30 s</option><option value="0">Hasta quitarla</option>
+          </select>
+        </div>
+        <div class="grafismo">
+          <button id="verPartida" class="secundario">Ocultar el marcador</button>
         </div>
       </div>
-      <div class="fila"><button id="guardarEquipos">Poner en el overlay</button><button id="invertir" class="secundario">Invertir lados</button></div>
+      <p class="ayuda">El línea por línea compara a cada jugador con su rival (objetos, oro, KDA, súbditos, nivel y puntos del fantasy) y sale abajo en el centro, con las cámaras de los casters si están marcadas: úsalo en los momentos tranquilos. La gráfica de oro sale en ese mismo hueco (hace falta tener al menos dos minutos de partida). La ficha enseña la carta de un jugador con sus números. Los temporizadores y los buffs salen solos.</p>
     </section>
 
-    <section id="camaras" data-fases="antes draft">
-      <h2>Cámaras</h2>
-      <p class="ayuda">Las cámaras salen en el centro del overlay. En OBS, pon cada fuente de cámara por debajo del overlay y encájala en su hueco: la medida y la posición están al lado de cada una.</p>
-      <div class="cantidad" role="radiogroup" aria-label="Cámaras en el overlay">
-        <button type="button" role="radio" data-n="0">Ninguna</button>
-        <button type="button" role="radio" data-n="1">1</button>
-        <button type="button" role="radio" data-n="2">2</button>
-        <button type="button" role="radio" data-n="3">3</button>
-        <button type="button" role="radio" data-n="4">4</button>
-      </div>
-      <div class="lista-camaras"></div>
-      <div class="fila"><button id="guardarCamaras">Poner en el overlay</button></div>
-    </section>
-
-    <section id="draft" data-fases="draft">
-      <h2>Draft en directo</h2>
-      <p class="ayuda">Se rellena solo desde DraftCore. Si algo falla, escribe el campeón en su hueco.</p>
-      <div class="dos draft">
-        <div class="lado azul"></div>
-        <div class="lado rojo"></div>
-      </div>
-      <datalist id="listaCampeones"></datalist>
-    </section>
-
-    <section id="en-partida" data-fases="partida">
-      <h2>Partida en directo</h2>
-      <p class="ayuda">El marcador sale del cliente de LoL del PC donde se mira la partida, a través del puente (se descarga en <a href="/guia/#ingame" target="_blank">la guía</a>). Ábrelo allí al empezar la jornada y déjalo abierto: busca la partida cuando se lo pides aquí o, solo, al acabar el draft. En cuanto empieza, el overlay pasa solo al marcador; al acabar, a la pantalla final. Los clanes y los jugadores son los del enfrentamiento.</p>
+    <section id="en-partida" data-fases="directo" data-momento="partida">
+      <h2>Partida</h2>
       <ol class="pasos-partida" aria-label="En qué punto está la partida">
         <li data-paso="puente">Puente abierto</li>
-        <li data-paso="buscando">Buscando la partida</li>
+        <li data-paso="buscando">Buscando</li>
         <li data-paso="partida">En juego</li>
         <li data-paso="terminada">Terminada</li>
       </ol>
@@ -163,61 +113,31 @@
         <button id="buscarPartida">Buscar la partida</button>
         <label class="casilla"><input type="checkbox" id="buscarAlAcabar"> Buscar sola al acabar el draft</label>
       </div>
+      <p class="ayuda">El marcador sale del cliente de LoL del PC donde se mira la partida, a través del puente (se descarga en <a href="/guia/#ingame" target="_blank">la guía</a>). Ábrelo allí al empezar la jornada y déjalo abierto: busca la partida cuando se lo pides aquí o, solo, al acabar el draft. En cuanto empieza, el overlay pasa solo al marcador; al acabar, a la pantalla final.</p>
       <dl class="resumen-partida" id="resumenPartida"></dl>
-
-      <h3>Grafismos</h3>
-      <div class="fila">
-        <button id="verLineas" class="secundario">Sacar el línea por línea</button>
-        <select id="duracionLineas" aria-label="Cuánto tiempo se queda el línea por línea">
-          <option value="20">20 segundos</option><option value="45">45 segundos</option><option value="0">Hasta quitarlo</option>
-        </select>
-        <button id="verPartida" class="secundario">Ocultar el marcador</button>
-      </div>
-      <div class="camaras-lineas">
-        <h4>Cámaras de los casters, a los lados del línea por línea</h4>
-        <div class="lista-camaras-lineas"></div>
-        <div class="fila"><button id="guardarCamarasLineas" class="secundario">Poner los nombres en el overlay</button></div>
-        <p class="ayuda">Un marco de caster a cada lado del línea por línea, con el nombre que escribas: salen y se van con él (el panel ya va lo bastante pequeño para dejarles sitio). Marca las que quieras; en OBS, pon cada cámara por debajo del overlay y encájala en su hueco con la medida que tiene al lado. El hueco solo está mientras el línea por línea está fuera: lo cómodo es tener una escena de juego con las cámaras ya colocadas y pasar a ella en ese rato.</p>
-      </div>
-      <div class="fila">
-        <select id="fichaLado" aria-label="Clan de la ficha"><option value="azul">Lado azul</option><option value="rojo">Lado rojo</option></select>
-        <select id="fichaJugador" aria-label="Jugador de la ficha"></select>
-        <button id="verFicha" class="secundario">Sacar la ficha</button>
-        <select id="duracionFicha" aria-label="Cuánto tiempo se queda la ficha">
-          <option value="15">15 segundos</option><option value="30">30 segundos</option><option value="0">Hasta quitarla</option>
-        </select>
-      </div>
-      <div class="fila">
-        <button id="verOro" class="secundario">Sacar la gráfica de oro</button>
-        <select id="duracionOro" aria-label="Cuánto tiempo se queda la gráfica de oro">
-          <option value="15">15 segundos</option><option value="30">30 segundos</option><option value="0">Hasta quitarla</option>
-        </select>
-      </div>
-      <p class="ayuda">El línea por línea compara a cada jugador con su rival (objetos, oro, KDA, súbditos, nivel y puntos del fantasy) y sale abajo en el centro, con sus cámaras si están marcadas: úsalo en los momentos tranquilos. La ficha enseña la carta de un jugador con sus números; la gráfica, la diferencia de oro estimada desde el principio (hace falta tener al menos dos minutos de partida). Solo sale un grafismo a la vez. Los temporizadores y los buffs salen solos.</p>
-
-      <h3>Aspecto y avisos</h3>
-      <div class="fila"><label class="casilla"><input type="checkbox" id="avisosPropios"> Avisos propios de objetivos, con el logo del clan (si no, se ven los del propio LoL)</label></div>
-      <div class="fila"><label class="casilla"><input type="checkbox" id="resumenPelea"> Resumen de pelea (al cerrarse una pelea de tres muertes o más, el marcador de la pelea por clan)</label></div>
-      <div class="fila"><label class="casilla"><input type="checkbox" id="puntosFantasy"> Puntos del fantasy provisionales en el línea por línea y en la ficha</label></div>
-      <div class="fila"><label class="casilla"><input type="checkbox" id="oroIngresos"> Oro estimado por ingresos (apagado, el oro es solo el valor de los objetos)</label></div>
-      <p class="ayuda">Lo nuevo viene encendido: los interruptores sirven para ocultarlo si algo no va bien en una partida.</p>
-
-      <h3>Objetivos a mano</h3>
-      <p class="ayuda">Como espectador, el cliente de LoL no da los dragones, el heraldo ni el Barón. Márcalos aquí cuando caigan: los dragones de cada clan salen debajo del reloj y sus temporizadores se ponen en marcha. Si el cliente sí los da, las marcas no cuentan.</p>
-      <div class="marcas"></div>
-      <div class="fila"><button id="deshacerMarca" class="secundario">Deshacer la última marca</button></div>
-
-      <h3>Probar sin jugar</h3>
-      <div class="fila"><button id="pruebaPartida" class="secundario">Empezar una partida de prueba</button></div>
-      <p class="ayuda">La partida de prueba se inventa los datos (con los campeones del draft) y va seis veces más rápida: sirve para colocar el overlay en OBS sin jugar. Se para sola cuando llega una partida de verdad.</p>
     </section>
 
-    <section id="realizador" data-fases="partida">
+    <section id="objetivos" data-fases="directo" data-momento="partida">
+      <h2>Objetivos a mano</h2>
+      <p class="pista">Márcalos cuando caigan: el cliente de espectador no da dragones, heraldo ni Barón.</p>
+      <p class="ayuda">Los dragones de cada familia salen debajo del reloj y sus temporizadores se ponen en marcha. Si el cliente sí los da, las marcas no cuentan.</p>
+      <div class="marcas"></div>
+      <div class="fila"><button id="deshacerMarca" class="secundario">Deshacer la última marca</button></div>
+    </section>
+
+    <section id="draft" data-fases="directo" data-momento="draft">
+      <h2>Draft</h2>
+      <p class="pista">Se rellena solo desde DraftCore. Si algo falla, escribe el campeón en su hueco.</p>
+      <div class="dos draft">
+        <div class="lado azul"></div>
+        <div class="lado rojo"></div>
+      </div>
+      <datalist id="listaCampeones"></datalist>
+    </section>
+
+    <section id="realizador" data-fases="directo">
       <h2>Realizador automático</h2>
       <p class="ayuda">La cámara del observer, las repeticiones y el zoom los lleva el realizador (sus dos PCs, con 2 minutos de margen). Usa la contraseña del panel (la misma que se pone en sus instaladores): aquí se ve qué hace y, si hace falta, se toma el control. Se descarga desde la guía.</p>
-      <div class="fila">
-        <span id="realizadorConexion" class="pastilla">Sin conectar</span>
-      </div>
       <p class="realizador-puntos" id="realizadorPuntos"></p>
       <dl class="realizador-reloj">
         <div><dt>Directo</dt><dd id="realizadorDirecto">--:--</dd></div>
@@ -234,29 +154,149 @@
         <button id="realizadorGeneral" class="secundario">Plano general</button>
       </div>
       <div class="realizador-jugadores" id="realizadorJugadores"></div>
-      <h3>Próximos planos</h3>
-      <ol class="realizador-lista" id="realizadorProximos"></ol>
-      <h3>Repeticiones y grafismos</h3>
-      <ol class="realizador-lista" id="realizadorAcciones"></ol>
-      <h3>Últimas decisiones</h3>
-      <ol class="realizador-lista" id="realizadorRegistro"></ol>
+      <details class="plegable">
+        <summary>Próximos planos, repeticiones y últimas decisiones</summary>
+        <h3>Próximos planos</h3>
+        <ol class="realizador-lista" id="realizadorProximos"></ol>
+        <h3>Repeticiones y grafismos</h3>
+        <ol class="realizador-lista" id="realizadorAcciones"></ol>
+        <h3>Últimas decisiones</h3>
+        <ol class="realizador-lista" id="realizadorRegistro"></ol>
+      </details>
     </section>
 
+    <!-- ================= PREPARAR ================= -->
+    <section id="competicion" data-fases="preparar">
+      <h2>Partido de hoy</h2>
+      <div class="con-calendario" hidden>
+        <p class="pista" id="resumenCompeticion"></p>
+        <div class="fila">
+          <select id="proxima" aria-label="Partida del calendario"></select>
+          <button id="cargarProxima">Cargar en el panel</button>
+        </div>
+        <p class="estado" id="notaProxima"></p>
+      </div>
+      <details class="plegable sorteo-vivo-panel">
+        <summary>Sorteo en directo del calendario</summary>
+        <p class="ayuda">El bombo sale en la zona de la liga de la web: cada bola que saques la ve al momento todo el que tenga la web abierta. Los clanes son los seis de la temporada y el calendario no se guarda hasta que sale la última bola (24). La semilla es opcional: con el mismo número, el sorteo sale igual. En la web, cada bola tarda unos 5 s en salir y llegar a su hueco; si sacas más deprisa, la web acelera para ponerse al día.</p>
+        <p class="estado" id="sorteoEstado">Sin sorteo en marcha.</p>
+        <div class="fila">
+          <label class="semilla">Semilla <input id="semillaVivo" type="number" placeholder="Al azar"></label>
+          <label class="casilla"><input type="checkbox" id="sorteoEnsayo"> Ensayo (no guarda nada)</label>
+          <button id="sorteoEmpezar">Empezar el sorteo</button>
+        </div>
+        <div class="fila">
+          <button id="sorteoBola" disabled>Sacar bola</button>
+          <label class="casilla"><input type="checkbox" id="sorteoAuto" disabled> Automático: una bola cada <input id="sorteoSegundos" type="number" min="5" max="30" value="8" class="corto"> s</label>
+          <button id="sorteoCancelar" class="secundario" disabled>Cancelar el sorteo</button>
+        </div>
+      </details>
+      <div class="sin-calendario" hidden>
+        <p class="ayuda">Aún no hay calendario. Para sortearlo en directo, usa el sorteo de arriba; este botón lo sortea de golpe y sin bombo (por si algo falla). Vienen marcados los seis clanes de la temporada.</p>
+        <p class="pista" id="fechasTemporada"></p>
+        <div class="participantes"></div>
+        <div class="fila"><label class="semilla">Semilla <input id="semilla" type="number" placeholder="Al azar"></label><button id="sortear" class="secundario">Sortear de golpe</button></div>
+      </div>
+    </section>
+
+    <section id="enfrentamiento" data-fases="preparar">
+      <h2>Enfrentamiento</h2>
+      <div class="rejilla">
+        <label>Jornada <input id="jornada"></label>
+        <label>Fase <select id="fase"><option>Fase de liga</option><option>Desempate</option><option>Fase final</option></select></label>
+        <label>Formato <select id="formato"><option value="bo1">Bo1</option><option value="bo3f">Bo3 fearless</option></select></label>
+        <label>Partida <input id="partida" type="number" min="1" max="5"></label>
+      </div>
+      <button id="guardarConfig">Guardar enfrentamiento</button>
+    </section>
+
+    <section id="equipos" data-fases="preparar">
+      <h2>Familias y jugadores</h2>
+      <p class="pista">Al elegir una familia se rellena su plantilla.</p>
+      <p class="ayuda">Si cambias algún jugador, guárdalo en la plantilla para la próxima vez.</p>
+      <div class="dos">
+        <div class="equipo azul" data-lado="azul">
+          <div class="equipo-cabeza"><img class="escudo" alt=""><div><h3>Lado azul</h3><select class="clan" aria-label="Familia del lado azul"></select></div></div>
+          <div class="jugadores"></div>
+          <button class="guardarPlantilla secundario">Guardar en la plantilla</button>
+        </div>
+        <div class="equipo rojo" data-lado="rojo">
+          <div class="equipo-cabeza"><img class="escudo" alt=""><div><h3>Lado rojo</h3><select class="clan" aria-label="Familia del lado rojo"></select></div></div>
+          <div class="jugadores"></div>
+          <button class="guardarPlantilla secundario">Guardar en la plantilla</button>
+        </div>
+      </div>
+      <div class="fila"><button id="guardarEquipos">Poner en el overlay</button><button id="invertir" class="secundario">Invertir lados</button></div>
+    </section>
+
+    <section id="draftcore" data-fases="preparar">
+      <h2>DraftCore</h2>
+      <p class="pista">Pega el enlace de espectador del draft, el que acaba en el código del draft.</p>
+      <div class="fila">
+        <input id="enlace" placeholder="https://lol.draftcore.net/…" aria-label="Enlace de espectador de DraftCore">
+        <button id="conectar">Conectar</button>
+        <button id="desconectar" class="secundario">Desconectar</button>
+      </div>
+      <p id="fuente" class="estado"></p>
+    </section>
+
+    <section id="camaras" data-fases="preparar">
+      <h2>Cámaras del draft</h2>
+      <p class="pista">Salen en el centro del overlay del draft.</p>
+      <p class="ayuda">En OBS, pon cada fuente de cámara por debajo del overlay y encájala en su hueco: la medida y la posición están al lado de cada una.</p>
+      <div class="cantidad" role="radiogroup" aria-label="Cámaras en el overlay">
+        <button type="button" role="radio" data-n="0">Ninguna</button>
+        <button type="button" role="radio" data-n="1">1</button>
+        <button type="button" role="radio" data-n="2">2</button>
+        <button type="button" role="radio" data-n="3">3</button>
+        <button type="button" role="radio" data-n="4">4</button>
+      </div>
+      <div class="lista-camaras"></div>
+      <div class="fila"><button id="guardarCamaras">Poner en el overlay</button></div>
+    </section>
+
+    <section id="ajustes-directo" data-fases="preparar directo">
+      <h2>Ajustes del directo</h2>
+      <details class="plegable camaras-lineas">
+        <summary>Cámaras de los casters, a los lados del línea por línea</summary>
+        <div class="lista-camaras-lineas"></div>
+        <div class="fila"><button id="guardarCamarasLineas" class="secundario">Poner los nombres en el overlay</button></div>
+        <p class="ayuda">Un marco de caster a cada lado del línea por línea, con el nombre que escribas: salen y se van con él. Marca las que quieras; en OBS, pon cada cámara por debajo del overlay y encájala en su hueco con la medida que tiene al lado. El hueco solo está mientras el línea por línea está fuera: lo cómodo es tener una escena de juego con las cámaras ya colocadas y pasar a ella en ese rato.</p>
+      </details>
+      <details class="plegable">
+        <summary>Qué sale en el marcador</summary>
+        <div class="fila"><label class="casilla"><input type="checkbox" id="avisosPropios"> Avisos propios de objetivos, con el logo de la familia (si no, se ven los del propio LoL)</label></div>
+        <div class="fila"><label class="casilla"><input type="checkbox" id="resumenPelea"> Resumen de pelea (al cerrarse una pelea de tres muertes o más)</label></div>
+        <div class="fila"><label class="casilla"><input type="checkbox" id="puntosFantasy"> Puntos del fantasy provisionales en el línea por línea y en la ficha</label></div>
+        <div class="fila"><label class="casilla"><input type="checkbox" id="oroIngresos"> Oro estimado por ingresos (apagado, el oro es solo el valor de los objetos)</label></div>
+        <p class="ayuda">Lo nuevo viene encendido: los interruptores sirven para ocultarlo si algo no va bien en una partida.</p>
+      </details>
+      <details class="plegable">
+        <summary>Probar sin jugar</summary>
+        <div class="fila"><button id="pruebaPartida" class="secundario">Empezar una partida de prueba</button></div>
+        <p class="ayuda">La partida de prueba se inventa los datos (con los campeones del draft) y va seis veces más rápida: sirve para colocar el overlay en OBS sin jugar. Se para sola cuando llega una partida de verdad.</p>
+      </details>
+    </section>
+
+    <!-- ================= RESULTADO ================= -->
     <section id="resultado" data-fases="resultado">
       <h2>Resultado</h2>
       <p class="ayuda" id="ayudaHoja"></p>
-      <div class="fila">
+      <div class="fila ganador">
         <button id="ganaAzul" class="azul">Gana el lado azul</button>
         <button id="ganaRojo" class="rojo">Gana el lado rojo</button>
+      </div>
+      <div class="fila">
         <button id="siguiente" class="secundario">Siguiente partida</button>
         <button id="nuevaSerie" class="secundario">Nueva serie</button>
         <button id="probarHoja" class="secundario" hidden>Reintentar Google Sheets</button>
+        <button type="button" id="quitarFinal" class="secundario">Quitar la pantalla final</button>
       </div>
-      <p class="ayuda">Al marcar el ganador, el overlay pasa a la pantalla final; el MVP, el daño y los puntos del fantasy salen en ella al guardar las estadísticas. «Siguiente partida» y «Nueva serie» vuelven al draft. <button type="button" id="quitarFinal" class="enlace">Quitar la pantalla final</button></p>
+      <p class="ayuda">Al marcar el ganador, el overlay pasa a la pantalla final; el MVP, el daño y los puntos del fantasy salen en ella al guardar las estadísticas. «Siguiente partida» y «Nueva serie» vuelven al draft.</p>
       <ol id="resultados" class="resultados"></ol>
       <div class="fantasy-panel">
         <h3>Estadísticas para el fantasy</h3>
-        <p class="ayuda">Después de marcar el ganador y antes de pulsar «Siguiente partida»: revisa los números, apunta el daño de la pantalla final, elige el MVP y guarda. Salen en la pantalla final del overlay.</p>
+        <p class="pista">Revisa los números, apunta el daño, elige el MVP y guarda antes de «Siguiente partida».</p>
         <details class="ayuda"><summary>Qué se rellena solo y cómo se puntúa</summary>Si el puente ha seguido la partida, al terminar se rellenan solos el KDA, el farmeo y la visión, y cuentan la primera sangre, los multikills y las torres; el daño a campeones hay que apuntarlo (si lo dejáis vacío, esa partida nadie puntúa por daño: mejor apuntarlo siempre o nunca). El daño a torres no puntúa, pero la carta BOOST de «más daño a torres» (Igrid) lo necesita, igual que la de «más daño» necesita el daño de los diez: si a alguno le falta el dato, esa BOOST no da bonus en esa partida. Puntos: +1 por jugar, +3 si gana, +2 por asesinato, +1,5 por asistencia, −1 por muerte, +2 sin morir, +1 por cada 30 de farmeo, +1 por cada 10 de visión, +1 por cada 5000 de daño, +2 primera sangre, triple +2, cuádruple +5, pentakill +10, +2 si participa en el 70 % de los asesinatos de su equipo, +1 por torre y +3 al MVP. Al guardar, pasa el ratón por un jugador para ver su desglose. Si te equivocas, corrígelo y vuelve a guardar.</details>
         <div class="kda dos"></div>
         <div class="fila"><button type="button" id="guardarKda">Guardar estadísticas</button><button type="button" id="rellenarKda" class="secundario">Rellenar con la partida</button></div>
@@ -290,9 +330,10 @@
       <p class="estado" id="estadoJornada"></p>
     </section>
 
-    <section id="codigo" data-fases="draft partida resultado liga">
+    <section id="codigo" data-fases="directo resultado liga">
       <h2>Código de directo</h2>
-      <p class="ayuda">Crea un código y sale en el overlay: quien lo escriba en el gachapon mientras vale se lleva los sobres, una vez por persona. No hace falta Twitch ni ser afiliado.</p>
+      <p class="pista">Sale en el overlay: quien lo escriba en el gachapon mientras vale se lleva los sobres.</p>
+      <p class="ayuda">Una vez por persona. No hace falta Twitch ni ser afiliado.</p>
       <p class="estado" id="estadoCodigo">Entra con la contraseña del panel para crear códigos.</p>
       <div class="fila premios">
         <label>Sobres <input id="codigoSobres" type="number" min="1" max="5" value="1"></label>
@@ -306,23 +347,24 @@
       </div>
     </section>
 
+    <!-- ================= LIGA Y GACHAPON ================= -->
     <section id="tierlist" data-fases="liga">
       <h2>Tier list</h2>
       <p class="ayuda">Se publica en la portada. La tier de cada jugador es también la rareza de su carta en el gachapon. Los jugadores sin nombre en la plantilla no salen ni en la web ni en los sobres.</p>
       <div class="pestanas-tier" role="tablist" aria-label="Qué tier list editar">
         <button type="button" role="tab" aria-selected="true" data-tipo="jugadores">Jugadores</button>
-        <button type="button" role="tab" aria-selected="false" data-tipo="equipos">Equipos</button>
+        <button type="button" role="tab" aria-selected="false" data-tipo="equipos">Familias</button>
       </div>
       <div class="editor-tier"></div>
       <div class="fila"><button type="button" class="secundario" id="descargarTier">Descargar imagen</button><button type="button" class="secundario" id="publicarTier">Publicar en Discord</button></div>
-      <p class="ayuda">La imagen lleva las dos tier list, jugadores y equipos. Publicarla en Discord necesita el webhook del canal en Render.</p>
+      <p class="ayuda">La imagen lleva las dos tier list, jugadores y familias. Publicarla en Discord necesita el webhook del canal en Render.</p>
     </section>
 
     <section id="gachapon" data-fases="liga">
       <h2>Gachapon</h2>
-      <p class="ayuda" id="estadoLoginTwitch"></p>
-      <div class="caja-gacha">
-        <h3>Puntos del canal de Twitch</h3>
+      <p class="pista" id="estadoLoginTwitch"></p>
+      <details class="plegable caja-gacha">
+        <summary>Puntos del canal de Twitch</summary>
         <p class="ayuda">Los espectadores ganan puntos viendo el directo y los canjean en Twitch por la recompensa «Sobre de Gokudō». El sobre le llega a quien haya vinculado su Twitch en el gachapon (entra con Discord y pulsa «vincula tu Twitch»); si canjea antes de vincularlo, se le guarda. Necesita la app de Twitch y un canal afiliado.</p>
         <p class="estado" id="estadoCanal"></p>
         <div class="fila">
@@ -333,9 +375,9 @@
           <label class="coste">Puntos por sobre <input id="costeSobre" type="number" min="1" step="100"></label>
           <button type="button" id="guardarCoste" class="secundario">Cambiar el coste</button>
         </div>
-      </div>
-      <div class="caja-gacha">
-        <h3>Puntos del canal de Kick</h3>
+      </details>
+      <details class="plegable caja-gacha" open>
+        <summary>Kick: puntos del canal, avisos y bot</summary>
         <p class="ayuda">En Kick, con la recompensa «Omamori»: la tirada le llega a quien haya vinculado su Kick en el gachapon (entra con Discord y pulsa «vincula tu Kick»); si canjea antes de vincularlo, se le guarda. Los canjes llegan por aviso de Kick, sin consultas cada minuto: si alguno no se pudo resolver, espera en Kick y se recoge con el siguiente Omamori o con «Recoger canjes pendientes». Necesita la app de Kick en Render y conectar el canal con la cuenta Gokudo_zoku.</p>
         <p class="estado" id="estadoKick"></p>
         <div class="fila">
@@ -357,30 +399,35 @@
           <button type="button" id="conectarBotKick" class="secundario">Conectar la cuenta del bot</button>
           <button type="button" id="quitarBotKick" class="secundario" hidden>Quitar la cuenta del bot</button>
         </div>
-      </div>
-      <div class="caja-gacha">
-        <h3>Crónicas de las partidas</h3>
+      </details>
+      <details class="plegable caja-gacha">
+        <summary>Crónicas de las partidas</summary>
         <p class="ayuda">Al acabar una partida, el realizador manda su texto y su resumen a <code>/api/cronicas/partida</code> (con la clave <code>CRONICAS_CLAVE</code>): salen en la portada (zona de la liga) y en el canal #resultados de Discord (webhook <code>DISCORD_WEBHOOK_RESULTADOS</code>, que crea <code>npm run discord-aplicar</code>). Los pasos, en el README.</p>
         <p class="estado" id="estadoCronicas"></p>
-      </div>
-      <div class="caja-gacha">
-        <h3>Regalar sobres</h3>
+      </details>
+      <details class="plegable caja-gacha" open>
+        <summary>Regalar sobres</summary>
         <p class="ayuda">Para premios o sorteos. Vale el nombre en Discord de alguien que ya haya entrado en el gachapon. Si dos personas tienen el mismo nombre, se elige la primera que entró.</p>
         <div class="fila">
           <input id="regaloUsuario" placeholder="Nombre en Discord" aria-label="Nombre en Discord">
           <input id="regaloCantidad" type="number" min="1" max="20" value="1" aria-label="Número de sobres">
           <button type="button" id="regalar">Regalar sobres</button>
         </div>
-      </div>
-      <p class="ayuda" id="resumenGacha"></p>
+      </details>
+      <p class="pista" id="resumenGacha"></p>
     </section>
   </main>
 
   <aside>
+    <h2 class="titulo-vista">Lo que ve el espectador</h2>
     <div class="vista"><iframe id="vista" title="Vista previa del overlay" tabindex="-1"></iframe></div>
-    <p class="ayuda">En OBS añade una fuente de navegador de 1920×1080 con <code id="urlOverlay"></code> y ponla por encima de las cámaras. Para colocarlas, abre <a id="urlGuia" target="_blank">la guía de cámaras</a>. Si no quieres el fondo de tinta, añade <code>?transparente=1</code> a la dirección.</p>
-    <p class="ayuda">Guía para quien lleva OBS: <a id="urlGuiaRetransmision" href="/guia/" target="_blank"></a>. Los vídeos y la música del directo están en la carpeta de Drive que enlaza <a href="/guia/#paquete" target="_blank">la misma guía</a>.</p>
-    <p class="ayuda">Portada pública: <a id="urlPortada" href="/" target="_blank"></a></p>
+    <details class="plegable obs">
+      <summary>Fuentes para OBS y enlaces</summary>
+      <p class="pista">Fuente de navegador de 1920×1080 con <code id="urlOverlay"></code>, por encima de las cámaras. Para colocarlas, <a id="urlGuia" target="_blank">la guía de cámaras</a>. Sin fondo: añade <code>?transparente=1</code>.</p>
+      <p class="pista">Alertas de Kick: <code>/alertas/</code>, otra fuente de 1920×1080 encima de todo.</p>
+      <p class="pista">Guía para quien lleva OBS: <a id="urlGuiaRetransmision" href="/guia/" target="_blank"></a>. Los vídeos y la música del directo están en la carpeta de Drive que enlaza <a href="/guia/#paquete" target="_blank">la misma guía</a>.</p>
+      <p class="pista">Portada pública: <a id="urlPortada" href="/" target="_blank"></a></p>
+    </details>
   </aside>
 </div>
 <div id="aviso" role="status" hidden></div>

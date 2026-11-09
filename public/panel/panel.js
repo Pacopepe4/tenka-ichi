@@ -30,7 +30,8 @@ const directo = conectarDirecto({
   alSorteo: v => { if (listo) pintarSorteo(v); else sorteoPendiente = v; },
   alConexion: ok => {
     const p = $('#estadoConexion');
-    p.textContent = ok ? 'En directo' : 'Sin conexión, reintentando…';
+    p.textContent = ok ? 'Conectada' : 'Sin conexión, reintentando…';
+    p.classList.toggle('mal', !ok);
     p.classList.toggle('vivo', ok);
   },
   alVersion: () => { $('#versionNueva').hidden = false; },
@@ -558,7 +559,7 @@ const pintarGachaAntes = pintarGacha;
 pintarGacha = function (g) { pintarGachaAntes(g); pintarAlineaciones(g.cerrado); pintarJornada(g.jornadas); pintarCodigo(g.codigo); publicarEnDiscord = Boolean(g.publicarDiscord); };
 
 // ---------- Partida en directo (overlay /ingame/) ----------
-let ultimaPartida = null;
+let ultimaPartida = null, listoPastillas = false;
 const mmss = s => { s = Math.max(0, Math.floor(s)); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; };
 const milesOro = n => `${(n / 1000).toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}k`;
 
@@ -628,6 +629,8 @@ function pintarPartidaPanel(p) {
   $('#pruebaPartida').textContent = p.prueba && p.activo ? 'Parar la partida de prueba' : 'Empezar una partida de prueba';
   $('#pruebaPartida').dataset.activa = p.prueba && p.activo ? '1' : '0';
   if (estado) pintarOpcionesFicha();
+  // La partida llega cada segundo: la pastilla de la partida y el momento del Directo se repintan con ella
+  if (estado && listoPastillas) { pintarPastillas(); pintarMomento(); }
 }
 function pintarVisibilidadPartida() {
   $('#verPartida').textContent = estado?.partidaVisible === false ? 'Mostrar el marcador' : 'Ocultar el marcador';
@@ -846,25 +849,36 @@ document.querySelectorAll('.vistas button').forEach(b => b.addEventListener('cli
 }));
 $('#quitarFinal').onclick = async () => { const r = await enviar('finalQuitar'); if (r.ok) aviso('Pantalla final quitada'); };
 
-// ---------- Fases: en cada momento, solo los apartados que tocan ----------
-const FASES = ['antes', 'draft', 'partida', 'resultado', 'liga', 'todo'];
-let fase = 'antes', seguirFase = true, faseAuto = null;
-try { fase = localStorage.getItem('tenka-fase') || 'antes'; seguirFase = localStorage.getItem('tenka-fase-sola') !== '0'; } catch {}
-// /panel/?fase=partida abre el panel en esa fase (y se queda en ella)
-const fasePedida = new URLSearchParams(location.search).get('fase');
+// ---------- Pestañas: en cada momento, solo los apartados que tocan ----------
+// Preparar (sorteo, enfrentamiento, familias, DraftCore y cámaras), Directo (la mesa: lo que sale en pantalla, los
+// grafismos, la partida, los objetivos, el draft y el realizador), Resultado, Liga y gachapon, y Todo. Las fases
+// antiguas (antes, draft, partida), guardadas en el navegador o pedidas con ?fase=, se traducen a las nuevas
+const FASES = ['preparar', 'directo', 'resultado', 'liga', 'todo'];
+const FASE_ANTIGUA = { antes: 'preparar', draft: 'directo', partida: 'directo' };
+const normalizarFase = f => FASE_ANTIGUA[f] || f;
+let fase = 'preparar', seguirFase = true, faseAuto = null;
+try { fase = normalizarFase(localStorage.getItem('tenka-fase') || 'preparar'); seguirFase = localStorage.getItem('tenka-fase-sola') !== '0'; } catch {}
+// /panel/?fase=directo abre el panel en esa pestaña (y se queda en ella)
+const fasePedida = normalizarFase(new URLSearchParams(location.search).get('fase'));
 if (FASES.includes(fasePedida)) { fase = fasePedida; seguirFase = false; }
-// La fase que toca según lo que enseña el overlay
+// La pestaña que toca según lo que enseña el overlay
 function faseDelOverlay() {
   const v = estado?.vistaOverlay;
-  if (v === 'replay') return fase;  // el cartel no cambia de fase: el staff sigue donde estaba
+  if (v === 'replay') return fase;  // el cartel no cambia de pestaña: el staff sigue donde estaba
   if (v === 'final') return 'resultado';
-  if (v === 'partida' || v === 'postdraft') return 'partida';
+  if (v === 'partida' || v === 'postdraft') return 'directo';
   const d = estado?.draft;
   const empezado = Boolean(d) && ['picks', 'bans'].some(t => ['azul', 'rojo'].some(l => d[t][l].some(Boolean)));
-  return empezado || estado?.fuente?.conectado ? 'draft' : 'antes';
+  return empezado || estado?.fuente?.conectado ? 'directo' : 'preparar';
+}
+// Dentro del Directo, lo del momento va arriba: en el draft, el draft; en la partida, la partida y los objetivos
+function pintarMomento() {
+  const v = estado?.vistaOverlay;
+  document.body.dataset.momento = ['partida', 'postdraft', 'final'].includes(v) || ultimaPartida?.activo ? 'partida' : 'draft';
 }
 function ponerFase(nueva) {
   fase = FASES.includes(nueva) ? nueva : 'todo';
+  document.body.dataset.fase = fase;
   document.querySelectorAll('.fases button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.fase === fase)));
   document.querySelectorAll('main > section').forEach(seccion => {
     seccion.hidden = fase !== 'todo' && !(seccion.dataset.fases || '').split(' ').includes(fase);
@@ -881,9 +895,10 @@ function recordar(clave, valor) {
   if (FASES.includes(fasePedida)) return;
   try { localStorage.setItem(clave, valor); } catch {}
 }
-// Con «Cambiar sola», la fase sigue al overlay; solo salta cuando el overlay cambia, no con cada dato que llega
+// Con «Cambiar sola», la pestaña sigue al overlay; solo salta cuando el overlay cambia, no con cada dato que llega
 function seguirOverlay() {
   if (!estado) return;
+  pintarMomento();
   const toca = faseDelOverlay();
   if (seguirFase && toca !== faseAuto) ponerFase(toca);
   faseAuto = toca;
@@ -892,6 +907,60 @@ document.querySelectorAll('.fases button').forEach(b => b.addEventListener('clic
 $('#seguirFase').onchange = e => { ponerSeguir(e.target.checked); if (e.target.checked) { faseAuto = null; seguirOverlay(); } };
 ponerSeguir(seguirFase);
 ponerFase(fase);
+
+listoPastillas = true;
+
+// Las pastillas de la barra llevan a su apartado: cambian de pestaña si hace falta y bajan hasta él
+document.querySelectorAll('.estados a').forEach(a => a.addEventListener('click', e => {
+  const destino = document.querySelector(a.getAttribute('href'));
+  if (!destino) return;
+  e.preventDefault();
+  if (destino.hidden) { ponerSeguir(false); ponerFase(a.dataset.ir || 'todo'); }
+  destino.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}));
+
+// Estado de un vistazo: DraftCore y la partida (la web y el realizador los pintan sus propias conexiones)
+function pastilla(el, texto, clase) {
+  el.textContent = texto;
+  el.classList.toggle('vivo', clase === 'vivo');
+  el.classList.toggle('mal', clase === 'mal');
+}
+const PASTILLA_PARTIDA = { prueba: ['Prueba', 'vivo'], partida: ['En juego', 'vivo'], terminada: ['Terminada', ''],
+  'sin-puente': ['Sin puente', 'mal'], buscando: ['Buscando', ''], espera: ['Puente listo', 'vivo'] };
+function pintarPastillas() {
+  const f = estado?.fuente;
+  if (f) pastilla($('#chipDraftcore'), f.conectado ? `Conectado · ${f.codigo}` : f.error ? 'Con error' : 'Sin conectar', f.conectado ? 'vivo' : f.error ? 'mal' : '');
+  const p = ultimaPartida;
+  if (p && estado) {
+    const fasePartida = faseDe(p);
+    const [texto, clase] = PASTILLA_PARTIDA[fasePartida];
+    pastilla($('#chipPartida'), ['prueba', 'partida'].includes(fasePartida) ? `${texto} · ${mmss(p.tiempo)}` : texto, clase);
+  }
+  // Los botones del ganador dicen qué familia gana y llevan su color (no «lado azul» y «lado rojo»)
+  for (const [lado, id] of [['azul', '#ganaAzul'], ['rojo', '#ganaRojo']]) {
+    const c = clanes.clan(estado?.equipos?.[lado]?.clan || 'NONAME');
+    const b = $(id);
+    b.textContent = c.id === 'NONAME' ? `Gana el lado ${lado}` : `Gana ${c.nombre}`;
+    b.style.setProperty('--familia', c.id === 'NONAME' ? '' : c.color);
+  }
+  // Los grafismos que están fuera se ven encendidos
+  const g = estado?.grafico?.tipo;
+  $('#verLineas').classList.toggle('fuera', g === 'lineas');
+  $('#verFicha').classList.toggle('fuera', g === 'ficha');
+  $('#verOro').classList.toggle('fuera', g === 'oro');
+  $('#verPartida').classList.toggle('fuera', estado?.partidaVisible === false);
+}
+
+// Ayuda: las explicaciones largas (.ayuda sin id) solo salen con el botón «Ayuda»; se recuerda en este navegador
+function ponerAyuda(si) {
+  document.body.classList.toggle('con-ayuda', si);
+  $('#verAyuda').setAttribute('aria-pressed', String(si));
+  try { localStorage.setItem('gokudo-panel-ayuda', si ? '1' : '0'); } catch {}
+}
+let ayudaGuardada = false;
+try { ayudaGuardada = localStorage.getItem('gokudo-panel-ayuda') === '1'; } catch {}
+ponerAyuda(ayudaGuardada);
+$('#verAyuda').onclick = () => ponerAyuda(!document.body.classList.contains('con-ayuda'));
 
 // ---------- Jornada del fantasy: clasificación, sobres para los tres primeros y Discord ----------
 let jornada = null, publicarEnDiscord = false;
@@ -991,5 +1060,5 @@ setInterval(() => { if (codigo) pintarCodigo(); }, 1000);
 setInterval(() => { if (codigo?.vivo && codigo.caduca > Date.now()) actualizarGacha(); }, 10000);
 
 const pintarAntesVistas = pintar;
-pintar = function () { pintarAntesVistas(); pintarVistas(); pintarJornadaAuto(); seguirOverlay(); };
+pintar = function () { pintarAntesVistas(); pintarVistas(); pintarJornadaAuto(); seguirOverlay(); pintarPastillas(); };
 if (estado) pintar();
