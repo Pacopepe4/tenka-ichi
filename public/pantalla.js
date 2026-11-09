@@ -6,17 +6,19 @@
 // Si hay directo y la pantalla sale de la vista, el directo sigue en una ventanita en la esquina.
 import { iniciarDirecto } from '/directo.js';
 
-// Las cuentas de Gokudō. trailerYoutube: el id del vídeo del tráiler en YouTube (lo que va detrás de «watch?v=»);
+// Las cuentas de Gokudō (el canal de YouTube es @Gokudo_zoku: el del tráiler, comprobado el 09/11/2026).
+// trailerYoutube: el id del vídeo del tráiler en YouTube (lo que va detrás de «watch?v=» o de youtu.be/);
 // mientras esté vacío, la carta enseña la miniatura con «Muy pronto en YouTube»
 export const REDES = {
-  kick: 'gokudo-zoku', twitch: 'gokudo_zoku', x: 'gokudozoku', tiktok: 'gokudo_zoku', youtube: 'gokuzo',
-  trailerYoutube: '',
+  kick: 'gokudo-zoku', twitch: 'gokudo_zoku', x: 'gokudozoku', tiktok: 'gokudo_zoku', youtube: 'Gokudo_zoku',
+  // El tráiler del gachapon (https://youtu.be/DLY-79MOV_Y), con su miniatura
+  trailerYoutube: 'DLY-79MOV_Y', trailerMiniatura: '/marca/trailer-gachapon-miniatura.jpg',
 };
 
 const CARTAS = [
   { red: 'kick', kanji: '生', nombre: 'Kick', sub: `kick.com/${REDES.kick}`, color: '#53FC18', enlace: `https://kick.com/${REDES.kick}`, abrir: 'Abrir en Kick' },
   { red: 'twitch', kanji: '配', nombre: 'Twitch', sub: `twitch.tv/${REDES.twitch}`, color: '#A970FF', enlace: `https://twitch.tv/${REDES.twitch}`, abrir: 'Abrir en Twitch' },
-  { red: 'trailer', kanji: '映', nombre: 'Tráiler', sub: 'El teaser de Gokudō', color: '#E0303A', enlace: `https://www.youtube.com/@${REDES.youtube}`, abrir: 'Verlo en YouTube' },
+  { red: 'trailer', kanji: '映', nombre: 'Tráiler', sub: 'El del gachapon', color: '#E0303A', enlace: `https://youtu.be/${REDES.trailerYoutube}`, abrir: 'Verlo en YouTube' },
   { red: 'x', kanji: '言', nombre: 'X', sub: `@${REDES.x}`, color: '#E7DFD2', enlace: `https://x.com/${REDES.x}`, abrir: 'Abrir en X' },
   { red: 'tiktok', kanji: '舞', nombre: 'TikTok', sub: `@${REDES.tiktok}`, color: '#25F4EE', enlace: `https://www.tiktok.com/@${REDES.tiktok}`, abrir: 'Abrir en TikTok' },
   { red: 'youtube', kanji: '動', nombre: 'YouTube', sub: `@${REDES.youtube}`, color: '#FF3040', enlace: `https://www.youtube.com/@${REDES.youtube}`, abrir: 'Abrir en YouTube' },
@@ -134,13 +136,13 @@ function encender(red) {
   }
   if (red === 'twitch') twitch?.then(t => t?.mostrar(activa === 'twitch'));
   if (red === 'trailer') {
-    p.innerHTML = `<button type="button" class="trailer-portada" ${REDES.trailerYoutube ? '' : 'disabled'} aria-label="${REDES.trailerYoutube ? 'Ver el tráiler de Gokudō' : 'El tráiler llega muy pronto a YouTube'}">
-      <img src="/marca/teaser-miniatura.jpg" alt="">
+    p.innerHTML = `<button type="button" class="trailer-portada" ${REDES.trailerYoutube ? '' : 'disabled'} aria-label="${REDES.trailerYoutube ? 'Ver el tráiler del gachapon de Gokudō' : 'El tráiler llega muy pronto a YouTube'}">
+      <img src="${REDES.trailerMiniatura}" alt="">
       <span class="trailer-boton">${REDES.trailerYoutube ? '<span class="trailer-play" aria-hidden="true"></span>Ver el tráiler' : 'Muy pronto en YouTube'}</span>
     </button>`;
     p.querySelector('.trailer-portada').addEventListener('click', () => {
       p.innerHTML = `<iframe class="pantalla-video" src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(REDES.trailerYoutube)}?autoplay=1&rel=0&playsinline=1"
-        title="Tráiler de Gokudō" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
+        title="Tráiler del gachapon de Gokudō" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
     });
   }
   if ((red === 'x' || red === 'tiktok') && p.dataset.fallo) { p.innerHTML = perfil(red); delete p.dataset.fallo; return; }
