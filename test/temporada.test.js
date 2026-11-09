@@ -61,7 +61,7 @@ before(async () => {
 after(async () => { await pararWeb(); await rm(carpeta, { recursive: true, force: true }); });
 
 // ---------- con los datos en archivos ----------
-test('la temporada: la 2 en la web publicada desde el 10/10/2026, la 1 en local y en las pruebas, u otra si se pide', () => {
+test('la temporada: la 3 en la web publicada desde el 09/11/2026, la 1 en local y en las pruebas, u otra si se pide', () => {
   const codigo = "const d = await import('./server/datos.js'); const p = await import('node:path'); console.log(JSON.stringify([d.TEMPORADA, d.pestanaDeTemporada('Gachapon'), d.pestanaDeTemporada('Alineaciones'), p.basename(d.archivoDeTemporada('gacha'))]))";
   const con = entorno => {
     const limpio = { ...process.env };
@@ -69,10 +69,11 @@ test('la temporada: la 2 en la web publicada desde el 10/10/2026, la 1 en local 
     return JSON.parse(spawnSync(process.execPath, ['--input-type=module', '-e', codigo], { cwd: RAIZ, encoding: 'utf8', env: { ...limpio, ...entorno } }).stdout);
   };
   assert.deepEqual(con({}), [1, 'Gachapon', 'Alineaciones', 'gacha.json']);
-  assert.deepEqual(con({ RENDER: 'true' }), [2, 'GachaponT2', 'AlineacionesT2', 'gacha-t2.json']);
+  assert.deepEqual(con({ RENDER: 'true' }), [3, 'GachaponT3', 'AlineacionesT3', 'gacha-t3.json']);
+  assert.deepEqual(con({ RENDER: 'true', GACHA_TEMPORADA: '2' }), [2, 'GachaponT2', 'AlineacionesT2', 'gacha-t2.json'], 'y la 2 sigue ahí');
   assert.deepEqual(con({ RENDER: 'true', GACHA_TEMPORADA: '1' }), [1, 'Gachapon', 'Alineaciones', 'gacha.json'], 'volver a la anterior es volver a lo que había');
   assert.deepEqual(con({ GACHA_TEMPORADA: '3' }), [3, 'GachaponT3', 'AlineacionesT3', 'gacha-t3.json']);
-  for (const mal of ['', '0', '-1', '2.5', 'dos']) assert.equal(con({ RENDER: 'true', GACHA_TEMPORADA: mal })[0], 2, `«${mal}» no es una temporada`);
+  for (const mal of ['', '0', '-1', '2.5', 'dos']) assert.equal(con({ RENDER: 'true', GACHA_TEMPORADA: mal })[0], 3, `«${mal}» no es una temporada`);
 });
 
 test('antes de estrenarla, la temporada nueva está vacía y la anterior sigue donde estaba', async () => {

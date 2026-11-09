@@ -1247,8 +1247,13 @@ await aplicarImportaciones().then(h => { if (h.length) console.log(`Importado en
 await cargarFantasy();
 // Si la temporada del gachapon es nueva y aún no se ha estrenado, se estrena: todos de cero, con su cuenta. Si falla (la
 // hoja no responde), la web arranca igual y se vuelve a intentar en el siguiente arranque
-await estrenarTemporada().then(r => { if (r) console.log(`Temporada ${estadoTemporada().numero} del gachapon estrenada: ${r.cuentas} cuentas empiezan de cero`); },
-  e => console.error('Temporada del gachapon sin estrenar:', e.message));
+// Al estrenarla, las alineaciones (que también empiezan vacías) se abren: si estaban cerradas por una jornada o por un
+// draft de prueba, nadie podría alinear sus cartas nuevas
+await estrenarTemporada().then(async r => {
+  if (!r) return;
+  console.log(`Temporada ${estadoTemporada().numero} del gachapon estrenada: ${r.cuentas} cuentas empiezan de cero`);
+  await cerrarAlineaciones(false).catch(e => console.error('Alineaciones sin abrir al estrenar la temporada:', e.message));
+}, e => console.error('Temporada del gachapon sin estrenar:', e.message));
 await cargarPartida();
 await cargarCanal().catch(e => console.error('Canal de Twitch:', e.message));
 await cargarCanalKick().catch(e => console.error('Canal de Kick:', e.message));
