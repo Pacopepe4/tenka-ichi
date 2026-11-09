@@ -116,6 +116,19 @@ export class Emision extends EventEmitter {
     try { this.salidas = await this.obs.salidas(); } catch { /* se vuelve a mirar en 2 s */ }
   }
 
+  esperaReintento() { return (this.c.reintentoSegundos ?? 15) * 1000; }
+
+  // Se pidió empezar a emitir (o grabar) y, pasado el rato, OBS sigue sin hacerlo: se dice por qué puede ser
+  avisarSiNoArranca(ahora = Date.now()) {
+    if (!this.intentoSalida || this.salidaActiva || ahora - this.intentoSalida < this.esperaReintento()) return;
+    this.intentoSalida = null;
+    this.error = this.modo === 'grabar'
+      ? 'OBS no ha conseguido empezar a grabar: mira la carpeta de grabación en OBS (Ajustes → Salida)'
+      : 'OBS no ha conseguido empezar a emitir: revisa el servidor y la clave de retransmisión en OBS (Ajustes → Emisión) y su registro (Ayuda → Archivos de registro)';
+    this.registrar(`[emisión] ${this.error}`);
+    this.emit('cambio');
+  }
+
   async escena(nombre) {
     try { await this.obs.escena(nombre); } catch (e) { this.registrar(`[emisión] no se pudo poner la escena ${nombre}: ${e.message}`); }
   }
@@ -130,6 +143,9 @@ export class Emision extends EventEmitter {
     await this.leerSalidas();
     const ahora = Date.now();
     if ((this.draft || null) !== (draft || null)) { this.draft = draft || null; this.emit('cambio'); }
+    // ¿Arrancó de verdad lo que se pidió a OBS?
+    if (this.salidaActiva && this.intentoSalida) this.intentoSalida = null;
+    else this.avisarSiNoArranca(ahora);
     // Lo que pasa en OBS a mano: empezar a emitir arma el realizador; cortar la emisión lo apaga
     if (this.salidas && !this.parando) {
       const enAire = Boolean(this.salidas.emitiendo || (this.modo === 'grabar' && this.salidas.grabando));
@@ -157,13 +173,18 @@ export class Emision extends EventEmitter {
       // Draft en el panel de Gokudō: su escena (y, si aún no se emitía, se empieza ya, con el draft)
       if (draft) {
         if (!this.salidaActiva && this.obs?.arrancarSalida && ahora >= this.reintentoEn) {
+          // OBS acepta la orden aunque luego no consiga conectar (clave o servidor mal): no se vuelve a pedir en
+          // cada vuelta (en la prueba del 09/11 eso colgó OBS), sino pasados «reintentoSegundos»
+          this.avisarSiNoArranca(ahora);
+          this.reintentoEn = ahora + this.esperaReintento();
           try {
+            if (this.escenaAuto !== 'draft') await this.escena(this.escenas.draft);
             this.escenaAuto = 'draft';
-            await this.escena(this.escenas.draft);
             await this.obs.arrancarSalida(this.modo);
+            this.intentoSalida = ahora;
             await this.leerSalidas(true);
             this.estabaEnAire = this.salidaActiva;
-            this.error = null;
+            if (this.salidaActiva) { this.error = null; this.reintentoEn = 0; }
             this.registrar(`[emisión] ${this.modo === 'grabar' ? 'grabando' : 'emitiendo'} con el draft`);
           } catch (e) {
             this.error = `OBS no ha podido ${this.modo === 'grabar' ? 'grabar' : 'emitir'}: ${e.message}`;
@@ -185,7 +206,7 @@ export class Emision extends EventEmitter {
       // (solo cuando el PC 1 ya no da el final: mientras lo dé, sigue siendo la misma partida)
       if (this.esperaNueva && !Number.isFinite(tFin) && (!juego || (Number.isFinite(meta) && meta < -this.c.previaSegundos))) this.esperaNueva = false;
       if (this.esperaNueva) return;
-      if (!listo || meta === null || meta === undefined || ahora < this.reintentoEn) return;
+      if (!listo || meta === null || meta === undefined || (ahora < this.reintentoEn && !this.salidaActiva)) return;
       if (meta < -this.c.previaSegundos) return;
       // Faltan pocos segundos para el principio (o ya ha empezado): a emitir
       try {
@@ -193,6 +214,7 @@ export class Emision extends EventEmitter {
           if (this.salidas && !this.salidas.bufer) await this.obs.arrancarBufer().catch(e => this.registrar(`[emisión] búfer de repetición: ${e.message}`));
           await this.escena(meta < 0 ? this.escenas.previa : this.escenas.juego);
           await this.obs.arrancarSalida(this.modo);
+          this.intentoSalida = ahora;
           await this.leerSalidas(true);
           this.estabaEnAire = this.salidaActiva;
           this.registrar(`[emisión] ${this.modo === 'grabar' ? 'grabando' : 'emitiendo'}${meta < 0 ? ` (previa: la partida sale en ${Math.round(-meta)} s)` : ''}`);

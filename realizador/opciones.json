@@ -50,6 +50,7 @@
   "emision": {
     "modo": "emitir",
     "previaSegundos": 10,
+    "reintentoSegundos": 15,
     "segundosTrasFin": 5,
     "sinJuegoSegundos": 8,
     "pararAlAcabar": false,
