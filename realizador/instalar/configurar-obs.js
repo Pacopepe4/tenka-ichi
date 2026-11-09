@@ -228,7 +228,66 @@ export function buscarOverlay(carpetaEscenas) {
 // codificador "x264" (por defecto): el del procesador, que funciona en cualquier PC. El que elige el asistente
 // de OBS (QuickSync, NVENC, AMD) puede fallar con drivers viejos o portátiles con dos gráficas, y entonces
 // el búfer no arranca. Con "" se deja el del perfil copiado.
-export function ajustesPerfil({ carpetaClips, segundosBufer, codificador = 'x264' }) {
+// ---------- codificador según la tarjeta gráfica ----------
+// H.264 (lo que pide Kick) de cada fabricante: el nombre en la salida sencilla de OBS y los ids que puede tener en la
+// avanzada según la versión de OBS
+export const CODIFICADORES = {
+  nvenc: { simple: 'nvenc', avanzado: ['obs_nvenc_h264_tex', 'jim_nvenc', 'ffmpeg_nvenc'], nombre: 'NVENC de NVIDIA' },
+  amd: { simple: 'amd', avanzado: ['h264_texture_amf', 'amd_amf_h264'], nombre: 'AMF de AMD' },
+  qsv: { simple: 'qsv', avanzado: ['obs_qsv11_v2', 'obs_qsv11'], nombre: 'QuickSync de Intel' },
+  x264: { simple: 'x264', avanzado: ['obs_x264'], nombre: 'x264 (procesador)' },
+};
+
+// Codificadores de vídeo que OBS dio como disponibles al arrancar (lista «Available Encoders» de su registro)
+export function codificadoresDelRegistro(texto) {
+  const t = String(texto || '');
+  const i = t.lastIndexOf('Available Encoders:');
+  if (i < 0) return null;
+  const trozo = t.slice(i).split(/Audio Encoders:/)[0];
+  return [...trozo.matchAll(/^\S*\s*-\s+([a-z0-9_]+)\s+\(/gim)].map(m => m[1]);
+}
+
+// Último registro de OBS de este PC (si OBS se ha abierto alguna vez)
+export function ultimoRegistroObs(carpeta) {
+  try {
+    const dir = join(carpeta, 'logs');
+    const f = readdirSync(dir).filter(n => n.endsWith('.txt')).sort().at(-1);
+    return f ? readFileSync(join(dir, f), 'latin1') : '';
+  } catch { return ''; }
+}
+
+export function tarjetasGraficas() {
+  if (process.platform !== 'win32') return [];
+  try {
+    return execFileSync('powershell', ['-NoProfile', '-Command', '(Get-CimInstance Win32_VideoController).Name'], { encoding: 'utf8', timeout: 15000 })
+      .split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+  } catch { return []; }
+}
+
+// De qué fabricante es cada tarjeta y si es lo bastante moderna para fiarse de su codificador (con drivers viejos,
+// como la GTX 960M del portátil de pruebas, OBS lo da por disponible pero falla al emitir)
+function tipoTarjeta(nombre) {
+  if (/nvidia|geforce|quadro/i.test(nombre)) return { clave: 'nvenc', moderna: /RTX|GTX\s*(1[0-9]{3}|16\d\d)/i.test(nombre), dedicada: true };
+  if (/amd|radeon/i.test(nombre)) return { clave: 'amd', moderna: /RX\s*[5-9]\d{3}/i.test(nombre), dedicada: true };
+  if (/intel/i.test(nombre)) return { clave: 'qsv', moderna: /Arc|UHD|Iris/i.test(nombre), dedicada: /Arc/i.test(nombre) };
+  return null;
+}
+
+// Elige el codificador: el de la tarjeta (primero las dedicadas) si es moderna y OBS lo tiene disponible; si no, x264
+export function elegirCodificador({ disponibles = null, tarjetas = [] } = {}) {
+  const tipos = tarjetas.map(n => ({ n, ...tipoTarjeta(n) })).filter(x => x.clave).sort((a, b) => Number(b.dedicada) - Number(a.dedicada));
+  for (const t of tipos) {
+    if (!t.moderna) continue;
+    const c = CODIFICADORES[t.clave];
+    const id = disponibles ? c.avanzado.find(x => disponibles.includes(x)) : c.avanzado[0];
+    if (!id) continue;
+    return { clave: t.clave, id, motivo: `${c.nombre} (${t.n}${disponibles ? ', disponible en OBS' : ''})` };
+  }
+  const motivo = tipos.length ? `x264: ${tipos.map(t => t.n).join(', ')} sin codificador fiable` : 'x264: no se sabe la tarjeta gráfica';
+  return { clave: 'x264', id: 'obs_x264', motivo };
+}
+
+export function ajustesPerfil({ carpetaClips, segundosBufer, codificador = 'x264', idAvanzado = null }) {
   const r = {
     General: { Name: NOMBRE },
     // El lienzo siempre a 1920×1080: las escenas y los overlays están hechos a esa medida (con otro lienzo el
@@ -245,6 +304,10 @@ export function ajustesPerfil({ carpetaClips, segundosBufer, codificador = 'x264
   if (codificador === 'x264') {
     Object.assign(r.SimpleOutput, { StreamEncoder: 'x264', RecEncoder: 'x264', Preset: 'veryfast' });
     Object.assign(r.AdvOut, { Encoder: 'obs_x264', RecEncoder: 'none' });  // none = el mismo que la emisión
+  } else if (CODIFICADORES[codificador]) {
+    const c = CODIFICADORES[codificador];
+    Object.assign(r.SimpleOutput, { StreamEncoder: c.simple, RecEncoder: c.simple });
+    Object.assign(r.AdvOut, { Encoder: idAvanzado || c.avanzado[0], RecEncoder: 'none' });
   }
   return r;
 }
@@ -279,7 +342,7 @@ export function servicioEmision({ servidor, clave }) {
   return { type: 'rtmp_custom', settings: { server: servidor, key: clave, use_auth: false, bwtest: false } };
 }
 
-export function configurarObs({ carpeta, opciones, rutaLocal, overlay, overlayPorDefecto, carpetaClips, recursos = RECURSOS, instalarLasFuentes = !process.env.NODE_TEST_CONTEXT }) {
+export function configurarObs({ carpeta, opciones, rutaLocal, overlay, overlayPorDefecto, carpetaClips, recursos = RECURSOS, instalarLasFuentes = !process.env.NODE_TEST_CONTEXT, tarjetas = null }) {
   const o = opciones.obs;
   const hechos = [];
   const fecha = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 19);
@@ -339,8 +402,18 @@ export function configurarObs({ carpeta, opciones, rutaLocal, overlay, overlayPo
     if (!ini) ini = ponerEnIni('', VIDEO_NUEVO);
   }
   mkdirSync(carpetaClips, { recursive: true });
-  escribir(join(perfil, 'basic.ini'), ponerEnIni(ini, ajustesPerfil({ carpetaClips, segundosBufer: o.segundosBufer, codificador: o.codificador ?? 'x264' })));
-  hechos.push(`Perfil "${NOMBRE}"${base ? ` (copia de "${actual.Profile || actual.ProfileDir}")` : ''}: búfer de repetición de ${o.segundosBufer} s, codificador ${(o.codificador ?? 'x264') || 'el de tu perfil'}, clips en ${carpetaClips}`);
+  // Codificador: "auto" lo elige según la tarjeta gráfica y lo que OBS da como disponible en su último registro
+  let codificador = o.codificador ?? 'x264';
+  let idAvanzado = null;
+  let porQue = '';
+  if (codificador === 'auto') {
+    const e = elegirCodificador({ disponibles: codificadoresDelRegistro(ultimoRegistroObs(carpeta)), tarjetas: tarjetas ?? tarjetasGraficas() });
+    codificador = e.clave;
+    idAvanzado = e.id;
+    porQue = ` — ${e.motivo}`;
+  }
+  escribir(join(perfil, 'basic.ini'), ponerEnIni(ini, ajustesPerfil({ carpetaClips, segundosBufer: o.segundosBufer, codificador, idAvanzado })));
+  hechos.push(`Perfil "${NOMBRE}"${base ? ` (copia de "${actual.Profile || actual.ProfileDir}")` : ''}: búfer de repetición de ${o.segundosBufer} s, codificador ${codificador ? (CODIFICADORES[codificador]?.nombre || codificador) : 'el de tu perfil'}${porQue}, clips en ${carpetaClips}`);
   // Clave de retransmisión (Kick): solo si está en opciones.local.json de este PC (la pide INSTALAR-PC2.bat). Nunca
   // se enseña ni se apunta en ningún sitio más: va directa al service.json del perfil. Sin clave, se queda la del
   // perfil copiado.

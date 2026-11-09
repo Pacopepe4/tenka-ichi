@@ -135,7 +135,7 @@
       "overlay": "Overlay REPLAY"
     },
     "segundosBufer": 45,
-    "codificador": "x264",
+    "codificador": "auto",
     "emision": { "servidor": "rtmps://fa723fc1b171.global-contribute.live-video.net/app" },
     "overlay": ""
   },
