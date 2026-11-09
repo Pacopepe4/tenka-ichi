@@ -18,6 +18,7 @@ import { pathToFileURL } from 'node:url';
 import { RAIZ, cargarOpciones, mezclar } from '../comun/opciones.js';
 import { configurarApis, rutaConfig } from './configurar-lol.js';
 import { configurarObs, carpetaObs, obsAbierto, NOMBRE } from './configurar-obs.js';
+import { instalarComplemento } from './multi-rtmp.js';
 
 // El overlay de Gokudō sale del mismo servidor que la sala: wss://x/realizador → https://x/overlay/
 export function overlayDeTenka(urlPuente) {
@@ -63,7 +64,7 @@ function accesoDirecto(nombre, bat) {
   return nombre;
 }
 
-export function instalar({ papel, clave, ruta, emision = '', rutaLocal = join(RAIZ, 'opciones.local.json'), carpeta = carpetaObs(), atajo = true, carpetaPuente }) {
+export function instalar({ papel, clave, ruta, emision = '', twitch = '', rutaLocal = join(RAIZ, 'opciones.local.json'), carpeta = carpetaObs(), atajo = true, carpetaPuente }) {
   if (papel !== 'pc1' && papel !== 'pc2') throw new Error('Di qué PC es: pc1 o pc2');
   if (!clave || clave.length < 4) throw new Error('La contraseña tiene que tener al menos 4 caracteres');
   const hechos = [];
@@ -76,9 +77,13 @@ export function instalar({ papel, clave, ruta, emision = '', rutaLocal = join(RA
   // configurar-obs para el perfil de OBS. No sale nunca en pantalla ni en las descargas.
   const conEmision = papel === 'pc2' && Boolean(emision.trim());
   if (conEmision) locales.obs = { ...locales.obs, emision: { ...(locales.obs?.emision || {}), clave: emision.trim() } };
+  // Clave de Twitch (solo PC 2), igual: solo en este PC
+  const conTwitch = papel === 'pc2' && Boolean(twitch.trim());
+  if (conTwitch) locales.obs = { ...locales.obs, emision: { ...(locales.obs?.emision || {}), twitch: { ...(locales.obs?.emision?.twitch || {}), clave: twitch.trim() } } };
   writeFileSync(rutaLocal, JSON.stringify(locales, null, 2) + '\n');
   hechos.push('Contraseña guardada');
   if (conEmision) hechos.push('Clave de retransmisión guardada solo en este PC');
+  if (conTwitch) hechos.push('Clave de Twitch guardada solo en este PC');
   const o = cargarOpciones();
 
   // 2. LoL
@@ -123,7 +128,15 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const arg = n => { const i = args.indexOf(n); return i !== -1 ? args[i + 1] : undefined; };
   try {
     // La clave de retransmisión llega por el entorno (REALIZADOR_EMISION) para que no se vea en la lista de procesos
-    const { hechos, avisos } = instalar({ papel: args[0], clave: arg('--clave'), ruta: arg('--ruta'), emision: process.env.REALIZADOR_EMISION || '' });
+    const { hechos, avisos } = instalar({ papel: args[0], clave: arg('--clave'), ruta: arg('--ruta'), emision: process.env.REALIZADOR_EMISION || '', twitch: process.env.REALIZADOR_TWITCH || '' });
+    // Con clave de Twitch, el complemento para emitir a la vez (se baja de su página oficial y se comprueba su huella)
+    if (args[0] === 'pc2' && cargarOpciones().obs?.emision?.twitch?.clave) {
+      try {
+        const r = await instalarComplemento();
+        if (r.hecho) hechos.push(r.ya ? 'Complemento para emitir también a Twitch: ya estaba' : 'Complemento para emitir también a Twitch instalado (Multiple RTMP outputs)');
+        else avisos.push(`Twitch: ${r.motivo}`);
+      } catch (e) { avisos.push(`Twitch: ${e.message}. Kick se emite igual`); }
+    }
     console.log('');
     for (const h of hechos) console.log(`  OK  ${h}`);
     for (const a of avisos) console.log(`  !!  ${a}`);

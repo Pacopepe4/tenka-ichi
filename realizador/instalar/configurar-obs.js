@@ -23,6 +23,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { ponerEnIni } from './configurar-lol.js';
+import { configurarDestinos } from './multi-rtmp.js';
 import { disposicionCamaras, FUENTES as CAMARAS_DRAFT } from '../pc2/camaras.js';
 
 export const NOMBRE = 'Realizador';
@@ -421,6 +422,10 @@ export function configurarObs({ carpeta, opciones, rutaLocal, overlay, overlayPo
   if (em.clave) {
     writeFileSync(join(perfil, 'service.json'), JSON.stringify(servicioEmision(em), null, 4));
     hechos.push(`Clave de retransmisión puesta en el perfil "${NOMBRE}" (${em.servidor ? new URL(em.servidor).host : 'servidor por defecto'})`);
+  }
+  // Twitch a la vez (complemento «Multiple RTMP outputs»): su destino en el perfil, con la clave de este PC
+  if (em.twitch?.clave || existsSync(join(perfil, 'obs-multi-rtmp.json'))) {
+    if (configurarDestinos({ perfil, twitch: em.twitch || {} })) hechos.push('Twitch a la vez que la emisión principal (complemento Multiple RTMP outputs, mismo codificador)');
   }
 
   // 4. Clave del WebSocket: la de opciones.local.json o una nueva, que se apunta allí

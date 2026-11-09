@@ -28,7 +28,13 @@ echo Se guarda solo en este PC y OBS la usa para emitir. Pulsa Enter sin escribi
 set "REALIZADOR_EMISION="
 set /p "REALIZADOR_EMISION=Clave de retransmision de Kick: "
 cls
+echo Clave de Twitch para emitir tambien alli a la vez ^(en Twitch: Panel de control del creador, Configuracion,
+echo Transmision, Clave de transmision principal^). Se guarda solo en este PC. Enter sin nada: solo Kick.
+set "REALIZADOR_TWITCH="
+set /p "REALIZADOR_TWITCH=Clave de Twitch: "
+cls
 "%NODE%" instalar\instalar.js pc2 --clave "%CLAVE%" --ruta "%RUTA%"
 set "REALIZADOR_EMISION="
+set "REALIZADOR_TWITCH="
 echo.
 pause
