@@ -407,3 +407,5 @@ Diseño aprobado en `docs/superpowers/specs/2026-10-04-ingame-mejoras-design.md`
 - **Preparar:** el partido de hoy (calendario y sorteo plegado), el enfrentamiento, las familias, DraftCore y las cámaras del draft. **Resultado:** los botones del ganador dicen la familia («Gana Tsuki») y llevan su color.
 - **Estilo Gokudō:** carga `/obs-gokudo.css`; noche, placas de 8 px con filo, botón principal bermellón, Dela Gothic One en los títulos. La vista previa lleva debajo el fondo de noche para que el marcador transparente se lea.
 - Mismos ids que antes (panel.js y realizador.js no cambian de lógica). Capturas en `docs/capturas/panel/`. Pruebas: 266.
+
+- **Muestras a 2K:** KUCHAUU (Tengu medio), MAKITAH S+ y GAATSU LEGACY se habían quedado con la muestra a 1K; ahora salen de la descarga 2K de Flow (originales en `gachapón/` y `gachapón/fullart/`).
