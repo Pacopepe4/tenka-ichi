@@ -15,7 +15,7 @@
     "cadaMs": 250,
     "toleranciaSegundos": 4,
     "seleccionarPor": "jugador",
-    "interfaz": { "interfaceFrames": false },
+    "interfaz": { "interfaceFrames": false, "interfaceTimeline": false, "interfaceReplay": false, "interfaceTarget": false },
     "generalSigueAlUltimo": true,
     "desplazamientoCamara": { "x": 0, "y": 1911.85, "z": -1200 },
     "degradadoTrasSegundos": 15,
@@ -23,11 +23,13 @@
       "general": { "fov": 66, "distancia": 1.45 },
       "abierto": { "fov": 56, "distancia": 1.15 },
       "cerca": { "fov": 44, "distancia": 0.8 },
-      "transicionSegundos": 1.2,
+      "modo": "secuencia",
+      "transicionSegundos": 2,
       "salidaSegundos": 0.5,
-      "pasosPorSegundo": 30,
-      "pasoFov": 0.5,
-      "pasoDistancia": 0.015,
+      "pasosPorSegundo": 60,
+      "pasoFov": 0.1,
+      "pasoDistancia": 0.003,
+      "zoomEnLosCortes": true,
       "abrirAlCambiar": false
     },
     "bordes": {
@@ -137,6 +139,7 @@
     "segundosBufer": 45,
     "codificador": "auto",
     "emision": { "servidor": "rtmps://fa723fc1b171.global-contribute.live-video.net/" },
+    "minimapa": {},
     "overlay": ""
   },
 

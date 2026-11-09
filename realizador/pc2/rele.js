@@ -24,10 +24,12 @@ import { RAIZ } from '../comun/opciones.js';
 // Qué enseña el panel de Gokudō: un draft en marcha (DraftCore conectado o con turnos), el draft recién
 // cerrado (postdraft) o nada de draft
 // Interfaz del espectador en el LoL de la antena (Replay API, /replay/render): lo que no tiene que salir en la
-// emisión porque ya lo enseña el overlay. Por defecto se quitan los campeones de los lados (interfaceFrames).
+// emisión porque ya lo enseña el overlay o no pinta nada en antena. Por defecto se quitan los campeones de los lados
+// (interfaceFrames), la línea de tiempo (interfaceTimeline), los controles del espectador con el modo de cámara
+// (interfaceReplay) y el recuadro del campeón seguido (interfaceTarget).
 // Va en cada orden de cámara, así que se queda quitado aunque alguien pulse una tecla del espectador.
 // En opciones.json → rele.interfaz se puede quitar o dejar cualquier otra parte (interfaceScoreboard, interfaceMinimap...).
-export const INTERFAZ = { interfaceFrames: false };
+export const INTERFAZ = { interfaceFrames: false, interfaceTimeline: false, interfaceReplay: false, interfaceTarget: false };
 export function interfazEspectador(r = {}) {
   return { ...INTERFAZ, ...(r.interfaz || {}) };
 }
@@ -187,30 +189,81 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
   let secuencia = 0;                       // y cada plano nuevo cancela el cambio de seguido a medias
   estado.zoom = { ...nivel('general') };   // zoom aplicado ahora mismo
 
-  // El zoom va de punto en punto: cada orden cambia el campo de visión como mucho «pasoFov» (medio grado) y la
-  // distancia en proporción, a un ritmo fijo («pasosPorSegundo»). Así no da saltos de varias unidades aunque una
-  // orden a la Replay API tarde más de la cuenta. «transicionSegundos» es lo mínimo que dura.
-  async function transicion(p, destino, segundos = r.zoom?.transicionSegundos ?? 1.2) {
-    const yo = ++animacion;
-    const desde = { ...estado.zoom };
-    if (desde.fov === destino.fov && desde.distancia === destino.distancia) return;
-    const ritmo = r.zoom?.pasosPorSegundo ?? 30;
-    const pasoFov = r.zoom?.pasoFov ?? 0.5;
-    const pasoDistancia = r.zoom?.pasoDistancia ?? 0.015;
+  // ---------- zoom suave ----------
+  // El LoL solo deja fijar el campo de visión y la distancia: cada orden es un salto. Por eso el zoom:
+  //  A) Por defecto (zoom.modo "secuencia") lo hace el propio juego: una secuencia de la Replay API con el valor de
+  //     ahora y el de destino, y el motor interpola en cada imagen con una curva suave (smoothStep). Probado el 09/11
+  //     en un LoL real, también siguiendo a un jugador. Al acabar se quita la secuencia y se deja el valor final.
+  //  B) Si la secuencia no se puede (antena en pausa o acelerada, o la API no la acepta): muchas órdenes pequeñas
+  //     (pasosPorSegundo, pasoFov) a ritmo fijo y con la misma curva suave.
+  //  C) Sin jugador fijado (vista de arriba) no hay animación: zoom fijo. Y al cambiar de jugador, corte directo
+  //     con el zoom nuevo (ver aplicar). Mientras dura un zoom, el ajuste de bordes no toca la cámara.
+  const enviarSecuencia = cuerpo => pedirJSON(`${api}/replay/sequence`, { metodo: 'POST', cuerpo, tiempoMs: 1500 });
+  const pausa = ms => new Promise(f => setTimeout(f, ms));
+  async function quitarSecuencia() {
+    if (!estado.secuenciaActiva) return;
+    estado.secuenciaActiva = null;
+    await enviarSecuencia({}).catch(() => {});
+  }
+  const sinFijar = p => !p || p.tipo === 'general' || !p.objetivo;
+
+  async function zoomConSecuencia(p, desde, destino, segundos, yo) {
+    const pb = estado.playback;
+    if (!pb || pb.paused || (pb.speed && pb.speed !== 1)) return false;
+    const t0 = tAntenaAhora() + 0.15;
+    const t1 = t0 + segundos;
+    const a = camara(p, desde);
+    const b = camara(p, destino);
+    const marcas = (va, vb) => [{ time: t0, value: va, blend: 'smoothStep' }, { time: t1, value: vb, blend: 'smoothStep' }];
+    try {
+      await enviarSecuencia({ fieldOfView: marcas(a.fieldOfView, b.fieldOfView), selectionOffset: marcas(a.selectionOffset, b.selectionOffset) });
+    } catch { return false; }
+    estado.secuenciaActiva = yo;
+    await pausa((segundos + 0.3) * 1000);
+    if (yo !== animacion || estado.secuenciaActiva !== yo) return true;  // un corte u otro zoom ya la han quitado
+    estado.zoom = { ...destino };
+    await quitarSecuencia();
+    await render(camara(p, estado.zoom)).catch(() => {});
+    return true;
+  }
+
+  async function zoomConPasos(p, desde, destino, segundos, yo) {
+    const ritmo = r.zoom?.pasosPorSegundo ?? 60;
+    const pasoFov = r.zoom?.pasoFov ?? 0.1;
+    const pasoDistancia = r.zoom?.pasoDistancia ?? 0.003;
+    // La curva suave va hasta 1,5 veces más deprisa en el centro: se cuenta para que ningún paso pase de pasoFov
     const pasos = Math.max(1, Math.round(segundos * ritmo),
-      Math.ceil(Math.abs(destino.fov - desde.fov) / pasoFov), Math.ceil(Math.abs(destino.distancia - desde.distancia) / pasoDistancia));
+      Math.ceil(1.5 * Math.abs(destino.fov - desde.fov) / pasoFov), Math.ceil(1.5 * Math.abs(destino.distancia - desde.distancia) / pasoDistancia));
     const intervalo = 1000 / ritmo;
     const t0 = Date.now();
-    estado.animando = yo;
     for (let i = 1; i <= pasos; i++) {
       if (yo !== animacion) return;
-      const k = i / pasos;
+      const k = suave(i / pasos);
       estado.zoom = { fov: desde.fov + (destino.fov - desde.fov) * k, distancia: desde.distancia + (destino.distancia - desde.distancia) * k };
       try { await render(camara(p, estado.zoom)); } catch { return; }
       // Ritmo fijo: si la orden tardó, la siguiente sale antes (sin acumular retraso ni hacer pasos más grandes)
-      if (i < pasos) await new Promise(f => setTimeout(f, Math.max(0, t0 + (i + 1) * intervalo - Date.now())));
+      if (i < pasos) await pausa(Math.max(0, t0 + (i + 1) * intervalo - Date.now()));
     }
-    if (estado.animando === yo) estado.animando = null;
+  }
+
+  async function transicion(p, destino, segundos = r.zoom?.transicionSegundos ?? 2) {
+    const yo = ++animacion;
+    const desde = { ...estado.zoom };
+    if (desde.fov === destino.fov && desde.distancia === destino.distancia) return;
+    await quitarSecuencia();
+    if (sinFijar(p)) {
+      // C) Vista de arriba: zoom fijo, sin animación
+      estado.zoom = { ...destino };
+      await render(camara(p, estado.zoom)).catch(() => {});
+      return;
+    }
+    estado.animando = yo;
+    try {
+      const hecho = (r.zoom?.modo ?? 'secuencia') === 'secuencia' && await zoomConSecuencia(p, desde, destino, segundos, yo);
+      if (!hecho) await zoomConPasos(p, desde, destino, segundos, yo);
+    } finally {
+      if (estado.animando === yo) estado.animando = null;
+    }
   }
 
   // Vigila dónde está el seguido y ajusta el plano si se acerca a un borde del mapa. Mientras hay una
@@ -263,6 +316,8 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
     // Cambio de un jugador a otro: por defecto, un corte limpio con el zoom que haya (abrir, cortar y cerrar daba
     // tirones). Con zoom.abrirAlCambiar: true se vuelve a lo de antes.
     const previo = estado.aplicado;
+    // Corte de verdad: otro jugador o fijar/soltar la cámara (no basta con que se haya olvidado el plano anterior)
+    const otroObjetivo = clave(estado.planoCamara) !== k;
     const cambioDeSeguido = r.zoom?.abrirAlCambiar === true && previo !== k && anterior?.tipo === 'seguir' && p?.tipo === 'seguir' && salida > 0;
     estado.aplicado = k;
     estado.zoomAplicado = z;
@@ -279,13 +334,16 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
         if (sec !== secuencia) return;
         await transicion(p, destino);
       })().catch(() => {});
+    } else if (otroObjetivo || !estado.planoCamara) {
+      // C) Corte (otro jugador, o soltar/fijar): directo con el zoom nuevo, sin animación
+      animacion++;  // un corte para cualquier transición a medias
+      corte();
+      await quitarSecuencia();
+      estado.zoom = r.zoom?.zoomEnLosCortes === false ? estado.zoom : { ...destino };
+      await render(camara(p, estado.zoom));
+      if (r.zoom?.zoomEnLosCortes === false) transicion(p, destino);
     } else {
-      if (previo !== k) {
-        animacion++;  // un corte para cualquier transición a medias
-        corte();
-        await render(camara(p, estado.zoom));
-      }
-      transicion(p, destino);  // sin esperar: el relé sigue con la antena mientras se mueve el zoom
+      transicion(p, destino);  // mismo jugador, otro zoom: suave, sin esperar (el relé sigue con la antena)
     }
     registrar(`[cámara] ${motivo}: ${p?.general ? `plano general sobre ${p.objetivo.campeon}` : p?.tipo === 'seguir' ? `sigue a ${p.objetivo.campeon}` : 'plano general'} (zoom ${z})`);
   }
@@ -335,6 +393,13 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
       registrar(`[antena] corregida de ${pb.time.toFixed(1)} a ${meta.toFixed(1)} s`);
     } else if (pb.speed && pb.speed !== 1) {
       await playback({ speed: 1 });
+    }
+
+    // La interfaz del espectador (sin campeones a los lados, línea de tiempo, controles ni recuadro del seguido) se
+    // vuelve a mandar cada 5 s, aunque la cámara no se mueva: así no vuelve aunque alguien pulse una tecla del LoL
+    if (ahora - (estado.interfazEnviada || 0) > 5000) {
+      estado.interfazEnviada = ahora;
+      render({ ...interfaz }).catch(() => {});
     }
 
     // 2. Cámara

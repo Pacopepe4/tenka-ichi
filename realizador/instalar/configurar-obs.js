@@ -34,6 +34,15 @@ export const RECURSOS = join(dirname(fileURLToPath(import.meta.url)), '..', 'obs
 export const TRANSICIONES = { entrada: 'Repeticion entrada', salida: 'Repeticion salida' };
 export const OVERLAY_REPLAY = 'Overlay REPLAY';
 export const ALERTAS = 'Alertas Kick';
+export const MARCO_MINIMAPA = 'Marco minimapa';
+
+// Dirección del marco del minimapa (obs/minimapa.html, del hilo de overlays): posición y tamaño del hueco por la URL
+// (obs.minimapa en opciones.json: lado, ancho, alto, x, y, margen, grosor, rotulo, guia). Sin nada, abajo a la derecha
+export function urlMinimapa(recursos, op = {}) {
+  const u = pathToFileURL(join(recursos, 'minimapa.html'));
+  for (const [k, v] of Object.entries(op || {})) if (v !== null && v !== undefined && v !== '') u.searchParams.set(k, String(v));
+  return u.href;
+}
 
 // Fuentes de Gokudō que vienen en obs/fuentes (recortadas a lo que se usa, licencia OFL). Los rótulos de texto de
 // OBS (Casters, Pausa) solo pueden usar fuentes instaladas en Windows: se instalan para este usuario, sin pedir
@@ -83,10 +92,11 @@ export function leerIni(texto) {
 const leerTexto = ruta => (existsSync(ruta) ? readFileSync(ruta, 'utf8').replace(/^\uFEFF/, '') : '');
 
 // ---------- colección de escenas ----------
-function fuente(nombre, id, ajustes, { version, audio = false } = {}) {
+// pistas: en qué pistas de audio suena (bits: 1 = emisión, 2 = juego para las repeticiones, 4 = juego y micro)
+function fuente(nombre, id, ajustes, { version, audio = false, pistas = null } = {}) {
   return {
     name: nombre, uuid: randomUUID(), id, versioned_id: version || id, settings: ajustes,
-    enabled: true, muted: false, volume: 1.0, balance: 0.5, mixers: audio ? 255 : 0, flags: 0,
+    enabled: true, muted: false, volume: 1.0, balance: 0.5, mixers: pistas ?? (audio ? 255 : 0), flags: 0,
     sync: 0, monitoring_type: 0, hotkeys: {}, private_settings: {},
   };
 }
@@ -132,7 +142,7 @@ function stinger(nombre, archivo) {
   };
 }
 
-export function crearColeccion({ escenas, fuenteRepeticion, overlay = '', recursos = null, alertas = '' }) {
+export function crearColeccion({ escenas, fuenteRepeticion, overlay = '', recursos = null, alertas = '', minimapa = {} }) {
   const juego = fuente('Juego LoL', 'game_capture', {
     capture_mode: 'window', window: VENTANA_LOL, priority: 2, capture_cursor: false, allow_transparency: false,
   });
@@ -143,7 +153,7 @@ export function crearColeccion({ escenas, fuenteRepeticion, overlay = '', recurs
   const clip = fuente(fuenteRepeticion, 'ffmpeg_source', {
     is_local_file: true, local_file: '', looping: false, restart_on_activate: false,
     close_when_inactive: false, clear_on_media_end: false, hw_decode: true,
-  }, { audio: true });
+  }, { audio: true, pistas: 1 });  // el clip repetido suena en la emisión, pero no se graba en otros clips
   const fondo = fuente('Fondo', 'color_source', { color: 0xFF130D0C, width: ANCHO, height: ALTO }, { version: 'color_source_v3' });
   const camara = fuente('Camara casters', 'dshow_input', {});
   // Sin la carpeta obs/ (pruebas antiguas), un rótulo de texto; con ella, el overlay de REPLAY (apagado: lo
@@ -167,11 +177,17 @@ export function crearColeccion({ escenas, fuenteRepeticion, overlay = '', recurs
     reroute_audio: true, css: 'body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }',
   }) : null;
   const conAlertas = partes => (fAlertas ? [...partes, [fAlertas]] : partes);
+  // Marco del minimapa encima de la captura del juego y debajo del overlay (solo pinta por fuera del mapa)
+  const fMinimapa = recursos && existsSync(join(recursos, 'minimapa.html')) ? fuente(MARCO_MINIMAPA, 'browser_source', {
+    url: urlMinimapa(recursos, minimapa), width: ANCHO, height: ALTO, fps: 30, shutdown: false, restart_when_active: true,
+    reroute_audio: false, css: 'body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }',
+  }) : null;
 
   const lista = [
-    escena(escenas.juego, conAlertas([[juego], [marcador]])),
+    escena(escenas.juego, conAlertas([[juego], ...(fMinimapa ? [[fMinimapa]] : []), [marcador]])),
     // En la repetición solo el cartel REPLAY: el marcador se quita (Pacopepe, 08/11)
-    escena(escenas.repeticion, conAlertas([[clip], [rRepeticion, recursos ? { x: 0, y: 0, w: ANCHO, h: ALTO, oculto: true } : { x: 220, y: 80 }]])),
+    // (ni siquiera las alertas: solo el clip y el cartel)
+    escena(escenas.repeticion, [[clip], [rRepeticion, recursos ? { x: 0, y: 0, w: ANCHO, h: ALTO, oculto: true } : { x: 220, y: 80 }]]),
     escena(escenas.casters, conAlertas([[fondo], [camara], [rCasters, { x: ANCHO / 2, y: 980 }]])),
     escena(escenas.pausa, conAlertas([[fondo], [rPausa, { x: ANCHO / 2, y: ALTO / 2 }]])),
     escena(escenas.draft || 'Draft', conAlertas([[fondo], ...camarasDraft.map((c, i) => [c, { ...huecos[i], oculto: true }]), [marcador]])),
@@ -182,10 +198,12 @@ export function crearColeccion({ escenas, fuenteRepeticion, overlay = '', recurs
     current_scene: lista[0].name,
     current_program_scene: lista[0].name,
     scene_order: lista.map(e => ({ name: e.name })),
-    sources: [...lista, juego, marcador, clip, fondo, camara, ...camarasDraft, rRepeticion, rCasters, rPausa, ...(fAlertas ? [fAlertas] : [])],
+    sources: [...lista, juego, marcador, clip, fondo, camara, ...camarasDraft, rRepeticion, rCasters, rPausa, ...(fAlertas ? [fAlertas] : []), ...(fMinimapa ? [fMinimapa] : [])],
     groups: [],
-    DesktopAudioDevice1: fuente('Audio del escritorio', 'wasapi_output_capture', { device_id: 'default' }, { audio: true }),
-    AuxAudioDevice1: fuente('Mic/Aux', 'wasapi_input_capture', { device_id: 'default' }, { audio: true }),
+    // Pistas de audio: 1 = emisión (juego y micro), 2 = solo juego (lo que suena al repetir un clip), 3 = juego y
+    // micro (para el resumen). El búfer de repetición graba la 2 y la 3: así en la repetición no se oye a los casters
+    DesktopAudioDevice1: fuente('Audio del escritorio', 'wasapi_output_capture', { device_id: 'default' }, { audio: true, pistas: 0b111 }),
+    AuxAudioDevice1: fuente('Mic/Aux', 'wasapi_input_capture', { device_id: 'default' }, { audio: true, pistas: 0b101 }),
     transitions: recursos ? [
       stinger(TRANSICIONES.entrada, join(recursos, 'repeticion-entrada.webm')),
       stinger(TRANSICIONES.salida, join(recursos, 'repeticion-salida.webm')),
@@ -302,6 +320,13 @@ export function ajustesPerfil({ carpetaClips, segundosBufer, codificador = 'x264
     // Con "Salida personalizada (FFmpeg)" tampoco hay búfer: grabación estándar
     AdvOut: { RecType: 'Standard', RecFormat2: 'mkv', RecRB: 'true', RecRBTime: String(segundosBufer), RecRBSize: '1024', RecFilePath: carpetaClips },
   };
+  // Salida avanzada para poder separar las pistas de audio: la emisión lleva la 1 (juego y micro) y el búfer de
+  // repetición la 2 (solo juego, la que suena al repetir) y la 3 (juego y micro, para el resumen)
+  r.Output = { Mode: 'Advanced' };
+  Object.assign(r.AdvOut, {
+    TrackIndex: '1', RecTracks: '6', Track1Bitrate: '160', Track2Bitrate: '160', Track3Bitrate: '160',
+    Track1Name: 'Emision', Track2Name: 'Juego (repeticiones)', Track3Name: 'Juego y micro (resumen)',
+  });
   if (codificador === 'x264') {
     Object.assign(r.SimpleOutput, { StreamEncoder: 'x264', RecEncoder: 'x264', Preset: 'veryfast' });
     Object.assign(r.AdvOut, { Encoder: 'obs_x264', RecEncoder: 'none' });  // none = el mismo que la emisión
@@ -374,7 +399,7 @@ export function configurarObs({ carpeta, opciones, rutaLocal, overlay, overlayPo
   // Las alertas de Kick salen de la misma web que el overlay (/alertas/), salvo que opciones.json diga otra
   let alertas = o.alertas ?? '';
   if (o.alertas === undefined && /^https?:/i.test(url)) { try { alertas = new URL('/alertas/', url).href; } catch { /* sin dirección */ } }
-  escribir(rutaColeccion, JSON.stringify(crearColeccion({ escenas: nombres, fuenteRepeticion: o.fuenteRepeticion, overlay: url, alertas, recursos: recursos && existsSync(recursos) ? recursos : null }), null, 4));
+  escribir(rutaColeccion, JSON.stringify(crearColeccion({ escenas: nombres, fuenteRepeticion: o.fuenteRepeticion, overlay: url, alertas, minimapa: o.minimapa || {}, recursos: recursos && existsSync(recursos) ? recursos : null }), null, 4));
   hechos.push(`Colección "${NOMBRE}": ${Object.values(nombres).join(', ')}`);
   if (recursos && existsSync(recursos)) hechos.push(`Transiciones de la repetición ("${TRANSICIONES.entrada}", "${TRANSICIONES.salida}") y "${OVERLAY_REPLAY}"`);
   if (alertas) hechos.push(`Alertas de Kick en todas las escenas (${alertas})`);
@@ -414,6 +439,15 @@ export function configurarObs({ carpeta, opciones, rutaLocal, overlay, overlayPo
     porQue = ` — ${e.motivo}`;
   }
   escribir(join(perfil, 'basic.ini'), ponerEnIni(ini, ajustesPerfil({ carpetaClips, segundosBufer: o.segundosBufer, codificador, idAvanzado })));
+  // En la salida avanzada, la calidad de la emisión va en streamEncoder.json: se respeta la del perfil copiado y, si
+  // venía de la salida sencilla, su tasa de bits (o 6000)
+  const rutaCodificador = join(perfil, 'streamEncoder.json');
+  let ajustesCodificador = {};
+  try { ajustesCodificador = JSON.parse(leerTexto(rutaCodificador)) || {}; } catch { /* no había */ }
+  const bitsSencilla = Number(leerIni(ini).SimpleOutput?.VBitrate) || 6000;
+  ajustesCodificador = { rate_control: 'CBR', keyint_sec: 2, ...ajustesCodificador, bitrate: ajustesCodificador.bitrate || bitsSencilla };
+  if (codificador === 'x264') ajustesCodificador.preset ??= 'veryfast';
+  writeFileSync(rutaCodificador, JSON.stringify(ajustesCodificador, null, 2));
   hechos.push(`Perfil "${NOMBRE}"${base ? ` (copia de "${actual.Profile || actual.ProfileDir}")` : ''}: búfer de repetición de ${o.segundosBufer} s, codificador ${codificador ? (CODIFICADORES[codificador]?.nombre || codificador) : 'el de tu perfil'}${porQue}, clips en ${carpetaClips}`);
   // Clave de retransmisión (Kick): solo si está en opciones.local.json de este PC (la pide INSTALAR-PC2.bat). Nunca
   // se enseña ni se apunta en ningún sitio más: va directa al service.json del perfil. Sin clave, se queda la del
