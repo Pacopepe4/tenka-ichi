@@ -1,5 +1,6 @@
 {
   "margenSegundos": 120,
+  "hudAntena": { "MinimapScale": 0.78 },
 
   "explorador": {
     "liveClientData": "https://127.0.0.1:2999",
@@ -94,6 +95,7 @@
         { "desde": 245, "hasta": 300, "quien": "junglas", "cada": 20 }
       ]
     },
+    "calma": { "activo": true, "desdeSegundo": 300, "minimo": 12, "jungla": 25, "linea": 15, "lineas": ["TOP", "MIDDLE", "BOTTOM"] },
     "cerca": {
       "activo": true,
       "calmaSegundos": 10,
