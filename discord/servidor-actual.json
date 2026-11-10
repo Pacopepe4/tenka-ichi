@@ -48,6 +48,11 @@
           "nombre": "📅・calendario",
           "tipo": "texto",
           "tema": "Jornadas y horarios de la temporada."
+        },
+        {
+          "nombre": "🎫・tickets",
+          "tipo": "texto",
+          "tema": "¿Dudas? Pulsa «Abrir ticket»: hilo privado con el staff y la IA de Gokudō."
         }
       ]
     },
