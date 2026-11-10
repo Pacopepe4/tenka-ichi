@@ -136,6 +136,41 @@
           "nombre": "calendario",
           "emoji": "📅",
           "tema": "Jornadas y horarios de la temporada."
+        },
+        {
+          "nombre": "tickets",
+          "emoji": "🎫",
+          "tema": "¿Dudas? Pulsa «Abrir ticket»: hilo privado con el staff y la IA de Gokudō.",
+          "permisos": {
+            "todos": {
+              "permitir": [
+                "SEND_MESSAGES_IN_THREADS"
+              ],
+              "denegar": [
+                "SEND_MESSAGES",
+                "CREATE_PUBLIC_THREADS",
+                "CREATE_PRIVATE_THREADS"
+              ]
+            },
+            "staff": {
+              "permitir": [
+                "SEND_MESSAGES",
+                "SEND_MESSAGES_IN_THREADS",
+                "MANAGE_THREADS"
+              ]
+            },
+            "bot": {
+              "permitir": [
+                "VIEW_CHANNEL",
+                "SEND_MESSAGES",
+                "EMBED_LINKS",
+                "READ_MESSAGE_HISTORY",
+                "CREATE_PRIVATE_THREADS",
+                "SEND_MESSAGES_IN_THREADS",
+                "MANAGE_THREADS"
+              ]
+            }
+          }
         }
       ]
     },

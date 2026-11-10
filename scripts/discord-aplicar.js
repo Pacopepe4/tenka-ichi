@@ -28,8 +28,8 @@ const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const PERMISOS = {
   CREATE_INSTANT_INVITE: 0, MANAGE_CHANNELS: 4, ADD_REACTIONS: 6, VIEW_CHANNEL: 10, SEND_MESSAGES: 11,
   MANAGE_MESSAGES: 13, EMBED_LINKS: 14, ATTACH_FILES: 15, READ_MESSAGE_HISTORY: 16, MENTION_EVERYONE: 17,
-  CONNECT: 20, SPEAK: 21, MOVE_MEMBERS: 24, MANAGE_ROLES: 28, MANAGE_WEBHOOKS: 29, CREATE_PUBLIC_THREADS: 35,
-  SEND_MESSAGES_IN_THREADS: 38,
+  CONNECT: 20, SPEAK: 21, MOVE_MEMBERS: 24, MANAGE_ROLES: 28, MANAGE_WEBHOOKS: 29, MANAGE_THREADS: 34, CREATE_PUBLIC_THREADS: 35,
+  CREATE_PRIVATE_THREADS: 36, SEND_MESSAGES_IN_THREADS: 38,
 };
 const bits = nombres => (nombres || []).reduce((t, n) => {
   if (!(n in PERMISOS)) throw new Error(`Permiso desconocido: ${n}`);
@@ -97,12 +97,17 @@ export function deseado(config, familias) {
   return { nombre: config.nombre, roles, categorias, webhooks: config.webhooks || [], marca: config.marca || {}, emojis };
 }
 
-// De { todos: {permitir, denegar}, staff: {...}, familia: {...} } a los permission_overwrites de Discord
+// De { todos: {permitir, denegar}, staff: {...}, familia: {...}, bot: {...} } a los permission_overwrites de Discord.
+// 'bot' es el propio bot (un permiso para él solo, como el de abrir hilos privados en #tickets)
 function overwrites(permisos, { idRol, everyone, botId, familia }) {
   const lista = [];
   let ocultoATodos = false;
   for (const [quien, p] of Object.entries(permisos)) {
     let id;
+    if (quien === 'bot') {
+      if (botId) lista.push({ id: botId, type: 1, allow: String(bits(p.permitir)), deny: String(bits(p.denegar)) });
+      continue;
+    }
     if (quien === 'todos') id = everyone;
     else if (quien === 'familia') { if (!familia) continue; id = idRol(`familia:${familia}`); }
     else id = idRol(quien);
@@ -110,7 +115,7 @@ function overwrites(permisos, { idRol, everyone, botId, familia }) {
     if (quien === 'todos' && (deny & bits(['VIEW_CHANNEL']))) ocultoATodos = true;
     lista.push({ id, type: 0, allow: String(allow), deny: String(deny) });
   }
-  if (ocultoATodos && botId) lista.push({ id: botId, type: 1, allow: String(PERMISOS_BOT_CANAL), deny: '0' });
+  if (ocultoATodos && botId && !('bot' in permisos)) lista.push({ id: botId, type: 1, allow: String(PERMISOS_BOT_CANAL), deny: '0' });
   return lista;
 }
 const firma = ows => (ows || []).filter(o => o.allow !== '0' || o.deny !== '0')

@@ -1,6 +1,8 @@
 // Discord de mentira para las pruebas de discord-aplicar: hace de la API REST v10 para un bot que está en un
 // servidor recién creado (con sus «Text Channels» y «Voice Channels» de serie). Guarda roles, canales y webhooks
 // en memoria y apunta cada petición en estado.peticiones. Con estado.responder se simula una respuesta (un 429...).
+// Para los tickets hace también de hilos privados, mensajes y respuestas diferidas a las interacciones (estas no
+// llevan el token del bot, como en Discord).
 //   node scripts/discord-api-falso.js [puerto]   → DISCORD_URL_API=http://localhost:4060/api/v10 DISCORD_BOT_TOKEN=token-prueba
 import http from 'node:http';
 import { pathToFileURL } from 'node:url';
@@ -27,6 +29,10 @@ export function crearDiscordApiFalso({ nombre = 'Gokudō' } = {}) {
     comandos: [],
     // Los miembros del servidor: id → { user, roles }
     miembros: {},
+    // Mensajes de los canales y los hilos ({ id, channel_id, author, content, embeds, components }) y lo que la web
+    // pone en las respuestas diferidas (token de la interacción → último mensaje)
+    mensajes: [],
+    respuestas: {},
     peticiones: [],
     responder: null,
   };
@@ -42,11 +48,17 @@ export function crearDiscordApiFalso({ nombre = 'Gokudō' } = {}) {
       if (codigo === 204) { res.writeHead(204); return res.end(); }
       res.writeHead(codigo, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(datos));
     };
+    let x;
+    // La respuesta diferida a una interacción: va con el token de la interacción, no con el del bot
+    if ((x = /^\/webhooks\/(\d+)\/([^/]+)\/messages\/@original$/.exec(ruta)) && m === 'PATCH') {
+      if (estado.responder) { const r = estado.responder; estado.responder = null; return responder(r.estado, r.cuerpo || {}); }
+      estado.respuestas[x[2]] = cuerpo;
+      return responder(200, { id: nuevoId(), ...cuerpo });
+    }
     if (req.headers.authorization !== `Bot ${TOKEN_FALSO}`) return responder(401, { message: '401: Unauthorized', code: 0 });
     if (estado.responder) { const r = estado.responder; estado.responder = null; return responder(r.estado, r.cuerpo || {}); }
     const canal = id => estado.canales.find(c => c.id === id);
     const normal = c => ({ ...c, permission_overwrites: (c.permission_overwrites || []).map(o => ({ ...o, allow: String(o.allow), deny: String(o.deny) })) });
-    let x;
 
     // Las imágenes (icono, avatar...) llegan como data:image/...;base64: aquí se guarda un «hash» inventado
     const hashDe = uri => (uri ? `h${uri.length}` : null);
@@ -126,6 +138,36 @@ export function crearDiscordApiFalso({ nombre = 'Gokudō' } = {}) {
         for (const k of estado.canales) if (k.parent_id === c.id) k.parent_id = null;
         return responder(200, c);
       }
+    }
+    // Hilos privados (tipo 12) dentro de un canal: quién está dentro va en 'miembros'
+    if ((x = /^\/channels\/(\d+)\/threads$/.exec(ruta)) && m === 'POST') {
+      if (!canal(x[1])) return responder(404, { message: 'Unknown Channel', code: 10003 });
+      const h = { id: nuevoId(), type: cuerpo.type, name: cuerpo.name, parent_id: x[1], invitable: cuerpo.invitable, archived: false, locked: false, miembros: [BOT.id], permission_overwrites: [] };
+      estado.canales.push(h); return responder(201, h);
+    }
+    if ((x = /^\/channels\/(\d+)\/thread-members\/(\d+)$/.exec(ruta)) && m === 'PUT') {
+      const h = canal(x[1]);
+      if (!h) return responder(404, { message: 'Unknown Channel', code: 10003 });
+      if (!h.miembros.includes(x[2])) h.miembros.push(x[2]);
+      return responder(204);
+    }
+    if ((x = /^\/channels\/(\d+)\/messages$/.exec(ruta))) {
+      const c = canal(x[1]);
+      if (!c) return responder(404, { message: 'Unknown Channel', code: 10003 });
+      if (m === 'POST') {
+        if (c.locked) return responder(403, { message: 'Thread is locked', code: 160005 });
+        const msj = { id: nuevoId(), channel_id: x[1], author: BOT, content: cuerpo.content || '', embeds: cuerpo.embeds || [], components: cuerpo.components || [], allowed_mentions: cuerpo.allowed_mentions };
+        estado.mensajes.push(msj); return responder(200, msj);
+      }
+      if (m === 'GET') {
+        const limite = Number(new URL(req.url, 'http://x').searchParams.get('limit')) || 50;
+        return responder(200, estado.mensajes.filter(k => k.channel_id === x[1]).reverse().slice(0, limite));
+      }
+    }
+    if ((x = /^\/channels\/(\d+)\/messages\/(\d+)$/.exec(ruta)) && m === 'PATCH') {
+      const msj = estado.mensajes.find(k => k.channel_id === x[1] && k.id === x[2]);
+      if (!msj) return responder(404, { message: 'Unknown Message', code: 10008 });
+      Object.assign(msj, cuerpo); return responder(200, msj);
     }
     if ((x = /^\/channels\/(\d+)\/webhooks$/.exec(ruta))) {
       if (!canal(x[1])) return responder(404, { message: 'Unknown Channel', code: 10003 });

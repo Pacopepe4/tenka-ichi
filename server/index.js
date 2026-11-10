@@ -1051,8 +1051,9 @@ async function huella(archivo, s) {
   return { etag, datos };
 }
 
-// Los comandos del bot en el servidor de Discord (/reclutar): Discord los manda aquí firmados
-const comandosDiscord = crearComandos();
+// Los comandos del bot en el servidor de Discord (/reclutar) y los tickets: Discord los manda aquí firmados. La IA de
+// los tickets lee la liga en vivo (calendario, clasificación y fechas), como /api/competicion
+const comandosDiscord = crearComandos({ tickets: { datosLiga: () => competicion(calendarioActual(), todas()) } });
 
 const servidor = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');

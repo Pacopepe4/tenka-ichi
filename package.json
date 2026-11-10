@@ -17,12 +17,14 @@
     "vista-previa": "node scripts/vista-previa.js",
     "prueba-directo": "node scripts/prueba-directo.js",
     "discord-aplicar": "node scripts/discord-aplicar.js",
-    "discord-api-falso": "node scripts/discord-api-falso.js"
+    "discord-api-falso": "node scripts/discord-api-falso.js",
+    "discord-tickets": "node scripts/discord-tickets.js"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0",
     "google-auth-library": "^9.15.0",
     "socket.io-client": "^4.8.1",
     "ws": "^8.18.0"

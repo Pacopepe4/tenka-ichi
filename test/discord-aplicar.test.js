@@ -352,3 +352,24 @@ test('cada pasada guarda una foto del servidor tal como está, en orden y sin id
   await aplicar(respetando({ prueba: true, archivoFoto: path.join(carpeta, 'otra.json') }));
   assert.ok(!existsSync(path.join(carpeta, 'otra.json')), 'en el modo de prueba no escribe nada');
 });
+
+test('#tickets: nadie escribe ni abre hilos, el staff ve y gestiona los hilos privados y el bot los abre; con --crear se crea solo él', async () => {
+  await aplicar(opciones);
+  const bit = n => 1n << BigInt(n);
+  const ow = (c, id) => c.permission_overwrites.find(o => o.id === id);
+  const tickets = canal('tickets');
+  assert.equal(tickets.parent_id, categoria('Info').id, 'va en Info');
+  const todos = ow(tickets, '1');
+  assert.ok(BigInt(todos.deny) & bit(11) && BigInt(todos.deny) & bit(35) && BigInt(todos.deny) & bit(36), '@everyone no escribe ni abre hilos');
+  assert.ok(BigInt(todos.allow) & bit(38), 'pero sí escribe dentro de su hilo');
+  assert.ok(BigInt(ow(tickets, rol('Kumichō').id).allow) & bit(34), 'el staff gestiona (y ve) los hilos privados');
+  const bot = ow(tickets, '9');
+  assert.equal(bot.type, 1, 'el permiso del bot es para él (miembro), no para un rol');
+  for (const n of [10, 11, 34, 36, 38]) assert.ok(BigInt(bot.allow) & bit(n), `el bot tiene el permiso ${n}`);
+  // En un servidor ya montado sin #tickets, --crear solo crea el canal
+  discord.estado.canales = discord.estado.canales.filter(x => x !== tickets);
+  discord.estado.peticiones = [];
+  await aplicar(respetando({ crear: true }));
+  assert.ok(canal('tickets'));
+  assert.deepEqual(escritas().map(p => `${p.metodo} ${p.ruta.replace(/\d+/g, 'N')}`), ['POST /guilds/N/channels']);
+});

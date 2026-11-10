@@ -365,6 +365,47 @@ Los roles quedan en el orden de `roles` (Kumichō, el staff, arriba; luego Oyabu
 
 Todo lo automático va con el bot, nunca con la cuenta de una persona. Para probar sin Discord: `npm run discord-api-falso` y `DISCORD_URL_API=http://localhost:4060/api/v10 DISCORD_BOT_TOKEN=token-prueba`.
 
+### Tickets en Discord, con la IA de Gokudō
+
+Lo pidió Pacopepe el 10/11/2026. Todo va con botones, y lo atiende la misma ruta que /reclutar (`POST /discord/interacciones`, `server/tickets.js`), así que el bot no necesita estar conectado todo el rato.
+
+- **#🎫・tickets** (en Info): nadie escribe en él. Tiene un mensaje fijo del bot con el botón **Abrir ticket**, que abre una ventana: «¿Qué necesitas?».
+- Al enviarla, la web abre un **hilo privado**. Dentro están esa persona y el bot. El staff (Kumichō, que tiene «Gestionar hilos» en el canal) ve todos los hilos. La IA contesta allí mismo.
+- Debajo de cada respuesta hay tres botones:
+  - **Preguntar otra cosa** abre otra ventana; la IA lee lo que ya se ha hablado en el hilo.
+  - **Llamar al staff** solo menciona a @Kumichō en el hilo, como mucho una vez cada 10 minutos.
+  - **Cerrar** archiva y bloquea el hilo. Puede cerrarlo quien lo abrió o el staff.
+- En el hilo se puede escribir con normalidad para hablar con el staff. La IA solo contesta cuando alguien pulsa un botón, porque sin conexión permanente el bot no lee el chat.
+- **La IA** es Claude, con la API de Anthropic (`@anthropic-ai/sdk`). Solo habla de Gokudō.
+  - Lo que sabe está en **`discord/tickets-saber.md`**, que puede cambiar el staff. Además recibe en cada pregunta los datos en vivo de la liga: fechas, calendario y clasificación, lo mismo que `/api/competicion`.
+  - Si la respuesta no está ahí, si la pregunta es de una persona o cuenta concreta, o si piden algo que solo puede hacer el staff, no se lo inventa: menciona ella misma a @Kumichō.
+  - Si la API falla o se niega a contestar, el ticket sigue y avisa al staff.
+  - La ficha va en la caché de la API, así que cada pregunta cuesta menos.
+- **Topes por día** (hora de España): `TICKETS_TOPE_PERSONA` preguntas por persona (10 si no se pone; el staff no tiene tope) y `TICKETS_TOPE_DIA` en todo el servidor (200 si no se pone). Al llegar al tope, el ticket sigue abierto y avisa al staff. Los contadores se guardan en memoria: si la web se reinicia, vuelven a cero.
+- **Sin `ANTHROPIC_API_KEY`**, los tickets funcionan igual: el hilo se abre, se avisa al staff y no sale «Preguntar otra cosa».
+
+**Coste.** La API de Anthropic se paga aparte del plan Pro de Claude, con dinero real. Precios por millón de tokens:
+
+| Modelo | Entrada | Salida | Por pregunta, más o menos |
+|---|---|---|---|
+| Claude Haiku 5.5 (`claude-haiku-5-5`, el de fábrica) | 0,10 $ | 0,50 $ | menos de 0,1 céntimos |
+| Claude Opus 5.5 (`claude-opus-5-5`) | 4 $ | 20 $ | 2-3 céntimos |
+
+Con el tope de 200 preguntas al día, el peor caso con Haiku son unos céntimos al día. En console.anthropic.com se puede poner además un **límite de gasto** a la clave.
+
+**Para encenderlo (lo hace Pacopepe):**
+
+1. **El canal.** Antes, `npm run discord-aplicar -- --prueba --crear --env ../draft-app-discord/.env`, que solo debería decir «Crearía el canal #🎫・tickets: en 📜 Info». Después, lo mismo sin `--prueba`. Crea solo ese canal, con sus permisos, y no toca nada más. Luego hay que hacer commit de `discord/ids.json`: la web publicada saca de ahí el id del canal y el del rol del staff.
+2. **El mensaje del botón.** `npm run discord-tickets -- --env ../draft-app-discord/.env` (antes, con `--prueba` para ver qué haría). Lo publica en #tickets y guarda su id en `discord/ids.json` como `mensaje:tickets`. Si se vuelve a lanzar, actualiza ese mensaje en vez de poner otro. Commit de `ids.json` otra vez.
+3. **La clave de la IA.** En console.anthropic.com › API Keys, crea una clave (puede ser la misma cuenta que usa el realizador). En Render › Environment, ponla como **`ANTHROPIC_API_KEY`**. Nunca la pegues en el chat ni en el repo. Opcional: `TICKETS_MODELO` (de fábrica, `claude-haiku-5-5`), `TICKETS_TOPE_PERSONA`, `TICKETS_TOPE_DIA` y `TICKETS_IA=0` para apagar la IA sin quitar la clave.
+4. `DISCORD_PUBLIC_KEY`, `DISCORD_BOT_TOKEN` y la Interactions Endpoint URL son las mismas de /reclutar (arriba): si /reclutar funciona, no hay que tocar nada más.
+
+**Ojo:**
+- Render gratis duerme la web a los 15 minutos sin uso, y Discord solo espera 3 segundos a que conteste. Si la web está dormida, el primer clic dará «Esta interacción ha fallado» y la despertará: a los 30-60 segundos ya funciona. A /reclutar le pasa lo mismo.
+- Si al llamar al staff no os llega el aviso, mirad que el rol Kumichō tenga activado «Permitir que cualquiera @mencione este rol».
+
+Las pruebas (`test/tickets.test.js`) usan el Discord falso de `scripts/discord-api-falso.js`, que ahora también hace de hilos y mensajes, y un Claude falso: no gastan nada.
+
 ### Puntos del canal de Twitch
 
 Los espectadores ganan puntos del canal viendo el directo (los da Twitch: por tiempo de visualización, por seguir, por rachas…) y los canjean en Twitch por la recompensa **Sobre de Tenka Ichi**, que les da un sobre del gachapon. Solo existen en canales afiliados o partner.

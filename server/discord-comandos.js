@@ -4,15 +4,19 @@
 // npm run discord-aplicar (están en discord/servidor.json).
 //   /reclutar quien: un Oyabun mete a alguien en SU familia (le da el rol de la familia y el de Kobun).
 //   Así cada jefe solo puede reclutar para la suya, cosa que Discord no deja limitar con los permisos.
+//   Los botones y ventanas de los tickets (custom_id «ticket:…») los atiende server/tickets.js.
 import crypto from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { crearTickets } from './tickets.js';
+import { CLANES } from './clanes.js';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const AGENTE = 'DiscordBot (https://tenka-ichi.onrender.com, 1.0)';
-// Tipos de Discord: interacción PING y COMANDO; respuesta PONG y MENSAJE; el mensaje solo lo ve quien lo pide
-const PING = 1, COMANDO = 2, PONG = 1, MENSAJE = 4, SOLO_TU = 64;
+// Tipos de Discord: interacción PING, COMANDO, BOTÓN y VENTANA enviada; respuesta PONG y MENSAJE; el mensaje solo lo
+// ve quien lo pide
+const PING = 1, COMANDO = 2, BOTON = 3, VENTANA = 5, PONG = 1, MENSAJE = 4, SOLO_TU = 64;
 
 // La clave pública de la app viene en hexadecimal (32 bytes); Node la quiere en formato SPKI
 function clavePublica(hex) {
@@ -91,10 +95,12 @@ export function decidirReclutar({ roles, quien, objetivo, objetivoMiembro }) {
 export function crearComandos({ clave = process.env.DISCORD_PUBLIC_KEY, token = process.env.DISCORD_BOT_TOKEN,
   urlApi = process.env.DISCORD_URL_API || 'https://discord.com/api/v10',
   ids = () => JSON.parse(readFileSync(path.join(RAIZ, 'discord/ids.json'), 'utf8')),
-  familias = () => JSON.parse(readFileSync(path.join(RAIZ, 'data-proyecto/familias.json'), 'utf8')).familias } = {}) {
+  familias = () => JSON.parse(readFileSync(path.join(RAIZ, 'data-proyecto/familias.json'), 'utf8')).familias,
+  tickets: opcionesTickets = {} } = {}) {
   const publica = clave && token ? leerClave(clave) : null;
   const activo = Boolean(publica);
   const base = urlApi.replace(/\/$/, '');
+  const tickets = activo ? crearTickets({ token, urlApi: base, ids, clanes: CLANES, ...opcionesTickets }) : null;
 
   async function darRol(guildId, usuario, rol, motivo) {
     const r = await fetch(`${base}/guilds/${guildId}/members/${usuario}/roles/${rol}`, {
@@ -138,8 +144,11 @@ export function crearComandos({ clave = process.env.DISCORD_PUBLIC_KEY, token = 
       if (!i.guild_id || !i.member) return { estado: 200, cuerpo: respuesta('Esto solo funciona dentro del servidor.') };
       return { estado: 200, cuerpo: await reclutar(i) };
     }
+    if ((i.type === BOTON || i.type === VENTANA) && String(i.data?.custom_id || '').startsWith('ticket:')) {
+      return { estado: 200, cuerpo: tickets.atender(i) };
+    }
     return { estado: 200, cuerpo: respuesta('No conozco ese comando.') };
   }
 
-  return { activo, atender };
+  return { activo, atender, tickets };
 }
