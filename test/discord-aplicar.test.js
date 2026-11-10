@@ -1,6 +1,7 @@
 // Montar el servidor de Discord con el bot (scripts/discord-api-falso.js hace de Discord): el modo de prueba no
 // cambia nada, la primera vez lo crea todo, la segunda no hace nada, se cambia solo lo distinto, no se borra
-// nada sin --borrar-sobrantes y las direcciones de los webhooks van al .env.
+// nada sin --borrar-sobrantes y las direcciones de los webhooks van al .env. Estas pruebas van con --forzar y --crear
+// (imponer servidor.json); las del final, sin ellos: lo que manda es lo que hay en el servidor.
 import { test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
@@ -26,7 +27,8 @@ beforeEach(async () => {
   await new Promise(r => discord.servidor.listen(0, '127.0.0.1', r));
   api = crearApi({ token: TOKEN_FALSO, base: `http://127.0.0.1:${discord.servidor.address().port}/api/v10`, esperar: async () => {} });
   carpeta = mkdtempSync(path.join(tmpdir(), 'discord-aplicar-'));
-  opciones = { api, config: leerConfig(), familias: FAMILIAS, archivoEnv: path.join(carpeta, '.env'), archivoIds: path.join(carpeta, 'ids.json'), log: () => {} };
+  opciones = { api, config: leerConfig(), familias: FAMILIAS, archivoEnv: path.join(carpeta, '.env'), archivoIds: path.join(carpeta, 'ids.json'),
+    archivoFoto: path.join(carpeta, 'servidor-actual.json'), forzar: true, crear: true, log: () => {} };
 });
 afterEach(() => discord.servidor.close());
 
@@ -274,4 +276,76 @@ test('si Discord no deja cambiar el avatar del bot (muchas veces seguidas), avis
   assert.match(lineas.join('\n'), /No se ha podido cambiar el avatar del bot/);
   assert.ok(discord.estado.guild.icon, 'lo demás sí se hace');
   assert.ok(!('imagen:bot' in JSON.parse(readFileSync(opciones.archivoIds, 'utf8'))['1']), 'la próxima vez lo intenta otra vez');
+});
+
+// ---------- Sin --forzar: manda lo que hay en el servidor (lo pidió Pacopepe el 10/11/2026: «deja los canales como los puse yo») ----------
+const respetando = (mas = {}) => ({ ...opciones, forzar: false, crear: false, ...mas });
+
+test('sin --forzar, lo que se cambió a mano en Discord se queda: nombres, descripción, categoría, permisos, color y orden', async () => {
+  await aplicar(opciones);   // el servidor montado como dice servidor.json
+  const anuncios = canal('anuncios'), staff = categoria('Staff'), kobun = rol('Kobun'), izakaya = categoria('Izakaya');
+  Object.assign(anuncios, { name: '📢・novedades', topic: 'Lo que digo yo', parent_id: categoria('Liga').id, permission_overwrites: [] });
+  staff.name = '🏯 Jefatura';
+  kobun.color = 0x123456;
+  izakaya.position = -1;   // la Izakaya, arriba del todo
+  discord.estado.peticiones = [];
+  const lineas = [];
+  const { acciones } = await aplicar(respetando({ log: l => lineas.push(l) }));
+  assert.deepEqual(escritas(), [], 'no escribe nada en Discord');
+  assert.deepEqual([anuncios.name, anuncios.topic, anuncios.parent_id], ['📢・novedades', 'Lo que digo yo', categoria('Liga').id]);
+  assert.equal(staff.name, '🏯 Jefatura');
+  assert.equal(kobun.color, 0x123456);
+  assert.equal(izakaya.position, -1);
+  const respeta = acciones.filter(a => a.accion === 'respeta').map(a => `${a.que} ${a.nombre}`);
+  assert.ok(respeta.includes('el canal #📢・novedades'));
+  assert.ok(respeta.includes('la categoría 🏯 Jefatura'));
+  assert.ok(respeta.includes('el rol Kobun'));
+  assert.ok(respeta.includes('el orden de categorías y canales'));
+  assert.match(lineas.join('\n'), /Se respeta lo que ya hay en el servidor/);
+  assert.match(lineas.at(-1), /respetadas como están \(con --forzar se cambiarían\)/);
+});
+
+test('sin --crear no crea canales, categorías, roles ni emojis que falten, pero sí el webhook que falte en un canal que existe', async () => {
+  await aplicar(opciones);
+  // Pacopepe borra #clips y la categoría de Staff con sus canales; y un webhook desaparece
+  const quitar = c => { discord.estado.canales = discord.estado.canales.filter(x => x !== c); };
+  quitar(canal('clips'));
+  const staff = categoria('Staff');
+  for (const x of discord.estado.canales.filter(x => x.parent_id === staff.id)) quitar(x);
+  quitar(staff);
+  const tier = discord.estado.webhooks.find(w => w.channel_id === canal('tier-list').id);
+  discord.estado.webhooks = discord.estado.webhooks.filter(w => w !== tier);
+  discord.estado.peticiones = [];
+  const { acciones } = await aplicar(respetando());
+  assert.deepEqual(escritas().map(p => `${p.metodo} ${p.ruta}`), [`POST /channels/${canal('tier-list').id}/webhooks`], 'solo el webhook');
+  assert.ok(!canal('clips') && !categoria('Staff'), 'no vuelven');
+  const faltan = acciones.filter(a => a.accion === 'falta').map(a => `${a.que} ${a.nombre}`);
+  assert.ok(faltan.includes('el canal #🎬・clips'));
+  assert.ok(faltan.includes('la categoría 🏯 Staff'));
+  assert.match(readFileSync(opciones.archivoEnv, 'utf8'), /^DISCORD_WEBHOOK_TIERLIST=http/m);
+});
+
+test('con --crear crea lo que falta, pero sigue sin tocar lo que hay', async () => {
+  await aplicar(opciones);
+  canal('anuncios').name = '📢・novedades';
+  discord.estado.canales = discord.estado.canales.filter(x => x !== canal('clips'));
+  discord.estado.peticiones = [];
+  await aplicar(respetando({ crear: true }));
+  assert.ok(canal('clips'), '#clips vuelve');
+  assert.equal(canal('novedades').name, '📢・novedades', 'el renombrado se queda');
+  assert.deepEqual(escritas().map(p => `${p.metodo} ${p.ruta.replace(/\d+/g, 'N')}`), ['POST /guilds/N/channels']);
+});
+
+test('cada pasada guarda una foto del servidor tal como está, en orden y sin ids', async () => {
+  await aplicar(opciones);
+  canal('anuncios').name = '📢・novedades';
+  categoria('Izakaya').position = -1;
+  await aplicar(respetando());
+  const foto = JSON.parse(readFileSync(opciones.archivoFoto, 'utf8'));
+  assert.equal(foto.categorias[0].nombre, '🍶 Izakaya', 'en el orden de Discord');
+  assert.ok(foto.categorias.find(c => c.nombre === '📜 Info').canales.some(k => k.nombre === '📢・novedades'));
+  assert.ok(foto.roles.includes('Kobun'));
+  assert.doesNotMatch(JSON.stringify(foto), /"id"|webhooks\//, 'sin ids ni direcciones');
+  await aplicar(respetando({ prueba: true, archivoFoto: path.join(carpeta, 'otra.json') }));
+  assert.ok(!existsSync(path.join(carpeta, 'otra.json')), 'en el modo de prueba no escribe nada');
 });

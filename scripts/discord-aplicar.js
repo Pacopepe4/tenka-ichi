@@ -1,7 +1,13 @@
-// Monta el servidor de Discord de Gokudō tal como dice discord/servidor.json (y las familias de
-// data-proyecto/familias.json): roles, categorías, canales, permisos y webhooks. Todo con el bot (API REST v10).
+// El servidor de Discord de Gokudō y discord/servidor.json (con las familias de data-proyecto/familias.json): roles,
+// categorías, canales, permisos, webhooks, emojis y comandos. Todo con el bot (API REST v10).
+// MANDA LO QUE HAY EN EL SERVIDOR (lo pidió Pacopepe el 10/11/2026: «deja los canales como los puse yo»): por defecto no
+// renombra, no mueve, no reordena y no cambia permisos, descripciones, icono ni emojis de lo que ya existe; solo dice en
+// qué se distingue de servidor.json. Lo único que crea por su cuenta son los webhooks que falten (y registra los comandos
+// del bot). Cada pasada guarda una foto del servidor tal como está en discord/servidor-actual.json.
 //   npm run discord-aplicar -- --prueba             → solo enseña lo que haría, no cambia nada
-//   npm run discord-aplicar                          → crea lo que falta y cambia lo que es distinto
+//   npm run discord-aplicar                          → crea los webhooks que falten; lo demás, solo lo cuenta
+//   npm run discord-aplicar -- --crear               → además crea los roles, categorías, canales y emojis que falten
+//   npm run discord-aplicar -- --forzar              → impone servidor.json a lo que ya existe (nombres, orden, permisos…)
 //   npm run discord-aplicar -- --borrar-sobrantes    → además borra los canales y roles que no están en el archivo
 //   npm run discord-aplicar -- --env <archivo>       → usa el .env de otra carpeta (lo lee y guarda ahí los webhooks)
 // Necesita DISCORD_BOT_TOKEN en el .env. Si el bot está en más de un servidor, DISCORD_GUILD_ID dice cuál.
@@ -173,13 +179,33 @@ export function leerImagen(archivo, raiz = RAIZ) {
   return { uri: `data:${tipo};base64,${datos.toString('base64')}`, huella: createHash('sha256').update(datos).digest('hex').slice(0, 16), bytes: datos.length };
 }
 
-export async function aplicar({ api, config, familias, prueba = false, borrarSobrantes = false, guildId = null,
-  archivoEnv = path.join(RAIZ, '.env'), archivoIds = path.join(RAIZ, 'discord/ids.json'), log = console.log }) {
+// Foto del servidor tal como está: categorías en orden con sus canales (nombre, tipo y descripción), los canales sin
+// categoría y los roles de arriba abajo. Sin ids ni nada secreto
+export async function fotoServidor(api, guildId, nombre) {
+  const canales = await api.get(`/guilds/${guildId}/channels`);
+  const roles = await api.get(`/guilds/${guildId}/roles`);
+  const tipo = t => ({ [TEXTO]: 'texto', [VOZ]: 'voz' }[t] || String(t));
+  const ordenar = l => [...l].sort((a, b) => ((a.type === VOZ) - (b.type === VOZ)) || a.position - b.position);
+  const canal = x => ({ nombre: x.name, tipo: tipo(x.type), ...(x.topic ? { tema: x.topic } : {}) });
+  return {
+    servidor: nombre,
+    categorias: canales.filter(x => x.type === CATEGORIA).sort((a, b) => a.position - b.position)
+      .map(cat => ({ nombre: cat.name, canales: ordenar(canales.filter(x => x.parent_id === cat.id)).map(canal) })),
+    sinCategoria: ordenar(canales.filter(x => x.type !== CATEGORIA && !x.parent_id)).map(canal),
+    roles: roles.filter(r => r.id !== guildId).sort((a, b) => b.position - a.position).map(r => r.name),
+  };
+}
+
+export async function aplicar({ api, config, familias, prueba = false, borrarSobrantes = false, guildId = null, forzar = false, crear = false,
+  archivoEnv = path.join(RAIZ, '.env'), archivoIds = path.join(RAIZ, 'discord/ids.json'),
+  archivoFoto = path.join(RAIZ, 'discord/servidor-actual.json'), log = console.log }) {
+  crear = crear || forzar;
   const quiere = deseado(config, familias);
   const acciones = [];
   const anotar = (accion, que, nombre, detalle = '') => {
     acciones.push({ accion, que, nombre, detalle });
-    const verbo = { crear: prueba ? 'Crearía' : 'Creado', cambiar: prueba ? 'Cambiaría' : 'Cambiado', borrar: prueba ? 'Borraría' : 'Borrado', sobra: 'Sobra (no se borra)', guardar: prueba ? 'Guardaría' : 'Guardado' }[accion];
+    const verbo = { crear: prueba ? 'Crearía' : 'Creado', cambiar: prueba ? 'Cambiaría' : 'Cambiado', borrar: prueba ? 'Borraría' : 'Borrado', sobra: 'Sobra (no se borra)', guardar: prueba ? 'Guardaría' : 'Guardado',
+      respeta: 'Se respeta (distinto de servidor.json)', falta: 'Falta (no se crea sin --crear)' }[accion];
     log(`${verbo} ${que} «${nombre}»${detalle ? `: ${detalle}` : ''}`);
   };
 
@@ -192,17 +218,20 @@ export async function aplicar({ api, config, familias, prueba = false, borrarSob
   }
   const servidor = await api.get(`/guilds/${guildId}`);
   log(`${prueba ? 'MODO DE PRUEBA (no se cambia nada) · ' : ''}Servidor «${servidor.name}» (${guildId}), bot ${yo.username}`);
+  if (!forzar) log('Se respeta lo que ya hay en el servidor (nombres, orden, permisos…): con --forzar se impondría servidor.json.');
   if (servidor.name !== quiere.nombre) log(`Ojo: el servidor se llama «${servidor.name}» y en servidor.json pone «${quiere.nombre}» (el nombre lo cambias tú en Discord).`);
 
   const ids = existsSync(archivoIds) ? JSON.parse(readFileSync(archivoIds, 'utf8')) : {};
   const idsServidor = ids[guildId] || {};
-  const nuevosIds = {};  // los ids de esta pasada: lo que ya no está en el archivo desaparece de ids.json
+  // Los ids de esta pasada. Con --forzar, lo que ya no está en el archivo desaparece de ids.json; si no, se conserva lo
+  // que hubiera (las huellas de las imágenes, lo que no se ha tocado)
+  const nuevosIds = forzar ? {} : { ...idsServidor };
   // ¿Está ya puesta esta imagen? (lo dice la huella guardada en la pasada anterior)
   const puesta = (clave, img) => idsServidor[`imagen:${clave}`] === img.huella;
   const marcar = (clave, img) => { nuevosIds[`imagen:${clave}`] = img.huella; };
 
   // Marca: icono del servidor y avatar del bot
-  if (quiere.marca.servidor) {
+  if (quiere.marca.servidor && forzar) {
     const img = leerImagen(quiere.marca.servidor);
     if (!servidor.icon || !puesta('servidor', img)) {
       anotar('cambiar', 'el icono del servidor', servidor.name, quiere.marca.servidor);
@@ -210,7 +239,7 @@ export async function aplicar({ api, config, familias, prueba = false, borrarSob
     }
     marcar('servidor', img);
   }
-  if (quiere.marca.bot) {
+  if (quiere.marca.bot && forzar) {
     const img = leerImagen(quiere.marca.bot);
     if (!yo.avatar || !puesta('bot', img)) {
       anotar('cambiar', 'el avatar del bot', yo.username, quiere.marca.bot);
@@ -239,7 +268,10 @@ export async function aplicar({ api, config, familias, prueba = false, borrarSob
   for (const r of quiere.roles) {
     const hay = buscar(roles.filter(x => x.id !== guildId && !x.managed), r.clave, x => igual(x.name, r.nombre));
     const cuerpo = { name: r.nombre, color: r.color, hoist: r.separado, mentionable: r.mencionable, ...(r.permisos !== null && { permissions: r.permisos }) };
-    if (!hay) {
+    if (!hay && !crear) {
+      anotar('falta', 'el rol', r.nombre);
+      idDeRol[r.ref] = null;
+    } else if (!hay) {
       anotar('crear', 'el rol', r.nombre);
       idDeRol[r.ref] = prueba ? `nuevo:${r.clave}` : (await api.post(`/guilds/${guildId}/roles`, cuerpo)).id;
     } else {
@@ -250,16 +282,17 @@ export async function aplicar({ api, config, familias, prueba = false, borrarSob
       if (hay.hoist !== r.separado) cambios.push(r.separado ? 'se ve aparte' : 'no se ve aparte');
       if (hay.mentionable !== r.mencionable) cambios.push(r.mencionable ? 'mencionable' : 'no mencionable');
       if (r.permisos !== null && String(hay.permissions) !== r.permisos) cambios.push('permisos');
-      if (cambios.length) {
+      if (cambios.length && !forzar) anotar('respeta', 'el rol', hay.name, cambios.join(', '));
+      else if (cambios.length) {
         anotar('cambiar', 'el rol', r.nombre, cambios.join(', '));
         if (!prueba) await api.patch(`/guilds/${guildId}/roles/${hay.id}`, cuerpo);
       }
     }
-    nuevosIds[r.clave] = idDeRol[r.ref];
+    if (idDeRol[r.ref]) nuevosIds[r.clave] = idDeRol[r.ref];
   }
   // Orden de los roles: los nuestros como en el archivo, por debajo del rol del bot (un rol solo puede dar los que
   // tiene por debajo, así que esto decide qué puede repartir cada uno). Los que no son nuestros quedan debajo.
-  {
+  if (forzar) {
     const posRol = Object.fromEntries(roles.map(x => [x.id, x.position]));
     const nuestros = quiere.roles.map(r => idDeRol[r.ref]);
     const tope = Math.min(...roles.filter(x => x.managed).map(x => x.position), Infinity);
@@ -278,7 +311,7 @@ export async function aplicar({ api, config, familias, prueba = false, borrarSob
   }
   const idRol = ref => {
     if (!(ref in idDeRol)) throw new Error(`En los permisos se usa el rol «${ref}», que no está en servidor.json`);
-    return idDeRol[ref];
+    return idDeRol[ref] || `falta:${ref}`;
   };
 
   // Categorías y canales
@@ -288,7 +321,10 @@ export async function aplicar({ api, config, familias, prueba = false, borrarSob
     const ows = overwrites(c.permisos, { idRol, everyone: guildId, botId: yo.id });
     let hay = buscar(canales.filter(x => x.type === CATEGORIA), c.clave, x => igual(x.name, c.nombre));
     let idCat;
-    if (!hay) {
+    if (!hay && !crear) {
+      anotar('falta', 'la categoría', c.nombre);
+      idCat = null;
+    } else if (!hay) {
       anotar('crear', 'la categoría', c.nombre);
       idCat = prueba ? `nuevo:${c.clave}` : (await api.post(`/guilds/${guildId}/channels`, { name: c.nombre, type: CATEGORIA, permission_overwrites: ows })).id;
     } else {
@@ -296,12 +332,13 @@ export async function aplicar({ api, config, familias, prueba = false, borrarSob
       const cambios = [];
       if (hay.name !== c.nombre) cambios.push(`nombre «${hay.name}» → «${c.nombre}»`);
       if (firma(hay.permission_overwrites) !== firma(ows)) cambios.push('permisos');
-      if (cambios.length) {
+      if (cambios.length && !forzar) anotar('respeta', 'la categoría', hay.name, cambios.join(', '));
+      else if (cambios.length) {
         anotar('cambiar', 'la categoría', c.nombre, cambios.join(', '));
         if (!prueba) await api.patch(`/channels/${hay.id}`, { name: c.nombre, permission_overwrites: ows });
       }
     }
-    nuevosIds[c.clave] = idCat;
+    if (idCat) nuevosIds[c.clave] = idCat;
     const hijos = [];
     for (const k of c.canales) {
       const owsK = overwrites(k.permisos, { idRol, everyone: guildId, botId: yo.id, familia: k.familia });
@@ -311,7 +348,10 @@ export async function aplicar({ api, config, familias, prueba = false, borrarSob
       const hayK = buscar(mismos, k.clave, x => x.name === k.nombre && x.parent_id === idCat) || buscar(mismos, k.clave, x => x.name === k.nombre);
       const cuerpo = { name: k.nombre, parent_id: idCat, permission_overwrites: owsK, ...(tipo === TEXTO && { topic: k.tema }) };
       let idK;
-      if (!hayK) {
+      if (!hayK && (!crear || !idCat)) {
+        anotar('falta', 'el canal', `${marca}${k.nombre}`, `en ${c.nombre}`);
+        idK = null;
+      } else if (!hayK) {
         anotar('crear', 'el canal', `${marca}${k.nombre}`, `en ${c.nombre}`);
         idK = prueba ? `nuevo:${k.clave}` : (await api.post(`/guilds/${guildId}/channels`, { ...cuerpo, type: tipo })).id;
       } else {
@@ -321,15 +361,15 @@ export async function aplicar({ api, config, familias, prueba = false, borrarSob
         if (tipo === TEXTO && (hayK.topic || '') !== k.tema) cambios.push('descripción');
         if (hayK.parent_id !== idCat) cambios.push(`pasa a ${c.nombre}`);
         if (firma(hayK.permission_overwrites) !== firma(owsK)) cambios.push('permisos');
-        if (cambios.length) {
+        if (cambios.length && !forzar) anotar('respeta', 'el canal', `${marca}${hayK.name}`, cambios.join(', '));
+        else if (cambios.length) {
           anotar('cambiar', 'el canal', `${marca}${k.nombre}`, cambios.join(', '));
           if (!prueba) await api.patch(`/channels/${hayK.id}`, cuerpo);
         }
       }
-      nuevosIds[k.clave] = idK;
-      hijos.push({ id: idK, tipo });
+      if (idK) { nuevosIds[k.clave] = idK; hijos.push({ id: idK, tipo }); }
     }
-    orden.push({ id: idCat, hijos });
+    if (idCat) orden.push({ id: idCat, hijos });
   }
 
   // Orden: las categorías como en el archivo, y dentro de cada una sus canales. Discord numera aparte los de texto
@@ -340,7 +380,10 @@ export async function aplicar({ api, config, familias, prueba = false, borrarSob
   const sobrantesCat = canales.filter(x => x.type === CATEGORIA && !cats.includes(x.id)).sort((a, b) => a.position - b.position);
   const porTipo = hijos => Object.values(Object.groupBy(hijos, h => h.tipo)).map(g => g.map(h => h.id));
   if (desordenado(cats) || orden.some(o => porTipo(o.hijos).some(desordenado))) {
-    anotar('cambiar', 'el orden de', 'categorías y canales', 'como en servidor.json');
+    if (!forzar) anotar('respeta', 'el orden de', 'categorías y canales', 'el de servidor.json es otro');
+    else anotar('cambiar', 'el orden de', 'categorías y canales', 'como en servidor.json');
+  }
+  if (forzar && (desordenado(cats) || orden.some(o => porTipo(o.hijos).some(desordenado)))) {
     if (!prueba) {
       const lista = [];
       orden.forEach((o, i) => { lista.push({ id: o.id, position: i }); for (const g of porTipo(o.hijos)) g.forEach((h, j) => lista.push({ id: h, position: j })); });
@@ -369,7 +412,8 @@ export async function aplicar({ api, config, familias, prueba = false, borrarSob
   for (const w of quiere.webhooks) {
     const clave = `canal:${nombreCanal(w.canal)}`;
     const idCanal = nuevosIds[clave];
-    if (!idCanal) throw new Error(`El webhook ${w.variable} es del canal #${w.canal}, que no está en servidor.json`);
+    if (!idCanal && !quiere.categorias.some(cat => cat.canales.some(k => k.clave === clave))) throw new Error(`El webhook ${w.variable} es del canal #${w.canal}, que no está en servidor.json`);
+    if (!idCanal) { anotar('falta', 'el webhook', `${w.nombre} en #${w.canal}`, 'no está su canal'); continue; }
     let hook = null;
     if (!String(idCanal).startsWith('nuevo:')) {
       const hooks = await api.get(`/channels/${idCanal}/webhooks`);
@@ -423,7 +467,9 @@ export async function aplicar({ api, config, familias, prueba = false, borrarSob
       if (img.bytes > 256 * 1024) throw new Error(`${e.archivo} pesa más de 256 KB, el máximo de Discord para un emoji`);
       let ya = hay.find(x => x.id === idsServidor[e.clave]) || hay.find(x => x.name === e.nombre);
       const huellaVieja = idsServidor[`imagen:${e.clave}`];
-      if (ya && huellaVieja && huellaVieja !== img.huella) {
+      if (!ya && !crear) { anotar('falta', 'el emoji', `:${e.nombre}:`); continue; }
+      if (ya && huellaVieja && huellaVieja !== img.huella && !forzar) anotar('respeta', 'el emoji', `:${ya.name}:`, 'su imagen es otra');
+      else if (ya && huellaVieja && huellaVieja !== img.huella) {
         anotar('cambiar', 'el emoji', `:${e.nombre}:`, 'imagen nueva');
         if (!prueba) await api.borrar(`/guilds/${guildId}/emojis/${ya.id}`);
         ya = null;
@@ -432,15 +478,19 @@ export async function aplicar({ api, config, familias, prueba = false, borrarSob
         nuevosIds[e.clave] = prueba ? `nuevo:${e.clave}` : (await api.post(`/guilds/${guildId}/emojis`, { name: e.nombre, image: img.uri })).id;
       } else {
         nuevosIds[e.clave] = ya.id;
-        if (ya.name !== e.nombre) {
+        if (ya.name !== e.nombre && !forzar) anotar('respeta', 'el emoji', `:${ya.name}:`, `en servidor.json se llama :${e.nombre}:`);
+        else if (ya.name !== e.nombre) {
           anotar('cambiar', 'el emoji', `:${e.nombre}:`, `nombre :${ya.name}: → :${e.nombre}:`);
           if (!prueba) await api.patch(`/guilds/${guildId}/emojis/${ya.id}`, { name: e.nombre });
         }
       }
+      if (ya && huellaVieja && huellaVieja !== img.huella && !forzar) continue;   // se queda la huella de la que hay
       marcar(e.clave, img);
     }
     // La misma insignia al lado del nombre de cada miembro (icono del rol): solo con nivel 2 de mejoras
-    if ((servidor.features || []).includes('ROLE_ICONS')) {
+    if (!forzar) {
+      // Los iconos de rol son parte de cómo están los roles: solo con --forzar
+    } else if ((servidor.features || []).includes('ROLE_ICONS')) {
       for (const e of quiere.emojis) {
         const img = leerImagen(e.archivo);
         const idR = idDeRol[`familia:${e.familia}`];
@@ -459,9 +509,13 @@ export async function aplicar({ api, config, familias, prueba = false, borrarSob
   if (!prueba) {
     ids[guildId] = nuevosIds;
     writeFileSync(archivoIds, JSON.stringify(ids, null, 2) + '\n');
+    // La foto del servidor tal como queda: lo que manda. Sirve para ver en el repositorio cómo lo ha dejado Pacopepe
+    if (archivoFoto) writeFileSync(archivoFoto, JSON.stringify(await fotoServidor(api, guildId, servidor.name), null, 2) + '\n');
   }
   const cuenta = a => acciones.filter(x => x.accion === a).length;
   log(`${prueba ? 'Haría' : 'Hecho'}: ${cuenta('crear')} cosas nuevas, ${cuenta('cambiar')} cambios, ${cuenta('borrar')} borradas` +
+    (cuenta('respeta') ? `, ${cuenta('respeta')} respetadas como están (con --forzar se cambiarían)` : '') +
+    (cuenta('falta') ? `, ${cuenta('falta')} faltan (se crean con --crear)` : '') +
     (cuenta('sobra') ? `, ${cuenta('sobra')} sobran (se borran con --borrar-sobrantes)` : '') + '.');
   return { acciones, guildId, env };
 }
@@ -481,6 +535,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       api: crearApi({ token, base: process.env.DISCORD_URL_API }),
       config: leerConfig(), familias: leerFamilias(), archivoEnv,
       prueba: argumentos.includes('--prueba'), borrarSobrantes: argumentos.includes('--borrar-sobrantes'),
+      forzar: argumentos.includes('--forzar'), crear: argumentos.includes('--crear'),
       guildId: process.env.DISCORD_GUILD_ID || null,
     });
   } catch (e) {

@@ -1,0 +1,257 @@
+{
+  "servidor": "Gokudō",
+  "categorias": [
+    {
+      "nombre": "🏯 Staff",
+      "canales": [
+        {
+          "nombre": "🔑・staff",
+          "tipo": "texto",
+          "tema": "Solo staff."
+        },
+        {
+          "nombre": "🤖・registro-bot",
+          "tipo": "texto",
+          "tema": "Lo que hace el bot."
+        }
+      ]
+    },
+    {
+      "nombre": "🔴 Directo",
+      "canales": [
+        {
+          "nombre": "🔴・avisos-directo",
+          "tipo": "texto",
+          "tema": "Aviso cuando empieza el directo."
+        },
+        {
+          "nombre": "🎬・clips",
+          "tipo": "texto",
+          "tema": "Los mejores momentos del directo."
+        }
+      ]
+    },
+    {
+      "nombre": "📜 Info",
+      "canales": [
+        {
+          "nombre": "📜・normas",
+          "tipo": "texto",
+          "tema": "Normas del servidor y de la liga."
+        },
+        {
+          "nombre": "📢・anuncios",
+          "tipo": "texto",
+          "tema": "Anuncios de Gokudō."
+        },
+        {
+          "nombre": "📅・calendario",
+          "tipo": "texto",
+          "tema": "Jornadas y horarios de la temporada."
+        }
+      ]
+    },
+    {
+      "nombre": "🏆 Liga",
+      "canales": [
+        {
+          "nombre": "🎯・resultados",
+          "tipo": "texto",
+          "tema": "El resultado y la crónica de cada partida."
+        },
+        {
+          "nombre": "🏆・clasificacion",
+          "tipo": "texto",
+          "tema": "Clasificación de la liga."
+        },
+        {
+          "nombre": "📊・tier-list",
+          "tipo": "texto",
+          "tema": "La tier list del staff y las de los espectadores."
+        },
+        {
+          "nombre": "🔮・fantasy",
+          "tipo": "texto",
+          "tema": "Clasificación del fantasy."
+        }
+      ]
+    },
+    {
+      "nombre": "🎰 Gachapón",
+      "canales": [
+        {
+          "nombre": "🃏・colecciones",
+          "tipo": "texto",
+          "tema": "Las colecciones de cartas que enseñáis desde la web."
+        },
+        {
+          "nombre": "🎴・alineaciones",
+          "tipo": "texto",
+          "tema": "Las alineaciones que enseñáis desde la web."
+        }
+      ]
+    },
+    {
+      "nombre": "🍶 General-La Izakaya",
+      "canales": [
+        {
+          "nombre": "chat-general",
+          "tipo": "texto"
+        },
+        {
+          "nombre": "🍶・Izakaya",
+          "tipo": "voz"
+        },
+        {
+          "nombre": "🍶・Izakaya 2",
+          "tipo": "voz"
+        }
+      ]
+    },
+    {
+      "nombre": "🐉 Ryūjin",
+      "canales": [
+        {
+          "nombre": "🐉・ryūjin",
+          "tipo": "texto",
+          "tema": "Chat de la familia Ryūjin: abierto a todos."
+        },
+        {
+          "nombre": "🔊・Ryūjin",
+          "tipo": "voz"
+        },
+        {
+          "nombre": "🔒・Ryūjin privado",
+          "tipo": "voz"
+        }
+      ]
+    },
+    {
+      "nombre": "🐯 Byakko",
+      "canales": [
+        {
+          "nombre": "🐯・byakko",
+          "tipo": "texto",
+          "tema": "Chat de la familia Byakko: abierto a todos."
+        },
+        {
+          "nombre": "🔊・Byakko",
+          "tipo": "voz"
+        },
+        {
+          "nombre": "🔒・Byakko privado",
+          "tipo": "voz"
+        }
+      ]
+    },
+    {
+      "nombre": "🦅 Tengu",
+      "canales": [
+        {
+          "nombre": "🦅・tengu",
+          "tipo": "texto",
+          "tema": "Chat de la familia Tengu: abierto a todos."
+        },
+        {
+          "nombre": "🔊・Tengu",
+          "tipo": "voz"
+        },
+        {
+          "nombre": "🔒・Tengu privado",
+          "tipo": "voz"
+        }
+      ]
+    },
+    {
+      "nombre": "🐺 Tsuki",
+      "canales": [
+        {
+          "nombre": "🐺・tsuki",
+          "tipo": "texto",
+          "tema": "Chat de la familia Tsuki: abierto a todos."
+        },
+        {
+          "nombre": "🔊・Tsuki",
+          "tipo": "voz"
+        },
+        {
+          "nombre": "🔒・Tsuki privado",
+          "tipo": "voz"
+        }
+      ]
+    },
+    {
+      "nombre": "🧌 Yasha",
+      "canales": [
+        {
+          "nombre": "🧌・yasha",
+          "tipo": "texto",
+          "tema": "Chat de la familia Yasha: abierto a todos."
+        },
+        {
+          "nombre": "🔊・Yasha",
+          "tipo": "voz"
+        },
+        {
+          "nombre": "🔒・Yasha privado",
+          "tipo": "voz"
+        }
+      ]
+    },
+    {
+      "nombre": "👹 Akuma",
+      "canales": [
+        {
+          "nombre": "👹・akuma",
+          "tipo": "texto",
+          "tema": "Chat de la familia Akuma: abierto a todos."
+        },
+        {
+          "nombre": "🔊・Akuma",
+          "tipo": "voz"
+        },
+        {
+          "nombre": "🔒・Akuma privado",
+          "tipo": "voz"
+        }
+      ]
+    },
+    {
+      "nombre": "💀 Shinigami",
+      "canales": [
+        {
+          "nombre": "💀・shinigami",
+          "tipo": "texto",
+          "tema": "Chat de la familia Shinigami (Legacy): abierto a todos."
+        },
+        {
+          "nombre": "🔊・Shinigami",
+          "tipo": "voz"
+        },
+        {
+          "nombre": "🔒・Shinigami privado",
+          "tipo": "voz"
+        }
+      ]
+    }
+  ],
+  "sinCategoria": [
+    {
+      "nombre": "server-hub",
+      "tipo": "20"
+    }
+  ],
+  "roles": [
+    "Gokudō",
+    "Kumichō",
+    "Oyabun",
+    "Ryūjin",
+    "Byakko",
+    "Tengu",
+    "Tsuki",
+    "Yasha",
+    "Akuma",
+    "Shinigami",
+    "Kobun"
+  ]
+}
