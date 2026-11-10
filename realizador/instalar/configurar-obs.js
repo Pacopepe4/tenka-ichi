@@ -222,13 +222,27 @@ export function crearColeccion({ escenas, fuenteRepeticion, overlay = '', recurs
 // Nombres que ha tenido la fuente del overlay en la colección del realizador (el viejo, de antes de Gokudō, y el de ahora)
 export const NOMBRES_OVERLAY = ['Overlay Gokudō', 'Overlay TENKA ICHI'];
 
+// Solo vale una dirección de la web de Gokudō: el 10/11 el PC 2 cogió de otra colección un overlay de StreamElements
+// (su dirección lleva «overlay») y con él montó también las alertas, que daban un 404 en pantalla.
+// Vale si es de la misma web que el puente, o lleva tenka/gokudo en el nombre, o es local; nunca de un servicio ajeno.
+const AJENAS = /(^|\.)(streamelements|streamlabs|kick|twitch|youtube|google|discord|lolesports|riotgames)\.(com|tv|gg)$/i;
+export function esDeGokudo(url, porDefecto = '') {
+  let u;
+  try { u = new URL(url); } catch { return false; }
+  if (!/^https?:$/.test(u.protocol) || AJENAS.test(u.hostname)) return false;
+  let host = '';
+  try { host = new URL(porDefecto).hostname; } catch { /* sin dirección de la web */ }
+  return !host || u.hostname === host || /tenka|gokudo|localhost|127\.0\.0\.1/i.test(u.hostname);
+}
+
 // Busca la dirección del overlay: primero en la fuente del realizador de una instalación anterior (con su nombre
 // de ahora o el viejo, por si se cambió a mano), y si no, en tus colecciones una fuente de navegador que lo parezca
-export function buscarOverlay(carpetaEscenas) {
+
+export function buscarOverlay(carpetaEscenas, acepta = () => true) {
   if (!existsSync(carpetaEscenas)) return '';
   try {
     const propia = JSON.parse(leerTexto(join(carpetaEscenas, `${NOMBRE}.json`)));
-    const f = (propia.sources || []).find(s => NOMBRES_OVERLAY.includes(s.name) && s.settings?.url);
+    const f = (propia.sources || []).find(s => NOMBRES_OVERLAY.includes(s.name) && s.settings?.url && acepta(s.settings.url));
     if (f) return f.settings.url;
   } catch { /* sin colección del realizador todavía */ }
   for (const f of readdirSync(carpetaEscenas)) {
@@ -236,7 +250,7 @@ export function buscarOverlay(carpetaEscenas) {
     try {
       const c = JSON.parse(leerTexto(join(carpetaEscenas, f)));
       const b = (c.sources || []).find(s => s.id === 'browser_source' && s.settings?.url &&
-        /tenka|overlay|marcador/i.test(`${s.name} ${s.settings.url}`));
+        /tenka|overlay|marcador/i.test(`${s.name} ${s.settings.url}`) && acepta(s.settings.url));
       if (b) return b.settings.url;
     } catch { /* colección rota o a medias: se ignora */ }
   }
@@ -392,7 +406,7 @@ export function configurarObs({ carpeta, opciones, rutaLocal, overlay, overlayPo
 
   // 2. Colección de escenas
   const escenas = join(carpeta, 'basic', 'scenes');
-  const url = overlay ?? (o.overlay || buscarOverlay(escenas) || overlayPorDefecto || '');
+  const url = overlay ?? (o.overlay || buscarOverlay(escenas, u => esDeGokudo(u, overlayPorDefecto)) || overlayPorDefecto || '');
   const nombres = { juego: o.escenaJuego, repeticion: o.escenaRepeticion, casters: o.escenaCasters, pausa: o.escenaPausa, draft: o.escenaDraft || 'Draft' };
   const rutaColeccion = join(escenas, `${NOMBRE}.json`);
   guardarCopia(rutaColeccion, `${NOMBRE}.json`);
