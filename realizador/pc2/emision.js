@@ -22,6 +22,7 @@ export const POR_DEFECTO = {
   pararAlAcabar: false,      // cortar la emisión sola al acabar la partida (si no, sigue en la escena final)
   pararTrasSegundos: 60,
   armarSiEmiteAMano: true,   // empezar a emitir en OBS a mano también arma el realizador
+  buferSiempre: true,        // con OBS conectado, el búfer de repeticiones siempre en marcha (si se para, se arranca)
 };
 
 export class Emision extends EventEmitter {
@@ -118,6 +119,25 @@ export class Emision extends EventEmitter {
 
   esperaReintento() { return (this.c.reintentoSegundos ?? 15) * 1000; }
 
+  // El búfer de repeticiones tiene que estar en marcha siempre que OBS esté conectado (10/11: se quedó parado y
+  // no hubo repeticiones). Si está parado se arranca, como mucho una vez cada reintentoSegundos: pedirle cosas a
+  // OBS sin parar lo tumbó el 09/11. El mismo error no se repite en el registro.
+  async vigilarBufer(ahora = Date.now()) {
+    if (this.c.buferSiempre === false || !this.obs?.listo || !this.obs.arrancarBufer || !this.salidas) return;
+    if (this.salidas.bufer) { this.errorBufer = null; return; }
+    if (ahora - (this.intentoBufer || 0) < this.esperaReintento()) return;
+    this.intentoBufer = ahora;
+    try {
+      await this.obs.arrancarBufer();
+      this.registrar('[emisión] el búfer de repetición estaba parado: arrancado');
+      this.errorBufer = null;
+    } catch (e) {
+      if (this.errorBufer !== e.message) this.registrar(`[emisión] el búfer de repetición no arranca: ${e.message}`);
+      this.errorBufer = e.message;
+    }
+    await this.leerSalidas(true);
+  }
+
   // Se pidió empezar a emitir (o grabar) y, pasado el rato, OBS sigue sin hacerlo: se dice por qué puede ser
   avisarSiNoArranca(ahora = Date.now()) {
     if (!this.intentoSalida || this.salidaActiva || ahora - this.intentoSalida < this.esperaReintento()) return;
@@ -146,6 +166,7 @@ export class Emision extends EventEmitter {
     // ¿Arrancó de verdad lo que se pidió a OBS?
     if (this.salidaActiva && this.intentoSalida) this.intentoSalida = null;
     else this.avisarSiNoArranca(ahora);
+    await this.vigilarBufer(ahora);
     // Lo que pasa en OBS a mano: empezar a emitir arma el realizador; cortar la emisión lo apaga
     if (this.salidas && !this.parando) {
       const enAire = Boolean(this.salidas.emitiendo || (this.modo === 'grabar' && this.salidas.grabando));

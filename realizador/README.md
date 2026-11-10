@@ -116,6 +116,8 @@ Tus colecciones y perfiles de siempre no se tocan (siguen en los menús de OBS),
 
 **Audio de las repeticiones:** el perfil `Realizador` va en salida avanzada con tres pistas: la 1 es la emisión (juego y micro), la 2 solo el juego y la 3 juego y micro. El búfer de repetición graba la 2 y la 3, así que al repetir un clip suena el juego sin los casters (la 3 queda para el resumen). La escena `Repeticion` solo lleva el clip y el cartel REPLAY.
 
+**Búfer de repeticiones vigilado (10/11):** con OBS conectado, el PC 2 lo mantiene siempre en marcha; si se para, lo vuelve a arrancar (un intento cada `emision.reintentoSegundos` como mucho). Se apaga con `emision.buferSiempre: false`.
+
 **Bordes del mapa apagados (10/11):** en la 3.ª prueba real el ajuste de bordes (`rele.bordes`) entraba y salía varias veces por segundo con el campeón pegado al borde y cada vez movía la cámara y cerraba el zoom de golpe: eran los tirones. Ahora va con `activo: false`.
 
 **Overlay en OBS:** el instalador solo acepta una dirección de la web de Gokudō (nunca StreamElements u otro servicio, aunque la fuente se llame «overlay»), y las alertas salen de esa misma web.
