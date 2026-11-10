@@ -275,7 +275,51 @@ export class Cerebro {
         t = hasta;
       }
     }
-    if (t < fin) planos.push({ inicio: t, fin: b, tipo: 'general', objetivo: null, jugada: null });
+    if (t < fin) planos.push(...this.rellenarCalma(t, b));
+    return planos;
+  }
+
+  // Rato tranquilo pasado el inicio (10/11: «la cámara hace poco juego»): en vez de quedarse en plano general,
+  // hilo conductor por los junglas y las líneas: un jungla, una línea, el otro jungla, la siguiente línea…
+  // (top, mid, bot). La rueda va por el reloj de la partida, así el plan sale igual cada vez que se rehace.
+  // Huecos cortos (menos de «minimo» s), fuera de horario o sin datos de los jugadores: plano general como antes.
+  rellenarCalma(a, b) {
+    const c = this.r.calma;
+    const general = [{ inicio: a, fin: b, tipo: 'general', objetivo: null, jugada: null }];
+    const js = this.jugadores || [];
+    if (!c || c.activo === false || !js.length) return general;
+    const fin = b === null ? Infinity : b;
+    const desde = Math.max(a, c.desdeSegundo ?? 300);
+    if (fin - desde < (c.minimo ?? 12)) return general;
+    const persona = j => ({ jugador: j.jugador, campeon: j.campeon, equipo: j.equipo });
+    const azulPrimero = (x, y) => (x.equipo === 'azul' ? 0 : 1) - (y.equipo === 'azul' ? 0 : 1);
+    const junglas = js.filter(j => /^JUNGLE$/i.test(j.posicion || '') || j.castigo).sort(azulPrimero).slice(0, 2);
+    if (!junglas.length) return general;
+    const lineas = (c.lineas || ['TOP', 'MIDDLE', 'BOTTOM'])
+      .map(p => js.filter(j => String(j.posicion || '').toUpperCase() === String(p).toUpperCase()).sort(azulPrimero));
+    const tJ = c.jungla ?? 25, tL = c.linea ?? 15, periodo = tJ + tL;
+    const planos = desde > a ? [{ inicio: a, fin: desde, tipo: 'general', objetivo: null, jugada: null }] : [];
+    // Hueco sin final (aún no se sabe la próxima jugada): se rellena un buen rato; el guion se rehace al avanzar
+    const hastaDonde = Math.min(fin, desde + (c.horizonte ?? 600));
+    for (let s = desde; s < hastaDonde - 1e-6;) {
+      const k = Math.floor(s / periodo + 1e-9);
+      const dentro = s - k * periodo;
+      const jungla = junglas[k % junglas.length];
+      let quien, e;
+      if (dentro < tJ) { quien = jungla; e = k * periodo + tJ; }
+      else {
+        const linea = lineas[k % lineas.length] || [];
+        quien = linea.find(j => j.equipo === jungla.equipo) || linea[0] || jungla;
+        e = (k + 1) * periodo;
+      }
+      e = Math.min(e, hastaDonde);
+      const ultimo = planos.at(-1);
+      // Trozos de menos de 4 s (al final del hueco) o el mismo jugador seguido: se alarga el anterior
+      if (ultimo?.guion === 'calma' && (e - s < 4 || ultimo.objetivo.campeon === quien.campeon)) ultimo.fin = e;
+      else planos.push({ inicio: s, fin: e, tipo: 'seguir', objetivo: persona(quien), jugada: null, guion: 'calma' });
+      s = e;
+    }
+    if (b === null && planos.length) planos.at(-1).fin = null;
     return planos;
   }
 
