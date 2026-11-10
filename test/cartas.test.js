@@ -67,7 +67,8 @@ before(async () => {
   await g.cargarGacha();
 });
 
-after(async () => { if (carpeta) await rm(carpeta, { recursive: true, force: true }); });
+// Con reintentos: en Windows, borrar una carpeta que algo acaba de tocar puede fallar un momento (EBUSY, ENOTEMPTY)
+after(async () => { if (carpeta) await rm(carpeta, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); });
 
 const porId = () => new Map(g.catalogo().map(c => [c.id, c]));
 
@@ -291,7 +292,7 @@ test('el bonus de una BOOST multiplica los puntos de su jugador solo si cumple l
 
 test('los sobres esperan a la tier list entera: un jugador con nombre y sin tier los cierra para todos', async () => {
   const { guardarPlantilla } = await import('../server/plantillas.js');
-  const { ponerTier } = await import('../server/tierlist.js');
+  const { ponerTier, guardarTierlistYa } = await import('../server/tierlist.js');
   assert.deepEqual([g.sobresListos(), g.faltanTiers()], [true, []]);
   await guardarPlantilla('SARU', { jugadores: ['Nuevo', '', '', '', ''] });
   assert.deepEqual([g.sobresListos(), g.faltanTiers()], [false, ['SARU-TOP']]);
@@ -302,4 +303,8 @@ test('los sobres esperan a la tier list entera: un jugador con nombre y sin tier
   ponerTier('jugador', 'SARU-TOP', null);
   await guardarPlantilla('SARU', { jugadores: ['', '', '', '', ''] });
   assert.equal(g.sobresListos(), true);
+  // ponerTier guarda la tier list 1,5 s después (server/tierlist.js). Se guarda ya: si no, ese guardado llega cuando
+  // after() ya está borrando la carpeta, la vuelve a crear y, si coinciden, el borrado falla y el archivo entero sale
+  // como fallido sin ninguna prueba marcada (pasaba a veces con todas las pruebas a la vez)
+  await guardarTierlistYa();
 });
