@@ -25,10 +25,9 @@ export const RAMAS = {
     'instagram', 'avisos'],
   discord: ['discord', 'servidor', 'rol', 'canal', 'reclut', 'recluto', 'kobun', 'oyabun', 'kumicho', 'ticket', 'staff', 'hilo', 'izakaya', 'voz', 'entrar en'],
   kb: ['kb', 'koryu', 'budo'],
-  // Las leyendas de la Liga KB que no juegan en Gokudō (por su nombre)
-  escena: ['alejandromag', 'alejandro', 'dakin', 'dafenosa', 'ventana', 'tuff pigeon', 'pigeon', 'dr filtros', 'filtros', 'ortiz', 'akuarela',
-    'cona mala', 'zinviictus', 'invictus', 'xenius', 'dantesaurio', 'almo', 'chopit0', 'chopito', 'reiko', 'senor gallego', 'cinturones', 'leyenda',
-    'legendari', 'antiguo', 'campeon'],
+  // Preguntas por las leyendas de la Liga KB en general: va el lore de todos los de discord/kbstats-jugadores.md (si se
+  // nombra a alguien, va solo el suyo, aunque no salga ninguna de estas palabras)
+  escena: ['leyenda', 'legendari', 'antiguo', 'antiguos', 'veterano', 'historia de kb', 'quien es quien', 'cinturones', 'campeones de'],
 };
 const ROLES = { Top: ['top'], Jungla: ['jungla', 'jungler', 'jungle', 'jgl', 'jg'], Medio: ['mid', 'medio'], ADC: ['adc', 'tirador', 'bot'],
   Support: ['support', 'supp', 'sup', 'apoyo'] };
@@ -114,6 +113,26 @@ export function filasKb(kb, pregunta, { jugadores = [], alias = {} } = {}) {
   const rol = Object.entries(ROLES).find(([, ps]) => ps.some(p => tiene(t, p)))?.[0];
   const filas = kb.filas.filter(f => !rol || f.rol === rol).slice(0, MAX_KB_GENERAL);
   return filas.length ? `${kb.cabecera}\nNo se nombra a nadie en concreto: van las ${filas.length} mejores notas${rol ? ` de ${rol}` : ''}.\n${filas.map(f => f.texto).join('\n')}` : '';
+}
+
+// discord/kbstats-jugadores.md: un bloque por jugador de KB Stats («### cuenta», «- En Gokudō: …», «- Lore: …»)
+export function leerFichaKb(md) {
+  return String(md || '').split(/^(?=### )/m).filter(b => b.startsWith('### ')).map(b => {
+    const cuenta = b.split('\n')[0].slice(4).trim();
+    const valor = clave => (new RegExp(`^- ${clave}:[ \\t]*(.*)$`, 'm').exec(b)?.[1] || '').trim();
+    return { cuenta, nombre: cuenta.replace(/#.*$/, '').replace(/^KB\s+/i, '').trim(), gokudo: valor('En Gokudō'), lore: valor('Lore') };
+  });
+}
+
+// Las equivalencias que salen de la lista: nombre en Gokudō → cuenta de KB
+export const aliasDeFicha = ficha => Object.fromEntries(ficha.filter(f => f.gokudo).map(f => [f.gokudo.toUpperCase(), f.nombre]));
+
+// El lore de la gente que se nombra (por su cuenta de KB o por su nombre en Gokudō); con 'general', el de todos
+export function quienEs(ficha, texto, { general = false, max = 40 } = {}) {
+  const conLore = ficha.filter(f => f.lore);
+  const nombrados = texto ? conLore.filter(f => nombra(texto, f.nombre) || (f.gokudo && nombra(texto, f.gokudo))) : [];
+  const lista = nombrados.length ? nombrados : general ? conLore.slice(0, max) : [];
+  return lista.map(f => `- **${f.cuenta.replace(/#.*$/, '')}**${f.gokudo ? ` (en Gokudō, ${f.gokudo})` : ''}: ${f.lore}`).join('\n');
 }
 
 // De la conversación del ticket, solo lo que ha escrito la gente (para saber de quién o de qué se hablaba). Lo que

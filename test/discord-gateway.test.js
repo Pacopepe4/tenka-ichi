@@ -39,8 +39,8 @@ test('se identifica con los intents justos, late, pasa los mensajes y, si se cor
     await esperarA(() => mensajes.length === 1);
     assert.deepEqual(mensajes[0], [{ id: '50', content: '<@9> hola' }, { id: '9', username: 'SrDirector' }]);
     assert.equal(g.yo().username, 'SrDirector');
-    await esperarA(() => recibidos.some(p => p.op === 1));
-    assert.equal(recibidos.find(p => p.op === 1).d, 2, 'el latido lleva el último número de secuencia');
+    // El latido lleva el último número de secuencia (alguno puede salir antes de que llegue el 2 si la máquina va cargada)
+    await esperarA(() => recibidos.some(p => p.op === 1 && p.d === 2));
     primero.send(JSON.stringify({ op: 11 }));
     // Discord corta (por ejemplo, por mantenimiento): el bot vuelve y reanuda en vez de identificarse otra vez
     primero.close(4000);

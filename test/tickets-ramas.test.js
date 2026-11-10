@@ -62,7 +62,7 @@ test('la ficha de verdad: cada apartado lleva una rama que existe, y el núcleo 
   const secciones = seccionesSaber(readFileSync(new URL('../discord/tickets-saber.md', import.meta.url), 'utf8'));
   const validas = new Set(['nucleo', ...Object.keys(RAMAS)]);
   for (const s of secciones) assert.ok(validas.has(s.rama), `rama desconocida «${s.rama}» en ${s.texto.split('\n')[0]}`);
-  assert.deepEqual([...new Set(secciones.map(s => s.rama))].sort(), [...validas].filter(r => !['stats'].includes(r)).sort(), 'todas las ramas de la ficha tienen su apartado');
+  assert.deepEqual([...new Set(secciones.map(s => s.rama))].sort(), [...validas].filter(r => !['stats', 'escena'].includes(r)).sort(), 'todas las ramas de la ficha tienen su apartado (stats y escena salen de KB Stats y de su lista)');
   const nucleo = secciones.filter(s => s.rama === 'nucleo').map(s => s.texto).join('\n\n');
   assert.ok(nucleo.length < 3000, `el núcleo (va en todas las preguntas) ocupa ${nucleo.length} caracteres`);
   assert.doesNotMatch(nucleo, /<!--/);
@@ -99,7 +99,23 @@ test('lo que dijo la gente: sus mensajes y las preguntas que SrDirector copia, s
   assert.equal(loQueDijoLaGente(historia), 'háblame de KINGKAI\n[Persona 20 (quien abrió el ticket)] gracias crack');
 });
 
-test('las leyendas de KB despiertan su rama por el nombre', () => {
-  assert.ok(ramas('¿quién es Dakin?').includes('escena'));
-  assert.ok(ramas('cuéntame lo de coña malą').includes('escena'));
+test('la lista de jugadores de KB: quién es quién y su lore, por su cuenta o su nombre en Gokudō', async () => {
+  const { leerFichaKb, aliasDeFicha, quienEs } = await import('../server/tickets-ramas.js');
+  const md = '# Título\n\nTexto con un ### suelto en medio.\n\n## KB ATSUI\n\n### Hikigaayaa#YUKNO\n- KB: KB ATSUI · Top · 8 partidas\n- En Gokudō: GAATSU\n- Lore: Es GAATSU, el top de Ryūjin.\n\n### Dakin#DAK\n- KB: KB ATSUI · Jungla · 7 partidas\n- En Gokudō: \n- Lore: Campeón de Cinturones.\n\n### Nadie#1\n- KB: KB ATSUI · ADC · 1 partidas\n- En Gokudō:\n- Lore:\n';
+  const gente = leerFichaKb(md);
+  assert.deepEqual(gente.map(g => [g.cuenta, g.nombre, g.gokudo]), [['Hikigaayaa#YUKNO', 'Hikigaayaa', 'GAATSU'], ['Dakin#DAK', 'Dakin', ''], ['Nadie#1', 'Nadie', '']]);
+  assert.deepEqual(aliasDeFicha(gente), { GAATSU: 'Hikigaayaa' });
+  assert.equal(quienEs(gente, '¿quién es Dakin?'), '- **Dakin**: Campeón de Cinturones.');
+  assert.equal(quienEs(gente, 'háblame de gaatsu'), '- **Hikigaayaa** (en Gokudō, GAATSU): Es GAATSU, el top de Ryūjin.');
+  assert.equal(quienEs(gente, 'hola'), '');
+  assert.equal(quienEs(gente, '', { general: true }).split('\n').length, 2, 'en general, todos los que tienen lore');
+  assert.ok(ramas('¿quiénes son las leyendas de KB?').includes('escena'));
+});
+
+test('la lista de verdad: los 107 de KB Stats, y GAATSU es Hikigaayaa', async () => {
+  const { leerFichaKb, aliasDeFicha } = await import('../server/tickets-ramas.js');
+  const gente = leerFichaKb(readFileSync(new URL('../discord/kbstats-jugadores.md', import.meta.url), 'utf8'));
+  assert.ok(gente.length >= 100, `${gente.length} jugadores`);
+  assert.equal(aliasDeFicha(gente).GAATSU, 'Hikigaayaa');
+  assert.ok(gente.every(g => /#/.test(g.cuenta)), 'cada título es una cuenta con su #etiqueta');
 });
