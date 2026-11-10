@@ -142,7 +142,7 @@
     "segundosBufer": 45,
     "codificador": "auto",
     "emision": { "servidor": "rtmps://fa723fc1b171.global-contribute.live-video.net/" },
-    "minimapa": {},
+    "minimapa": { "x": 1640, "y": 804, "lado": 250 },
     "overlay": ""
   },
 
