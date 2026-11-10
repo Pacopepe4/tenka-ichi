@@ -17,6 +17,7 @@ import { arrancarPanel } from '../pc1/panel.js';
 import { POR_DEFECTO as BORDES, ajusteBorde, suavizar, zoomConBorde, posicionSeguido } from './bordes.js';
 import { Tenka } from '../pc1/tenka.js';
 import { CamarasDraft } from './camaras.js';
+import { GrabadorLol, cursorEnClip } from './grabador.js';
 import { readFileSync, writeFileSync, existsSync, appendFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { RAIZ } from '../comun/opciones.js';
@@ -64,7 +65,7 @@ export function segundoHace(historial, hora) {
 
 // obs: false para no tocar OBS desde el relé (modo de un solo PC, donde lo lleva el agente). En las pruebas,
 // obs y sala pueden ser objetos de mentira.
-export function crearRele(o, { registrar: registrarFuera = console.log, obs: conObs = true, sala: otraSala = null, panel: conPanel = false, tenka: otroTenka = undefined, rutaLocal = join(RAIZ, 'opciones.local.json') } = {}) {
+export function crearRele(o, { registrar: registrarFuera = console.log, obs: conObs = true, grabador: otroGrabador = undefined, sala: otraSala = null, panel: conPanel = false, tenka: otroTenka = undefined, rutaLocal = join(RAIZ, 'opciones.local.json') } = {}) {
   const r = o.rele;
   // Lo que se apunta también se guarda para la página del PC 2
   const registro = [];
@@ -87,7 +88,8 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
     errores: 0,
     accionesObs: [],        // lo que hay que hacer en el OBS de este PC (lo manda el PC 1 con el guion)
     hechasObs: new Set(),
-    clips: new Map(),       // jugada → { ruta, t }
+    clips: new Map(),       // jugada → { ruta, t } (búfer de OBS, con el marcador dentro: para el resumen)
+    clipsLol: new Map(),    // jugada → { ruta, t, inicioMs, guardadoMs } (solo el LoL, del grabador: para repetir)
     meta: null,             // segundo al que va (o irá) la antena; negativo mientras espera el margen
     tFin: null,             // segundo en que acabó la partida (lo dice el PC 1)
     historial: [],          // { t, hora }: segundo de partida del PC 1 según la hora en que llegó
@@ -101,6 +103,12 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
   if (typeof conObs !== 'object') obs?.on('conexion', v => { if (v) registrar('[obs] conectado'); });
   if (typeof conObs !== 'object') obs?.on('problema', t => registrar(`[obs] ${t}`));
   if (typeof conObs !== 'object') obs?.conectar();
+
+  // Grabador del LoL (ffmpeg): clips limpios, sin el marcador, para las repeticiones. Solo con OBS de verdad.
+  const rutaFfmpeg = o.clips?.ffmpeg || [join(RAIZ, 'herramientas', 'ffmpeg', 'ffmpeg.exe')].find(existsSync) || 'ffmpeg';
+  const grabador = otroGrabador !== undefined ? otroGrabador
+    : (obs && typeof conObs !== 'object' && o.clips?.activo !== false ? new GrabadorLol({ ffmpeg: rutaFfmpeg, opciones: o.clips || {}, registrar }) : null);
+  const carpetaClipsLol = join(o.registro?.raiz || RAIZ, o.registro?.carpeta || 'partidas', 'clips-lol');
 
   // El botón de «Empezar directo»: arranca OBS justo para que la partida salga desde el principio
   const emision = new Emision({
@@ -139,17 +147,32 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
       if (!obs.listo) { registrar(`[obs] ${a.tipo} ${a.jugada}: OBS no está conectado`); continue; }
       try {
         if (a.tipo === 'guardar') {
-          const ruta = await obs.guardarRepeticion();
-          estado.clips.set(a.jugada, { ruta, t: tA });
-          registrar(`[obs] clip de ${a.jugada} guardado`);
+          // Primero el clip limpio del LoL (casi no tarda); luego el del búfer de OBS, que es el que lleva los micros
+          if (grabador?.activo) {
+            const nombre = `${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}-${a.jugada}.mp4`;
+            try {
+              const c = await grabador.clip(join(carpetaClipsLol, nombre));
+              estado.clipsLol.set(a.jugada, { ...c, t: tA });
+              registrar(`[grabador] clip limpio de ${a.jugada} guardado`);
+            } catch (e) { registrar(`[grabador] clip de ${a.jugada}: ${e.message}`); }
+          }
+          try {
+            const ruta = await obs.guardarRepeticion();
+            estado.clips.set(a.jugada, { ruta, t: tA });
+            registrar(`[obs] clip de ${a.jugada} guardado`);
+          } catch (e) { registrar(`[obs] clip de ${a.jugada}: ${e.message}`); }
         } else if (a.tipo === 'repeticion') {
           if (estado.manual) { registrar(`[obs] repetición de ${a.jugada}: control manual, se salta`); continue; }
-          const clip = estado.clips.get(a.jugada);
+          // Mejor el clip limpio del LoL, empezando justo donde toca; si no hay, el del búfer de OBS como antes
+          const limpio = estado.clipsLol.get(a.jugada);
+          const clip = limpio || estado.clips.get(a.jugada);
           if (!clip?.ruta) { registrar(`[obs] repetición de ${a.jugada}: no hay clip`); continue; }
+          const atras = segundosAtras(a, clip);
+          const cursorMs = limpio ? cursorEnClip(limpio, atras) : undefined;
           await (obs.repeticionCompleta
-            ? obs.repeticionCompleta({ ruta: clip.ruta, fuente: o.obs.fuenteRepeticion, escena: o.obs.escenaRepeticion, escenaJuego: o.obs.escenaJuego, segundosAtras: segundosAtras(a, clip), segundos: a.segundos, g: o.obs.repeticion })
-            : obs.lanzarRepeticion({ ruta: clip.ruta, fuente: o.obs.fuenteRepeticion, escena: o.obs.escenaRepeticion, segundosAtras: segundosAtras(a, clip) }));
-          registrar(`[obs] repetición de ${a.jugada}`);
+            ? obs.repeticionCompleta({ ruta: clip.ruta, fuente: o.obs.fuenteRepeticion, escena: o.obs.escenaRepeticion, escenaJuego: o.obs.escenaJuego, segundosAtras: atras, cursorMs, segundos: a.segundos, g: o.obs.repeticion })
+            : obs.lanzarRepeticion({ ruta: clip.ruta, fuente: o.obs.fuenteRepeticion, escena: o.obs.escenaRepeticion, segundosAtras: atras, cursorMs }));
+          registrar(`[obs] repetición de ${a.jugada}${limpio ? ' (clip limpio del LoL)' : ' (clip de OBS)'}`);
           if (!obs.repeticionCompleta) setTimeout(() => obs.escena(o.obs.escenaJuego).catch(() => {}), a.segundos * 1000).unref?.();
         }
       } catch (e) { registrar(`[obs] ${a.tipo} ${a.jugada}: ${e.message}`); }
@@ -617,12 +640,14 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
       }
       vuelta();
       if (cb.activo) bucleBordes();
+      grabador?.arrancar();
       return servidor;
     },
     parar() {
       clearTimeout(temporizador); parado = true; clearTimeout(temporizadorBordes); clearInterval(latido); anuncio?.parar(); sala?.cerrar();
       if (otroTenka === undefined) tenka?.cerrar();
       if (typeof conObs !== 'object') obs?.cerrar();
+      if (otroGrabador === undefined) grabador?.parar();
       servidor.close();
       if (panel) { panel.parar(); panel = null; }
     },

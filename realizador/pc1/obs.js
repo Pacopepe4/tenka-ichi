@@ -133,9 +133,9 @@ export class Obs extends EventEmitter {
 
   // Repetición completa: transición de entrada, overlay de REPLAY, el clip y, al acabar, transición de salida
   // a la escena de juego. g: opciones de obs.repeticion (transicionEntrada, transicionSalida, overlay).
-  async repeticionCompleta({ ruta, fuente, escena, escenaJuego, segundosAtras, segundos, g = {} }) {
+  async repeticionCompleta({ ruta, fuente, escena, escenaJuego, segundosAtras, cursorMs, segundos, g = {} }) {
     if (g.overlay) await this.fuenteVisible(escena, g.overlay, true).catch(() => {});
-    await this.lanzarRepeticion({ ruta, fuente, escena, segundosAtras, transicion: g.transicionEntrada });
+    await this.lanzarRepeticion({ ruta, fuente, escena, segundosAtras, cursorMs, transicion: g.transicionEntrada });
     setTimeout(async () => {
       try {
         await this.escenaCon(escenaJuego, g.transicionSalida);
@@ -145,13 +145,15 @@ export class Obs extends EventEmitter {
   }
 
   // Pone el clip en la fuente de repetición, salta a su escena y lo arranca unos segundos antes del final
-  async lanzarRepeticion({ ruta, fuente, escena, segundosAtras, transicion }) {
+  // (o en cursorMs, si se sabe exactamente dónde: los clips limpios del grabador del LoL)
+  async lanzarRepeticion({ ruta, fuente, escena, segundosAtras, cursorMs, transicion }) {
     await this.pedir('SetInputSettings', { inputName: fuente, inputSettings: { local_file: ruta, is_local_file: true, restart_on_activate: false } });
     await this.pedir('TriggerMediaInputAction', { inputName: fuente, mediaAction: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_RESTART' });
     await new Promise(r => setTimeout(r, 300));
     try {
       const { mediaDuration } = await this.pedir('GetMediaInputStatus', { inputName: fuente });
-      if (mediaDuration > 0) await this.pedir('SetMediaInputCursor', { inputName: fuente, mediaCursor: Math.max(0, mediaDuration - segundosAtras * 1000) });
+      if (Number.isFinite(cursorMs)) await this.pedir('SetMediaInputCursor', { inputName: fuente, mediaCursor: Math.max(0, mediaDuration > 0 ? Math.min(cursorMs, mediaDuration - 500) : cursorMs) });
+      else if (mediaDuration > 0) await this.pedir('SetMediaInputCursor', { inputName: fuente, mediaCursor: Math.max(0, mediaDuration - segundosAtras * 1000) });
     } catch { /* si no da la duración, el clip va desde el principio */ }
     await this.escenaCon(escena, transicion);
   }

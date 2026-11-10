@@ -19,6 +19,7 @@ import { RAIZ, cargarOpciones, mezclar } from '../comun/opciones.js';
 import { configurarApis, rutaConfig } from './configurar-lol.js';
 import { configurarObs, carpetaObs, obsAbierto, NOMBRE } from './configurar-obs.js';
 import { instalarComplemento } from './multi-rtmp.js';
+import { instalarFfmpeg, FFMPEG } from './ffmpeg.js';
 
 // El overlay de Gokudō sale del mismo servidor que la sala: wss://x/realizador → https://x/overlay/
 export function overlayDeTenka(urlPuente) {
@@ -136,6 +137,14 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
         if (r.hecho) hechos.push(r.ya ? 'Complemento para emitir también a Twitch: ya estaba' : 'Complemento para emitir también a Twitch instalado (Multiple RTMP outputs)');
         else avisos.push(`Twitch: ${r.motivo}`);
       } catch (e) { avisos.push(`Twitch: ${e.message}. Kick se emite igual`); }
+    }
+    // ffmpeg para grabar solo el LoL (repeticiones sin el marcador): se baja la versión fija y se comprueba su huella
+    if (args[0] === 'pc2' && cargarOpciones().clips?.activo !== false) {
+      try {
+        console.log('Preparando ffmpeg para las repeticiones (la primera vez baja unos 115 MB)...');
+        const r = await instalarFfmpeg();
+        hechos.push(r.ya ? 'ffmpeg para las repeticiones: ya estaba' : `ffmpeg ${FFMPEG.version} instalado para las repeticiones (clips solo del LoL)`);
+      } catch (e) { avisos.push(`ffmpeg: ${e.message}. Las repeticiones usarán el clip de OBS, con el marcador dentro`); }
     }
     console.log('');
     for (const h of hechos) console.log(`  OK  ${h}`);

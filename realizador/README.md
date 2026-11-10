@@ -116,6 +116,8 @@ Tus colecciones y perfiles de siempre no se tocan (siguen en los menús de OBS),
 
 **Audio de las repeticiones:** el perfil `Realizador` va en salida avanzada con tres pistas: la 1 es la emisión (juego y micro), la 2 solo el juego y la 3 juego y micro. El búfer de repetición graba la 2 y la 3, así que al repetir un clip suena el juego sin los casters (la 3 queda para el resumen). La escena `Repeticion` solo lleva el clip y el cartel REPLAY.
 
+**Repeticiones con clip limpio (10/11):** el búfer de OBS graba la emisión con el marcador dentro. Ahora el PC 2 graba aparte, con ffmpeg (`pc2/grabador.js`), solo la pantalla del LoL (`clips.monitor`, 0 = la principal) en trozos de 2 s y guarda los últimos 2 minutos. Al guardar una jugada junta el último minuto en un mp4 sin volver a codificar (`partidas/clips-lol/`, también para el resumen) y la repetición arranca justo en su segundo, sin el cambio de cámara. Codificador: prueba la gráfica (AMF, NVENC), luego pasando por el procesador (también QSV) y por último x264; se queda el primero que graba. Si no hay grabador, se usa el clip de OBS como antes. El instalador del PC 2 baja ffmpeg 9.0.2 «essentials» (unos 115 MB, huella SHA-256 comprobada) a `herramientas/ffmpeg/`. Ojo: graba toda la pantalla, así que no hay que tener nada encima del LoL en esa pantalla. Se apaga con `clips.activo: false`.
+
 **Calmas (10/11):** pasado el minuto 5, un rato sin jugadas ya no es plano general parado: hilo conductor por los junglas y las líneas (un jungla 25 s, una línea 15 s, el otro jungla, la siguiente línea; `reglas.calma`). Huecos de menos de 12 s, como antes.
 
 **Minimapa del PC 2:** el instalador pone el del LoL de la antena al 26 de la barra (`hudAntena.MinimapScale: 0.78`; la escala va de 0 a 3).
