@@ -23,7 +23,7 @@ export const RAMAS = {
   lore: ['lore', 'historia', 'oyabun', 'personaje', 'aspecto', 'mito', 'leyenda', 'shinigami', 'tatuaje', 'mascara'],
   directo: ['kick', 'twitch', 'directo', 'stream', 'emision', 'emite', 'ver el', '!', 'comando', 'chat', 'youtube', 'tiktok', 'redes', 'twitter',
     'instagram', 'avisos'],
-  discord: ['discord', 'servidor', 'rol', 'canal', 'reclutar', 'kobun', 'oyabun', 'kumicho', 'ticket', 'staff', 'hilo', 'izakaya', 'voz', 'entrar en'],
+  discord: ['discord', 'servidor', 'rol', 'canal', 'reclut', 'recluto', 'kobun', 'oyabun', 'kumicho', 'ticket', 'staff', 'hilo', 'izakaya', 'voz', 'entrar en'],
   kb: ['kb', 'koryu', 'budo'],
   // Las leyendas de la Liga KB que no juegan en Gokudō (por su nombre)
   escena: ['alejandromag', 'alejandro', 'dakin', 'dafenosa', 'ventana', 'tuff pigeon', 'pigeon', 'dr filtros', 'filtros', 'ortiz', 'akuarela',

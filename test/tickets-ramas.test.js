@@ -19,6 +19,7 @@ test('cada pregunta típica despierta sus ramas, y un saludo ninguna', () => {
   assert.ok(ramas('cuéntame el lore de Akuma').includes('lore'));
   assert.ok(ramas('¿Qué opinas de KB?').includes('kb'));
   assert.ok(ramas('¿Cómo recluto a alguien en Discord?').includes('discord'));
+  assert.ok(ramas('¿Cómo recluto a alguien?').includes('discord'), 'recluto también');
 });
 
 test('nombrar a un jugador trae sus cartas y sus estadísticas, aunque esté mal escrito; nombrar una familia, su lore', () => {
