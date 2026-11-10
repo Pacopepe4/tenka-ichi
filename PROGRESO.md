@@ -409,3 +409,15 @@ Diseño aprobado en `docs/superpowers/specs/2026-10-04-ingame-mejoras-design.md`
 - Mismos ids que antes (panel.js y realizador.js no cambian de lógica). Capturas en `docs/capturas/panel/`. Pruebas: 266.
 
 - **Muestras a 2K:** KUCHAUU (Tengu medio), MAKITAH S+ y GAATSU LEGACY se habían quedado con la muestra a 1K; ahora salen de la descarga 2K de Flow (originales en `gachapón/` y `gachapón/fullart/`).
+
+## 10/11: CS de verdad y objetivos solos con el adelanto del PC 1, e iconos de las cartas en el postdraft (rama `claude/gokudo-adelanto`)
+
+- **Lo que preguntó el usuario:** «Los cs salen de 10 en 10, qué está pasando?» y «vamos con 2 min de delay, ¿eso no nos ayuda para sacar la info?». Eligió «Sí, CS y objetivos».
+- **Por qué de 10 en 10:** el CS sale tal cual del cliente de LoL (`scores.creepScore` de la Live Client Data API), que en las partidas de verdad solo lo actualiza de 10 en 10. Ni el puente ni el servidor lo redondean.
+- **El adelanto** (`server/adelanto.js`, acción `adelanto` por /ws con la contraseña): el PC 1 del realizador, que va 2 minutos por delante, manda cada pocos segundos los saltos de CS de cada jugador (`[gameTime, creepScore]`) y los objetivos de su LiveEvents (dragón con su elemento, heraldo, Barón, con lado y minuto). Va entero cada vez y es idempotente.
+  - **CS:** entre dos saltos ya conocidos, los CS se reparten al ritmo real de ese tramo. Son exactos en cada múltiplo de 10, nunca pasan del siguiente salto y nunca bajan de lo que da el cliente.
+  - **Objetivos:** entran como sucesos con su minuto (`pc1-<id>`) y salen en el marcador, con su aviso, cuando el PC 2 llega a ese minuto. Una marca a mano del mismo objetivo (±45 s) sobra; si al PC 1 se le escapa alguno, la marca sigue valiendo.
+  - **Cuándo vale:** solo si es reciente (10 min) y de esta partida (coinciden los nombres); nunca en la partida de prueba. Si el reloj del PC 1 vuelve atrás, es otra partida. Sin PC 1, todo sigue como antes. El `adelanto` no reenvía el estado a todas las pantallas.
+  - **Lo que hace el PC 1:** el contrato se le pasó al hilo del realizador el 10/11 (`tenka.accion('adelanto', datos)`).
+- **Postdraft:** la carta entera encogida no se veía (dibujo oscuro bajo su velo, textos cortados). Ahora cada jugador lleva el icono de su carta: el dibujo sin velo, la tier en una esquina y el filo de su color. Los iconos de 256×256 están en `public/cartas/mini/` (48), salen de `scripts/hacer-mini-cartas.mjs` (ffmpeg) y el catálogo los lleva en `mini`; sin icono, el dibujo grande.
+- Pruebas: 270 (`test/adelanto.test.js` nueva). Comprobado en local de punta a punta (falso puente + falso PC 1).

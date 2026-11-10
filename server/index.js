@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
 import { crearSalasRealizador } from './realizador.js';
+import { recibirAdelanto } from './adelanto.js';
 import { conectar, codigoDeEnlace, destinoDeSlot } from './draftcore.js';
 import { cargar, guardarPartida, todas } from './registro.js';
 import { competicion } from './competicion.js';
@@ -586,6 +587,11 @@ async function accion(nombre, d = {}) {
       if (!marcarObjetivo(d)) return { ok: false, error: 'Objetivo no válido' };
       emitirPartida();
       break;
+    // El PC 1 del realizador, que va 2 minutos por delante de la emisión: los saltos de CS y los objetivos con su
+    // minuto (server/adelanto.js). El marcador los usa cuando el PC 2 llega a ese momento
+    case 'adelanto':
+      if (!recibirAdelanto(d)) return { ok: false, error: 'Datos adelantados no válidos' };
+      return { ok: true };
     case 'deshacerObjetivo':
       if (!deshacerMarca()) return { ok: false, error: 'No hay ninguna marca que deshacer' };
       emitirPartida();
@@ -1223,7 +1229,8 @@ wss.on('connection', (ws, req) => {
     try {
       const r = await accion(m.accion, m.datos);
       ws.send(JSON.stringify({ tipo: 'respuesta', id: m.id, ...r }));
-      emitir();
+      // Los datos adelantados del PC 1 llegan cada pocos segundos y no cambian el estado: la partida ya se emite sola
+      if (m.accion !== 'adelanto') emitir();
     } catch (e) {
       console.error(e);
       ws.send(JSON.stringify({ tipo: 'respuesta', id: m.id, ok: false, error: e.message }));

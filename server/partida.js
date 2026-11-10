@@ -9,6 +9,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { puntuar, participacion } from './puntuacion.js';
 
+import { adelantoDe, csRepartido, sucesosAdelantados } from './adelanto.js';
+
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 let precios = {};            // id de objeto → oro total (Data Dragon)
 let idsCampeon = new Set();  // ids de Data Dragon, para reconocer los campeones
@@ -348,6 +350,9 @@ export function resumen() {
   };
   const ladoDelEvento = ev => ev.lado || ladoDe(ev.KillerName) || (ev.Assisters || []).map(ladoDe).find(Boolean) || null;
 
+  // Con los datos adelantados del PC 1 del realizador (server/adelanto.js), si son de esta partida: los CS repartidos
+  // entre los saltos de 10 y los dragones, el heraldo y el Barón sin marcarlos a mano
+  const conAdelanto = !bruto.prueba && adelantoDe(bruto.jugadores.map(nombreJugador));
   const jugadores = { azul: [], rojo: [] };
   const jugadorPorNombre = new Map();  // nombre normalizado → jugador, para las rachas de asesinatos
   for (const j of bruto.jugadores) {
@@ -359,7 +364,7 @@ export function resumen() {
     // oro: la estimación por ingresos (nunca menor que los objetos); oroObjetos e ingresos, los dos sumandos aparte
     const objetos = oroObjetos(j.items);
     const jugador = { campeon: idCampeon(j), nombre: nombreJugador(j), nivel: j.level || 1,
-      k: s.kills || 0, d: s.deaths || 0, a: s.assists || 0, cs: s.creepScore || 0, oro: objetos, oroObjetos: objetos, ingresos: 0,
+      k: s.kills || 0, d: s.deaths || 0, a: s.assists || 0, cs: conAdelanto ? csRepartido(nombreJugador(j), bruto.tiempo, s.creepScore || 0) : s.creepScore || 0, oro: objetos, oroObjetos: objetos, ingresos: 0,
       vision: Number.isFinite(Number(s.wardScore)) ? Math.round(Number(s.wardScore)) : null,
       primeraSangre: false, triples: 0, quadras: 0, pentas: 0, torres: 0, puntos: null, kp: null,
       muerto: Boolean(j.isDead), reaparece: Math.round(j.respawnTimer || 0), objetos: porHuecos(j.items), racha: 0,
@@ -387,7 +392,12 @@ export function resumen() {
   // Las marcas del panel solo cuentan para lo que el cliente no da: si da ese suceso, sobran
   const reales = [...bruto.eventos.values()];
   const delCliente = new Set(reales.map(ev => ev.EventName));
-  const eventos = [...reales, ...bruto.manuales.filter(m => !delCliente.has(m.EventName))]
+  // Los del PC 1 cuentan para lo que el cliente no da; las marcas a mano, solo para lo que falte en los dos
+  // (una marca sobra si el PC 1 ya dio ese mismo objetivo con menos de 45 s de diferencia)
+  const adelantados = conAdelanto ? sucesosAdelantados().filter(ev => !delCliente.has(ev.EventName)) : [];
+  const yaDelPc1 = m => adelantados.some(a => a.EventName === m.EventName && Math.abs(a.EventTime - m.EventTime) < 45);
+  for (const ev of adelantados) if (!(ev.EventTime > t + 1) && !bruto.llegada.has(ev.EventID)) bruto.llegada.set(ev.EventID, Date.now());
+  const eventos = [...reales, ...adelantados, ...bruto.manuales.filter(m => !delCliente.has(m.EventName) && !yaDelPc1(m))]
     .filter(ev => !(Number(ev.EventTime) > t + 1))
     .sort((a, b) => a.EventTime - b.EventTime || (a.manual ? 1 : 0) - (b.manual ? 1 : 0) || a.EventID - b.EventID);
   const nombreDe = n => jugadorPorNombre.get(normalizar(n))?.nombre || String(n || '').split('#')[0];
@@ -395,7 +405,7 @@ export function resumen() {
   let primeraSangreVista = false;
   const recibidos = {};  // cuántos sucesos de cada tipo han llegado, para ver qué da el cliente
   for (const ev of eventos) {
-    if (!ev.manual) recibidos[ev.EventName] = (recibidos[ev.EventName] || 0) + 1;
+    if (!ev.manual && !ev.adelanto) recibidos[ev.EventName] = (recibidos[ev.EventName] || 0) + 1;
     const aviso = (tipo, lado, extra = {}) => avisos.push({ id: ev.EventID, tipo, lado, t: ev.EventTime, robado: ev.Stolen === 'True' || ev.Stolen === true, ...extra });
     switch (ev.EventName) {
       case 'TurretKilled': {
@@ -548,7 +558,7 @@ export function resumen() {
   // Si no, marcaría «vivo» sin saberlo.
   const da = nombre => reales.some(ev => ev.EventName === nombre);
   const daObjetivos = da('DragonKill') || da('BaronKill') || da('HeraldKill');  // al jugar, el cliente los da todos
-  const marcando = bruto.manuales.length > 0;
+  const marcando = bruto.manuales.length > 0 || adelantados.length > 0;
   const objetivos = [];
   const dragon = !ultimoDragon ? { aparece: REGLAS.primerDragon, desde: 0, ancestral: false }
     : ultimoDragon.tipo === 'ancestral' || conAlma ? { aparece: ultimoDragon.t + REGLAS.reaparicionAncestral, desde: ultimoDragon.t, ancestral: true }
