@@ -143,6 +143,15 @@ function pintarPartida() {
     cifra(s.querySelector('.torres b'), e.torres);
     cifra(s.querySelector('.larvas b'), e.larvas);
     s.querySelector('.larvas').classList.toggle('cero', !e.larvas);
+    // Los muertos del clan con sus segundos para reaparecer (el cliente los da en cada paquete, cada segundo)
+    const caidos = p.lineas.map(l => l[lado]).filter(j => j?.muerto && j.reaparece > 0);
+    // Solo se rehacen cuando cambia quién está muerto (si no, la entrada se repetiría cada segundo); si no, los segundos
+    const cajaCaidos = s.querySelector('.caidos'), firmaCaidos = caidos.map(j => j.campeon).join(',');
+    if (cajaCaidos.dataset.firma !== firmaCaidos) {
+      cajaCaidos.dataset.firma = firmaCaidos;
+      cajaCaidos.innerHTML = caidos.map(j => `<span class="caido"><img src="${icono(j.campeon)}" alt=""><b></b></span>`).join('');
+    }
+    cajaCaidos.querySelectorAll('.caido b').forEach((b, i) => { b.textContent = caidos[i].reaparece; });
     // Dragones del clan como sellos bajo su lado: 4 huecos hasta el alma (vacíos, un rombo sin rellenar) y,
     // detrás, los ancestrales. Empiezan junto al centro y crecen hacia fuera, en espejo
     const dr = s.querySelector('.dragones');

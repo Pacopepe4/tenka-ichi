@@ -92,9 +92,12 @@ function aplicar(config, cambios) {
   return hechos;
 }
 
-export function configurarApis(config, { liveEvents = false, puerto = 34243 } = {}) {
+// hud: ajustes de la interfaz del LoL (sección [HUD] de game.cfg). En el PC 2 (antena) va el tamaño del minimapa:
+// MinimapScale va de 0 a 3 y el 100 de la barra de ajustes del juego es 3 (el 26 que pidió Pacopepe el 10/11 es 0,78).
+export function configurarApis(config, { liveEvents = false, puerto = 34243, hud = null } = {}) {
   const cambios = { General: { EnableReplayApi: '1' } };
   if (liveEvents) cambios.LiveEvents = { Enable: '1', Port: String(puerto) };
+  if (hud && Object.keys(hud).length) cambios.HUD = Object.fromEntries(Object.entries(hud).map(([k, v]) => [k, typeof v === 'number' ? v.toFixed(4) : String(v)]));
   const hechos = aplicar(config, cambios);
   if (liveEvents) {
     const ini = join(config, 'LiveEvents.ini');
@@ -144,7 +147,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   try {
     let hechos;
     if (orden === 'pc1') hechos = configurarApis(config, { liveEvents: true, puerto: o.explorador.liveEventsPuerto });
-    else if (orden === 'pc2') hechos = configurarApis(config, { liveEvents: false });
+    else if (orden === 'pc2') hechos = configurarApis(config, { liveEvents: false, hud: o.hudAntena });
     else if (orden === 'perfil-minimo') hechos = aplicarPerfil(config, o.perfilMinimo);
     else if (orden === 'restaurar') hechos = restaurarPerfil(config);
     else {

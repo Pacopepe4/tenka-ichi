@@ -89,7 +89,7 @@ export function instalar({ papel, clave, ruta, emision = '', twitch = '', rutaLo
   // 2. LoL
   try {
     const cfg = rutaConfig(ruta || o.rutaLoL);
-    const r = configurarApis(cfg, papel === 'pc1' ? { liveEvents: true, puerto: o.explorador.liveEventsPuerto } : {});
+    const r = configurarApis(cfg, papel === 'pc1' ? { liveEvents: true, puerto: o.explorador.liveEventsPuerto } : { hud: o.hudAntena });
     hechos.push(`LoL listo (${r.join(', ')}). Reinicia el cliente de LoL si estaba abierto`);
   } catch (e) { avisos.push(`LoL: ${e.message}`); }
 

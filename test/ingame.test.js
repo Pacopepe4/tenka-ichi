@@ -78,7 +78,9 @@ test('cada jugador lleva sus puntos provisionales, sin daño, victoria ni MVP', 
     muerte(200, 'A1', 'R1', ['A2']), ev('FirstBlood', 200, { Recipient: 'A1' }),
     muerte(400, 'A4', 'R4', ['A2']),
     muerte(500, 'A1', 'R1', ['A2']),
-    muerte(600, 'R2', 'A3'),
+    // A3 muere ejecutado por una torre: no es asesinato de nadie (desde el 10/11, una muerte de un jugador rojo
+    // contaría aunque el cliente aún no la diera en sus scores)
+    muerte(600, 'Turret_T2_C_05_A', 'A3'),
     ev('TurretKilled', 700, { KillerName: 'A1', TurretKilled: 'Turret_T2_L_03_A', Assisters: [] }),
   ]);
   const a1 = linea(p, 0, 'azul');

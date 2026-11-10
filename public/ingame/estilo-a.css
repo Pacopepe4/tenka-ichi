@@ -20,11 +20,13 @@
 [data-estilo="a"] .placa .kanji-fondo { top: -10px; font-family: var(--pincel); font-weight: 400; font-size: 92px; color: var(--clan, var(--hai)); opacity: .16; }
 [data-estilo="a"] .azul .placa .kanji-fondo { left: 96px; }
 [data-estilo="a"] .rojo .placa .kanji-fondo { right: 96px; }
-[data-estilo="a"] .placa .nombre { font-family: var(--dela); font-size: 26px; line-height: 1.3; }
-[data-estilo="a"] .placa .kanji { font-family: var(--pincel); font-size: 17px; line-height: 1.2; color: var(--clan-texto, var(--hai)); letter-spacing: .12em; }
-[data-estilo="a"] .placa .kills { font-family: var(--dela); font-size: 40px; line-height: 1; }
+[data-estilo="a"] .placa .nombre { font-family: var(--dela); font-size: 30px; line-height: 1.3; }
+[data-estilo="a"] .placa .kanji { font-family: var(--pincel); font-size: 19px; line-height: 1.2; color: var(--clan-texto, var(--hai)); letter-spacing: .12em; }
+[data-estilo="a"] .placa .kills { font-family: var(--dela); font-size: 46px; line-height: 1; }
 /* Segunda fila: oro (estimado, con ≈), torres, larvas y los dragones */
-[data-estilo="a"] .datos { padding: 0 18px; background: rgba(12, 13, 19, .92); font-size: 18px; font-weight: 700; border-radius: 0 0 8px 8px; box-shadow: var(--filo-fino); }
+[data-estilo="a"] .datos { padding: 0 18px; background: rgba(12, 13, 19, .92); font-family: var(--dela); font-size: 17px; font-weight: 400; border-radius: 0 0 8px 8px; box-shadow: var(--filo-fino); }
+[data-estilo="a"] .caido { border-radius: 5px; overflow: hidden; box-shadow: 0 0 0 1px var(--sumi-linea); }
+[data-estilo="a"] .caido b { font-family: var(--dela); font-weight: 400; font-size: 17px; color: #fff; text-shadow: 0 0 4px #000, 0 0 2px #000; }
 [data-estilo="a"] .dato svg { color: var(--hai); }
 [data-estilo="a"] .dato.oro b { color: var(--washi); }
 [data-estilo="a"] .dato.larvas svg { color: #9B6BD4; }
@@ -33,9 +35,9 @@
 [data-estilo="a"] .dragones i.vacio { background: transparent; box-shadow: inset 0 0 0 1.5px var(--sumi-linea); }
 [data-estilo="a"] .dragones.alma i:not(.vacio) { box-shadow: 0 0 0 1.5px rgba(12, 13, 19, .9), 0 0 12px var(--d); }
 /* Centro: reloj con el tubo bermellón debajo y la diferencia de oro (del color de la familia que va por delante) */
-[data-estilo="a"] .reloj { position: relative; background: var(--sumi); font-family: var(--dela); font-size: 26px; letter-spacing: .02em; box-shadow: var(--filo-fino); }
+[data-estilo="a"] .reloj { position: relative; background: var(--sumi); font-family: var(--dela); font-size: 31px; letter-spacing: .02em; box-shadow: var(--filo-fino); }
 [data-estilo="a"] .reloj::after { content: ''; position: absolute; left: 22px; right: 22px; bottom: 6px; height: 3px; border-radius: 2px; background: var(--shu-claro); box-shadow: 0 0 6px #FF3B46, 0 0 14px var(--shu); }
-[data-estilo="a"] .diferencia { background: rgba(12, 13, 19, .92); font-weight: 700; font-size: 18px; color: var(--hai); box-shadow: var(--filo-fino); }
+[data-estilo="a"] .diferencia { background: rgba(12, 13, 19, .92); font-family: var(--dela); font-weight: 400; font-size: 19px; color: var(--hai); box-shadow: var(--filo-fino); }
 [data-estilo="a"] .diferencia.azul { color: var(--clan-azul-texto, var(--azul-lado)); }
 [data-estilo="a"] .diferencia.rojo { color: var(--clan-rojo-texto, #FF5A63); }
 [data-estilo="a"] .diferencia .flecha { font-size: 13px; }
@@ -47,8 +49,8 @@
 [data-estilo="a"] .sello .kanji { font-family: var(--pincel); font-size: 18px; color: var(--washi); }
 [data-estilo="a"] .sello.lleno { width: 34px; height: 34px; border-radius: 8px; background: var(--color); box-shadow: 0 0 10px color-mix(in srgb, var(--color) 60%, transparent); }
 [data-estilo="a"] .sello.lleno .kanji { color: var(--tinta, var(--sumi)); font-size: 20px; }
-[data-estilo="a"] .temporizador small, [data-estilo="a"] .modulo small { font-size: 11.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--hai); }
-[data-estilo="a"] .temporizador b { font-family: var(--dela); font-size: 18px; font-weight: 400; }
+[data-estilo="a"] .temporizador small, [data-estilo="a"] .modulo small { font-size: 13px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--hai); }
+[data-estilo="a"] .temporizador b { font-family: var(--dela); font-size: 22px; font-weight: 400; }
 [data-estilo="a"] .temporizador.vivo b { color: var(--shu-neon); text-shadow: var(--neon-suave); }
 [data-estilo="a"] .temporizador.dragon { --color: var(--washi); }
 [data-estilo="a"] .temporizador.larvas, [data-estilo="a"] .temporizador.heraldo { --color: #8F7AE8; }
@@ -58,15 +60,15 @@
 [data-estilo="a"] .modulo::before { content: ''; position: absolute; top: 9px; bottom: 9px; width: 3px; border-radius: 2px; background: var(--color); box-shadow: 0 0 8px var(--color); }
 [data-estilo="a"] .azul .modulo::before { left: 5px; }
 [data-estilo="a"] .rojo .modulo::before { right: 5px; }
-[data-estilo="a"] .modulo b { font-family: var(--dela); font-size: 16px; font-weight: 400; }
+[data-estilo="a"] .modulo b { font-family: var(--dela); font-size: 19px; font-weight: 400; }
 [data-estilo="a"] .modulo.punto b { color: var(--shu-neon); text-shadow: var(--neon-suave); }
 
 /* ---------- Avisos y resumen de pelea ---------- */
 [data-estilo="a"] .aviso { padding: 11px 22px 11px 14px; background: rgba(21, 22, 31, .97); border-radius: 8px;
   outline: 1.5px solid var(--aviso, var(--shu-claro)); outline-offset: -6px;
   box-shadow: var(--filo-fino), 0 0 22px color-mix(in srgb, var(--aviso, var(--shu)) 45%, transparent), 0 10px 26px rgba(0, 0, 0, .45); }
-[data-estilo="a"] .aviso-quien { font-family: var(--dela); font-size: 24px; line-height: 1.3; }
-[data-estilo="a"] .aviso-que { font-size: 16px; font-weight: 500; color: #CFC9D6; }
+[data-estilo="a"] .aviso-quien { font-family: var(--dela); font-size: 28px; line-height: 1.3; }
+[data-estilo="a"] .aviso-que { font-size: 18px; font-weight: 700; color: #CFC9D6; }
 [data-estilo="a"] .pelea { padding: 10px 20px 12px; gap: 2px; background: rgba(21, 22, 31, .97); border-radius: 8px;
   outline: 1.5px solid var(--shu-claro); outline-offset: -6px; box-shadow: var(--filo-fino), 0 0 22px rgba(224, 48, 58, .45), 0 10px 26px rgba(0, 0, 0, .45); }
 [data-estilo="a"] .pelea-titulo { font-size: 12px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--shu-neon); text-shadow: var(--neon-suave); }
@@ -74,8 +76,8 @@
 [data-estilo="a"] .pelea.gana-azul .pelea-cifra.azul, [data-estilo="a"] .pelea.empate .pelea-cifra.azul { color: var(--clan-azul-texto, var(--azul-lado)); }
 [data-estilo="a"] .pelea.gana-rojo .pelea-cifra.rojo, [data-estilo="a"] .pelea.empate .pelea-cifra.rojo { color: var(--clan-rojo-texto, #FF5A63); }
 [data-estilo="a"] .pelea-raya { font-family: var(--dela); font-size: 28px; color: var(--hai); }
-[data-estilo="a"] .pelea-destacado { font-size: 16px; color: #CFC9D6; }
-[data-estilo="a"] .pelea-destacado b { font-family: var(--dela); font-size: 19px; font-weight: 400; }
+[data-estilo="a"] .pelea-destacado { font-size: 18px; color: #CFC9D6; }
+[data-estilo="a"] .pelea-destacado b { font-family: var(--dela); font-size: 21px; font-weight: 400; }
 [data-estilo="a"] .pelea-destacado b.azul { color: var(--clan-azul-texto, var(--azul-lado)); }
 [data-estilo="a"] .pelea-destacado b.rojo { color: var(--clan-rojo-texto, #FF5A63); }
 
@@ -92,23 +94,23 @@
 [data-estilo="a"] .lineas-cabeza .equipo::before { content: ''; position: absolute; top: 6px; bottom: 6px; width: 3px; border-radius: 2px; background: var(--clan); box-shadow: 0 0 8px var(--clan); }
 [data-estilo="a"] .lineas-cabeza .equipo.azul::before { left: 0; }
 [data-estilo="a"] .lineas-cabeza .equipo.rojo::before { right: 0; }
-[data-estilo="a"] .lineas-cabeza .nombre { font-family: var(--dela); font-size: 24px; }
+[data-estilo="a"] .lineas-cabeza .nombre { font-family: var(--dela); font-size: 30px; }
 [data-estilo="a"] .lineas-cabeza .sol { border-radius: 0; filter: drop-shadow(0 0 8px rgba(224, 48, 58, .55)); }
 [data-estilo="a"] .fila + .fila { border-top: 1px solid rgba(42, 43, 56, .8); }
 [data-estilo="a"] .retrato img { border-radius: 6px; box-shadow: 0 0 0 2px var(--lado); }
-[data-estilo="a"] .retrato .nivel { font-size: 14px; font-weight: 700; background: var(--sumi); color: var(--washi); border-radius: 4px; box-shadow: 0 0 0 1px var(--sumi-linea); }
+[data-estilo="a"] .retrato .nivel { font-family: var(--dela); font-size: 15px; font-weight: 400; background: var(--sumi); color: var(--washi); border-radius: 4px; box-shadow: 0 0 0 1px var(--sumi-linea); }
 [data-estilo="a"] .retrato .muerte { font-family: var(--dela); font-size: 19px; color: var(--shu-neon); text-shadow: var(--neon-suave); background: rgba(12, 13, 19, .55); border-radius: 6px; }
 /* La racha: un halo bermellón que late detrás del retrato */
 [data-estilo="a"] .retrato::before { border-radius: 8px; box-shadow: 0 0 16px 4px rgba(255, 76, 86, .7); }
 [data-estilo="a"] .retrato.racha img { box-shadow: 0 0 0 2px var(--shu-claro); }
 [data-estilo="a"] .retrato.racha-alta img { box-shadow: 0 0 0 2px #FF8A90; }
 [data-estilo="a"] .retrato.racha-alta::before { box-shadow: 0 0 22px 6px rgba(255, 59, 70, .9); }
-[data-estilo="a"] .quien .nombre { font-family: var(--dela); font-size: 18px; }
+[data-estilo="a"] .quien .nombre { font-family: var(--dela); font-size: 20px; }
 [data-estilo="a"] .recompensa { padding: 1px 8px 1px 5px; border-radius: 999px; background: rgba(224, 48, 58, .14); box-shadow: inset 0 0 0 1px rgba(255, 76, 86, .55); color: var(--shu-neon); }
 [data-estilo="a"] .recompensa svg { color: var(--shu-neon); }
-[data-estilo="a"] .recompensa b { font-size: 15px; font-weight: 700; line-height: 1.4; }
-[data-estilo="a"] .quien .kda { font-size: 19px; font-weight: 700; color: var(--washi); }
-[data-estilo="a"] .quien .kda .cs { color: var(--hai); font-weight: 500; }
+[data-estilo="a"] .recompensa b { font-size: 16px; font-weight: 700; line-height: 1.4; }
+[data-estilo="a"] .quien .kda { font-family: var(--dela); font-size: 17px; letter-spacing: .02em; font-weight: 400; color: var(--washi); }
+[data-estilo="a"] .quien .kda .cs { color: var(--hai); font-size: 14px; }
 [data-estilo="a"] .hueco { border-radius: 5px; background: rgba(12, 13, 19, .7); box-shadow: inset 0 0 0 1px var(--sumi-linea); }
 [data-estilo="a"] .hueco.abalorio { box-shadow: 0 0 0 1px #4A4B5E; }
 [data-estilo="a"] .hueco.abalorio.vacio { box-shadow: inset 0 0 0 1px var(--sumi-linea); }
@@ -117,17 +119,17 @@
 [data-estilo="a"] .mision { box-shadow: 0 0 0 1px #4A4B5E; }
 [data-estilo="a"] .mision.vacio { box-shadow: inset 0 0 0 1px var(--sumi-linea); }
 /* En letra de texto, no en Dela: «≈11,5k» en Dela no cabe en su columna de 66 px y se junta con los puntos */
-[data-estilo="a"] .jugador .oro { font-family: var(--gothic); font-weight: 700; font-size: 19px; color: var(--washi); }
+[data-estilo="a"] .jugador .oro { font-family: var(--dela); font-size: 18px; color: var(--washi); }
 /* En medio: puntos del fantasy (el que va por delante, del color de su familia) y la diferencia de oro */
-[data-estilo="a"] .puntos b { font-family: var(--dela); font-size: 22px; color: var(--hai); }
-[data-estilo="a"] .rotulo-pts { font-size: 14px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--hai); }
+[data-estilo="a"] .puntos b { font-family: var(--dela); font-size: 27px; color: var(--hai); }
+[data-estilo="a"] .rotulo-pts { font-size: 16px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--hai); }
 [data-estilo="a"] .puntos.azul.delante b { color: var(--clan-azul-texto, var(--azul-lado)); }
 [data-estilo="a"] .puntos.rojo.delante b { color: var(--clan-rojo-texto, #FF5A63); }
 [data-estilo="a"] .barra { background: rgba(231, 223, 210, .1); border-radius: 4px; }
 [data-estilo="a"] .barra::after { content: ''; position: absolute; left: 50%; top: 0; width: 1px; height: 100%; background: var(--hai); }
 [data-estilo="a"] .barra .relleno.azul { background: var(--clan-azul, var(--azul-lado)); border-radius: 4px 0 0 4px; }
 [data-estilo="a"] .barra .relleno.rojo { background: var(--clan-rojo, var(--rojo-lado)); border-radius: 0 4px 4px 0; }
-[data-estilo="a"] .dif { font-size: 17px; font-weight: 700; color: var(--hai); }
+[data-estilo="a"] .dif { font-family: var(--dela); font-size: 19px; color: var(--hai); }
 [data-estilo="a"] .dif.azul { color: var(--clan-azul-texto, var(--azul-lado)); }
 [data-estilo="a"] .dif.rojo { color: var(--clan-rojo-texto, #FF5A63); }
 
@@ -138,19 +140,19 @@
   box-shadow: 0 0 6px #FF3B46, 0 0 14px var(--shu); }
 [data-estilo="a"] .placa-cam { background: rgba(15, 16, 23, .97); border-top: 1px solid var(--sumi-linea); }
 [data-estilo="a"] .sello-cam { box-shadow: 0 0 0 1.5px var(--sumi-linea); }
-[data-estilo="a"] .nombre-cam { font-family: var(--dela); font-size: 19px; }
-[data-estilo="a"] .detalle-cam { font-size: 15px; color: var(--hai); }
+[data-estilo="a"] .nombre-cam { font-family: var(--dela); font-size: 23px; }
+[data-estilo="a"] .detalle-cam { font-size: 17px; color: var(--hai); }
 
 /* ---------- Ficha de jugador ---------- */
 [data-estilo="a"] .ficha-datos { position: relative; padding: 22px 24px 20px; background: rgba(15, 16, 23, .97); border-radius: 8px;
   box-shadow: var(--filo-fino), 0 12px 32px rgba(0, 0, 0, .45); }
 [data-estilo="a"] .ficha-datos::before { content: ''; position: absolute; left: 14px; right: 14px; top: 0; height: 3px; border-radius: 2px; background: var(--clan); box-shadow: 0 0 10px var(--clan); }
-[data-estilo="a"] .ficha-nombre { font-family: var(--dela); font-size: 30px; line-height: 1.3; }
-[data-estilo="a"] .ficha-rol { font-size: 17px; font-weight: 700; color: var(--clan-texto, var(--hai)); }
+[data-estilo="a"] .ficha-nombre { font-family: var(--dela); font-size: 34px; line-height: 1.3; }
+[data-estilo="a"] .ficha-rol { font-size: 19px; font-weight: 700; color: var(--clan-texto, var(--hai)); }
 [data-estilo="a"] .ficha-campeon { border-radius: 8px; box-shadow: 0 0 0 2px var(--clan); }
 [data-estilo="a"] .ficha-cifra { padding: 8px 12px; background: rgba(12, 13, 19, .6); border-radius: 6px; box-shadow: var(--filo-fino); }
-[data-estilo="a"] .ficha-cifra small { font-size: 12px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--hai); }
-[data-estilo="a"] .ficha-cifra b { font-family: var(--dela); font-size: 23px; font-weight: 400; margin-top: 2px; }
+[data-estilo="a"] .ficha-cifra small { font-size: 13px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--hai); }
+[data-estilo="a"] .ficha-cifra b { font-family: var(--dela); font-size: 27px; font-weight: 400; margin-top: 2px; }
 [data-estilo="a"] .ficha-objetos .hueco { border-radius: 6px; background: rgba(12, 13, 19, .7); box-shadow: var(--filo-fino); }
 [data-estilo="a"] .ficha-objetos .hueco.abalorio { box-shadow: 0 0 0 1px #4A4B5E; }
 [data-estilo="a"] .ficha-cifra.oro b { color: var(--washi); }
@@ -167,9 +169,9 @@
 [data-estilo="a"] .grafica::before { content: ''; position: absolute; left: 14px; right: 14px; top: 0; height: 3px; border-radius: 2px;
   background: linear-gradient(90deg, var(--clan-azul, var(--azul-lado)) 0%, var(--shu-claro) 50%, var(--clan-rojo, var(--rojo-lado)) 100%); box-shadow: 0 0 10px rgba(224, 48, 58, .5); }
 [data-estilo="a"] .grafica-cabeza { border-bottom: 1px solid var(--sumi-linea); }
-[data-estilo="a"] .grafica-cabeza .nombre { font-family: var(--dela); font-size: 22px; }
-[data-estilo="a"] .grafica-titulo b { font-family: var(--dela); font-size: 19px; font-weight: 400; }
-[data-estilo="a"] .grafica-titulo small { font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--hai); }
+[data-estilo="a"] .grafica-cabeza .nombre { font-family: var(--dela); font-size: 30px; }
+[data-estilo="a"] .grafica-titulo b { font-family: var(--dela); font-size: 26px; font-weight: 400; }
+[data-estilo="a"] .grafica-titulo small { font-size: 14px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--hai); }
 [data-estilo="a"] .grafica-svg .area.azul { fill: var(--clan-azul, var(--azul-lado)); opacity: .3; }
 [data-estilo="a"] .grafica-svg .area.rojo { fill: var(--clan-rojo, var(--rojo-lado)); opacity: .3; }
 [data-estilo="a"] .grafica-svg .barra.azul { stroke: var(--clan-azul, var(--azul-lado)); stroke-width: 2.5; opacity: .7; }
@@ -178,4 +180,4 @@
 [data-estilo="a"] .grafica-svg .rotulo.azul { fill: var(--clan-azul-texto, var(--azul-lado)); }
 [data-estilo="a"] .grafica-svg .rotulo.rojo { fill: var(--clan-rojo-texto, #FF5A63); }
 [data-estilo="a"] .grafica-svg .cero { stroke: var(--shu-claro); }
-[data-estilo="a"] .grafica-eje { border-top: 1px solid var(--sumi-linea); font-size: 14px; font-weight: 700; color: var(--hai); }
+[data-estilo="a"] .grafica-eje { border-top: 1px solid var(--sumi-linea); font-family: var(--dela); font-size: 17px; font-weight: 700; color: var(--hai); }

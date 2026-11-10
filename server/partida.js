@@ -147,11 +147,21 @@ const grafica = () => ({ cada: CADA_MUESTRA, muestras: bruto.muestras });
 export function olvidarPartida() { bruto = vacia(); return resumen(); }
 
 // ---------- de los datos del cliente al marcador ----------
+// Las transformaciones cambian el nombre que da el cliente (Mega Gnar: «GnarBig» o «Mega Gnar»), que no está en Data Dragon
+// y dejaba el retrato roto: se busca el campeón cuyo id empieza el nombre o va dentro de él (el más largo, para no
+// confundir Vi con Viktor), y si aun así no sale, el último que se reconoció a ese jugador
+const campeonVisto = new Map();  // nombre del jugador → último id de campeón reconocido
 const idCampeon = j => {
   const crudo = String(j.rawChampionName || '').replace(/^game_character_displayname_/, '');
-  if (idsCampeon.has(crudo)) return crudo;
   const limpio = String(j.championName || '').replace(/[^A-Za-z]/g, '');
-  return [...idsCampeon].find(id => id.toLowerCase() === limpio.toLowerCase()) || crudo || limpio;
+  const jugador = nombreJugador(j);
+  let id = idsCampeon.has(crudo) ? crudo : [...idsCampeon].find(c => c.toLowerCase() === limpio.toLowerCase());
+  if (!id && idsCampeon.size) {
+    const candidatos = [...idsCampeon].filter(c => c.length >= 3 && (crudo.toLowerCase().startsWith(c.toLowerCase()) || limpio.toLowerCase().includes(c.toLowerCase())));
+    id = candidatos.sort((a, b) => b.length - a.length)[0] || campeonVisto.get(jugador);
+  }
+  if (id && idsCampeon.has(id)) campeonVisto.set(jugador, id);
+  return id || crudo || limpio;
 };
 const oroObjetos = items => (items || []).reduce((s, o) => s + (precios[o.itemID] ?? o.price ?? 0) * (o.count || 1), 0);
 // Inventario por huecos: 0-5 los objetos y 6 el abalorio, como en el juego. El hueco 7 es el de la misión de rol
@@ -459,8 +469,9 @@ export function resumen() {
       case 'ChampionKill': {
         // Racha: asesinatos desde la última muerte (si lo mata una torre o un súbdito, también se corta)
         const asesino = jugadorPorNombre.get(normalizar(ev.KillerName)), victima = jugadorPorNombre.get(normalizar(ev.VictimName));
-        if (asesino && asesino !== victima) asesino.racha++;
-        if (victima) victima.racha = 0;
+        if (asesino && asesino !== victima) { asesino.racha++; asesino.killsVistas = (asesino.killsVistas || 0) + 1; }
+        if (victima) { victima.racha = 0; victima.muertesVistas = (victima.muertesVistas || 0) + 1; }
+        for (const ayuda of new Set((ev.Assisters || []).map(jugadorDe))) if (ayuda && ayuda !== asesino && ayuda !== victima) ayuda.asistenciasVistas = (ayuda.asistenciasVistas || 0) + 1;
         // Peleas: muertes encadenadas. La muerte cuenta para el clan del asesino o, si fue una torre o un súbdito,
         // para el contrario de la víctima
         const ladoVictima = ladoDe(ev.VictimName);
@@ -513,6 +524,13 @@ export function resumen() {
   for (const lado of ['azul', 'rojo']) eq[lado].puntoDeAlma = !conAlma && eq[lado].dragones.length === 3;
   // Si se entró a mirar con la partida empezada, faltan los asesinatos de antes: el KDA del cliente
   // sí es completo. Quien no ha muerto aún lleva de racha todos sus asesinatos, y nadie más de los que tiene.
+  // En modo espectador, los scores del cliente (asesinatos, muertes, asistencias) pueden ir por detrás de los sucesos,
+  // que llegan al momento: se queda la cifra mayor de las dos, y el total de cada clan es la suma de sus jugadores
+  for (const j of [...jugadores.azul, ...jugadores.rojo]) {
+    j.k = Math.max(j.k, j.killsVistas || 0); j.d = Math.max(j.d, j.muertesVistas || 0); j.a = Math.max(j.a, j.asistenciasVistas || 0);
+    delete j.killsVistas; delete j.muertesVistas; delete j.asistenciasVistas;
+  }
+  for (const lado of ['azul', 'rojo']) eq[lado].kills = jugadores[lado].reduce((s, j) => s + j.k, 0);
   for (const j of [...jugadores.azul, ...jugadores.rojo]) j.racha = j.d === 0 ? j.k : Math.min(j.racha, j.k);
   estimarRecompensas(jugadores, eventos, t, eq, jugadorPorNombre);
 
