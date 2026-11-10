@@ -74,3 +74,31 @@ test('del lore solo va el de la familia que se nombra (con la entradilla), y ent
   assert.equal(recortarLore(lore, []), lore);
   assert.deepEqual(elegirRamas('háblame del oyabun de Akuma', { familias: FAMILIAS }).familias, ['Akuma']);
 });
+
+test('KB Stats con las equivalencias: la cuenta de KB de cada jugador, y quien no juega en KB se dice (sin parecidos)', async () => {
+  const { filasKb } = await import('../server/tickets-ramas.js');
+  const kb = { cabecera: 'CAB', filas: [{ nombre: 'Hikigaayaa', rol: 'Top', texto: '- Hikigaayaa' }, { nombre: 'Reiko', rol: 'Medio', texto: '- Reiko' }, { nombre: 'KingKai', rol: 'Top', texto: '- KingKai' }] };
+  const alias = { GAATSU: 'Hikigaayaa#YUKNO', DRAGON: null };
+  assert.equal(filasKb(kb, 'stats de gaatsu', { jugadores: ['GAATSU'], alias }), 'CAB\n- Hikigaayaa');
+  assert.match(filasKb(kb, 'stats de dragon', { jugadores: ['DRAGON'], alias }), /^CAB\nNo juegan en la Liga KB, así que no tienen estadísticas allí: DRAGON\./);
+  assert.equal(filasKb(kb, 'stats de kingkai', { jugadores: ['KINGKAI'], alias }), 'CAB\n- KingKai', 'sin equivalencia, por el nombre parecido');
+  assert.match(filasKb(kb, 'stats de pablo', { jugadores: ['PABLO'], alias }), /No aparecen en KB Stats con ese nombre[^\n]*PABLO/);
+});
+
+test('el archivo de equivalencias de verdad: cada cuenta existe tal cual se escribe, y los que no juegan en KB van con null', () => {
+  const { alias } = JSON.parse(readFileSync(new URL('../discord/kbstats-alias.json', import.meta.url), 'utf8'));
+  assert.equal(alias.GAATSU, 'Hikigaayaa');
+  assert.equal(alias.SRGALLEGO, 'Señor Gallego');
+  assert.equal(alias.DRAGON, null, 'DRAGON no es Reiko');
+});
+
+test('lo que dijo la gente: sus mensajes y las preguntas que SrDirector copia, sin sus respuestas', async () => {
+  const { loQueDijoLaGente } = await import('../server/tickets-ramas.js');
+  const historia = '[SrDirector (tú)] **❓ Persona 20:** háblame de KINGKAI → KINGKAI es el top de Tsuki, y DESPO el de Yasha\n[Persona 20 (quien abrió el ticket)] gracias crack';
+  assert.equal(loQueDijoLaGente(historia), 'háblame de KINGKAI\n[Persona 20 (quien abrió el ticket)] gracias crack');
+});
+
+test('las leyendas de KB despiertan su rama por el nombre', () => {
+  assert.ok(ramas('¿quién es Dakin?').includes('escena'));
+  assert.ok(ramas('cuéntame lo de coña malą').includes('escena'));
+});

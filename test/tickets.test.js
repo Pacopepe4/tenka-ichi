@@ -360,3 +360,20 @@ test('sin mención, de un bot o con otra a la vez en el mismo canal, no contesta
   hoy = new Date(hoy.getTime() + 1000);
   assert.equal(comandos.tickets.alMencionar({ ...base, id: '7204', author: { id: '84' }, content: `<@${APP}> otra`, mentions: [yo] }, yo), null, 'la misma persona, antes de 5 s');
 });
+
+test('una pregunta de seguimiento hereda el jugador del que se hablaba, y quien no tiene fila en KB se dice', async () => {
+  const c = await comandos.tickets.contexto('¿y sus stats?', '[SrDirector (tú)] **❓ Persona 20:** háblame de KINGKAI → Es el top de Tsuki y DESPO es de Yasha');
+  assert.ok(c.ramas.has('stats') && c.ramas.has('cartas'));
+  const texto = c.partes.join('\n');
+  assert.match(texto, /\*\*KINGKAI\*\*/, 'su carta');
+  assert.doesNotMatch(texto, /Despo/, 'lo que contestó SrDirector no cuenta para saber de quién se habla');
+  assert.match(texto, /No aparecen en KB Stats con ese nombre[^\n]*KINGKAI/);
+});
+
+test('si lo mencionan respondiendo a otro mensaje, la IA lee ese mensaje', async () => {
+  const yo = { id: APP, username: 'SrDirector' };
+  claude.peticiones = [];
+  await comandos.tickets.alMencionar({ id: '7301', guild_id: '1', channel_id: '4', author: { id: '86', username: 'u86' }, member: { roles: [] },
+    content: `<@${APP}> ¿esto es verdad?`, mentions: [yo], referenced_message: { author: { id: '87', username: 'u87', global_name: 'Persona 87' }, content: 'Tsuki va primera\ny ganará la liga' } }, yo);
+  assert.match(claude.peticiones[0].messages[0].content, /\[Persona 87 \(el mensaje al que responde\)\] Tsuki va primera y ganará la liga/);
+});

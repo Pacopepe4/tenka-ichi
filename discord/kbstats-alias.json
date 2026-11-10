@@ -1,0 +1,24 @@
+{
+  "_nota": "Equivalencias para KB Stats (server/tickets.js): nombre del jugador en Gokudō (como en las cartas) → su cuenta en KB Stats (el nombre de kbstats.es, sin la #etiqueta). null = no juega en la Liga KB (así la IA no le adjudica las stats de otro). Los que no están aquí se buscan por el nombre parecido (KINGKAI → KingKai, JLEGEND → J Lgend…). Lo dio Pacopepe el 11/11/2026.",
+  "alias": {
+    "GAATSU": "Hikigaayaa",
+    "SRGALLEGO": "Señor Gallego",
+    "DRAGON": null,
+    "FREDDY": null,
+    "SOLET": null,
+    "DARKMIEL": null,
+    "SEUS": null,
+    "PABLO": null,
+    "EL 64": null,
+    "JEEDA": null,
+    "PROMETEO": null,
+    "JAAVAA": null,
+    "VASKOÑITO": null,
+    "KUCHAUU": null,
+    "DOMENACHE": null,
+    "FROZENRONIN": null,
+    "DEXTYLE": null,
+    "IGRID": null,
+    "GYPSICUACK": null
+  }
+}

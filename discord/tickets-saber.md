@@ -88,3 +88,33 @@ KB es otra organización de la escena, con su propia liga (la Liga KB) y su web 
 - **Reclutar:** solo un Oyabun puede meter a alguien en su familia, con el comando **/reclutar**. Para salir de una familia o cambiarse a otra hay que hablar con el staff.
 - **Canales:** Info (normas, anuncios, calendario y tickets), Directo (avisos y clips), Liga (resultados, clasificación, tier list y fantasy), Gachapón (colecciones y alineaciones), General-La Izakaya (chat y voz) y un apartado de cada familia, con su chat abierto a todos, su voz y su voz privada.
 - **Tickets:** el botón «Abrir ticket» del canal de tickets abre un hilo privado con el staff. La IA contesta las dudas sobre Gokudō. «Llamar al staff» menciona al staff en el hilo y «Cerrar» lo cierra.
+
+## Quién es quién en las familias <!-- cartas -->
+Lo que contó Pacopepe el 11/11/2026 (en la Liga KB algunos juegan con otra cuenta de LoL):
+- **GAATSU**: el top de Ryūjin; en la Liga KB juega como Hikigaayaa.
+- **SOLET**: jugador nuevo, jungla de Ryūjin (el equipo de Gaatsu). Sustituye a Dakin.
+- **DARKMIEL**: jugador nuevo, support de Ryūjin.
+- **FREDDY**: el medio de Tsuki; en Discord es djfreddyher.
+- **DRAGON**: la chica nueva de Yasha, en el medio. No es Reiko.
+- **PABLO**, **EL 64** y **JEEDA**: jugadores nuevos de Byakko (top, jungla y support).
+- **PROMETEO**: el nuevo top de Akuma.
+- **SRLEEMON**: el midlaner clásico de Bushi, ahora en Akuma.
+- **SRGALLEGO**: de Akuma; en la Liga KB juega como Señor Gallego (era el medio de KB BUSHI).
+- **Tengu** es una familia de jugadores nuevos (JAAVAA, VASKOÑITO, KUCHAUU, DOMENACHE y FROZENRONIN). Su capitán es **DOMENACHE**.
+- **DEXTYLE**: jungla de Legacy (Shinigami), colega de Makitah.
+- **IGRID** (BOOST): toplaner legendario; cuenta la leyenda que fue el mejor top de KB de todos los tiempos.
+- **GYPSICUACK** (BOOST): el mejor Ornn del mundo.
+
+## Leyendas de la escena (Liga KB) <!-- escena -->
+Gente de la Liga KB que no juega en Gokudō pero de la que se habla (lo contó Pacopepe el 11/11/2026):
+- **AlejandroMag**: el mejor medio que pisó Saru; antiguo y legendario midlaner de Saru.
+- **Dakin**: ex jungla del antiguo Atsui y campeón de Cinturones; anda por el Discord. Ya retirado: lo sustituyó Solet.
+- **DAFenosa**: ADC legendario del Atsui. No pudo acabar la competición por un problema de su equipo que no fue culpa suya: de ahí lo de «lo que la Ventana se llevó».
+- **Tuff Pigeon**: ex ADC del Atsui, campeón.
+- **dr filtros**, también conocido como Ortiz o «el Demonio del Akuarela»: el ADC del Atsui antes de Tuff Pigeon.
+- **coña malą**: support del Atsui, campeón de Cinturones.
+- **zInviicTusCL**: ex toplaner de Tora.
+- **KB Xenius**: ex jungla y coach de Tora. Muy, muy bueno.
+- **Dantesaurio Rex** y **Almo**: antiguos supports de Tora.
+- **CHOPIT0**: ex toplaner de Bushi, jugador de Sion legendario. Le hizo un solokill a Gaatsu.
+- **Reiko**: fue el medio de Bushi y, la temporada anterior, el de Kamikaze. No es DRAGON.

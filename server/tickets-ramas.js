@@ -25,6 +25,10 @@ export const RAMAS = {
     'instagram', 'avisos'],
   discord: ['discord', 'servidor', 'rol', 'canal', 'reclutar', 'kobun', 'oyabun', 'kumicho', 'ticket', 'staff', 'hilo', 'izakaya', 'voz', 'entrar en'],
   kb: ['kb', 'koryu', 'budo'],
+  // Las leyendas de la Liga KB que no juegan en Gokudō (por su nombre)
+  escena: ['alejandromag', 'alejandro', 'dakin', 'dafenosa', 'ventana', 'tuff pigeon', 'pigeon', 'dr filtros', 'filtros', 'ortiz', 'akuarela',
+    'cona mala', 'zinviictus', 'invictus', 'xenius', 'dantesaurio', 'almo', 'chopit0', 'chopito', 'reiko', 'senor gallego', 'cinturones', 'leyenda',
+    'legendari', 'antiguo', 'campeon'],
 };
 const ROLES = { Top: ['top'], Jungla: ['jungla', 'jungler', 'jungle', 'jgl', 'jg'], Medio: ['mid', 'medio'], ADC: ['adc', 'tirador', 'bot'],
   Support: ['support', 'supp', 'sup', 'apoyo'] };
@@ -81,16 +85,44 @@ export function seccionesSaber(md) {
 }
 
 // Las filas de KB Stats que hacen falta: las de los jugadores nombrados o, si no, las mejores notas (del rol que se diga)
-export function filasKb(kb, pregunta) {
+// 'jugadores' son los nombres de Gokudō que salen en la pregunta: se buscan en KB Stats por su equivalencia
+// (discord/kbstats-alias.json: nombre en Gokudō → cuenta en KB) o por el nombre parecido, y si no están se dice
+export function filasKb(kb, pregunta, { jugadores = [], alias = {} } = {}) {
   if (!kb?.filas?.length) return '';
-  let filas = kb.filas.filter(f => nombra(pregunta, f.nombre));
-  if (!filas.length) {
-    const t = normalizar(pregunta);
-    const rol = Object.entries(ROLES).find(([, ps]) => ps.some(p => tiene(t, p)))?.[0];
-    filas = kb.filas.filter(f => !rol || f.rol === rol).slice(0, MAX_KB_GENERAL);
-    if (filas.length) return `${kb.cabecera}\nNo se nombra a nadie en concreto: van las ${filas.length} mejores notas${rol ? ` de ${rol}` : ''}.\n${filas.map(f => f.texto).join('\n')}`;
+  const elegidas = new Set(kb.filas.filter(f => nombra(pregunta, f.nombre)));
+  const sinFila = [];
+  const noJuegan = [];
+  for (const j of jugadores) {
+    const clave = j in alias ? j : String(j).toUpperCase();
+    // null en las equivalencias: no juega en la Liga KB (y no se busca por parecido, para no darle las stats de otro)
+    if (clave in alias && alias[clave] === null) { noJuegan.push(j); continue; }
+    const cuenta = alias[clave];
+    const suyas = cuenta ? kb.filas.filter(f => compacto(f.nombre) === compacto(String(cuenta).replace(/#.*$/, '').replace(/^KB\s+/i, '')))
+      : kb.filas.filter(f => nombra(j, f.nombre) || nombra(f.nombre, j));
+    if (suyas.length) suyas.forEach(f => elegidas.add(f)); else sinFila.push(j);
   }
-  return filas.length ? `${kb.cabecera}\n${filas.map(f => f.texto).join('\n')}` : '';
+  if (elegidas.size || sinFila.length || noJuegan.length) {
+    const filas = kb.filas.filter(f => elegidas.has(f)).map(f => f.texto);
+    const avisos = [
+      noJuegan.length && `No juegan en la Liga KB, así que no tienen estadísticas allí: ${noJuegan.join(', ')}. Dilo así y no inventes sus números.`,
+      sinFila.length && `No aparecen en KB Stats con ese nombre (en la Liga KB juegan con su cuenta de LoL, que puede ser otra): ${sinFila.join(', ')}. Dilo así y no inventes sus números.`,
+    ];
+    return [kb.cabecera, ...filas, ...avisos].filter(Boolean).join('\n');
+  }
+  // No se nombra a nadie: las mejores notas (del rol que se diga)
+  const t = normalizar(pregunta);
+  const rol = Object.entries(ROLES).find(([, ps]) => ps.some(p => tiene(t, p)))?.[0];
+  const filas = kb.filas.filter(f => !rol || f.rol === rol).slice(0, MAX_KB_GENERAL);
+  return filas.length ? `${kb.cabecera}\nNo se nombra a nadie en concreto: van las ${filas.length} mejores notas${rol ? ` de ${rol}` : ''}.\n${filas.map(f => f.texto).join('\n')}` : '';
+}
+
+// De la conversación del ticket, solo lo que ha escrito la gente (para saber de quién o de qué se hablaba). Lo que
+// contestó SrDirector no cuenta, salvo la pregunta que copia al principio («**❓ nombre:** pregunta → respuesta»)
+export function loQueDijoLaGente(historia) {
+  return String(historia || '').split('\n').map(l => {
+    if (!l.startsWith('[SrDirector')) return l;
+    return /\*\*❓ [^*]*:\*\* (.*?)(?: → |$)/.exec(l)?.[1] || '';
+  }).filter(Boolean).join('\n');
 }
 
 // La liga en vivo en texto corto (y no en JSON): fechas, cruces con su ganador, clasificación y cuadro

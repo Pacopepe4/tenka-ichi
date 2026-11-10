@@ -15,7 +15,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { crearKbStats } from './kbstats.js';
-import { elegirRamas, seccionesSaber, filasKb, textoLiga, recortarLore } from './tickets-ramas.js';
+import { elegirRamas, seccionesSaber, filasKb, textoLiga, recortarLore, loQueDijoLaGente } from './tickets-ramas.js';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const AGENTE = 'DiscordBot (https://tenka-ichi.onrender.com, 1.0)';
@@ -125,7 +125,8 @@ const ESQUEMA = {
 export function conversacion(mensajes, { dueno, bot, publico = false }) {
   return [...mensajes].reverse().map(m => {
     const quien = m.author?.id === bot || m.author?.bot ? 'SrDirector (tú)' : m.author?.id === dueno ? `${nombreDe(m.author)} (${publico ? 'quien te pregunta' : 'quien abrió el ticket'})` : `${nombreDe(m.author)}${publico ? '' : ' (staff)'}`;
-    const texto = [m.content, ...(m.embeds || []).map(e => e.description || '')].filter(Boolean).join('\n').trim();
+    // Una línea por mensaje (así se sabe qué dijo cada uno); en las respuestas de SrDirector, «pregunta → respuesta»
+    const texto = [m.content, ...(m.embeds || []).map(e => e.description || '')].filter(Boolean).join(' ').replace(/\n\n/, ' → ').replace(/\s*\n+\s*/g, ' ').trim();
     return texto ? `[${quien}] ${texto}` : null;
   }).filter(Boolean).join('\n');
 }
@@ -133,11 +134,16 @@ export function conversacion(mensajes, { dueno, bot, publico = false }) {
 export function crearTickets({ token, urlApi, ids, cliente, modelo = process.env.TICKETS_MODELO || MODELO_POR_DEFECTO,
   topePersona = Number(process.env.TICKETS_TOPE_PERSONA) || 10, topeDia = Number(process.env.TICKETS_TOPE_DIA) || 200,
   saber = () => readFileSync(path.join(RAIZ, 'discord/tickets-saber.md'), 'utf8'), datosLiga = () => null, cartas = () => null, kbstats, clanes = [],
+  aliasKb = () => JSON.parse(readFileSync(path.join(RAIZ, 'discord/kbstats-alias.json'), 'utf8')).alias || {},
   ahora = () => new Date(), log = console } = {}) {
   const base = urlApi.replace(/\/$/, '');
   if (cliente === undefined) cliente = process.env.ANTHROPIC_API_KEY && process.env.TICKETS_IA !== '0' ? new Anthropic({ timeout: 60_000, maxRetries: 1 }) : null;
   const iaActiva = Boolean(cliente);
-  if (kbstats === undefined) kbstats = iaActiva ? crearKbStats() : null;
+  // KB Stats tarda unos 20 s en leerse: se empieza a leer al arrancar, no en la primera pregunta
+  if (kbstats === undefined) {
+    kbstats = iaActiva ? crearKbStats() : null;
+    kbstats?.datos().catch(() => {});
+  }
   const cuentas = new Map();        // 'día' y 'día:persona' → preguntas a la IA de hoy
   const llamadas = new Map();       // hilo → cuándo se llamó al staff por última vez
   const trabajos = new Set();
@@ -191,7 +197,16 @@ export function crearTickets({ token, urlApi, ids, cliente, modelo = process.env
     const secciones = seccionesSaber(saber());
     const c = cartas();
     const nombres = (c?.catalogo || []).filter(x => ['jugador', 'boost', 'legacy'].includes(x.tipo)).map(x => x.nombre).filter(Boolean);
-    const { ramas, jugadores, familias } = elegirRamas(`${pregunta} ${historia.slice(-400)}`, { nombres, familias: clanes.map(x => x.nombre) });
+    const opciones = { nombres, familias: clanes.map(x => x.nombre) };
+    // Una pregunta de seguimiento («¿y sus stats?») hereda de lo que dijo antes la gente los jugadores y las familias de
+    // las que se hablaba y, si no trae ningún tema propio, también los temas
+    const deLaPregunta = elegirRamas(pregunta, opciones);
+    const deAntes = elegirRamas(loQueDijoLaGente(historia).slice(-1500), opciones);
+    const ramas = new Set(deLaPregunta.ramas);
+    if (!ramas.size) deAntes.ramas.forEach(r => ramas.add(r));
+    const jugadores = deLaPregunta.jugadores.length ? deLaPregunta.jugadores : deAntes.jugadores;
+    const familias = deLaPregunta.familias.length ? deLaPregunta.familias : deAntes.familias;
+    if (jugadores.length || familias.length) ramas.add('cartas');
     const partes = [];
     // Del lore y de las cartas, si se nombra a alguien (jugadores o familias), solo lo suyo; si no, todo
     const ficha = secciones.filter(x => x.rama !== 'nucleo' && ramas.has(x.rama)).map(x => (x.rama === 'lore' ? recortarLore(x.texto, familias) : x.texto));
@@ -202,9 +217,11 @@ export function crearTickets({ token, urlApi, ids, cliente, modelo = process.env
       partes.push(`<cartas_y_jugadores>\n${textoCartas(c?.catalogo, c?.puntos, clanes, filtro)}\n</cartas_y_jugadores>`);
     }
     if (ramas.has('stats') && kbstats) {
-      // KB Stats espera como mucho 15 s la primera vez tras arrancar
-      const kb = await Promise.race([kbstats.datos().catch(() => null), new Promise(ok => setTimeout(ok, 15_000, null))]);
-      partes.push(`<kb_stats>\n${filasKb(kb, `${pregunta} ${historia.slice(-400)}`) || 'No se han podido leer las estadísticas de KB Stats ahora mismo, o no está ese jugador: dilo y llama al staff.'}\n</kb_stats>`);
+      // KB Stats se lee al arrancar (tarda unos 20 s); si aún no está, se espera como mucho 30 s
+      const kb = await Promise.race([kbstats.datos().catch(() => null), new Promise(ok => setTimeout(ok, 30_000, null))]);
+      let alias = {};
+      try { alias = aliasKb(); } catch {}
+      partes.push(`<kb_stats>\n${filasKb(kb, pregunta, { jugadores, alias }) || 'No se han podido leer las estadísticas de KB Stats ahora mismo: dilo y llama al staff.'}\n</kb_stats>`);
     }
     return { nucleo: secciones.filter(x => x.rama === 'nucleo').map(x => x.texto).join('\n\n'), partes, ramas };
   }
@@ -364,6 +381,9 @@ ${pregunta}
     const trabajo = (async () => {
       const i = { guild_id: m.guild_id, channel_id: m.channel_id, member: { ...(m.member || {}), user: m.author, permissions: '0' } };
       const pregunta = (m.content || '').replace(marca, '').trim().slice(0, MAX_PREGUNTA);
+      // Si lo mencionan respondiendo a otro mensaje, ese mensaje es parte de lo que le preguntan
+      const ref = m.referenced_message;
+      const respondeA = ref?.content && ref.author?.id !== yo.id ? `\n[${nombreDe(ref.author)} (el mensaje al que responde)] ${ref.content.replace(/\s*\n+\s*/g, ' ')}` : '';
       const ticket = await esTicket(m.guild_id, m.channel_id);
       pedir('POST', `/channels/${m.channel_id}/typing`).catch(() => {});
       let r;
@@ -373,7 +393,7 @@ ${pregunta}
         try {
           historia = conversacion(await pedir('GET', `/channels/${m.channel_id}/messages?limit=${ticket ? 50 : 15}&before=${m.id}`), { dueno: m.author.id, bot: yo.id, publico: !ticket });
         } catch (e) { log.error('Tickets: no he podido leer el canal:', e.message); }
-        r = await respuestaPara(i, pregunta, recortar(historia, ticket ? 30000 : 6000));
+        r = await respuestaPara(i, pregunta, recortar(historia, ticket ? 30000 : 6000) + respondeA);
       }
       let texto = r.respuesta;
       const menciones = { parse: [], replied_user: true };
