@@ -87,6 +87,18 @@ test('sin marcador, la pantalla final sale del draft y de lo que apunta el staff
   assert.equal(fotoFinalDelDraft(e, conMarcador), conMarcador);
 });
 
+test('los avisos de objetivos vienen encendidos y el «apagado» guardado antes del 10/11 ya no cuenta', () => {
+  // La antena del realizador ya no enseña los anuncios del LoL: los saca el overlay, así que vienen encendidos
+  const antiguo = Object.assign(estadoBase(), { avisosPropios: true });
+  restaurarEstado(antiguo, JSON.stringify({ cuando: Date.now(), avisosPropios: false }));
+  assert.equal(antiguo.avisosPropios, true, 'el apagado de fábrica de antes no apaga los de ahora');
+  // Si alguien los apaga ahora desde el panel, eso sí se guarda y vuelve
+  const apagados = Object.assign(estadoBase(), { avisosPropios: false });
+  const otro = Object.assign(estadoBase(), { avisosPropios: true });
+  restaurarEstado(otro, JSON.stringify({ cuando: Date.now(), ...fotoEstado(apagados) }));
+  assert.equal(otro.avisosPropios, false);
+});
+
 test('el estado guardado vuelve tal cual; la búsqueda y la vista forzada, solo si es reciente', () => {
   const e = estadoBase();
   Object.assign(e, { vista: { forzada: 'partida', enPartida: true }, buscarPartida: { activa: true, alAcabarDraft: false }, avisosPropios: true,

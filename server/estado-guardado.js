@@ -13,7 +13,7 @@ export function fotoEstado(e, { draftcore = false } = {}) {
   return {
     config: e.config, equipos: e.equipos, enlace: draftcore ? e.fuente.enlace : '',
     draft: { bans: e.draft.bans, picks: e.draft.picks }, fearless: e.fearless, resultados: e.resultados,
-    camaras: e.camaras, partidaVisible: e.partidaVisible, buscarPartida: e.buscarPartida, avisosPropios: e.avisosPropios,
+    camaras: e.camaras, partidaVisible: e.partidaVisible, buscarPartida: e.buscarPartida, avisosObjetivos: e.avisosPropios,
     vista: e.vista, final: e.final, jornadaAuto: e.jornadaAuto, ingame: e.ingame,
   };
 }
@@ -53,7 +53,9 @@ export function restaurarEstado(e, texto = ajuste(CLAVE), ahora = Date.now()) {
       lista: g.camaras.lista.map(c => ({ tipo: String(c?.tipo || 'caster'), nombre: String(c?.nombre || ''), detalle: String(c?.detalle || '') })) };
   }
   if (typeof g.partidaVisible === 'boolean') e.partidaVisible = g.partidaVisible;
-  if (typeof g.avisosPropios === 'boolean') e.avisosPropios = g.avisosPropios;
+  // Los avisos de objetivos se guardan como «avisosObjetivos» desde el 10/11, cuando pasaron a venir encendidos: el
+  // «avisosPropios» de antes (casi siempre apagado, el de fábrica de entonces) ya no cuenta
+  if (typeof g.avisosObjetivos === 'boolean') e.avisosPropios = g.avisosObjetivos;
   if (typeof g.buscarPartida?.alAcabarDraft === 'boolean') e.buscarPartida.alAcabarDraft = g.buscarPartida.alAcabarDraft;
   if (g.jornadaAuto && typeof g.jornadaAuto === 'object') {
     if (typeof g.jornadaAuto.cerrar === 'boolean') e.jornadaAuto.cerrar = g.jornadaAuto.cerrar;

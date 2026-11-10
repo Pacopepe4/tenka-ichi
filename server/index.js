@@ -94,8 +94,9 @@ const estado = {
   buscarPartida: { activa: false, alAcabarDraft: true },
   // Grafismo que el panel saca encima de la partida: { tipo: 'lineas' | 'ficha' | 'oro', id, lado e indice (la ficha) } o nada
   grafico: null,
-  // Avisos propios de objetivos en el overlay; apagados, se ven los del propio LoL
-  avisosPropios: false,
+  // Avisos propios de objetivos en el overlay (dragón, Barón, torres, multikills…). Encendidos de fábrica desde el 10/11:
+  // la antena del realizador ya no enseña los anuncios del centro del LoL, los saca el overlay. Apagados, no sale ninguno
+  avisosPropios: true,
   // Marcador de partida: estilo (solo queda el A, «Placas» de Gokudō) e interruptores de lo nuevo, encendidos por defecto
   // (sirven para ocultar algo si no va bien, no para tener que activarlo). oroIngresos apagado vuelve al valor de los objetos.
   // camaras: las cámaras de los casters a los lados del línea por línea (izquierda y derecha), que sí hay que activar:
