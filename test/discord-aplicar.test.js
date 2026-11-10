@@ -49,7 +49,8 @@ test('la primera vez lo crea todo: categorías en orden, canales, y por cada fam
   await aplicar(opciones);
   const cats = discord.estado.canales.filter(c => c.type === 4 && !/Channels/.test(c.name)).sort((a, b) => a.position - b.position).map(c => c.name);
   const deFamilias = ['Familia 1', 'Familia 2', 'Familia 3', 'Familia 4', 'Familia 5', 'Familia 6', 'Legacy'].map(n => `🏮 ${n}`);
-  assert.deepEqual(cats, ['🏯 Staff', '🔴 Directo', '📜 Info', '🏆 Liga', '🎰 Gachapón', ...deFamilias, '🍶 Izakaya'], 'una categoría por familia, donde estaba la de Familias');
+  // La Izakaya va antes de las familias, como la puso Pacopepe (10/11/2026)
+  assert.deepEqual(cats, ['🏯 Staff', '🔴 Directo', '📜 Info', '🏆 Liga', '🎰 Gachapón', '🍶 General-La Izakaya', ...deFamilias], 'una categoría por familia, donde estaba la de Familias');
   // Cada familia en su categoría, como los enseña Discord: primero el de texto y luego los de voz
   for (const [i, n] of ['Familia 1', 'Familia 6', 'Legacy'].entries()) {
     const cat = categoria(n);
@@ -58,7 +59,9 @@ test('la primera vez lo crea todo: categorías en orden, canales, y por cada fam
   }
   assert.equal(voz('Familia 1').type, 2, 'los de voz son de voz');
   assert.equal(voz('Familia 1').topic, null, 'y sin descripción');
-  assert.equal(voz('Izakaya').parent_id, categoria('Izakaya').id, 'Izakaya: su categoría y su canal de voz');
+  assert.equal(voz('Izakaya').parent_id, categoria('General-La Izakaya').id, 'Izakaya: su categoría, su chat y sus dos canales de voz');
+  assert.equal(voz('Izakaya 2').parent_id, categoria('General-La Izakaya').id);
+  assert.equal(canal('chat-general').parent_id, categoria('General-La Izakaya').id);
   for (const n of ['Kumichō', 'Oyabun', 'Kobun', 'Familia 1', 'Familia 6', 'Legacy']) assert.ok(rol(n), `rol ${n}`);
   assert.equal(rol('Familia 1').color, 0xC1272D);
   assert.equal(canal('normas').parent_id, canal('Info').id);
@@ -196,8 +199,8 @@ test('ids.json solo guarda lo que está en el archivo, y un canal adoptado por s
   writeFileSync(opciones.archivoIds, JSON.stringify({ 1: { 'canal:izakaya': '77', 'canal:viejo': '123' } }));
   await aplicar(opciones);
   assert.equal(suelto.name, '🍶・Izakaya');
-  assert.equal(suelto.parent_id, categoria('Izakaya').id);
-  assert.equal(discord.estado.canales.filter(c => /Izakaya/.test(c.name) && c.type === 2).length, 1, 'no crea otro');
+  assert.equal(suelto.parent_id, categoria('General-La Izakaya').id);
+  assert.equal(discord.estado.canales.filter(c => /^🍶・Izakaya$/.test(c.name) && c.type === 2).length, 1, 'no crea otro');
   const despues = JSON.parse(readFileSync(opciones.archivoIds, 'utf8'))['1'];
   assert.equal(despues['canal:izakaya'], '77');
   assert.ok(!('canal:viejo' in despues));
@@ -283,7 +286,7 @@ const respetando = (mas = {}) => ({ ...opciones, forzar: false, crear: false, ..
 
 test('sin --forzar, lo que se cambió a mano en Discord se queda: nombres, descripción, categoría, permisos, color y orden', async () => {
   await aplicar(opciones);   // el servidor montado como dice servidor.json
-  const anuncios = canal('anuncios'), staff = categoria('Staff'), kobun = rol('Kobun'), izakaya = categoria('Izakaya');
+  const anuncios = canal('anuncios'), staff = categoria('Staff'), kobun = rol('Kobun'), izakaya = categoria('General-La Izakaya');
   Object.assign(anuncios, { name: '📢・novedades', topic: 'Lo que digo yo', parent_id: categoria('Liga').id, permission_overwrites: [] });
   staff.name = '🏯 Jefatura';
   kobun.color = 0x123456;
@@ -339,10 +342,10 @@ test('con --crear crea lo que falta, pero sigue sin tocar lo que hay', async () 
 test('cada pasada guarda una foto del servidor tal como está, en orden y sin ids', async () => {
   await aplicar(opciones);
   canal('anuncios').name = '📢・novedades';
-  categoria('Izakaya').position = -1;
+  categoria('General-La Izakaya').position = -1;
   await aplicar(respetando());
   const foto = JSON.parse(readFileSync(opciones.archivoFoto, 'utf8'));
-  assert.equal(foto.categorias[0].nombre, '🍶 Izakaya', 'en el orden de Discord');
+  assert.equal(foto.categorias[0].nombre, '🍶 General-La Izakaya', 'en el orden de Discord');
   assert.ok(foto.categorias.find(c => c.nombre === '📜 Info').canales.some(k => k.nombre === '📢・novedades'));
   assert.ok(foto.roles.includes('Kobun'));
   assert.doesNotMatch(JSON.stringify(foto), /"id"|webhooks\//, 'sin ids ni direcciones');
