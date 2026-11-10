@@ -376,7 +376,7 @@ Lo pidió Pacopepe el 10/11/2026. Todo va con botones, y lo atiende la misma rut
   - **Llamar al staff** solo menciona a @Kumichō en el hilo, como mucho una vez cada 10 minutos.
   - **Cerrar** archiva y bloquea el hilo. Puede cerrarlo quien lo abrió o el staff.
 - En el hilo se puede escribir con normalidad para hablar con el staff. La IA no lee el chat: contesta cuando alguien pulsa un botón o cuando la mencionan.
-- **SrDirector** es el nombre de la IA y del bot (lo pidió Pacopepe el 10/11). Su icono, sacado de una captura que dio él y ampliado a 512×512 con ffmpeg (`hqx` y `lanczos`), está en `discord/imagenes/srdirector.png`.
+- **SrDirector** es el nombre de la IA y del bot (lo pidió Pacopepe el 10/11). Su icono está en `discord/imagenes/srdirector.png`, a 512×512: un capo original al estilo Gokudō hecho en Flow (el original y el prompt están en `gokudo/diseno/srdirector/`).
 - **Si lo mencionan (@SrDirector)**, contesta a ese mensaje en cualquier canal, no solo en los tickets (`server/discord-gateway.js` y `alMencionar` de `server/tickets.js`).
   - En un ticket contesta en el hilo y, si hace falta, llama al staff. En un canal público contesta allí y, si es cosa del staff, manda a abrir un ticket en vez de mencionaros delante de todos.
   - Lee los últimos mensajes del canal para entender de qué se habla. Contesta una vez a la vez por canal y como mucho una vez cada 5 segundos por persona, y gasta de los mismos topes.
