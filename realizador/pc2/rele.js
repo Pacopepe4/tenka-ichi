@@ -202,9 +202,20 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
   //     con el zoom nuevo (ver aplicar). Mientras dura un zoom, el ajuste de bordes no toca la cámara.
   const enviarSecuencia = cuerpo => pedirJSON(`${api}/replay/sequence`, { metodo: 'POST', cuerpo, tiempoMs: 1500 });
   const pausa = ms => new Promise(f => setTimeout(f, ms));
+  // Zoom que se ve ahora mismo: si hay una secuencia a medias, el punto de la curva en el que va. Al quitar una
+  // secuencia el LoL salta a su valor final, así que un zoom nuevo que corta a otro tiene que salir de aquí
+  // (si saliera del valor de antes, la cámara iría al final del primero y volvería atrás: dos golpes).
+  function zoomAhora() {
+    const s = estado.secuenciaActiva && estado.secuenciaZoom;
+    const t = tAntenaAhora();
+    if (!s || !Number.isFinite(t)) return { ...estado.zoom };
+    const k = suave(Math.min(1, Math.max(0, (t - s.t0) / (s.t1 - s.t0))));
+    return { fov: s.desde.fov + (s.destino.fov - s.desde.fov) * k, distancia: s.desde.distancia + (s.destino.distancia - s.desde.distancia) * k };
+  }
   async function quitarSecuencia() {
     if (!estado.secuenciaActiva) return;
     estado.secuenciaActiva = null;
+    estado.secuenciaZoom = null;
     await enviarSecuencia({}).catch(() => {});
   }
   const sinFijar = p => !p || p.tipo === 'general' || !p.objetivo;
@@ -221,6 +232,8 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
       await enviarSecuencia({ fieldOfView: marcas(a.fieldOfView, b.fieldOfView), selectionOffset: marcas(a.selectionOffset, b.selectionOffset) });
     } catch { return false; }
     estado.secuenciaActiva = yo;
+    estado.secuenciaZoom = { t0, t1, desde: { ...desde }, destino: { ...destino } };
+    estado.zoom = { ...desde };
     await pausa((segundos + 0.3) * 1000);
     if (yo !== animacion || estado.secuenciaActiva !== yo) return true;  // un corte u otro zoom ya la han quitado
     estado.zoom = { ...destino };
@@ -250,9 +263,12 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
 
   async function transicion(p, destino, segundos = r.zoom?.transicionSegundos ?? 2) {
     const yo = ++animacion;
-    const desde = { ...estado.zoom };
-    if (desde.fov === destino.fov && desde.distancia === destino.distancia) return;
-    await quitarSecuencia();
+    const desde = zoomAhora();
+    estado.zoom = { ...desde };
+    if (Math.abs(desde.fov - destino.fov) < 0.01 && Math.abs(desde.distancia - destino.distancia) < 0.001) return;
+    const conSecuencia = (r.zoom?.modo ?? 'secuencia') === 'secuencia';
+    // Una secuencia nueva sustituye a la anterior sin quitarla (quitarla haría saltar al final de la vieja)
+    if (sinFijar(p) || !conSecuencia) await quitarSecuencia();
     if (sinFijar(p)) {
       // C) Vista de arriba: zoom fijo, sin animación
       estado.zoom = { ...destino };
@@ -261,8 +277,13 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
     }
     estado.animando = yo;
     try {
-      const hecho = (r.zoom?.modo ?? 'secuencia') === 'secuencia' && await zoomConSecuencia(p, desde, destino, segundos, yo);
-      if (!hecho) await zoomConPasos(p, desde, destino, segundos, yo);
+      const hecho = conSecuencia && await zoomConSecuencia(p, desde, destino, segundos, yo);
+      if (!hecho) {
+        // Sin secuencia nueva: si quedaba una vieja, se quita y se vuelve a poner el punto de ahora
+        if (estado.secuenciaActiva) { await quitarSecuencia(); await render(camara(p, desde)).catch(() => {}); }
+        if (conSecuencia) registrar(`[zoom] sin secuencia (antena ${estado.playback ? (estado.playback.paused ? 'en pausa' : `a x${estado.playback.speed ?? 1}`) : 'sin datos'}): zoom a pasos`);
+        await zoomConPasos(p, desde, destino, segundos, yo);
+      }
     } finally {
       if (estado.animando === yo) estado.animando = null;
     }

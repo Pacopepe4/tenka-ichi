@@ -20,9 +20,9 @@
     "desplazamientoCamara": { "x": 0, "y": 1911.85, "z": -1200 },
     "degradadoTrasSegundos": 15,
     "zoom": {
-      "general": { "fov": 66, "distancia": 1.45 },
-      "abierto": { "fov": 56, "distancia": 1.15 },
-      "cerca": { "fov": 44, "distancia": 0.8 },
+      "general": { "fov": 54, "distancia": 1.1 },
+      "abierto": { "fov": 48, "distancia": 0.95 },
+      "cerca": { "fov": 42, "distancia": 0.8 },
       "modo": "secuencia",
       "transicionSegundos": 2,
       "salidaSegundos": 0.5,
@@ -33,7 +33,7 @@
       "abrirAlCambiar": false
     },
     "bordes": {
-      "activo": true,
+      "activo": false,
       "zona": { "arriba": 3200, "abajo": 2200, "izquierda": 2600, "derecha": 2600 },
       "desplazamiento": { "arriba": 900, "abajo": 600, "izquierda": 700, "derecha": 700 },
       "zoomMaximo": 0.7,
