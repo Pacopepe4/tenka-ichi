@@ -33,7 +33,7 @@
       "abrirAlCambiar": false
     },
     "bordes": {
-      "activo": true,
+      "activo": false,
       "zona": { "arriba": 3200, "abajo": 2200, "izquierda": 2600, "derecha": 2600 },
       "desplazamiento": { "arriba": 900, "abajo": 600, "izquierda": 700, "derecha": 700 },
       "zoomMaximo": 0.7,
