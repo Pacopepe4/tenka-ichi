@@ -9,6 +9,7 @@ import { Cerebro } from './cerebro.js';
 import { Ejecutor } from './ejecutor.js';
 import { Obs } from './obs.js';
 import { Tenka } from './tenka.js';
+import { construirAdelanto } from './adelanto.js';
 import { arrancarPanel } from './panel.js';
 import { buscar } from '../comun/puente.js';
 import { Sala } from '../comun/sala.js';
@@ -124,6 +125,16 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
   explorador.on('conexion', v => { if (conexiones.explorador !== v) { conexiones.explorador = v; panel?.emitir(); } });
   explorador.on('liveEvents', v => { conexiones.liveEvents = v; panel?.emitir(); });
   explorador.on('jugadores', lista => { cerebro.jugadores = lista; ejecutor.hayCambios(); });
+
+  // «Adelanto» para la web: saltos de CS y objetivos, cada 5 s y en cuanto hay un objetivo nuevo. Siempre todo lo
+  // de la partida (la web lo trata como idempotente). Solo con la conexión del panel y en partida.
+  const mandarAdelanto = () => {
+    if (!tenka?.listo || !explorador.enPartida || o.tenkaIchi?.adelanto === false) return;
+    tenka.accion('adelanto', construirAdelanto({ t: explorador.ahora(), historial: explorador.cs, eventos: explorador.objetivos })).catch(() => {});
+  };
+  const temporizadorAdelanto = setInterval(mandarAdelanto, 5000);
+  temporizadorAdelanto.unref?.();
+  explorador.on('evento', e => { if (/^(DragonKill|HeraldKill|BaronKill)$/.test(e.nombre)) mandarAdelanto(); });
   explorador.on('partida', info => {
     partida = { ...info, id: info.inicio.replace(/[:.]/g, '-') };
     cerebro = new Cerebro(o.reglas);
@@ -239,6 +250,7 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
       clearInterval(fotoSala);
       sala?.cerrar();
       obs?.cerrar();
+      clearInterval(temporizadorAdelanto);
       tenka?.cerrar();
       panel.parar();
       if (perfilAplicado) {
