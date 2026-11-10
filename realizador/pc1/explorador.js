@@ -7,6 +7,7 @@
 import { EventEmitter } from 'node:events';
 import net from 'node:net';
 import { pedirJSON } from '../comun/http.js';
+import { HistorialCs } from './adelanto.js';
 
 // Equipos tal como los da el cliente
 const EQUIPOS = { ORDER: 'azul', CHAOS: 'rojo' };
@@ -42,6 +43,9 @@ export class Explorador extends EventEmitter {
     this.socket = null;
     this.restoLE = '';
     this.vistos = new Set();
+    // Para el «adelanto» de la web: cuándo cambia el CS de cada jugador y los objetivos vistos (pc1/adelanto.js)
+    this.cs = new HistorialCs();
+    this.objetivos = [];
     // Ritmo del reloj de partida: 1 en directo; en una repetición acelerada, su velocidad (la pone el modo grabada)
     this.velocidad = 1;
   }
@@ -88,6 +92,8 @@ export class Explorador extends EventEmitter {
       this.enPartida = true;
       this.siguienteId = 0;
       this.vistos.clear();
+      this.cs.limpiar();
+      this.objetivos = [];
       // Plantilla nueva en cada partida, aunque se entre con la partida empezada
       this.jugadores = [];
       this.porNombre.clear();
@@ -97,9 +103,11 @@ export class Explorador extends EventEmitter {
     this.emit('conexion', true);
     this.emit('tiempo', this.tiempo.t);
 
-    if (!this.jugadores.length || this.tiempo.t < 5) {
-      const lista = await pedirJSON(`${this.url}/liveclientdata/playerlist`, { tiempoMs: 2000 });
-      if (Array.isArray(lista) && lista.length) this.ponerJugadores(lista);
+    // La lista de jugadores se lee en cada vuelta: de ahí salen los CS (el cliente los da de 10 en 10)
+    const lista = await pedirJSON(`${this.url}/liveclientdata/playerlist`, { tiempoMs: 2000 }).catch(() => null);
+    if (Array.isArray(lista) && lista.length) {
+      if (!this.jugadores.length || this.tiempo.t < 5) this.ponerJugadores(lista);
+      if (this.cs.apuntar(this.tiempo.t, lista)) this.emit('cs');
     }
 
     const datos = await pedirJSON(`${this.url}/liveclientdata/eventdata?eventID=${this.siguienteId}`, { tiempoMs: 2000 });
@@ -206,6 +214,7 @@ export class Explorador extends EventEmitter {
     const clave = `${e.nombre}@${Math.round(e.t / 3)}`;
     if (e.nombre !== 'ChampionKill' && this.vistos.has(clave)) return;
     this.vistos.add(clave);
+    if (/^(DragonKill|HeraldKill|BaronKill)$/.test(e.nombre)) this.objetivos.push(e);
     this.emit('evento', e);
   }
 
@@ -244,7 +253,8 @@ export class Explorador extends EventEmitter {
         victima: null,
         ayudas: [],
         implicados: [asesino].filter(Boolean),
-        detalle: { original: tipo },
+        // Qué monstruo (el tipo de dragón va en el nombre: SRU_Dragon_Fire…) y de qué equipo es quien lo mata
+        detalle: { original: tipo, monstruo: o.other || o.otherName || '', equipo: EQUIPOS[String(o.sourceTeam || '').toUpperCase()] || asesino?.equipo || null },
       });
     }
   }
