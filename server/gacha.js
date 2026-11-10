@@ -297,7 +297,7 @@ async function cargarCampeones() {
 // que usan las imágenes de compartir.
 // La dirección lleva la fecha del archivo: se puede guardar en caché y, si cambia el dibujo, cambia la dirección.
 const EXTENSIONES = ['.webp', '.png', '.jpg', '.jpeg'];
-let artes = new Map(), completas = new Map(), marcos = { jugador: new Map(), boost: new Map() }, reversos = new Map();
+let artes = new Map(), completas = new Map(), minis = new Map(), marcos = { jugador: new Map(), boost: new Map() }, reversos = new Map();
 
 async function indiceImagenes(carpeta, prefijo) {
   let archivos = [];
@@ -324,6 +324,8 @@ async function cargarCartas() {
   completas = full;
   marcos = { jugador, boost };
   reversos = await indiceImagenes(path.join(CARPETA_ARTE, 'reversos'), '/cartas/reversos/');
+  // Iconos de 256×256 para el postdraft del overlay (scripts/hacer-mini-cartas.mjs); sin icono, se usa el dibujo
+  minis = await indiceImagenes(path.join(CARPETA_ARTE, 'mini'), '/cartas/mini/');
 }
 // Si se añaden dibujos o cartas BOOST con la web encendida, aparecen en un minuto
 setInterval(() => cargarCartas().catch(() => {}), 60000).unref();
@@ -348,7 +350,7 @@ export function catalogo() {
   // Las LEGACY pesan 0: no entran en el sorteo de las cartas del sobre. Y solo cuentan las que ya tienen su dibujo.
   // Los jefes y las conmemorativas, tampoco (son premios), y existen aunque aún no tengan dibujo
   return [...legacy.filter(c => LEGACY_SIN_DIBUJO || completas.has(c.id)), ...boosts, ...jugadores, ...cartasDePremio()].map(c => ({ ...c, campeon: campeones.get(c.id) || null }))
-    .map(c => ({ ...c, arte: arteDe(c), fullart: completas.get(c.id) || null, marco: marcoDe(c), peso: esEstetica(c) ? 0 : (PESOS[c.tier] || 0) / deTier.get(c.tier) }));
+    .map(c => ({ ...c, arte: arteDe(c), fullart: completas.get(c.id) || null, mini: minis.get(c.id) || null, marco: marcoDe(c), peso: esEstetica(c) ? 0 : (PESOS[c.tier] || 0) / deTier.get(c.tier) }));
 }
 // Las cartas del álbum: jugadores, BOOST y LEGACY (los jefes y las conmemorativas son premios aparte)
 export const cartasDeColeccion = (cat = catalogo()) => cat.filter(deColeccion);

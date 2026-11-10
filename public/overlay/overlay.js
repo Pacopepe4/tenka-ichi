@@ -271,13 +271,23 @@ async function pedirPrevia(e) {
   pidiendo = false;
 }
 
+// La carta del jugador en el postdraft: la carta entera no se ve a ese tamaño (el dibujo queda oscuro bajo su velo y los
+// textos no caben), así que va su icono (public/cartas/mini/, scripts/hacer-mini-cartas.mjs) con la tier en una esquina
+// y el filo del color de la tier. Sin icono, el dibujo grande
+const TIER_CSS = t => (t === 'S+' ? 'SP' : String(t || '').replace(/[^A-Z]/gi, ''));
+function miniCartaHTML(c) {
+  const k = c.tipo === 'legacy' ? 'LEGACY' : TIER_CSS(c.tier);
+  return `<div class="icono-carta" style="--color-tier: var(--tier-${k}, var(--hai))">
+    <img src="${escapar(c.mini || c.arte || '')}" alt=""><span class="tier-icono">${escapar(c.tipo === 'legacy' ? 'L' : c.tier)}</span></div>`;
+}
+
 function pintarPostdraft() {
   if (!previa) return;
   for (const lado of ['azul', 'rojo']) {
     const eq = previa[lado];
     $(`.picks.${lado}`).querySelectorAll('.slot').forEach((slot, i) => {
       const j = eq.jugadores[i];
-      slot.querySelector('.mini-carta').innerHTML = j.carta ? cartaHTML(j.carta, { nombreClan }) : '';
+      slot.querySelector('.mini-carta').innerHTML = j.carta ? miniCartaHTML(j.carta) : '';
       slot.classList.toggle('con-carta', Boolean(j.carta));
       // Con el campeón que va a jugar: «FIRST PICK» si es la primera vez; si no, sus partidas y su KDA con él
       const con = slot.querySelector('.con-campeon');
