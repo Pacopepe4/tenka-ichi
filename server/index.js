@@ -1056,6 +1056,8 @@ async function huella(archivo, s) {
 // los puntos de fantasy de cada jugador
 const comandosDiscord = crearComandos({ tickets: { datosLiga: () => competicion(calendarioActual(), todas()),
   cartas: () => ({ catalogo: catalogo(), puntos: puntosDeJugadores() }) } });
+// Y SrDirector, conectado al gateway, contesta cuando lo mencionan (@SrDirector) en el chat
+comandosDiscord.arrancarGateway();
 
 const servidor = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');

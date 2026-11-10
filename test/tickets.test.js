@@ -173,7 +173,7 @@ test('«Preguntar otra cosa» abre otra ventana y la IA lee lo hablado en el hil
   const r = await mandar(enviar('ticket:mas:20', '¿Y la segunda jornada?', { canal: hilo.id }));
   assert.deepEqual(r, { type: 5 }, '«pensando…» en el hilo, para todos');
   const historia = claude.peticiones[0].messages[0].content;
-  assert.match(historia, /\[IA de Gokudō\] \*\*❓ Persona 20:\*\* ¿Cuándo es la próxima jornada\?/);
+  assert.match(historia, /\[SrDirector \(tú\)\] \*\*❓ Persona 20:\*\* ¿Cuándo es la próxima jornada\?/);
   assert.match(historia, /\[Persona 20 \(quien abrió el ticket\)\] Gracias, ¿y a qué hora\?/);
   assert.match(ultimaRespuesta().embeds[0].description, /¿Y la segunda jornada\?/);
   assert.equal(ultimaRespuesta().components[0].components[0].custom_id, 'ticket:preguntar:20');
@@ -269,7 +269,7 @@ test('la conversación y los datos en vivo se preparan bien para la IA', () => {
     { author: { id: APP, bot: true }, content: '', embeds: [{ description: 'Respuesta de la IA' }] },
     { author: { id: '20', username: 'u20' }, content: '', embeds: [] },
   ];
-  assert.equal(conversacion(mensajes, { dueno: '20', bot: APP }), '[IA de Gokudō] Respuesta de la IA\n[kumicho (staff)] Te lo miro ahora');
+  assert.equal(conversacion(mensajes, { dueno: '20', bot: APP }), '[SrDirector (tú)] Respuesta de la IA\n[kumicho (staff)] Te lo miro ahora');
   assert.match(textoSistema('X'), /Solo hablas de Gokudō/);
   assert.match(readFileSync(new URL('../discord/tickets-saber.md', import.meta.url), 'utf8'), /## Gachapon/, 'la ficha de verdad existe');
 });
@@ -295,7 +295,7 @@ test('npm run discord-tickets publica el mensaje del botón y, la segunda vez, l
 
 test('la IA es uno de los nuestros: colegueo y jerga de LoL, Pacopepe es el capo y KB es el demonio, sin saltarse las reglas', () => {
   const t = textoSistema('');
-  assert.match(t, /Eres un kobun de Gokudō/);
+  assert.ok(t.startsWith('Eres **SrDirector**, un kobun de Gokudō'));
   assert.match(t, /Pacopepe\*\*, el que manda en todo Gokudō: un capo mafioso superpeligroso/);
   assert.match(t, /jerga de LoL/);
   assert.match(t, /\*\*KB\*\* o \*\*Koryu Budo\*\*: son el demonio/);
@@ -312,4 +312,51 @@ test('las cartas para la IA: jugadores con su familia, tier, campeón y puntos; 
   assert.match(t, /\*\*GAATSU\*\* «DEMON» · Shinigami · dibujada como Aatrox/);
   assert.match(t, /## Cartas de jefe[\s\S]*- Oyabun de Tsuki/);
   assert.equal(textoCartas(null, null, CLANES), 'No hay datos de las cartas ahora mismo.');
+});
+
+test('si mencionan a SrDirector en un ticket, contesta en el hilo a ese mensaje y, si hace falta, llama al staff', async () => {
+  const { hilo } = await abrirTicket('Hola', persona('80'));
+  const yo = { id: APP, username: 'SrDirector' };
+  const autor = { id: '80', username: 'u80', global_name: 'Persona 80' };
+  claude.peticiones = [];
+  await comandos.tickets.alMencionar({ id: '7001', guild_id: '1', channel_id: hilo.id, author: autor, member: { roles: [] }, content: `<@${APP}> ¿cuándo juega Tsuki?`, mentions: [yo] }, yo);
+  assert.equal(claude.peticiones.length, 1);
+  assert.match(claude.peticiones[0].messages[0].content, /<pregunta>\n¿cuándo juega Tsuki\?\n<\/pregunta>/, 'la pregunta va sin la mención');
+  const r = discord.estado.mensajes.filter(m => m.channel_id === hilo.id).at(-1);
+  assert.deepEqual(r.message_reference, { message_id: '7001', fail_if_not_exists: false }, 'contesta a ese mensaje');
+  assert.match(r.embeds[0].description, /domingo a las 17:00/);
+  assert.deepEqual(r.allowed_mentions, { parse: [], replied_user: true });
+  hoy = new Date(hoy.getTime() + 10_000);
+  claude.siguiente = { json: { respuesta: 'Eso lo mira el staff.', llamarStaff: true } };
+  // Otra persona del hilo (la primera ya ha gastado sus 2 preguntas de prueba)
+  await comandos.tickets.alMencionar({ id: '7002', guild_id: '1', channel_id: hilo.id, author: { id: '85', username: 'u85' }, member: { roles: [] }, content: `<@${APP}> no me ha llegado mi canje`, mentions: [yo] }, yo);
+  const staff = discord.estado.mensajes.filter(m => m.channel_id === hilo.id).at(-1);
+  assert.match(staff.embeds[0].description, new RegExp(`<@&${STAFF}>, os necesitan en este ticket`));
+  assert.deepEqual(staff.allowed_mentions.roles, [STAFF]);
+});
+
+test('en un canal público contesta allí y, si es cosa del staff, manda a abrir un ticket sin mencionar al staff', async () => {
+  const yo = { id: APP, username: 'SrDirector' };
+  claude.siguiente = { json: { respuesta: 'Eso no lo sé.', llamarStaff: true } };
+  await comandos.tickets.alMencionar({ id: '7101', guild_id: '1', channel_id: '4', author: { id: '81', username: 'u81' }, member: { roles: [] }, content: `oye <@${APP}> ¿me das un rol?`, mentions: [yo] }, yo);
+  const r = discord.estado.mensajes.filter(m => m.channel_id === '4').at(-1);
+  assert.match(r.embeds[0].description, new RegExp(`abre un ticket en <#${CANAL}>`));
+  assert.doesNotMatch(r.embeds[0].description, /<@&/);
+  assert.equal(r.allowed_mentions.roles, undefined);
+  assert.match(claude.peticiones.at(-1).messages[0].content, /¿me das un rol\?/);
+});
+
+test('sin mención, de un bot o con otra a la vez en el mismo canal, no contesta; con la mención sola, saluda sin gastar IA', async () => {
+  const yo = { id: APP, username: 'SrDirector' };
+  const base = { guild_id: '1', channel_id: '4', member: { roles: [] }, mentions: [] };
+  assert.equal(comandos.tickets.alMencionar({ ...base, id: '7201', author: { id: '82' }, content: 'hola a todos' }, yo), null);
+  assert.equal(comandos.tickets.alMencionar({ ...base, id: '7202', author: { id: '83', bot: true }, content: `<@${APP}> hola`, mentions: [yo] }, yo), null);
+  claude.peticiones = [];
+  const antes = discord.estado.mensajes.length;
+  await comandos.tickets.alMencionar({ ...base, id: '7203', author: { id: '84' }, content: `<@${APP}>`, mentions: [yo] }, yo);
+  assert.equal(claude.peticiones.length, 0);
+  assert.match(discord.estado.mensajes.at(-1).embeds[0].description, /Dime qué necesitas/);
+  assert.equal(discord.estado.mensajes.length, antes + 1);
+  hoy = new Date(hoy.getTime() + 1000);
+  assert.equal(comandos.tickets.alMencionar({ ...base, id: '7204', author: { id: '84' }, content: `<@${APP}> otra`, mentions: [yo] }, yo), null, 'la misma persona, antes de 5 s');
 });

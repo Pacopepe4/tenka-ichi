@@ -3,7 +3,7 @@
   "nombre": "Gokudō",
   "marca": {
     "servidor": "discord/imagenes/gokudo.png",
-    "bot": "discord/imagenes/gokudo.png",
+    "bot": "discord/imagenes/srdirector.png",
     "webhooks": "discord/imagenes/gokudo.png"
   },
   "roles": [

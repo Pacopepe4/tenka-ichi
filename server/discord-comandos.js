@@ -10,6 +10,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { crearTickets } from './tickets.js';
+import { crearGateway } from './discord-gateway.js';
 import { CLANES } from './clanes.js';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -150,5 +151,14 @@ export function crearComandos({ clave = process.env.DISCORD_PUBLIC_KEY, token = 
     return { estado: 200, cuerpo: respuesta('No conozco ese comando.') };
   }
 
-  return { activo, atender, tickets };
+  // La conexión al gateway, para que SrDirector conteste cuando lo mencionan. Solo si hay IA (ANTHROPIC_API_KEY) y no
+  // se ha apagado con DISCORD_GATEWAY=0
+  function arrancarGateway() {
+    if (!activo || !tickets?.iaActiva || process.env.DISCORD_GATEWAY === '0') return null;
+    const g = crearGateway({ token, urlApi: base, alMensaje: (m, yo) => tickets.alMencionar(m, yo) });
+    g.arrancar();
+    return g;
+  }
+
+  return { activo, atender, tickets, arrancarGateway };
 }

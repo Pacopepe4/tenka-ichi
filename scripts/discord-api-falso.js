@@ -62,6 +62,8 @@ export function crearDiscordApiFalso({ nombre = 'Gokudō' } = {}) {
 
     // Las imágenes (icono, avatar...) llegan como data:image/...;base64: aquí se guarda un «hash» inventado
     const hashDe = uri => (uri ? `h${uri.length}` : null);
+    if (m === 'GET' && ruta === '/gateway/bot') return responder(200, { url: estado.gateway || 'ws://127.0.0.1:9', shards: 1 });
+    if ((x = /^\/channels\/(\d+)\/typing$/.exec(ruta)) && m === 'POST') return responder(204);
     if (m === 'GET' && ruta === '/users/@me') return responder(200, BOT);
     if (m === 'PATCH' && ruta === '/users/@me') { if ('avatar' in cuerpo) BOT.avatar = hashDe(cuerpo.avatar); return responder(200, BOT); }
     if (m === 'PATCH' && ruta === `/guilds/${G}`) { if ('icon' in cuerpo) estado.guild.icon = hashDe(cuerpo.icon); return responder(200, estado.guild); }
@@ -131,6 +133,7 @@ export function crearDiscordApiFalso({ nombre = 'Gokudō' } = {}) {
     if ((x = /^\/channels\/(\d+)$/.exec(ruta))) {
       const c = canal(x[1]);
       if (!c) return responder(404, { message: 'Unknown Channel', code: 10003 });
+      if (m === 'GET') return responder(200, normal(c));
       if (m === 'PATCH') { Object.assign(c, cuerpo); return responder(200, normal(c)); }
       if (m === 'DELETE') {
         // Como en Discord: al borrar una categoría, sus canales se quedan sin categoría
@@ -156,7 +159,7 @@ export function crearDiscordApiFalso({ nombre = 'Gokudō' } = {}) {
       if (!c) return responder(404, { message: 'Unknown Channel', code: 10003 });
       if (m === 'POST') {
         if (c.locked) return responder(403, { message: 'Thread is locked', code: 160005 });
-        const msj = { id: nuevoId(), channel_id: x[1], author: BOT, content: cuerpo.content || '', embeds: cuerpo.embeds || [], components: cuerpo.components || [], allowed_mentions: cuerpo.allowed_mentions };
+        const msj = { id: nuevoId(), channel_id: x[1], author: BOT, content: cuerpo.content || '', embeds: cuerpo.embeds || [], components: cuerpo.components || [], allowed_mentions: cuerpo.allowed_mentions, message_reference: cuerpo.message_reference };
         estado.mensajes.push(msj); return responder(200, msj);
       }
       if (m === 'GET') {

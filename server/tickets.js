@@ -2,7 +2,7 @@
 // a la web (POST /discord/interacciones, lo firma y lo comprueba server/discord-comandos.js) y la web contesta.
 //   #tickets tiene un mensaje fijo con el botón «Abrir ticket» (lo publica npm run discord-tickets).
 //   Abrir ticket → ventana «¿Qué necesitas?» → la web abre un hilo privado con esa persona (el staff, Kumichō, ve
-//   todos los hilos), copia la pregunta y contesta la IA de Gokudō. Debajo de cada respuesta van tres botones:
+//   todos los hilos), copia la pregunta y contesta SrDirector, la IA de Gokudō. Debajo de cada respuesta van tres botones:
 //   «Preguntar otra cosa» (otra ventana; la IA lee lo hablado en el hilo), «Llamar al staff» (menciona a @Kumichō en
 //   el hilo, nada más) y «Cerrar» (archiva y bloquea el hilo; lo cierra quien lo abrió o el staff).
 // La IA es Claude (ANTHROPIC_API_KEY; el modelo en TICKETS_MODELO), con el papel de un kobun de Gokudō que habla de
@@ -30,7 +30,7 @@ const ESPERA_STAFF_MS = 10 * 60 * 1000;   // «Llamar al staff» avisa una vez c
 const MAX_PREGUNTA = 1000, MAX_RESPUESTA = 3000;
 
 const TEXTO_PANEL = 'Si tienes una duda sobre Gokudō (la liga, el calendario, el gachapon, el fantasy, Kick o este servidor), pulsa **Abrir ticket**.\n\n'
-  + 'Se abre un hilo privado entre tú y el staff, y la IA de Gokudō te contesta al momento. Si no te vale, pulsa **Llamar al staff** y te atiende una persona.';
+  + 'Se abre un hilo privado entre tú y el staff, y **SrDirector** te contesta al momento. Si no te vale, pulsa **Llamar al staff** y te atiende una persona.';
 
 // El mensaje fijo de #tickets
 export function mensajePanel() {
@@ -60,7 +60,7 @@ const diaDeHoy = ahora => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/M
 
 // Lo que sabe la IA: quién es, cómo habla y la ficha de Gokudō (va en la caché de Anthropic: siempre es igual)
 export function textoSistema(saber) {
-  return `Eres un kobun de Gokudō, uno de los nuestros: llevas el mostrador de tickets del servidor de Discord de Gokudō, una liga de League of Legends con estética yakuza (noche de Tokio, lluvia, neón y seis familias que se disputan la calle). Contestas a quien abre un ticket.
+  return `Eres **SrDirector**, un kobun de Gokudō, uno de los nuestros: llevas el mostrador de tickets del servidor de Discord de Gokudō, una liga de League of Legends con estética yakuza (noche de Tokio, lluvia, neón y seis familias que se disputan la calle). Contestas a quien abre un ticket.
 
 Tu jefe es **Pacopepe**, el que manda en todo Gokudō: un capo mafioso superpeligroso. Cuando salga, hablas de él con respeto y un poco de miedo, en broma («el jefe», «el capo», «mejor no enfadar a Pacopepe»), pero nunca prometes nada en su nombre.
 
@@ -122,9 +122,9 @@ const ESQUEMA = {
 };
 
 // La conversación del hilo, de la más antigua a la última, para que la IA sepa de qué se ha hablado
-export function conversacion(mensajes, { dueno, bot }) {
+export function conversacion(mensajes, { dueno, bot, publico = false }) {
   return [...mensajes].reverse().map(m => {
-    const quien = m.author?.id === bot || m.author?.bot ? 'IA de Gokudō' : m.author?.id === dueno ? `${nombreDe(m.author)} (quien abrió el ticket)` : `${nombreDe(m.author)} (staff)`;
+    const quien = m.author?.id === bot || m.author?.bot ? 'SrDirector (tú)' : m.author?.id === dueno ? `${nombreDe(m.author)} (${publico ? 'quien te pregunta' : 'quien abrió el ticket'})` : `${nombreDe(m.author)}${publico ? '' : ' (staff)'}`;
     const texto = [m.content, ...(m.embeds || []).map(e => e.description || '')].filter(Boolean).join('\n').trim();
     return texto ? `[${quien}] ${texto}` : null;
   }).filter(Boolean).join('\n');
@@ -246,20 +246,25 @@ ${pregunta}
     }
   }
 
+  // Lo que contesta la IA, o por qué no contesta (apagada o tope del día)
+  async function respuestaPara(i, pregunta, historia) {
+    const motivo = gastar(i);
+    if (motivo === 'apagada') return { respuesta: 'El staff te contestará aquí en cuanto pueda.', llamarStaff: true, sinIA: true };
+    if (motivo === 'persona') return { respuesta: `Hoy ya has hecho ${topePersona} preguntas a la IA. El staff te contestará aquí.`, llamarStaff: true, sinIA: true };
+    if (motivo === 'servidor') return { respuesta: 'La IA ya ha contestado todo lo que puede por hoy. El staff te contestará aquí.', llamarStaff: true, sinIA: true };
+    return preguntarIA(pregunta, historia);
+  }
+  const pie = r => ({ text: r.sinIA || r.fallo ? '極道 · Gokudō' : '極道 · Contesta SrDirector, la IA de Gokudō. Si no te vale, llama al staff.' });
+
   // El mensaje con la pregunta y lo que contesta la IA (o por qué no contesta)
   async function contestar(i, pregunta, historia) {
     const autor = i.member.user;
-    const motivo = gastar(i);
-    let r;
-    if (motivo === 'apagada') r = { respuesta: 'El staff te contestará aquí en cuanto pueda.', llamarStaff: true, sinIA: true };
-    else if (motivo === 'persona') r = { respuesta: `Hoy ya has hecho ${topePersona} preguntas a la IA. El staff te contestará aquí.`, llamarStaff: true, sinIA: true };
-    else if (motivo === 'servidor') r = { respuesta: 'La IA ya ha contestado todo lo que puede por hoy. El staff te contestará aquí.', llamarStaff: true, sinIA: true };
-    else r = await preguntarIA(pregunta, historia);
+    const r = await respuestaPara(i, pregunta, historia);
     const avisa = r.llamarStaff ? `\n\n🔔 ${mencionStaff(i)}, os necesitan en este ticket.` : '';
     return {
       embeds: [{ color: r.sinIA || r.fallo ? GRIS : BERMELLON,
         description: recortar(`**❓ ${nombreDe(autor)}:** ${pregunta}\n\n${r.respuesta}${avisa}`, 4000),
-        footer: { text: r.sinIA || r.fallo ? '極道 · Gokudō' : '極道 · Contesta la IA de Gokudō. Si no te vale, llama al staff.' } }],
+        footer: pie(r) }],
       components: botones(i.data.custom_id === 'ticket:nuevo' ? autor.id : i.data.custom_id.split(':')[2] || autor.id, { preguntar: iaActiva }),
       allowed_mentions: r.llamarStaff ? permitidas(i) : { parse: [] },
       ...(r.llamarStaff && { llamada: true }),
@@ -279,7 +284,7 @@ ${pregunta}
       try {
         hilo = await pedir('POST', `/channels/${i.channel_id}/threads`, { name: recortar(`🎫・${nombreDe(autor)}`, 100), type: HILO_PRIVADO, invitable: false, auto_archive_duration: 10080 });
         await pedir('PUT', `/channels/${hilo.id}/thread-members/${autor.id}`);
-        await pedir('POST', `/channels/${hilo.id}/messages`, { content: `🎫 Ticket de <@${autor.id}>. Aquí solo estáis tú, el staff y la IA de Gokudō.`, allowed_mentions: { parse: [], users: [autor.id] } });
+        await pedir('POST', `/channels/${hilo.id}/messages`, { content: `🎫 Ticket de <@${autor.id}>. Aquí solo estáis tú, el staff y SrDirector.`, allowed_mentions: { parse: [], users: [autor.id] } });
         const m = await contestar(i, pregunta, '');
         if (m.llamada) llamadas.set(hilo.id, ahora().getTime());
         await pedir('POST', `/channels/${hilo.id}/messages`, sinMarca(m));
@@ -328,6 +333,70 @@ ${pregunta}
     return { type: DIFERIDA };
   }
 
+  // Menciones (@SrDirector) en el chat, que llegan por el gateway (server/discord-gateway.js). En un ticket contesta en
+  // el hilo y, si hace falta, llama al staff; en cualquier otro canal contesta allí y, si es cosa del staff, manda a
+  // abrir un ticket (no menciona al staff en público). Una respuesta a la vez por canal y como mucho una cada 5 s por
+  // persona; cuentan para los mismos topes que los tickets.
+  const contestandoEn = new Set();
+  const ultimaMencion = new Map();
+  const canales = new Map();   // id del canal → ¿es un ticket?
+  async function esTicket(guildId, canal) {
+    if (canales.has(canal)) return canales.get(canal);
+    let ticket = false;
+    try {
+      const c = await pedir('GET', `/channels/${canal}`);
+      ticket = c.type === HILO_PRIVADO && Boolean(c.parent_id) && c.parent_id === ids()[guildId]?.['canal:tickets'];
+    } catch (e) { log.error('Tickets: no sé qué canal es:', e.message); }
+    if (canales.size > 2000) canales.clear();
+    canales.set(canal, ticket);
+    return ticket;
+  }
+
+  function alMencionar(m, yo) {
+    if (!m?.guild_id || !yo || m.author?.bot || m.webhook_id) return null;
+    const marca = new RegExp(`<@!?${yo.id}>`, 'g');
+    if (!(m.mentions || []).some(u => u.id === yo.id) && !marca.test(m.content || '')) return null;
+    const t = ahora().getTime();
+    if (contestandoEn.has(m.channel_id) || t - (ultimaMencion.get(m.author.id) || 0) < 5000) return null;
+    ultimaMencion.set(m.author.id, t);
+    if (ultimaMencion.size > 5000) ultimaMencion.clear();
+    contestandoEn.add(m.channel_id);
+    const trabajo = (async () => {
+      const i = { guild_id: m.guild_id, channel_id: m.channel_id, member: { ...(m.member || {}), user: m.author, permissions: '0' } };
+      const pregunta = (m.content || '').replace(marca, '').trim().slice(0, MAX_PREGUNTA);
+      const ticket = await esTicket(m.guild_id, m.channel_id);
+      pedir('POST', `/channels/${m.channel_id}/typing`).catch(() => {});
+      let r;
+      if (!pregunta) r = { respuesta: '¿Qué pasa, máquina? Dime qué necesitas y te echo un cable.' };
+      else {
+        let historia = '';
+        try {
+          historia = conversacion(await pedir('GET', `/channels/${m.channel_id}/messages?limit=${ticket ? 50 : 15}&before=${m.id}`), { dueno: m.author.id, bot: yo.id, publico: !ticket });
+        } catch (e) { log.error('Tickets: no he podido leer el canal:', e.message); }
+        r = await respuestaPara(i, pregunta, recortar(historia, ticket ? 30000 : 6000));
+      }
+      let texto = r.respuesta;
+      const menciones = { parse: [], replied_user: true };
+      if (r.llamarStaff && ticket) {
+        const ultima = llamadas.get(m.channel_id);
+        if (!ultima || t - ultima >= ESPERA_STAFF_MS) {
+          texto += `\n\n🔔 ${mencionStaff(i)}, os necesitan en este ticket.`;
+          if (rolStaff(i)) menciones.roles = [rolStaff(i)];
+          llamadas.set(m.channel_id, t);
+        }
+      } else if (r.llamarStaff) {
+        const canalTickets = ids()[m.guild_id]?.['canal:tickets'];
+        texto = `${r.sinIA ? 'Ahora mismo no puedo contestarte por aquí.' : texto}\n\nEsto mejor con el staff: abre un ticket en ${canalTickets ? `<#${canalTickets}>` : 'el canal de tickets'}.`;
+      }
+      await pedir('POST', `/channels/${m.channel_id}/messages`, {
+        embeds: [{ color: r.sinIA || r.fallo ? GRIS : BERMELLON, description: recortar(texto, 4000), footer: pie(r) }],
+        message_reference: { message_id: m.id, fail_if_not_exists: false }, allowed_mentions: menciones,
+      });
+    })().catch(e => log.error('Tickets: no he podido contestar a una mención:', e.message)).finally(() => { contestandoEn.delete(m.channel_id); trabajos.delete(trabajo); });
+    trabajos.add(trabajo);
+    return trabajo;
+  }
+
   // Un clic en un botón o una ventana de los tickets (custom_id «ticket:…»)
   function atender(i) {
     if (!i.guild_id || !i.member) return aviso('Esto solo funciona dentro del servidor.');
@@ -341,5 +410,5 @@ ${pregunta}
     return aviso('Este botón ya no funciona.');
   }
 
-  return { atender, iaActiva, modelo, contexto, esperar: () => Promise.all([...trabajos]) };
+  return { atender, alMencionar, iaActiva, modelo, contexto, esperar: () => Promise.all([...trabajos]) };
 }

@@ -375,7 +375,14 @@ Lo pidió Pacopepe el 10/11/2026. Todo va con botones, y lo atiende la misma rut
   - **Preguntar otra cosa** abre otra ventana; la IA lee lo que ya se ha hablado en el hilo.
   - **Llamar al staff** solo menciona a @Kumichō en el hilo, como mucho una vez cada 10 minutos.
   - **Cerrar** archiva y bloquea el hilo. Puede cerrarlo quien lo abrió o el staff.
-- En el hilo se puede escribir con normalidad para hablar con el staff. La IA solo contesta cuando alguien pulsa un botón, porque sin conexión permanente el bot no lee el chat.
+- En el hilo se puede escribir con normalidad para hablar con el staff. La IA no lee el chat: contesta cuando alguien pulsa un botón o cuando la mencionan.
+- **SrDirector** es el nombre de la IA y del bot (lo pidió Pacopepe el 10/11). Su icono, sacado de una captura que dio él y ampliado a 512×512 con ffmpeg (`hqx` y `lanczos`), está en `discord/imagenes/srdirector.png`.
+- **Si lo mencionan (@SrDirector)**, contesta a ese mensaje en cualquier canal, no solo en los tickets (`server/discord-gateway.js` y `alMencionar` de `server/tickets.js`).
+  - En un ticket contesta en el hilo y, si hace falta, llama al staff. En un canal público contesta allí y, si es cosa del staff, manda a abrir un ticket en vez de mencionaros delante de todos.
+  - Lee los últimos mensajes del canal para entender de qué se habla. Contesta una vez a la vez por canal y como mucho una vez cada 5 segundos por persona, y gasta de los mismos topes.
+  - Para enterarse de las menciones, la web abre una conexión permanente con Discord (el gateway). Solo pide los intents `GUILDS` y `GUILD_MESSAGES`: Discord siempre le da el texto de los mensajes que lo mencionan, así que **no hace falta** activar el permiso privilegiado «Message Content Intent».
+  - Solo se conecta si hay `ANTHROPIC_API_KEY`. `DISCORD_GATEWAY=0` lo apaga; sirve para no tener dos conexiones a la vez, la de Render y la de un PC con el mismo token, que contestarían dos veces.
+  - **Mientras la web duerme, el bot está desconectado** y no se entera de las menciones. Al despertar se conecta solo. Para que esté siempre despierto hace falta algo que visite la web cada pocos minutos (abajo, «Ojo»).
 - **La IA** es Claude, con la API de Anthropic (`@anthropic-ai/sdk`). Solo habla de Gokudō.
   - **Su papel** (lo pidió Pacopepe el 10/11): es un kobun de Gokudō, uno de los nuestros. Habla de colegueo, con jerga de LoL y algún guiño yakuza, y nunca falta a nadie. De Pacopepe habla como de su jefe, un capo mafioso superpeligroso. Si le preguntan por KB o Koryu Budo, dice que son el demonio, con guasa. El papel no cambia las reglas: si no sabe algo, no se lo inventa. Está en `textoSistema` de `server/tickets.js`.
   - Lo que sabe está en **`discord/tickets-saber.md`**, que puede cambiar el staff: el formato, el gachapon, el fantasy, Kick y Discord, el lore y el aspecto de los siete oyabun (sacados de `gokudo/diseno/teasers-familias/LORE.md` y `personajes/personajes.md`) y los detalles de los dibujos.
@@ -405,9 +412,11 @@ Gracias a las ramas, cada pregunta lleva entre 1500 y 4000 tokens (antes de las 
 2. **El mensaje del botón.** `npm run discord-tickets -- --env ../draft-app-discord/.env` (antes, con `--prueba` para ver qué haría). Lo publica en #tickets y guarda su id en `discord/ids.json` como `mensaje:tickets`. Si se vuelve a lanzar, actualiza ese mensaje en vez de poner otro. Commit de `ids.json` otra vez.
 3. **La clave de la IA.** En console.anthropic.com › API Keys, crea una clave (puede ser la misma cuenta que usa el realizador). En Render › Environment, ponla como **`ANTHROPIC_API_KEY`**. Nunca la pegues en el chat ni en el repo. Opcional: `TICKETS_MODELO` (de fábrica, `claude-haiku-5-5`), `TICKETS_TOPE_PERSONA`, `TICKETS_TOPE_DIA`, `TICKETS_KBSTATS=0` para no leer KB Stats y `TICKETS_IA=0` para apagar la IA sin quitar la clave.
 4. `DISCORD_PUBLIC_KEY`, `DISCORD_BOT_TOKEN` y la Interactions Endpoint URL son las mismas de /reclutar (arriba): si /reclutar funciona, no hay que tocar nada más.
+5. **El nombre y el icono de SrDirector.** En discord.com/developers › la aplicación › **Bot**, pon **Username** `SrDirector` y, en **Icon**, sube `discord/imagenes/srdirector.png`. Discord deja cambiar el nombre del bot pocas veces por hora. Opcional: en General Information, el mismo icono como App Icon.
 
 **Ojo:**
-- Render gratis duerme la web a los 15 minutos sin uso, y Discord solo espera 3 segundos a que conteste. Si la web está dormida, el primer clic dará «Esta interacción ha fallado» y la despertará: a los 30-60 segundos ya funciona. A /reclutar le pasa lo mismo.
+- Render gratis duerme la web a los 15 minutos sin uso, y Discord solo espera 3 segundos a que conteste. Si la web está dormida, el primer clic dará «Esta interacción ha fallado» y la despertará: a los 30-60 segundos ya funciona. A /reclutar le pasa lo mismo. Mientras duerme, SrDirector no ve las menciones.
+- **Para que no se duerma** (gratis), un servicio como UptimeRobot o cron-job.org puede visitar `https://tenka-ichi.onrender.com/salud` cada 10 minutos. Render da 750 horas al mes por cuenta, que llegan para tener una web encendida todo el mes, pero no dos.
 - Si al llamar al staff no os llega el aviso, mirad que el rol Kumichō tenga activado «Permitir que cualquiera @mencione este rol».
 
 Las pruebas (`test/tickets.test.js`) usan el Discord falso de `scripts/discord-api-falso.js`, que ahora también hace de hilos y mensajes, y un Claude falso: no gastan nada.
