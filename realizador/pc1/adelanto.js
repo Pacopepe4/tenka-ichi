@@ -27,7 +27,9 @@ export function objetivoDe(e) {
   if (!tipo || !Number.isFinite(e.t)) return null;
   const lado = LADOS[String(e.asesino?.equipo || e.detalle?.equipo || e.detalle?.lado || '').toLowerCase()] || null;
   const o = { id: e.id, tipo, lado, t: Math.round(e.t * 10) / 10 };
-  if (tipo === 'dragon') o.dragon = tipoDragon(e.detalle?.dragon || e.detalle?.monstruo) || null;
+  // Si no se sabe el elemento, no se manda: la web lo saca como dragón sin elemento
+  const dragon = tipo === 'dragon' ? tipoDragon(e.detalle?.dragon || e.detalle?.monstruo) : null;
+  if (dragon) o.dragon = dragon;
   return o;
 }
 
