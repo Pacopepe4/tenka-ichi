@@ -15,7 +15,7 @@
     "cadaMs": 250,
     "toleranciaSegundos": 4,
     "seleccionarPor": "jugador",
-    "interfaz": { "interfaceFrames": false, "interfaceTimeline": false, "interfaceReplay": false, "interfaceTarget": false },
+    "interfaz": { "interfaceFrames": false, "interfaceTimeline": false, "interfaceReplay": false, "interfaceTarget": false, "interfaceAnnounce": false },
     "generalSigueAlUltimo": true,
     "desplazamientoCamara": { "x": 0, "y": 1911.85, "z": -1200 },
     "degradadoTrasSegundos": 15,

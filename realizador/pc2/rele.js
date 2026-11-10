@@ -26,10 +26,12 @@ import { RAIZ } from '../comun/opciones.js';
 // Interfaz del espectador en el LoL de la antena (Replay API, /replay/render): lo que no tiene que salir en la
 // emisión porque ya lo enseña el overlay o no pinta nada en antena. Por defecto se quitan los campeones de los lados
 // (interfaceFrames), la línea de tiempo (interfaceTimeline), los controles del espectador con el modo de cámara
-// (interfaceReplay) y el recuadro del campeón seguido (interfaceTarget).
+// (interfaceReplay), el recuadro del campeón seguido (interfaceTarget) y los anuncios grandes del centro
+// (interfaceAnnounce: primera sangre, multikills, objetivos, torres), que ahora saca el overlay de la web con el
+// logo de la familia. El listado de kills de la derecha (interfaceKillCallouts) se deja: el overlay no lo tiene.
 // Va en cada orden de cámara, así que se queda quitado aunque alguien pulse una tecla del espectador.
 // En opciones.json → rele.interfaz se puede quitar o dejar cualquier otra parte (interfaceScoreboard, interfaceMinimap...).
-export const INTERFAZ = { interfaceFrames: false, interfaceTimeline: false, interfaceReplay: false, interfaceTarget: false };
+export const INTERFAZ = { interfaceFrames: false, interfaceTimeline: false, interfaceReplay: false, interfaceTarget: false, interfaceAnnounce: false };
 export function interfazEspectador(r = {}) {
   return { ...INTERFAZ, ...(r.interfaz || {}) };
 }
