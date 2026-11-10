@@ -377,10 +377,16 @@ Lo pidió Pacopepe el 10/11/2026. Todo va con botones, y lo atiende la misma rut
   - **Cerrar** archiva y bloquea el hilo. Puede cerrarlo quien lo abrió o el staff.
 - En el hilo se puede escribir con normalidad para hablar con el staff. La IA solo contesta cuando alguien pulsa un botón, porque sin conexión permanente el bot no lee el chat.
 - **La IA** es Claude, con la API de Anthropic (`@anthropic-ai/sdk`). Solo habla de Gokudō.
-  - Lo que sabe está en **`discord/tickets-saber.md`**, que puede cambiar el staff. Además recibe en cada pregunta los datos en vivo de la liga: fechas, calendario y clasificación, lo mismo que `/api/competicion`.
+  - **Su papel** (lo pidió Pacopepe el 10/11): es un kobun de Gokudō, uno de los nuestros. Habla de colegueo, con jerga de LoL y algún guiño yakuza, y nunca falta a nadie. De Pacopepe habla como de su jefe, un capo mafioso superpeligroso. Si le preguntan por KB o Koryu Budo, dice que son el demonio, con guasa. El papel no cambia las reglas: si no sabe algo, no se lo inventa. Está en `textoSistema` de `server/tickets.js`.
+  - Lo que sabe está en **`discord/tickets-saber.md`**, que puede cambiar el staff: el formato, el gachapon, el fantasy, Kick y Discord, el lore y el aspecto de los siete oyabun (sacados de `gokudo/diseno/teasers-familias/LORE.md` y `personajes/personajes.md`) y los detalles de los dibujos.
+  - **Va por ramas, para gastar menos** (`server/tickets-ramas.js`). En cada pregunta va siempre el núcleo: el papel, las reglas, qué es Gokudō, las familias y el jefe, unos 1400 tokens, y va en la caché. Lo demás solo va si la pregunta habla de ese tema. Las ramas se eligen por palabras, sin preguntar a la IA, así que elegirlas no cuesta nada.
+    - Ramas de la ficha: liga, gachapon, tiradas, fantasy, lore, directo, discord, cartas y kb. Cada apartado de `tickets-saber.md` lleva su rama al lado del título (`## Fantasy <!-- fantasy -->`). Los de `nucleo` van siempre. Las palabras que despiertan cada rama están en `RAMAS`.
+    - Ramas en vivo: la **liga** (fechas, cruces con su ganador, clasificación y cuadro, en texto corto); las **cartas** del gachapon (familia, rol, tier y campeón de cada una, las BOOST con su condición, las LEGACY y los jefes, con los puntos de fantasy de cada jugador); y **KB Stats**.
+    - Si se nombra a un jugador, van su carta y su fila de KB Stats. Si se nombra una familia, van su lore y sus cartas, no los de las siete. Si no se nombra a nadie, de KB Stats van las 15 mejores notas, del rol que se diga si se dice.
+    - Para «Preguntar otra cosa» se mira también el final de lo ya hablado en el hilo. Un «hola» va sin ramas, con unos 50 tokens además del núcleo.
+  - **KB Stats** (`server/kbstats.js`) son las estadísticas de cada jugador en la Liga KB (nota, partidas, % de victorias, KDA, KP, MVP, CS, daño y visión por minuto, y su equipo de KB). KB Stats no tiene API, así que la web lee su página `/jugadores/` y la de cada equipo, las guarda en memoria y las vuelve a leer cada 6 horas. Solo se lee cuando alguien pregunta por estadísticas; la primera vez tras arrancar tarda unos 20 segundos. Si KB Stats falla, sigue con lo último que leyó. `TICKETS_KBSTATS=0` lo apaga. Si KB Stats cambia el diseño de su tabla, hay que tocar `leerJugadores`.
   - Si la respuesta no está ahí, si la pregunta es de una persona o cuenta concreta, o si piden algo que solo puede hacer el staff, no se lo inventa: menciona ella misma a @Kumichō.
   - Si la API falla o se niega a contestar, el ticket sigue y avisa al staff.
-  - La ficha va en la caché de la API, así que cada pregunta cuesta menos.
 - **Topes por día** (hora de España): `TICKETS_TOPE_PERSONA` preguntas por persona (10 si no se pone; el staff no tiene tope) y `TICKETS_TOPE_DIA` en todo el servidor (200 si no se pone). Al llegar al tope, el ticket sigue abierto y avisa al staff. Los contadores se guardan en memoria: si la web se reinicia, vuelven a cero.
 - **Sin `ANTHROPIC_API_KEY`**, los tickets funcionan igual: el hilo se abre, se avisa al staff y no sale «Preguntar otra cosa».
 
@@ -388,16 +394,16 @@ Lo pidió Pacopepe el 10/11/2026. Todo va con botones, y lo atiende la misma rut
 
 | Modelo | Entrada | Salida | Por pregunta, más o menos |
 |---|---|---|---|
-| Claude Haiku 5.5 (`claude-haiku-5-5`, el de fábrica) | 0,10 $ | 0,50 $ | menos de 0,1 céntimos |
-| Claude Opus 5.5 (`claude-opus-5-5`) | 4 $ | 20 $ | 2-3 céntimos |
+| Claude Haiku 5.5 (`claude-haiku-5-5`, el de fábrica) | 0,10 $ | 0,50 $ | unos 0,05 céntimos |
+| Claude Opus 5.5 (`claude-opus-5-5`) | 4 $ | 20 $ | unos 2 céntimos |
 
-Con el tope de 200 preguntas al día, el peor caso con Haiku son unos céntimos al día. En console.anthropic.com se puede poner además un **límite de gasto** a la clave.
+Gracias a las ramas, cada pregunta lleva entre 1500 y 4000 tokens (antes de las ramas eran unos 11.000). Con el tope de 200 preguntas al día, el peor caso con Haiku son unos 10 céntimos al día. En console.anthropic.com se puede poner además un **límite de gasto** a la clave.
 
 **Para encenderlo (lo hace Pacopepe):**
 
 1. **El canal.** Antes, `npm run discord-aplicar -- --prueba --crear --env ../draft-app-discord/.env`, que solo debería decir «Crearía el canal #🎫・tickets: en 📜 Info». Después, lo mismo sin `--prueba`. Crea solo ese canal, con sus permisos, y no toca nada más. Luego hay que hacer commit de `discord/ids.json`: la web publicada saca de ahí el id del canal y el del rol del staff.
 2. **El mensaje del botón.** `npm run discord-tickets -- --env ../draft-app-discord/.env` (antes, con `--prueba` para ver qué haría). Lo publica en #tickets y guarda su id en `discord/ids.json` como `mensaje:tickets`. Si se vuelve a lanzar, actualiza ese mensaje en vez de poner otro. Commit de `ids.json` otra vez.
-3. **La clave de la IA.** En console.anthropic.com › API Keys, crea una clave (puede ser la misma cuenta que usa el realizador). En Render › Environment, ponla como **`ANTHROPIC_API_KEY`**. Nunca la pegues en el chat ni en el repo. Opcional: `TICKETS_MODELO` (de fábrica, `claude-haiku-5-5`), `TICKETS_TOPE_PERSONA`, `TICKETS_TOPE_DIA` y `TICKETS_IA=0` para apagar la IA sin quitar la clave.
+3. **La clave de la IA.** En console.anthropic.com › API Keys, crea una clave (puede ser la misma cuenta que usa el realizador). En Render › Environment, ponla como **`ANTHROPIC_API_KEY`**. Nunca la pegues en el chat ni en el repo. Opcional: `TICKETS_MODELO` (de fábrica, `claude-haiku-5-5`), `TICKETS_TOPE_PERSONA`, `TICKETS_TOPE_DIA`, `TICKETS_KBSTATS=0` para no leer KB Stats y `TICKETS_IA=0` para apagar la IA sin quitar la clave.
 4. `DISCORD_PUBLIC_KEY`, `DISCORD_BOT_TOKEN` y la Interactions Endpoint URL son las mismas de /reclutar (arriba): si /reclutar funciona, no hay que tocar nada más.
 
 **Ojo:**

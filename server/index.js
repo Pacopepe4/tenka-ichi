@@ -40,7 +40,7 @@ import { firmar, verificar, leerCookies, ponerCookie, cifrar, descifrar } from '
 import { twitchActivo, urlAutorizar, canjearCodigo, usuarioDeToken, usuarioPorNombre, CANAL } from './twitch.js';
 import { loginDiscordActivo, urlAutorizarDiscord, sesionDeDiscord } from './entrada-discord.js';
 import crypto from 'node:crypto';
-import { cargarFantasy, infoFantasy, cambiarAlineacion, guardarEstadisticas, cerrarAlineaciones, alineacionesCerradas } from './fantasy.js';
+import { cargarFantasy, infoFantasy, cambiarAlineacion, guardarEstadisticas, cerrarAlineaciones, alineacionesCerradas, puntosDeJugadores } from './fantasy.js';
 import { atenderPublicacion, discordActivo, publicarCronica as cronicaEnDiscord, resultadosDiscordActivo } from './discord.js';
 import { crearComandos } from './discord-comandos.js';
 import { cargarPartida, recibir as recibirPartida, resumen as resumenPartida, empezarPrueba, pararPrueba, enPrueba, olvidarPartida,
@@ -1052,8 +1052,10 @@ async function huella(archivo, s) {
 }
 
 // Los comandos del bot en el servidor de Discord (/reclutar) y los tickets: Discord los manda aquí firmados. La IA de
-// los tickets lee la liga en vivo (calendario, clasificación y fechas), como /api/competicion
-const comandosDiscord = crearComandos({ tickets: { datosLiga: () => competicion(calendarioActual(), todas()) } });
+// los tickets lee la liga en vivo (calendario, clasificación y fechas, como /api/competicion), las cartas del gachapon y
+// los puntos de fantasy de cada jugador
+const comandosDiscord = crearComandos({ tickets: { datosLiga: () => competicion(calendarioActual(), todas()),
+  cartas: () => ({ catalogo: catalogo(), puntos: puntosDeJugadores() }) } });
 
 const servidor = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');

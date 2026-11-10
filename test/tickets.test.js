@@ -11,7 +11,7 @@ import path from 'node:path';
 import Anthropic from '@anthropic-ai/sdk';
 import { crearDiscordApiFalso, TOKEN_FALSO } from '../scripts/discord-api-falso.js';
 import { crearComandos } from '../server/discord-comandos.js';
-import { conversacion, datosEnVivo, mensajePanel, textoSistema } from '../server/tickets.js';
+import { conversacion, mensajePanel, textoSistema, textoCartas } from '../server/tickets.js';
 import { crearApi } from '../scripts/discord-aplicar.js';
 import { publicarPanel } from '../scripts/discord-tickets.js';
 
@@ -19,7 +19,22 @@ const { publicKey, privateKey } = crypto.generateKeyPairSync('ed25519');
 const CLAVE = publicKey.export({ format: 'der', type: 'spki' }).subarray(12).toString('hex');
 const STAFF = '700', CANAL = '800', APP = '9';
 const IDS = { 1: { 'rol:staff': STAFF, 'canal:tickets': CANAL } };
-const CLANES = [{ id: 'SARU', nombre: 'Tsuki' }, { id: 'TORA', nombre: 'Byakko' }];
+const CLANES = [{ id: 'SARU', nombre: 'Tsuki' }, { id: 'TORA', nombre: 'Byakko' }, { id: 'AMATERATSU', nombre: 'Shinigami' }];
+const SABER = `<!-- nota para el staff -->
+## Base <!-- nucleo -->
+FICHA DE PRUEBA
+## Gacha <!-- gachapon -->
+RAMA-GACHAPON
+## Liga <!-- liga -->
+RAMA-LIGA
+## Lore <!-- lore -->
+RAMA-LORE`;
+const CATALOGO = [
+  { id: 'SARU-TOP', tipo: 'jugador', clan: 'SARU', rol: 'TOP', nombre: 'KINGKAI', tier: 'A', campeon: 'KSante' },
+  { id: 'BOOST-MAKITAH', tipo: 'boost', nombre: 'MAKITAH', subtitulo: 'EL TITIRITERO', tier: 'S+', campeon: 'Syndra', multiplicador: 3, condicion: 'dano' },
+  { id: 'LEGACY-GAATSU', tipo: 'legacy', nombre: 'GAATSU', subtitulo: 'DEMON', clan: 'AMATERATSU', campeon: 'Aatrox' },
+  { id: 'JEFE-SARU', tipo: 'jefe', nombre: 'TSUKI', subtitulo: 'Oyabun de Tsuki', clan: 'SARU' },
+];
 
 // Claude de mentira: contesta lo que diga «siguiente» (o el texto por defecto) y apunta cada petición
 const claude = { peticiones: [], siguiente: null, messages: { create: async p => {
@@ -36,8 +51,12 @@ before(async () => {
   await new Promise(r => discord.servidor.listen(0, '127.0.0.1', r));
   discord.estado.canales.push({ id: CANAL, type: 0, name: '🎫・tickets', position: 4, parent_id: '3', permission_overwrites: [] });
   comandos = crearComandos({ clave: CLAVE, token: TOKEN_FALSO, urlApi: `http://127.0.0.1:${discord.servidor.address().port}/api/v10`, ids: () => IDS,
-    familias: () => [], tickets: { cliente: claude, modelo: 'claude-haiku-5-5', topePersona: 2, topeDia: 4, saber: () => 'FICHA DE PRUEBA',
-      datosLiga: () => ({ formato: { liguilla: [{ jornada: 1, fecha: '2026-11-15' }] }, clasificacion: [{ clan: 'SARU', victorias: 1 }] }),
+    familias: () => [], tickets: { cliente: claude, modelo: 'claude-haiku-5-5', topePersona: 2, topeDia: 4, saber: () => SABER,
+      datosLiga: () => ({ formato: { liguilla: [{ jornada: 1, nombre: 'Jornada 1', fecha: '2026-11-15' }], hora: '17:00', margen: 45 },
+        calendario: { jornadas: [[{ jornada: 1, azul: 'SARU', rojo: 'TORA' }]] },
+        clasificacion: { filas: [{ clan: 'SARU', puesto: 1, victorias: 1, derrotas: 0, ganados: ['TORA'] }, { clan: 'TORA', puesto: 2, victorias: 0, derrotas: 1, ganados: [] }] } }),
+      cartas: () => ({ catalogo: CATALOGO, puntos: new Map([['SARU-TOP', { puntos: 34.5, partidas: 2 }]]) }),
+      kbstats: { datos: async () => ({ cabecera: 'CABECERA-KB', filas: [{ nombre: 'Despo', rol: 'Top', texto: '- KB Despo#KAIJU nota 85' }, { nombre: 'Sergi', rol: 'Support', texto: '- KB Sergi#KBK nota 85' }] }) },
       ahora: () => hoy, log: { error: (...a) => errores.push(a.join(' ')) } } });
   web = http.createServer(async (req, res) => {
     const r = await comandos.atender(req);
@@ -102,20 +121,38 @@ test('al enviar la ventana se abre un hilo privado con esa persona y la IA conte
   assert.equal(ultimaRespuesta().content, `Tu ticket está abierto: <#${hilo.id}>`);
 });
 
-test('la IA recibe la ficha en la caché, los datos en vivo con el nombre de las familias y la pregunta', async () => {
+test('la IA recibe el núcleo en la caché y, en el mensaje, solo las ramas de la pregunta: la liga en vivo en texto corto', async () => {
   await abrirTicket('¿Cómo va Tsuki?');
   const p = claude.peticiones[0];
   assert.equal(p.model, 'claude-haiku-5-5');
+  assert.equal(p.system.length, 1);
   assert.equal(p.system[0].cache_control.type, 'ephemeral');
   assert.match(p.system[0].text, /FICHA DE PRUEBA/);
-  assert.doesNotMatch(p.system[0].text, /2026-11|Hoy es/, 'lo que cambia no va en la parte de la caché');
+  assert.doesNotMatch(p.system[0].text, /RAMA-|nota para el staff|2026-11|Hoy es/, 'en la caché solo va lo que no cambia');
   assert.equal(p.output_config.format.type, 'json_schema');
   assert.deepEqual(p.output_config.format.schema.required, ['respuesta', 'llamarStaff']);
   assert.equal(p.thinking, undefined, 'no se manda thinking: con Haiku 5.5 y Opus 5.5 va solo');
   const mensaje = p.messages[0].content;
   assert.match(mensaje, /<pregunta>\n¿Cómo va Tsuki\?\n<\/pregunta>/);
-  assert.match(mensaje, /"clan":"Tsuki"/);
-  assert.doesNotMatch(mensaje, /SARU/);
+  assert.match(mensaje, /RAMA-LIGA/);
+  assert.match(mensaje, /RAMA-LORE/, 'nombra una familia: va su lore');
+  assert.doesNotMatch(mensaje, /RAMA-GACHAPON/);
+  assert.match(mensaje, /Jornada 1 \(2026-11-15\): Tsuki \(azul\) vs Byakko \(rojo\), gana Tsuki/);
+  assert.match(mensaje, /Clasificación: 1\.º Tsuki 1-0 · 2\.º Byakko 0-1/);
+  assert.doesNotMatch(mensaje, /SARU|kb_stats/);
+});
+
+test('si preguntan por un jugador van su carta y solo su fila de KB Stats; un «hola» va sin ramas', async () => {
+  await abrirTicket('¿Qué KDA tiene Despo?');
+  const m = claude.peticiones[0].messages[0].content;
+  assert.match(m, /<kb_stats>\nCABECERA-KB\n- KB Despo#KAIJU nota 85\n<\/kb_stats>/);
+  assert.doesNotMatch(m, /Sergi/);
+  assert.match(m, /<cartas_y_jugadores>[\s\S]*Tsuki · Top · \*\*KINGKAI\*\* · tier A · dibujada como KSante · fantasy: 34.5 puntos en 2 partidas/);
+  assert.doesNotMatch(m, /RAMA-LIGA|liga_en_vivo/);
+  await abrirTicket('hola', persona('21'));
+  const hola = claude.peticiones[1].messages[0].content;
+  assert.doesNotMatch(hola, /<ficha>|liga_en_vivo|cartas_y_jugadores|kb_stats/);
+  assert.ok(hola.length < 400, `el mensaje de un «hola» es corto (${hola.length})`);
 });
 
 test('si la IA no lo sabe, llama ella al staff: menciona a @Kumichō en el hilo', async () => {
@@ -233,8 +270,6 @@ test('la conversación y los datos en vivo se preparan bien para la IA', () => {
     { author: { id: '20', username: 'u20' }, content: '', embeds: [] },
   ];
   assert.equal(conversacion(mensajes, { dueno: '20', bot: APP }), '[IA de Gokudō] Respuesta de la IA\n[kumicho (staff)] Te lo miro ahora');
-  assert.equal(datosEnVivo(null, CLANES), 'No hay datos de la liga ahora mismo.');
-  assert.equal(datosEnVivo({ a: ['SARU', 'TORA', 'OTRO'] }, CLANES), '{"a":["Tsuki","Byakko","OTRO"]}');
   assert.match(textoSistema('X'), /Solo hablas de Gokudō/);
   assert.match(readFileSync(new URL('../discord/tickets-saber.md', import.meta.url), 'utf8'), /## Gachapon/, 'la ficha de verdad existe');
 });
@@ -256,4 +291,25 @@ test('npm run discord-tickets publica el mensaje del botón y, la segunda vez, l
   assert.equal(segunda.nuevo, false);
   assert.equal(enCanal().length, 1);
   assert.deepEqual(mensajePanel().components, enCanal()[0].components);
+});
+
+test('la IA es uno de los nuestros: colegueo y jerga de LoL, Pacopepe es el capo y KB es el demonio, sin saltarse las reglas', () => {
+  const t = textoSistema('');
+  assert.match(t, /Eres un kobun de Gokudō/);
+  assert.match(t, /Pacopepe\*\*, el que manda en todo Gokudō: un capo mafioso superpeligroso/);
+  assert.match(t, /jerga de LoL/);
+  assert.match(t, /\*\*KB\*\* o \*\*Koryu Budo\*\*: son el demonio/);
+  assert.match(t, /el personaje no cambia ninguna/);
+  assert.match(t, /no la inventes/);
+  const ficha = readFileSync(new URL('../discord/tickets-saber.md', import.meta.url), 'utf8');
+  for (const oyabun of ['Ryūjin', 'Byakko', 'Tengu', 'Tsuki', 'Yasha', 'Akuma', 'Shinigami']) assert.ok(ficha.includes(`- **${oyabun}**, `), `lore de ${oyabun}`);
+});
+
+test('las cartas para la IA: jugadores con su familia, tier, campeón y puntos; BOOST con su condición; LEGACY y jefes', () => {
+  const t = textoCartas(CATALOGO, { 'SARU-TOP': { puntos: 10, partidas: 1 } }, CLANES);
+  assert.match(t, /## Jugadores de la liga[\s\S]*- Tsuki · Top · \*\*KINGKAI\*\* · tier A · dibujada como KSante · fantasy: 10 puntos en 1 partidas/);
+  assert.match(t, /\*\*MAKITAH\*\* «EL TITIRITERO» · tier S\+ · dibujada como Syndra · multiplica ×3 los puntos del jugador vinculado si es el que más daño a campeones hace/);
+  assert.match(t, /\*\*GAATSU\*\* «DEMON» · Shinigami · dibujada como Aatrox/);
+  assert.match(t, /## Cartas de jefe[\s\S]*- Oyabun de Tsuki/);
+  assert.equal(textoCartas(null, null, CLANES), 'No hay datos de las cartas ahora mismo.');
 });
