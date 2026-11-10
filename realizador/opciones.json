@@ -1,6 +1,7 @@
 {
   "margenSegundos": 120,
   "hudAntena": { "MinimapScale": 0.78 },
+  "clips": { "activo": true, "monitor": 0, "fps": 60, "bitrate": 15000, "guardarSegundos": 120, "clipSegundos": 60 },
 
   "explorador": {
     "liveClientData": "https://127.0.0.1:2999",
