@@ -47,6 +47,14 @@ body.oculto #lienzo { opacity: 0; transform: translateY(-24px); }
 .reloj { display: grid; place-items: center; }
 .diferencia { display: flex; align-items: center; justify-content: center; gap: 6px; }
 
+/* Los muertos de cada clan, en el borde de fuera de su barra de datos: el retrato en gris y los segundos que le faltan */
+.caidos { display: inline-flex; gap: 4px; }
+.azul .caidos { margin-right: auto; }
+.rojo .caidos { margin-left: auto; flex-direction: row-reverse; }
+.caido { position: relative; width: 28px; height: 28px; flex: none; animation: selloEntra var(--t-medio) var(--curva) both; }
+.caido img { display: block; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) brightness(.45); }
+.caido b { position: absolute; inset: 0; display: grid; place-items: center; line-height: 1; }
+
 /* Dragones de cada clan: sellos, 4 huecos hasta el alma y detrás los ancestrales. Entran uno a uno */
 .dragones { display: inline-flex; align-items: center; gap: 6px; }
 .dragones i { display: grid; place-items: center; width: 16px; height: 16px; animation: selloEntra var(--t-medio) var(--curva) both; }

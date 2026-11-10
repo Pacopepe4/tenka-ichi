@@ -25,6 +25,8 @@
 [data-estilo="a"] .placa .kills { font-family: var(--dela); font-size: 40px; line-height: 1; }
 /* Segunda fila: oro (estimado, con ≈), torres, larvas y los dragones */
 [data-estilo="a"] .datos { padding: 0 18px; background: rgba(12, 13, 19, .92); font-size: 18px; font-weight: 700; border-radius: 0 0 8px 8px; box-shadow: var(--filo-fino); }
+[data-estilo="a"] .caido { border-radius: 5px; overflow: hidden; box-shadow: 0 0 0 1px var(--sumi-linea); }
+[data-estilo="a"] .caido b { font-family: var(--gothic); font-weight: 900; font-size: 15px; color: #fff; text-shadow: 0 0 4px #000, 0 0 2px #000; }
 [data-estilo="a"] .dato svg { color: var(--hai); }
 [data-estilo="a"] .dato.oro b { color: var(--washi); }
 [data-estilo="a"] .dato.larvas svg { color: #9B6BD4; }
