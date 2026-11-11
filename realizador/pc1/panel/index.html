@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Realizador</title>
+<link rel="icon" href="/icono.png">
 <style>
   :root {
     --fondo: #0f1012; --caja: #18191c; --caja2: #1f2125; --borde: #2a2d32; --texto: #ecebe7; --suave: #9196a0;
@@ -18,7 +19,20 @@
 
   /* Cabecera */
   header { display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; padding: 10px 20px; border-bottom: 1px solid var(--borde); background: #131417; position: sticky; top: 0; z-index: 2; }
-  .marca { display: flex; align-items: baseline; gap: 10px; }
+  .marca { display: flex; align-items: center; gap: 10px; }
+  .marca .logo { width: 26px; height: 26px; border-radius: 6px; }
+  .app { display: flex; align-items: center; gap: 8px; color: var(--suave); font-size: 12px; position: relative; }
+  .app .menu { position: absolute; right: 0; top: calc(100% + 8px); background: var(--caja); border: 1px solid var(--borde); border-radius: 10px; padding: 6px; display: grid; gap: 4px; min-width: 240px; z-index: 4; box-shadow: 0 8px 24px rgba(0, 0, 0, .4); }
+  .app .menu[hidden] { display: none; }
+  .app .menu button { text-align: left; background: none; border-color: transparent; }
+  .app .menu button:hover:not(:disabled) { background: var(--caja2); }
+  .botonIcono { padding: 4px 9px; font-size: 16px; line-height: 1; }
+  .barraApp { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: center; padding: 10px 20px; background: #1d1a12; border-bottom: 1px solid #4a3f1f; color: var(--acento); font-size: 14px; }
+  .barraApp.ok { background: #122017; border-color: #1f4a2c; color: var(--ok); }
+  .barraApp.mal { background: #2a1715; border-color: #5a2420; color: #ffd2ce; }
+  .barraApp[hidden] { display: none; }
+  .barraApp small { color: var(--suave); }
+  .barraApp button.principal { background: var(--acento); color: #111; border-color: var(--acento); font-weight: 600; }
   .marca b { font-size: 15px; letter-spacing: .12em; text-transform: uppercase; }
   .marca span { color: var(--acento); font-size: 13px; font-weight: 600; }
   nav { display: flex; gap: 4px; }
@@ -121,7 +135,7 @@
 </head>
 <body>
 <header>
-  <div class="marca"><b>Realizador</b><span id="papel"></span></div>
+  <div class="marca"><img class="logo" src="/icono.png" alt=""><b>Realizador</b><span id="papel"></span></div>
   <nav id="pestanas">
     <button data-p="directo" class="activa">Directo</button>
     <button data-p="realizacion" id="pRealizacion" hidden>Realización</button>
@@ -129,7 +143,17 @@
     <button data-p="registro">Registro</button>
   </nav>
   <div class="conex" id="conex"></div>
+  <div class="app">
+    <span id="version"></span>
+    <button class="botonIcono" id="appMenuBoton" title="Más opciones">⋯</button>
+    <div class="menu" id="appMenu" hidden>
+      <button id="appComprobar">Buscar actualizaciones</button>
+      <button id="appVolver" hidden>Volver a la versión anterior</button>
+      <button id="appCerrar">Cerrar el realizador</button>
+    </div>
+  </div>
 </header>
+<div class="barraApp" id="barraApp" hidden></div>
 
 <main>
   <!-- Directo: el botón y lo que falta -->
@@ -230,7 +254,7 @@
 
 <div class="toast" id="toast" hidden></div>
 <div class="desconectado" id="desconectado" hidden>
-  <div><div class="titulo">El realizador está cerrado</div><p class="sub">Vuelve a abrir «Realizador PC1» o «Realizador PC2» desde el escritorio. Esta página se reconecta sola.</p></div>
+  <div><div class="titulo" id="cerradoTitulo">El realizador está cerrado</div><p class="sub" id="cerradoSub">Vuelve a abrir «Realizador PC1» o «Realizador PC2» desde el escritorio. Esta página se reconecta sola.</p></div>
 </div>
 
 <script>
@@ -446,6 +470,63 @@
   };
   $('camarasBuscar').onclick = () => { firmaCamaras = null; mandar('/camaras', { leer: true }); };
 
+  // ---------- App: versión, actualizar, volver atrás y cerrar ----------
+  let actualizando = false;
+  function pintarApp() {
+    const a = f.app;
+    if (!a) return;
+    $('version').textContent = a.version ? `versión ${a.version}` : 'versión de desarrollo';
+    $('version').title = a.fecha ? `Publicada el ${new Date(a.fecha).toLocaleString('es-ES')}` : '';
+    $('appVolver').hidden = !a.anterior;
+    const b = $('barraApp');
+    let clase = '', html = '';
+    let visto = null;
+    try { visto = localStorage.getItem('resultadoVisto'); } catch {}
+    if (a.fase === 'aplicando' || actualizando) html = 'Actualizando: el realizador se cierra y se vuelve a abrir solo en unos segundos. No cierres esta ventana.';
+    else if (a.fase === 'bajando' || a.fase === 'preparando') html = `Bajando la versión ${esc(a.nueva?.version)}…`;
+    else if (a.fase === 'error') { clase = 'mal'; html = `No se ha podido actualizar: ${esc(a.error)} <button id="barraOtraVez">Probar otra vez</button>`; }
+    else if (a.nueva) {
+      const fecha = a.nueva.fecha ? ` <small>(${esc(new Date(a.nueva.fecha).toLocaleDateString('es-ES'))})</small>` : '';
+      html = `Hay una versión nueva del realizador: <b>${esc(a.nueva.version)}</b>${fecha} `
+        + (a.ocupado ? `<small>${esc(a.ocupado)}</small>` : '<button class="principal" id="barraActualizar">Actualizar</button>');
+    } else if (a.resultado && a.resultado.hora !== visto && Date.now() - new Date(a.resultado.hora) < 6 * 3600 * 1000) {
+      const r = a.resultado;
+      clase = r.ok && !r.avisos?.length ? 'ok' : r.ok ? '' : 'mal';
+      const que = r.modo === 'volver' ? 'Vuelto a la versión anterior' : 'Actualizado';
+      html = r.ok ? `${que}${r.version ? ` (versión ${esc(r.version)})` : ''}.` : `La actualización ha fallado: ${esc(r.error)}. Sigue la versión de antes.`;
+      if (r.avisos?.length) html += ` <small>${r.avisos.map(esc).join(' · ')}</small>`;
+      if (a.anterior && r.modo !== 'volver') html += ' <button id="barraVolver">Volver a la anterior</button>';
+      html += ' <button id="barraVisto">Vale</button>';
+    }
+    b.className = `barraApp ${clase}`;
+    if (b.dataset.html !== html) { b.innerHTML = html; b.dataset.html = html; }
+    b.hidden = !html;
+  }
+  async function accionApp(accion) {
+    $('appMenu').hidden = true;
+    if (accion === 'actualizar') actualizando = true;
+    try {
+      const r = await fetch('/app', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accion }) });
+      const d = await r.json();
+      if (!d.ok) { actualizando = false; aviso(d.error || 'No se pudo'); }
+      else if (accion === 'comprobar' && !d.nueva) aviso('Ya tienes la última versión');
+      if (accion === 'cerrar' && d.ok) { $('cerradoTitulo').textContent = 'Realizador cerrado'; $('cerradoSub').textContent = 'Ya puedes cerrar esta ventana. Para abrirlo otra vez, usa el acceso del escritorio.'; }
+    } catch { actualizando = false; aviso('No se pudo hablar con el realizador'); }
+    if (f) pintarApp();
+  }
+  $('appMenuBoton').onclick = e => { e.stopPropagation(); $('appMenu').hidden = !$('appMenu').hidden; };
+  document.addEventListener('click', () => { $('appMenu').hidden = true; });
+  $('appComprobar').onclick = () => accionApp('comprobar');
+  $('appVolver').onclick = () => { if (confirm('¿Volver a la versión anterior del realizador? Se cierra y se vuelve a abrir solo.')) accionApp('volver'); };
+  $('appCerrar').onclick = () => { if (confirm('¿Cerrar el realizador? Deja de llevar la cámara y las repeticiones.')) accionApp('cerrar'); };
+  $('barraApp').onclick = e => {
+    const id = e.target.id;
+    if (id === 'barraActualizar') { if (confirm('¿Actualizar ahora? El realizador se cierra unos segundos y se vuelve a abrir solo.')) accionApp('actualizar'); }
+    else if (id === 'barraOtraVez') accionApp('actualizar');
+    else if (id === 'barraVolver') { if (confirm('¿Volver a la versión anterior?')) accionApp('volver'); }
+    else if (id === 'barraVisto') { try { localStorage.setItem('resultadoVisto', f.app.resultado.hora); } catch {} pintarApp(); }
+  };
+
   // ---------- Registro ----------
   function pintarRegistro() {
     $('registro').innerHTML = (f.registro || []).map(r =>
@@ -468,6 +549,7 @@
     if (pc1) { pintarRealizacion(); pintarIa(); }
     if (f.camaras) pintarCamaras();
     pintarRegistro();
+    pintarApp();
   }
 
   try { modo = localStorage.getItem('modo'); const p = localStorage.getItem('pestana'); if (p && PESTANAS[p]) ir(p); } catch {}
