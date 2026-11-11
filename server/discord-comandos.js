@@ -11,6 +11,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { crearTickets } from './tickets.js';
 import { crearGateway } from './discord-gateway.js';
+import { crearScrims } from './scrims.js';
 import { CLANES } from './clanes.js';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -97,11 +98,13 @@ export function crearComandos({ clave = process.env.DISCORD_PUBLIC_KEY, token = 
   urlApi = process.env.DISCORD_URL_API || 'https://discord.com/api/v10',
   ids = () => JSON.parse(readFileSync(path.join(RAIZ, 'discord/ids.json'), 'utf8')),
   familias = () => JSON.parse(readFileSync(path.join(RAIZ, 'data-proyecto/familias.json'), 'utf8')).familias,
-  tickets: opcionesTickets = {} } = {}) {
+  tickets: opcionesTickets = {}, scrims: opcionesScrims = {} } = {}) {
   const publica = clave && token ? leerClave(clave) : null;
   const activo = Boolean(publica);
   const base = urlApi.replace(/\/$/, '');
   const tickets = activo ? crearTickets({ token, urlApi: base, ids, clanes: CLANES, ...opcionesTickets }) : null;
+  // El tablón de scrims (server/scrims.js): los botones de #scrims
+  const scrims = activo ? crearScrims({ token, urlApi: base, ids, ...opcionesScrims }) : null;
 
   async function darRol(guildId, usuario, rol, motivo) {
     const r = await fetch(`${base}/guilds/${guildId}/members/${usuario}/roles/${rol}`, {
@@ -148,6 +151,9 @@ export function crearComandos({ clave = process.env.DISCORD_PUBLIC_KEY, token = 
     if ((i.type === BOTON || i.type === VENTANA) && String(i.data?.custom_id || '').startsWith('ticket:')) {
       return { estado: 200, cuerpo: tickets.atender(i) };
     }
+    if ((i.type === BOTON || i.type === VENTANA) && String(i.data?.custom_id || '').startsWith('scrims:')) {
+      return { estado: 200, cuerpo: scrims.atender(i) };
+    }
     return { estado: 200, cuerpo: respuesta('No conozco ese comando.') };
   }
 
@@ -160,5 +166,8 @@ export function crearComandos({ clave = process.env.DISCORD_PUBLIC_KEY, token = 
     return g;
   }
 
-  return { activo, atender, tickets, arrancarGateway };
+  // Las ofertas guardadas y el reloj que borra las que ya han empezado (lo arranca index.js; las pruebas, no)
+  const arrancarScrims = () => scrims?.arrancar();
+
+  return { activo, atender, tickets, scrims, arrancarGateway, arrancarScrims };
 }

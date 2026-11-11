@@ -432,6 +432,27 @@ Gracias a las ramas, cada pregunta lleva entre 1500 y 4000 tokens (antes de las 
 
 Las pruebas (`test/tickets.test.js`) usan el Discord falso de `scripts/discord-api-falso.js`, que ahora también hace de hilos y mensajes, y un Claude falso: no gastan nada.
 
+### Tablón de scrims (#🔎・scrims)
+
+Lo pidió Pacopepe el 11/11/2026 (fase 1). Es `server/scrims.js` y, como los tickets, funciona con botones que atiende `POST /discord/interacciones`. En **#🔎・scrims**, dentro de la categoría **⚔️ Scrims**, nadie escribe: hay un mensaje fijo de SrDirector con tres botones.
+
+- **📣 Publicar scrim:** abre una ventana con equipo, cuándo, elo, formato, y contacto y notas.
+  - Sale como tarjeta en #scrims, con la hora en el formato `<t:…>` de Discord, que cada uno ve en su hora.
+  - La tarjeta tiene un botón **Retirar**, que pueden usar quien la puso o el staff.
+  - **Se borra sola 15 minutos después de su hora.** La web lo comprueba cada 5 minutos.
+  - Cada persona puede tener 3 a la vez; el staff, sin tope. Se admiten hasta 30 días de antelación.
+- **🔎 Buscar scrim:** abre una ventana con cuándo y elo (opcional). Enseña las ofertas que empiezan una hora antes o después, con el enlace a cada tarjeta. Solo lo ve quien busca.
+- **🔔 Avísame:** abre la misma ventana. Cuando alguien publica una oferta que encaja, SrDirector menciona solo a esa persona en #scrims, una vez. Cada persona tiene un aviso a la vez.
+- **«Cuándo»** se escribe en hora de España: «jueves 20:00», «hoy 21h», «mañana 19.30», «14/11 19:30», «pasado mañana 22» o solo «20:00», que es hoy, o mañana si ya ha pasado.
+- **No usa IA:** todo sale de los formularios, así que no cuesta nada.
+- **Dónde se guarda:** las ofertas, en la pestaña **«Scrims»** de Google Sheets (sin hoja, en `data/scrims.json`), y vuelven tras un reinicio. Los avisos solo se guardan en memoria.
+
+**Para encenderlo:**
+1. `npm run discord-aplicar -- --prueba --crear --env ../draft-app-discord/.env`, que solo debería decir «Crearía la categoría ⚔️ Scrims» y «Crearía el canal #🔎・scrims». Después, lo mismo sin `--prueba`.
+2. `npm run discord-scrims -- --env ../draft-app-discord/.env`, que publica el mensaje con los botones. Los ids quedan en `discord/ids.json` como `canal:scrims` y `mensaje:scrims`: hay que hacer commit de ese archivo.
+
+Pruebas: `test/scrims.test.js`.
+
 ### Puntos del canal de Twitch
 
 Los espectadores ganan puntos del canal viendo el directo (los da Twitch: por tiempo de visualización, por seguir, por rachas…) y los canjean en Twitch por la recompensa **Sobre de Tenka Ichi**, que les da un sobre del gachapon. Solo existen en canales afiliados o partner.

@@ -167,9 +167,10 @@ export function crearDiscordApiFalso({ nombre = 'Gokudō' } = {}) {
         return responder(200, estado.mensajes.filter(k => k.channel_id === x[1]).reverse().slice(0, limite));
       }
     }
-    if ((x = /^\/channels\/(\d+)\/messages\/(\d+)$/.exec(ruta)) && m === 'PATCH') {
+    if ((x = /^\/channels\/(\d+)\/messages\/(\d+)$/.exec(ruta)) && (m === 'PATCH' || m === 'DELETE')) {
       const msj = estado.mensajes.find(k => k.channel_id === x[1] && k.id === x[2]);
       if (!msj) return responder(404, { message: 'Unknown Message', code: 10008 });
+      if (m === 'DELETE') { estado.mensajes = estado.mensajes.filter(k => k !== msj); return responder(204); }
       Object.assign(msj, cuerpo); return responder(200, msj);
     }
     if ((x = /^\/channels\/(\d+)\/webhooks$/.exec(ruta))) {

@@ -18,7 +18,8 @@
     "prueba-directo": "node scripts/prueba-directo.js",
     "discord-aplicar": "node scripts/discord-aplicar.js",
     "discord-api-falso": "node scripts/discord-api-falso.js",
-    "discord-tickets": "node scripts/discord-tickets.js"
+    "discord-tickets": "node scripts/discord-tickets.js",
+    "discord-scrims": "node scripts/discord-tickets.js --panel scrims"
   },
   "engines": {
     "node": ">=20"

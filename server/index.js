@@ -1058,6 +1058,8 @@ const comandosDiscord = crearComandos({ tickets: { datosLiga: () => competicion(
   cartas: () => ({ catalogo: catalogo(), puntos: puntosDeJugadores() }) } });
 // Y SrDirector, conectado al gateway, contesta cuando lo mencionan (@SrDirector) en el chat
 comandosDiscord.arrancarGateway();
+// El tablón de scrims: carga las ofertas guardadas y borra cada pocos minutos las que ya han empezado
+comandosDiscord.arrancarScrims();
 
 const servidor = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');

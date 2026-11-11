@@ -214,6 +214,41 @@
       ]
     },
     {
+      "nombre": "Scrims",
+      "emoji": "⚔️",
+      "permisos": {
+        "todos": {
+          "denegar": [
+            "SEND_MESSAGES",
+            "CREATE_PUBLIC_THREADS",
+            "CREATE_PRIVATE_THREADS"
+          ]
+        },
+        "staff": {
+          "permitir": [
+            "SEND_MESSAGES"
+          ]
+        }
+      },
+      "canales": [
+        {
+          "nombre": "scrims",
+          "emoji": "🔎",
+          "tema": "Busca o publica scrims con los botones del mensaje fijo. Las ofertas se borran solas al empezar.",
+          "permisos": {
+            "bot": {
+              "permitir": [
+                "VIEW_CHANNEL",
+                "SEND_MESSAGES",
+                "EMBED_LINKS",
+                "READ_MESSAGE_HISTORY"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
       "nombre": "Gachapón",
       "emoji": "🎰",
       "permisos": {

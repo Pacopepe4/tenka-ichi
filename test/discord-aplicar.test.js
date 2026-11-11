@@ -50,7 +50,7 @@ test('la primera vez lo crea todo: categorías en orden, canales, y por cada fam
   const cats = discord.estado.canales.filter(c => c.type === 4 && !/Channels/.test(c.name)).sort((a, b) => a.position - b.position).map(c => c.name);
   const deFamilias = ['Familia 1', 'Familia 2', 'Familia 3', 'Familia 4', 'Familia 5', 'Familia 6', 'Legacy'].map(n => `🏮 ${n}`);
   // La Izakaya va antes de las familias, como la puso Pacopepe (10/11/2026)
-  assert.deepEqual(cats, ['🏯 Staff', '🔴 Directo', '📜 Info', '🏆 Liga', '🎰 Gachapón', '🍶 General-La Izakaya', ...deFamilias], 'una categoría por familia, donde estaba la de Familias');
+  assert.deepEqual(cats, ['🏯 Staff', '🔴 Directo', '📜 Info', '🏆 Liga', '⚔️ Scrims', '🎰 Gachapón', '🍶 General-La Izakaya', ...deFamilias], 'una categoría por familia, donde estaba la de Familias');
   // Cada familia en su categoría, como los enseña Discord: primero el de texto y luego los de voz
   for (const [i, n] of ['Familia 1', 'Familia 6', 'Legacy'].entries()) {
     const cat = categoria(n);
