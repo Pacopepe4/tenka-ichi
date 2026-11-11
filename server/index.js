@@ -310,6 +310,10 @@ function conectarDraftCore(enlace) {
   });
 }
 
+// Sala del realizador que ha apuntado el PC 1 (acción salaRealizador). Solo en memoria: tras un reinicio el PC 1 la
+// vuelve a mandar en menos de un minuto
+let salaRealizador = null;
+
 // ---------- acciones del panel ----------
 async function accion(nombre, d = {}) {
   switch (nombre) {
@@ -593,6 +597,15 @@ async function accion(nombre, d = {}) {
     case 'adelanto':
       if (!recibirAdelanto(d)) return { ok: false, error: 'Datos adelantados no válidos' };
       return { ok: true };
+    // Sala del realizador (11/11): el PC 1 la apunta aquí y el PC 2 la recoge, así los dos se encuentran aunque al
+    // instalar se escribiera la contraseña distinta en cada uno. Solo con la contraseña del panel (como toda acción)
+    // y fuera del estado que se reparte a todos: nunca llega a los overlays ni a los espectadores
+    case 'salaRealizador':
+      if (d.sala !== undefined && d.sala !== null) {
+        if (!/^[0-9a-f]{64}$/.test(String(d.sala))) return { ok: false, error: 'Sala no válida' };
+        salaRealizador = { sala: String(d.sala), hora: Date.now() };
+      }
+      return { ok: true, sala: salaRealizador?.sala || null };
     case 'deshacerObjetivo':
       if (!deshacerMarca()) return { ok: false, error: 'No hay ninguna marca que deshacer' };
       emitirPartida();
@@ -1241,8 +1254,9 @@ wss.on('connection', (ws, req) => {
     try {
       const r = await accion(m.accion, m.datos);
       ws.send(JSON.stringify({ tipo: 'respuesta', id: m.id, ...r }));
-      // Los datos adelantados del PC 1 llegan cada pocos segundos y no cambian el estado: la partida ya se emite sola
-      if (m.accion !== 'adelanto') emitir();
+      // Los datos adelantados del PC 1 llegan cada pocos segundos y no cambian el estado: la partida ya se emite sola.
+      // La sala del realizador tampoco (y se pide a menudo)
+      if (m.accion !== 'adelanto' && m.accion !== 'salaRealizador') emitir();
     } catch (e) {
       console.error(e);
       ws.send(JSON.stringify({ tipo: 'respuesta', id: m.id, ok: false, error: e.message }));
