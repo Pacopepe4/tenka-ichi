@@ -59,7 +59,8 @@ function accesoDirecto(nombre, papel) {
   const ps = [
     "$e=[Environment]::GetFolderPath('Desktop')",
     `$s=(New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path $e '${nombre}.lnk'))`,
-    `$s.TargetPath=(Join-Path $env:SystemRoot 'System32\wscript.exe')`,
+    // Sin barras invertidas en el texto: en una plantilla de JS «\w» se queda en «w» (11/11 salía System32wscript.exe)
+    "$s.TargetPath=[IO.Path]::Combine($env:SystemRoot,'System32','wscript.exe')",
     `$s.Arguments='"${q(join(RAIZ, 'windows', 'Realizador.vbs'))}" ${papel}'`,
     `$s.WorkingDirectory='${q(RAIZ)}'`,
     `$s.IconLocation='${q(join(RAIZ, 'windows', 'realizador.ico'))},0'`,
