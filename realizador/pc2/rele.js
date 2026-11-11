@@ -18,7 +18,7 @@ import { POR_DEFECTO as BORDES, ajusteBorde, suavizar, zoomConBorde, posicionSeg
 import { Tenka } from '../pc1/tenka.js';
 import { CamarasDraft } from './camaras.js';
 import { GrabadorLol, cursorEnClip } from './grabador.js';
-import { Actualizador } from '../comun/app.js';
+import { Actualizador, codigoSala } from '../comun/app.js';
 import { abrirObs, obsCorriendo } from './abrir-obs.js';
 import { readFileSync, writeFileSync, existsSync, appendFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -570,7 +570,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
   function condicionesAhora() {
     return condiciones({
       papel: 'pc2', pc1: pc1Conectado(), pc2: true, partidaPc1: partidaPc1(), partidaPc2: Boolean(estado.playback),
-      obs: obs ? Boolean(obs.listo) : null, obsProblema: obs?.problema || null, bufer: emision.salidas ? emision.salidas.bufer : null,
+      obs: obs ? Boolean(obs.listo) : null, obsProblema: obs?.problema || null, bufer: emision.salidas ? emision.salidas.bufer : null, sala: codigoSala(o.clave),
     });
   }
   function tAntenaAhora() {

@@ -19,6 +19,13 @@ import { extraerZip } from './zip.js';
 
 export const CARPETA_ACT = '.actualizacion';
 
+// Código de sala para el panel: 4 letras sacadas de la huella de la contraseña (no la desvela). Los dos PCs tienen
+// que enseñar el mismo; si no, se instalaron con contraseñas distintas y nunca se encontrarán.
+export function codigoSala(clave) {
+  if (!clave) return null;
+  return createHash('sha256').update(`sala-realizador:${clave}`).digest('hex').slice(0, 4).toUpperCase();
+}
+
 export function versionInstalada(raiz = RAIZ) {
   try {
     const [version = '', fecha = ''] = readFileSync(join(raiz, 'VERSION.txt'), 'utf8').trim().split(/\s+/);
@@ -69,7 +76,7 @@ export class Actualizador extends EventEmitter {
     try { return JSON.parse(readFileSync(join(this.act, 'resultado.json'), 'utf8')); } catch { return null; }
   }
 
-  publico() { return { ...this.estado, web: webDe(this.o), carpeta: this.raiz, ocupado: this.ocupado() || null }; }
+  publico() { return { ...this.estado, web: webDe(this.o), carpeta: this.raiz, sala: codigoSala(this.o.clave), ocupado: this.ocupado() || null }; }
 
   cambiar(cambios) { Object.assign(this.estado, cambios); this.emit('cambio'); }
 

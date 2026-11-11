@@ -188,7 +188,7 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
     const c = condiciones({
       papel: 'pc1', pc1: true, pc2: ejecutor.releConectado,
       partidaPc1: Boolean(conexiones.explorador && partida), partidaPc2: Boolean(a?.juego),
-      obs: a ? a.obs === true : null, bufer: a ? a.bufer ?? null : null,
+      obs: a ? a.obs === true : null, bufer: a ? a.bufer ?? null : null, sala: app.publico().sala,
     });
     const faltan = Number.isFinite(a?.faltan) ? Math.max(0, a.faltan - (Date.now() - a.recibido) / 1000) : null;
     return {

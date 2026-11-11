@@ -578,8 +578,8 @@
   function pintarApp() {
     const a = f.app;
     if (!a) return;
-    $('version').textContent = a.version ? `versión ${a.version}` : 'versión de desarrollo';
-    $('version').title = a.fecha ? `Publicada el ${new Date(a.fecha).toLocaleString('es-ES')}` : '';
+    $('version').textContent = (a.sala ? `sala ${a.sala} · ` : '') + (a.version ? `versión ${a.version}` : 'versión de desarrollo');
+    $('version').title = (a.sala ? `Código de sala ${a.sala}: el otro PC tiene que enseñar el mismo (si no, la contraseña es distinta). ` : '') + (a.fecha ? `Versión publicada el ${new Date(a.fecha).toLocaleString('es-ES')}` : '');
     $('appVolver').hidden = !a.anterior;
     const b = $('barraApp');
     let clase = '', html = '';
