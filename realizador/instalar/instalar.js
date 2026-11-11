@@ -165,6 +165,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     for (const h of hechos) console.log(`  OK  ${h}`);
     for (const a of avisos) console.log(`  !!  ${a}`);
     console.log('');
+    // Kaspersky cortó la primera prueba del botón Actualizar (11/11) tomándolo por un virus
+    console.log(`Si tu antivirus (Kaspersky, Avast…) avisa o borra algo del realizador, añade esta carpeta a sus exclusiones:\n  ${RAIZ}`);
+    console.log('');
     console.log(args[0] === 'pc1'
       ? 'Listo. Abre «Realizador PC1» en el escritorio. Se conecta solo con el PC 2 que tenga la misma contraseña.'
       : 'Listo. Abre «Realizador PC2» en el escritorio: abre OBS y se conecta solo con el PC 1.');

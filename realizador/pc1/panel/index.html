@@ -472,6 +472,8 @@
 
   // ---------- App: versión, actualizar, volver atrás y cerrar ----------
   let actualizando = false;
+  // Kaspersky cortó la primera prueba (11/11): si el antivirus borra o bloquea algo, la carpeta va en sus exclusiones
+  const antivirus = a => `Si tu antivirus (Kaspersky, Avast…) ha avisado o borrado algo, añade la carpeta ${esc(a.carpeta || 'del realizador')} a sus exclusiones y prueba otra vez.`;
   function pintarApp() {
     const a = f.app;
     if (!a) return;
@@ -484,7 +486,7 @@
     try { visto = localStorage.getItem('resultadoVisto'); } catch {}
     if (a.fase === 'aplicando' || actualizando) html = 'Actualizando: el realizador se cierra y se vuelve a abrir solo en unos segundos. No cierres esta ventana.';
     else if (a.fase === 'bajando' || a.fase === 'preparando') html = `Bajando la versión ${esc(a.nueva?.version)}…`;
-    else if (a.fase === 'error') { clase = 'mal'; html = `No se ha podido actualizar: ${esc(a.error)} <button id="barraOtraVez">Probar otra vez</button>`; }
+    else if (a.fase === 'error') { clase = 'mal'; html = `No se ha podido actualizar: ${esc(a.error)} <small>${antivirus(a)}</small> <button id="barraOtraVez">Probar otra vez</button>`; }
     else if (a.nueva) {
       const fecha = a.nueva.fecha ? ` <small>(${esc(new Date(a.nueva.fecha).toLocaleDateString('es-ES'))})</small>` : '';
       html = `Hay una versión nueva del realizador: <b>${esc(a.nueva.version)}</b>${fecha} `
@@ -493,7 +495,7 @@
       const r = a.resultado;
       clase = r.ok && !r.avisos?.length ? 'ok' : r.ok ? '' : 'mal';
       const que = r.modo === 'volver' ? 'Vuelto a la versión anterior' : 'Actualizado';
-      html = r.ok ? `${que}${r.version ? ` (versión ${esc(r.version)})` : ''}.` : `La actualización ha fallado: ${esc(r.error)}. Sigue la versión de antes.`;
+      html = r.ok ? `${que}${r.version ? ` (versión ${esc(r.version)})` : ''}.` : `La actualización ha fallado: ${esc(r.error)}. Sigue la versión de antes. <small>${antivirus(a)}</small>`;
       if (r.avisos?.length) html += ` <small>${r.avisos.map(esc).join(' · ')}</small>`;
       if (a.anterior && r.modo !== 'volver') html += ' <button id="barraVolver">Volver a la anterior</button>';
       html += ' <button id="barraVisto">Vale</button>';

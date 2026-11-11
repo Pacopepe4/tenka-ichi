@@ -69,7 +69,7 @@ export class Actualizador extends EventEmitter {
     try { return JSON.parse(readFileSync(join(this.act, 'resultado.json'), 'utf8')); } catch { return null; }
   }
 
-  publico() { return { ...this.estado, web: webDe(this.o), ocupado: this.ocupado() || null }; }
+  publico() { return { ...this.estado, web: webDe(this.o), carpeta: this.raiz, ocupado: this.ocupado() || null }; }
 
   cambiar(cambios) { Object.assign(this.estado, cambios); this.emit('cambio'); }
 

@@ -5,7 +5,7 @@
 ' "Actualizar" o "Volver a la anterior" del panel: .actualizacion\pendiente.json), la aplica con _aplicar.bat y lo
 ' vuelve a abrir, sin abrir otra ventana (la de antes se reconecta sola). Este archivo se lee entero al empezar, asi
 ' que se puede cambiar en la actualizacion sin problema.
-Dim sh, fso, carpeta, raiz, papel, opcion, pendiente
+Dim sh, fso, carpeta, raiz, papel, opcion, pendiente, codigo, inicio
 Set sh = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 carpeta = fso.GetParentFolderName(WScript.ScriptFullName)
@@ -25,6 +25,15 @@ Do
     If fso.FileExists(pendiente) Then fso.DeleteFile pendiente, True
     opcion = "sinpagina"
   End If
-  sh.Run "cmd /c """"" & carpeta & "\realizador-" & papel & ".bat"" oculto " & opcion & """", 0, True
-  If Not fso.FileExists(pendiente) Then Exit Do
+  inicio = Timer
+  codigo = sh.Run("cmd /c """"" & carpeta & "\realizador-" & papel & ".bat"" oculto " & opcion & """", 0, True)
+  If Not fso.FileExists(pendiente) Then
+    ' Se ha parado nada mas empezar: lo normal es que falte un archivo (un antivirus que lo ha borrado) o Node
+    If codigo <> 0 And Abs(Timer - inicio) < 60 Then
+      MsgBox "El realizador no ha podido arrancar." & vbCrLf & vbCrLf & _
+        "Si tu antivirus (Kaspersky, Avast...) ha avisado o ha borrado algo, anade esta carpeta a sus exclusiones:" & vbCrLf & raiz & vbCrLf & vbCrLf & _
+        "Despues vuelve a pasar el instalador (INSTALAR-" & UCase(papel) & ".bat). Lo que ha pasado esta en la carpeta partidas.", 48, "Realizador"
+    End If
+    Exit Do
+  End If
 Loop
