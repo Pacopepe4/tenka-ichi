@@ -188,6 +188,7 @@
       </div>
       <section class="mandos">
         <div><h2>Escena</h2><div class="escenas" id="escenas"></div></div>
+        <button class="repetir" id="abrirObs" hidden>Abrir OBS</button>
         <button class="repetir" id="repetir" disabled>⟲ Repetir la última jugada</button>
         <div><h2>Estado</h2><div class="luces" id="luces"></div></div>
         <div class="sub">OBS está en la bandeja, junto al reloj: un clic en su icono si hace falta tocar algo a mano.</div>
@@ -554,6 +555,8 @@
       $('escenas').dataset.firma = firma;
       $('escenas').innerHTML = v.escenas.map(n => `<button data-escena="${esc(n)}" class="${n === v.escena ? 'sale' : ''}">${esc(n)}</button>`).join('');
     }
+    $('abrirObs').hidden = Boolean(v.luces.obs);
+    $('abrirObs').textContent = v.obsAbierto ? 'OBS no contesta: ¿abrirlo otra vez?' : 'Abrir OBS';
     $('repetir').disabled = !v.hayJugada || !v.luces.obs;
     $('repetir').title = v.hayJugada ? 'Repite el final de la última jugada guardada, con el cartel REPLAY' : 'Todavía no hay ninguna jugada guardada';
     $('luces').innerHTML = Object.entries(v.luces).filter(([, x]) => x !== null && x !== undefined)
@@ -566,6 +569,7 @@
     mandar('/escena', { nombre: n });
   };
   $('repetir').onclick = () => mandar('/repetir', {});
+  $('abrirObs').onclick = () => mandar('/obs', {});
 
   // ---------- App: versión, actualizar, volver atrás y cerrar ----------
   let actualizando = false;

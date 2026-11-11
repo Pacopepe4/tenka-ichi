@@ -19,6 +19,7 @@ import { Tenka } from '../pc1/tenka.js';
 import { CamarasDraft } from './camaras.js';
 import { GrabadorLol, cursorEnClip } from './grabador.js';
 import { Actualizador } from '../comun/app.js';
+import { abrirObs, obsCorriendo } from './abrir-obs.js';
 import { readFileSync, writeFileSync, existsSync, appendFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { RAIZ } from '../comun/opciones.js';
@@ -130,6 +131,37 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
       panel?.emitir();
     });
   }
+  // OBS lo abre el realizador: si no está abierto, se abre (en la bandeja) como mucho una vez por minuto; si está
+  // abierto pero no contesta un buen rato, se dice en el panel (puede estar parado en un aviso de OBS)
+  estado.obsAbierto = null;
+  let vigiaObs = null;
+  let ultimoIntentoObs = 0;
+  let sinContestarDesde = null;
+  async function vigilarObs() {
+    if (!obs || typeof conObs === 'object' || obs.listo) { sinContestarDesde = null; return; }
+    const abierto = await obsCorriendo();
+    estado.obsAbierto = abierto;
+    if (!abierto) {
+      sinContestarDesde = null;
+      if (o.obs?.abrirSolo === false || Date.now() - ultimoIntentoObs < 60000) return;
+      ultimoIntentoObs = Date.now();
+      try { abrirObs(o, { minimizado: true }); registrar('[obs] OBS no estaba abierto: abierto en la bandeja'); } catch (e) { registrar(`[obs] no se puede abrir OBS: ${e.message}`); }
+      return;
+    }
+    if (!sinContestarDesde) sinContestarDesde = Date.now();
+    else if (Date.now() - sinContestarDesde > 45000 && !estado.avisoObsColgado) {
+      estado.avisoObsColgado = true;
+      registrar('[obs] OBS está abierto pero no contesta: mira si tiene algún aviso abierto (bandeja, junto al reloj) o ciérralo y pulsa «Abrir OBS» en el panel');
+    }
+  }
+  async function botonObs() {
+    if (obs?.listo) throw new Error('OBS ya está conectado');
+    if (await obsCorriendo()) throw new Error('OBS ya está abierto pero no contesta: búscalo en la bandeja (junto al reloj) y mira si tiene un aviso; si no, ciérralo desde el Administrador de tareas y vuelve a pulsar');
+    abrirObs(o, { minimizado: false });
+    ultimoIntentoObs = Date.now();
+    registrar('[obs] OBS abierto desde el panel');
+  }
+
   const escenasMano = () => [o.obs?.escenaJuego, o.obs?.escenaCasters, o.obs?.escenaPausa, o.obs?.escenaDraft || 'Draft'].filter(Boolean);
   async function ponerEscena({ nombre } = {}) {
     if (!obs?.listo) throw new Error('OBS no está conectado');
@@ -591,7 +623,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
       grabador: grabador ? { activo: grabador.activo, forma: grabador.forma?.nombre || null } : null,
       vista: obs ? {
         escena: estado.escenaObs, escenas: escenasMano(), camaraVirtual: estado.camaraVirtual, modo: o.obs?.vista ?? 'camara',
-        hayJugada: estado.clipsLol.size + estado.clips.size > 0,
+        hayJugada: estado.clipsLol.size + estado.clips.size > 0, obsAbierto: estado.obsAbierto,
         luces: {
           obs: Boolean(obs.listo), emitiendo: Boolean(emision.salidas?.emitiendo), bufer: emision.salidas ? Boolean(emision.salidas.bufer) : null,
           grabador: grabador ? Boolean(grabador.activo) : null, lol: Boolean(estado.playback), pc1: pc1Conectado(),
@@ -726,6 +758,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
           },
           escena: d => ponerEscena(d),
           repetir: () => repetirUltima(),
+          obs: () => botonObs(),
           captura: () => capturaObs(),
         });
       }
@@ -738,6 +771,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
       vuelta();
       if (cb.activo) bucleBordes();
       grabador?.arrancar();
+      if (obs && typeof conObs !== 'object') { vigiaObs = setInterval(() => vigilarObs().catch(() => {}), 15000); setTimeout(() => vigilarObs().catch(() => {}), 8000); }
       return servidor;
     },
     parar() {
@@ -746,6 +780,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
       if (typeof conObs !== 'object') obs?.cerrar();
       if (otroGrabador === undefined) grabador?.parar();
       app.parar();
+      clearInterval(vigiaObs);
       servidor.close();
       if (panel) { panel.parar(); panel = null; }
     },
