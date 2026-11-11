@@ -251,6 +251,11 @@
           "nombre": "🔎・scrims",
           "tipo": "texto",
           "tema": "Busca o publica scrims con los botones del mensaje fijo. Las ofertas se borran solas al empezar."
+        },
+        {
+          "nombre": "🎲・inhouses",
+          "tipo": "texto",
+          "tema": "Inhouses 5v5 abiertas a la red de Gokudō: apúntate con el botón de tu rol. Convocan los Oyabun y el staff."
         }
       ]
     }
