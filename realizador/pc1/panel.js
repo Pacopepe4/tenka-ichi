@@ -10,7 +10,8 @@ import { leerCuerpo, responder } from '../comun/http.js';
 const CARPETA = join(dirname(fileURLToPath(import.meta.url)), 'panel');
 
 // app: acciones de la app (comprobar o instalar una versión nueva, volver a la anterior, cerrar el realizador)
-export function arrancarPanel({ puerto, host, foto, control, orden, emision, camaras, app }) {
+// escena, repetir, captura (PC 2): cambiar la escena de OBS, repetir la última jugada y una imagen de lo que sale
+export function arrancarPanel({ puerto, host, foto, control, orden, emision, camaras, app, escena, repetir, captura }) {
   const oyentes = new Set();
   let programado = null;
 
@@ -24,6 +25,12 @@ export function arrancarPanel({ puerto, host, foto, control, orden, emision, cam
       if (req.method === 'GET' && (url.pathname === '/icono.png' || url.pathname === '/favicon.ico')) {
         res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'max-age=86400' });
         return res.end(readFileSync(join(CARPETA, 'icono.png')));
+      }
+      if (req.method === 'GET' && url.pathname === '/preview.jpg' && captura) {
+        const img = await captura();
+        if (!img) return responder(res, { ok: false, error: 'Sin imagen de OBS' }, 503);
+        res.writeHead(200, { 'Content-Type': 'image/jpeg', 'Cache-Control': 'no-store' });
+        return res.end(img);
       }
       if (req.method === 'GET' && url.pathname === '/estado') return responder(res, foto());
       if (req.method === 'GET' && url.pathname === '/sse') {
@@ -52,6 +59,16 @@ export function arrancarPanel({ puerto, host, foto, control, orden, emision, cam
         const r = await app(await leerCuerpo(req));
         emitir();
         return responder(res, { ok: true, ...(r || {}) });
+      }
+      if (req.method === 'POST' && url.pathname === '/escena' && escena) {
+        await escena(await leerCuerpo(req));
+        emitir();
+        return responder(res, { ok: true });
+      }
+      if (req.method === 'POST' && url.pathname === '/repetir' && repetir) {
+        await repetir(await leerCuerpo(req));
+        emitir();
+        return responder(res, { ok: true });
       }
       if (req.method === 'POST' && url.pathname === '/camaras' && camaras) {
         await camaras(await leerCuerpo(req));

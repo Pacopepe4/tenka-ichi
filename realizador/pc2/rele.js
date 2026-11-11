@@ -105,6 +105,66 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
   if (typeof conObs !== 'object') obs?.on('problema', t => registrar(`[obs] ${t}`));
   if (typeof conObs !== 'object') obs?.conectar();
 
+  // Pantalla del PC 2 (11/11): qué escena sale en OBS y su vista previa. La vista va por la cámara virtual de OBS
+  // (la enciende el relé al conectar; solo se ve en este PC, no sale a internet) y, si no hay, por capturas.
+  estado.escenaObs = null;
+  estado.camaraVirtual = null;
+  const conVista = (o.obs?.vista ?? 'camara') !== 'no';
+  if (typeof obs?.on === 'function') {
+    obs.on('evento', d => {
+      if (d?.eventType === 'CurrentProgramSceneChanged') { estado.escenaObs = d.eventData?.sceneName || null; panel?.emitir(); }
+      if (d?.eventType === 'VirtualcamStateChanged') { estado.camaraVirtual = Boolean(d.eventData?.outputActive); panel?.emitir(); }
+    });
+    obs.on('conexion', async v => {
+      if (!v) return;
+      try { estado.escenaObs = (await obs.pedir('GetCurrentProgramScene')).currentProgramSceneName || null; } catch { /* sin escena */ }
+      if (!conVista || o.obs?.vista === 'capturas') return;
+      try {
+        const s = await obs.pedir('GetVirtualCamStatus');
+        if (!s.outputActive) await obs.pedir('StartVirtualCam');
+        estado.camaraVirtual = true;
+      } catch (e) {
+        estado.camaraVirtual = false;
+        registrar(`[obs] sin cámara virtual para la vista previa (${e.message}): el panel usa capturas`);
+      }
+      panel?.emitir();
+    });
+  }
+  const escenasMano = () => [o.obs?.escenaJuego, o.obs?.escenaCasters, o.obs?.escenaPausa, o.obs?.escenaDraft || 'Draft'].filter(Boolean);
+  async function ponerEscena({ nombre } = {}) {
+    if (!obs?.listo) throw new Error('OBS no está conectado');
+    if (!escenasMano().includes(nombre)) throw new Error(`No hay una escena «${nombre}»`);
+    await obs.escena(nombre);
+    estado.escenaObs = nombre;
+    registrar(`[obs] escena ${nombre} a mano desde el panel`);
+  }
+  async function repetirUltima() {
+    if (!obs?.listo) throw new Error('OBS no está conectado');
+    const ultimaLimpia = [...estado.clipsLol.entries()].at(-1);
+    const ultima = ultimaLimpia || [...estado.clips.entries()].at(-1);
+    if (!ultima) throw new Error('Todavía no hay ninguna jugada guardada');
+    const [jugada, clip] = ultima;
+    const segundos = o.reglas?.repeticion?.segundos ?? 12;
+    const atras = segundos + (o.reglas?.repeticion?.colchon ?? 1.5) + 1;
+    await obs.repeticionCompleta({
+      ruta: clip.ruta, fuente: o.obs.fuenteRepeticion, escena: o.obs.escenaRepeticion, escenaJuego: o.obs.escenaJuego,
+      segundosAtras: atras, cursorMs: ultimaLimpia ? cursorEnClip(clip, atras) : undefined, segundos, g: o.obs.repeticion,
+    });
+    registrar(`[obs] repetición de ${jugada} a mano desde el panel${ultimaLimpia ? ' (clip limpio del LoL)' : ' (clip de OBS)'}`);
+  }
+  // Imagen de lo que sale (si no hay cámara virtual): pequeña y como mucho unas pocas por segundo
+  let ultimaCaptura = { hora: 0, img: null };
+  async function capturaObs() {
+    if (!obs?.listo || !estado.escenaObs) return null;
+    if (Date.now() - ultimaCaptura.hora < 200) return ultimaCaptura.img;
+    try {
+      const r = await obs.pedir('GetSourceScreenshot', { sourceName: estado.escenaObs, imageFormat: 'jpg', imageWidth: 640, imageCompressionQuality: 70 });
+      const img = Buffer.from(String(r.imageData || '').replace(/^data:image\/\w+;base64,/, ''), 'base64');
+      ultimaCaptura = { hora: Date.now(), img };
+      return img;
+    } catch { return null; }
+  }
+
   // Grabador del LoL (ffmpeg): clips limpios, sin el marcador, para las repeticiones. Solo con OBS de verdad.
   const rutaFfmpeg = o.clips?.ffmpeg || [join(RAIZ, 'herramientas', 'ffmpeg', 'ffmpeg.exe')].find(existsSync) || 'ffmpeg';
   const grabador = otroGrabador !== undefined ? otroGrabador
@@ -529,6 +589,14 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
       registro: registro.slice(0, 40).map(l => ({ hora: l.hora, quien: 'PC 2', que: l.texto })),
       app: app.publico(),
       grabador: grabador ? { activo: grabador.activo, forma: grabador.forma?.nombre || null } : null,
+      vista: obs ? {
+        escena: estado.escenaObs, escenas: escenasMano(), camaraVirtual: estado.camaraVirtual, modo: o.obs?.vista ?? 'camara',
+        hayJugada: estado.clipsLol.size + estado.clips.size > 0,
+        luces: {
+          obs: Boolean(obs.listo), emitiendo: Boolean(emision.salidas?.emitiendo), bufer: emision.salidas ? Boolean(emision.salidas.bufer) : null,
+          grabador: grabador ? Boolean(grabador.activo) : null, lol: Boolean(estado.playback), pc1: pc1Conectado(),
+        },
+      } : null,
     };
   }
 
@@ -656,6 +724,9 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
             }
             throw new Error('No sé hacer eso');
           },
+          escena: d => ponerEscena(d),
+          repetir: () => repetirUltima(),
+          captura: () => capturaObs(),
         });
       }
       servidor.listen(puerto, '0.0.0.0');

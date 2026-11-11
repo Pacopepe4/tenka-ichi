@@ -127,6 +127,25 @@
   @media (max-width: 600px) { .camara { grid-template-columns: 1fr; } }
   .filaBotones { display: flex; gap: 10px; flex-wrap: wrap; }
 
+  /* Pantalla del PC 2: lo que sale, las escenas y la repetición, sin tener que mirar OBS */
+  .pc2 { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(260px, 1fr); gap: 20px; margin-bottom: 20px; }
+  .pc2[hidden] { display: none; }
+  @media (max-width: 960px) { .pc2 { grid-template-columns: 1fr; } }
+  .vista { position: relative; aspect-ratio: 16 / 9; background: #000; border-radius: 12px; overflow: hidden; border: 1px solid var(--borde); }
+  .vista video, .vista img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .vista video[hidden], .vista img[hidden] { display: none; }
+  .vistaAviso { position: absolute; inset: 0; display: grid; place-items: center; color: var(--suave); font-size: 14px; text-align: center; padding: 20px; }
+  .vistaAviso[hidden] { display: none; }
+  .enAire { position: absolute; top: 12px; left: 12px; background: var(--rojo); color: #fff; font-size: 12px; font-weight: 700; letter-spacing: .1em; padding: 4px 10px; border-radius: 6px; }
+  .enAire[hidden] { display: none; }
+  .vistaEscena { position: absolute; top: 12px; right: 12px; background: rgba(0, 0, 0, .65); color: var(--texto); font-size: 12px; padding: 4px 10px; border-radius: 6px; }
+  .mandos { display: grid; gap: 14px; align-content: start; }
+  .escenas { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .escenas button { padding: 14px 10px; font-weight: 600; }
+  .escenas button.sale { background: var(--rojo); border-color: var(--rojo); color: #fff; }
+  .repetir { padding: 14px; font-weight: 600; font-size: 16px; background: #2b2210; border-color: #6b5520; color: var(--acento); }
+  .luces { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; font-size: 13px; color: var(--suave); }
+  .luces span { white-space: nowrap; }
   .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #2a1715; border: 1px solid var(--rojo); color: #ffd2ce; padding: 10px 16px; border-radius: 8px; max-width: min(90vw, 520px); }
   .toast[hidden] { display: none; }
   .desconectado { position: fixed; inset: 0; background: rgba(10, 10, 12, .85); display: grid; place-items: center; text-align: center; padding: 20px; z-index: 5; }
@@ -158,6 +177,22 @@
 <main>
   <!-- Directo: el botón y lo que falta -->
   <div class="pestana" id="directo">
+    <!-- Solo PC 2: lo que sale (cámara virtual de OBS, solo en este PC), escenas, repetición y estado -->
+    <div class="pc2" id="pc2" hidden>
+      <div class="vista">
+        <video id="vistaVideo" autoplay muted playsinline hidden></video>
+        <img id="vistaImg" alt="Lo que sale en OBS" hidden>
+        <div class="vistaAviso" id="vistaAviso">Conectando con OBS…</div>
+        <span class="enAire" id="vistaAire" hidden>EN EL AIRE</span>
+        <span class="vistaEscena" id="vistaEscena" hidden></span>
+      </div>
+      <section class="mandos">
+        <div><h2>Escena</h2><div class="escenas" id="escenas"></div></div>
+        <button class="repetir" id="repetir" disabled>⟲ Repetir la última jugada</button>
+        <div><h2>Estado</h2><div class="luces" id="luces"></div></div>
+        <div class="sub">OBS está en la bandeja, junto al reloj: un clic en su icono si hace falta tocar algo a mano.</div>
+      </section>
+    </div>
     <div class="directo">
       <div>
         <section class="estado" id="cajaEstado">
@@ -470,6 +505,68 @@
   };
   $('camarasBuscar').onclick = () => { firmaCamaras = null; mandar('/camaras', { leer: true }); };
 
+  // ---------- Pantalla del PC 2: vista previa, escenas, repetición y luces ----------
+  const vista = { modo: null, temporizador: null };
+  async function arrancarVista(preferida) {
+    if (vista.modo) return;
+    vista.modo = 'probando';
+    try {
+      if (preferida !== 'camara' || !navigator.mediaDevices?.getUserMedia) throw new Error('sin cámara');
+      const buscar = async () => (await navigator.mediaDevices.enumerateDevices()).find(d => d.kind === 'videoinput' && /obs/i.test(d.label));
+      let obsCam = await buscar();
+      if (!obsCam && !(await navigator.mediaDevices.enumerateDevices()).some(d => d.label)) {
+        // Sin permiso todavía no se ven los nombres: se pide una vez (se recuerda) y se suelta enseguida
+        const s = await navigator.mediaDevices.getUserMedia({ video: true });
+        s.getTracks().forEach(t => t.stop());
+        obsCam = await buscar();
+      }
+      if (!obsCam) throw new Error('sin cámara virtual');
+      const flujo = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: obsCam.deviceId }, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } } });
+      $('vistaVideo').srcObject = flujo;
+      $('vistaVideo').hidden = false;
+      $('vistaAviso').hidden = true;
+      vista.modo = 'camara';
+    } catch {
+      vista.modo = 'capturas';
+      capturas();
+    }
+  }
+  function capturas() {
+    const img = $('vistaImg');
+    const siguiente = ms => { clearTimeout(vista.temporizador); vista.temporizador = setTimeout(() => { img.src = `/preview.jpg?t=${Date.now()}`; }, ms); };
+    img.onload = () => { img.hidden = false; $('vistaAviso').hidden = true; siguiente(250); };
+    img.onerror = () => { img.hidden = true; $('vistaAviso').hidden = false; $('vistaAviso').textContent = 'Sin imagen de OBS todavía'; siguiente(2000); };
+    siguiente(0);
+  }
+  const LUCES = { obs: 'OBS', emitiendo: 'Emitiendo', bufer: 'Búfer de repeticiones', grabador: 'Grabador del LoL', lol: 'LoL de la antena', pc1: 'PC 1' };
+  function pintarPc2() {
+    const v = f.vista;
+    $('pc2').hidden = !v;
+    if (!v) return;
+    arrancarVista(v.modo);
+    const enAire = Boolean(f.emision?.enElAire);
+    $('vistaAire').hidden = !enAire;
+    $('vistaAire').textContent = f.emision?.modo === 'grabar' ? 'GRABANDO' : 'EN EL AIRE';
+    $('vistaEscena').hidden = !v.escena;
+    $('vistaEscena').textContent = v.escena || '';
+    const firma = v.escenas.join('|') + '#' + v.escena;
+    if ($('escenas').dataset.firma !== firma) {
+      $('escenas').dataset.firma = firma;
+      $('escenas').innerHTML = v.escenas.map(n => `<button data-escena="${esc(n)}" class="${n === v.escena ? 'sale' : ''}">${esc(n)}</button>`).join('');
+    }
+    $('repetir').disabled = !v.hayJugada || !v.luces.obs;
+    $('repetir').title = v.hayJugada ? 'Repite el final de la última jugada guardada, con el cartel REPLAY' : 'Todavía no hay ninguna jugada guardada';
+    $('luces').innerHTML = Object.entries(v.luces).filter(([, x]) => x !== null && x !== undefined)
+      .map(([k, x]) => `<span><i class="punto ${x ? 'si' : 'no'}"></i>${LUCES[k] || k}</span>`).join('');
+  }
+  $('escenas').onclick = e => {
+    const n = e.target.dataset?.escena;
+    if (!n) return;
+    if (f.emision?.enElAire && !confirm(`¿Poner «${n}» ahora? Se está emitiendo y el realizador también cambia de escena solo.`)) return;
+    mandar('/escena', { nombre: n });
+  };
+  $('repetir').onclick = () => mandar('/repetir', {});
+
   // ---------- App: versión, actualizar, volver atrás y cerrar ----------
   let actualizando = false;
   // Kaspersky cortó la primera prueba (11/11): si el antivirus borra o bloquea algo, la carpeta va en sus exclusiones
@@ -552,6 +649,7 @@
     if (f.camaras) pintarCamaras();
     pintarRegistro();
     pintarApp();
+    pintarPc2();
   }
 
   try { modo = localStorage.getItem('modo'); const p = localStorage.getItem('pestana'); if (p && PESTANAS[p]) ir(p); } catch {}
