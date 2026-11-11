@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { inflateRawSync } from 'node:zlib';
-import { archivosDescarga, zipDescarga } from '../server/descargas.js';
+import { archivosDescarga, zipDescarga, versionRealizador } from '../server/descargas.js';
+import { createHash } from 'node:crypto';
 
 const nombres = lista => lista.map(a => a.nombre);
 
@@ -45,4 +46,14 @@ test('El zip se abre: cada archivo comprimido vuelve a ser el original', async (
     assert.ok(inflateRawSync(zip.subarray(inicio, inicio + comprimido)).equals(a.datos), a.nombre);
     p = inicio + comprimido;
   }
+});
+
+test('Versión del realizador para el botón Actualizar: la de VERSION.txt y la huella de cada zip tal como se sirve', async () => {
+  const v = await versionRealizador();
+  for (const n of ['realizador-pc1.zip', 'realizador-pc2.zip']) {
+    const zip = await zipDescarga(n);
+    assert.equal(v.zips[n].sha256, createHash('sha256').update(zip).digest('hex'), n);
+    assert.equal(v.zips[n].bytes, zip.length);
+  }
+  assert.ok(v.version === null || /^[0-9a-f]{4,}$|^sin-git$/.test(v.version), String(v.version));
 });

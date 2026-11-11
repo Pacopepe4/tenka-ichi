@@ -8,6 +8,7 @@ import { readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { crearZip } from './zip.js';
+import { createHash } from 'node:crypto';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const CARPETA_PUENTE = path.join(RAIZ, 'puente');
@@ -18,7 +19,7 @@ export const ARCHIVOS_PUENTE = ['Abrir el puente.bat', 'puente-tenka-ichi.ps1', 
 const FUERA = new Set(['opciones.local.json', 'clave.txt', 'node_modules', 'partidas', 'capturas', '.git']);
 
 // Archivos de Windows: saltos de línea CRLF, venga el repositorio como venga (un .bat con LF puede fallar)
-const WINDOWS = new Set(['.bat', '.cmd', '.ps1', '.txt']);
+const WINDOWS = new Set(['.bat', '.cmd', '.ps1', '.txt', '.vbs']);
 
 async function archivo(ruta, nombre) {
   const datos = await readFile(ruta);
@@ -60,6 +61,20 @@ export const DESCARGAS = {
 export async function archivosDescarga(nombre, opciones) {
   const lista = await DESCARGAS[nombre]?.(opciones);
   return lista ? Promise.all(lista.map(a => archivo(a.ruta, a.nombre))) : null;
+}
+
+// Versión del realizador que se reparte (realizador/VERSION.txt, la escribe scripts/traer-realizador.js) y la huella
+// SHA-256 de cada zip tal como se sirve: el botón «Actualizar» de los PCs la compara antes de instalar nada.
+export async function versionRealizador({ carpetaRealizador = CARPETA_REALIZADOR } = {}) {
+  let texto = '';
+  try { texto = (await readFile(path.join(carpetaRealizador, 'VERSION.txt'), 'utf8')).trim(); } catch { /* sin versión */ }
+  const [version = '', fecha = ''] = texto.split(/\s+/);
+  const zips = {};
+  for (const nombre of ['realizador-pc1.zip', 'realizador-pc2.zip']) {
+    const zip = await zipDescarga(nombre);
+    zips[nombre] = { sha256: createHash('sha256').update(zip).digest('hex'), bytes: zip.length };
+  }
+  return { version: version || null, fecha: fecha || null, zips };
 }
 
 const hechos = new Map();
