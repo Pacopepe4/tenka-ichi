@@ -21,6 +21,6 @@ if not exist "%OBS%\obs64.exe" (
   exit /b 1
 )
 cd /d "%OBS%"
-start "" obs64.exe --collection "Realizador" --profile "Realizador" --startreplaybuffer
-echo OBS abierto con el bufer de repeticion en marcha.
+start "" obs64.exe --collection "Realizador" --profile "Realizador" --startreplaybuffer --minimize-to-tray
+echo OBS abierto en la bandeja ^(junto al reloj^) con el bufer de repeticion en marcha.
 if /I not "%~1"=="sinpausa" timeout /t 3 >nul

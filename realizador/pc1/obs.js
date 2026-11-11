@@ -52,7 +52,8 @@ export class Obs extends EventEmitter {
   mensaje(m) {
     if (m.op === 0) {  // Hello: identificarse, con contraseña si OBS la pide
       const a = m.d.authentication;
-      const d = { rpcVersion: 1, eventSubscriptions: 1 << 6 };  // eventos de salidas (búfer de repetición)
+      // Eventos de escenas (qué sale, para el panel del PC 2) y de salidas (búfer de repetición, cámara virtual)
+      const d = { rpcVersion: 1, eventSubscriptions: (1 << 2) | (1 << 6) };
       if (a) d.authentication = sha(sha(this.clave + a.salt) + a.challenge);
       this.ws.send(JSON.stringify({ op: 1, d }));
     } else if (m.op === 2) {

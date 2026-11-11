@@ -16,10 +16,11 @@ import { Sala } from '../comun/sala.js';
 import { aplicarPerfil, restaurarPerfil, rutaConfig } from '../instalar/configurar-lol.js';
 import { condiciones } from '../comun/condiciones.js';
 import { Ia } from './ia.js';
+import { Actualizador, registroEnArchivo } from '../comun/app.js';
 
 // «explorador» permite cambiar de dónde salen los sucesos (el modo grabada pone el suyo)
 // «ia»: para las pruebas (un Ia con cliente de mentira). Sin él, se crea si ia.activo está encendido.
-export function arrancarAgente(o, { perfilMinimo = false, log = console.log, explorador: otroExplorador = null, sala: otraSala = null, ia: otraIa = null } = {}) {
+export function arrancarAgente(o, { perfilMinimo = false, log = console.log, explorador: otroExplorador = null, sala: otraSala = null, ia: otraIa = null, salir = null } = {}) {
   // Perfil mínimo del juego (ventana pequeña, gráficos al mínimo, sin sonido) mientras corre el agente
   let perfilAplicado = null;
   if (perfilMinimo) {
@@ -41,6 +42,16 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
     log(`[aviso] ${texto}`);
     panel?.emitir();
   };
+
+  // La app: versión, botón «Actualizar» (no mientras se emite o hay partida) y cerrar el realizador desde el panel
+  let agente = null;
+  const cerrar = salir || (() => { agente?.parar(); setTimeout(() => process.exit(0), 300); });
+  const app = new Actualizador({
+    papel: 'pc1', o, registrar: log, salir: cerrar,
+    ocupado: () => (ejecutor?.releConectado && ejecutor.antena?.emision?.enElAire ? 'El PC 2 está emitiendo: actualiza cuando acabe el directo'
+      : conexiones.explorador && partida ? 'Hay una partida en marcha en este PC: actualiza cuando acabe' : null),
+  });
+  app.on('cambio', () => panel?.emitir());
 
   const explorador = otroExplorador || new Explorador(o);
   let cerebro = new Cerebro(o.reglas);
@@ -206,6 +217,7 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
       registro: registro.slice(0, 40),
       avisos: avisos.slice(0, 10),
       ia: o.ia?.activo || otraIa ? ia.foto() : null,
+      app: app.publico(),
     };
   }
 
@@ -215,6 +227,13 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
     control: async ({ manual }) => ejecutor.ponerManual(manual),
     orden: async orden => ejecutor.ordenManual(orden),
     emision: async orden => ejecutor.emision(orden),
+    app: async ({ accion }) => {
+      if (accion === 'comprobar') return { nueva: await app.comprobar() };
+      if (accion === 'actualizar') return app.actualizar();
+      if (accion === 'volver') return app.volver();
+      if (accion === 'cerrar') { log('[app] cerrado desde el panel'); setTimeout(cerrar, 300); return {}; }
+      throw new Error('No sé hacer eso');
+    },
   });
 
   // Panel de Gokudō (sección «Realizador»): ve lo mismo que este panel y puede tomar el control
@@ -235,7 +254,8 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
   log(`Agente en marcha. Panel: http://localhost:${o.panel.puerto}/  ·  PC 2: ${sala ? `por el servidor de Gokudō (${o.puente.url})` : ejecutor.urlRele || 'buscando en la red'}`);
   log('Abre la partida en LoL (espectador): el realizador la encuentra y arranca solo.');
 
-  return {
+  agente = {
+    app,
     foto,
     ia,
     get cerebro() { return cerebro; },
@@ -253,16 +273,21 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
       clearInterval(temporizadorAdelanto);
       tenka?.cerrar();
       panel.parar();
+      app.parar();
       if (perfilAplicado) {
         try { restaurarPerfil(perfilAplicado); log('Perfil del juego restaurado'); } catch (e) { log(`No se pudo restaurar el perfil: ${e.message}`); }
       }
     },
   };
+  return agente;
 }
 
 // Arrancado directamente (npm run agente)
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const agente = arrancarAgente(cargarOpciones(), { perfilMinimo: process.argv.includes('--perfil-minimo') });
+  const o = cargarOpciones();
+  // Las consolas van ocultas: todo queda también en partidas/pc1-AAAA-MM-DD.log
+  const agente = arrancarAgente(o, { perfilMinimo: process.argv.includes('--perfil-minimo'), log: registroEnArchivo(o, 'pc1') });
+  agente.app.arrancar();
   let saliendo = false;
   const salir = () => {
     if (saliendo) return;

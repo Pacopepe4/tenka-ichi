@@ -52,13 +52,19 @@ export function opcionesLocales(papel, clave, actuales = {}, ruta, urlPuente) {
   return mezclar(actuales, { ...comun, puente, obs: { activo: true, enRele: true, clave } });
 }
 
-function accesoDirecto(nombre, bat) {
+// Acceso directo del escritorio: abre el realizador sin ventanas negras (windows/Realizador.vbs) y con su icono
+function accesoDirecto(nombre, papel) {
   if (process.platform !== 'win32') return null;
+  const q = t => t.replace(/'/g, "''");
   const ps = [
     "$e=[Environment]::GetFolderPath('Desktop')",
     `$s=(New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path $e '${nombre}.lnk'))`,
-    `$s.TargetPath='${bat.replace(/'/g, "''")}'`,
-    `$s.WorkingDirectory='${RAIZ.replace(/'/g, "''")}'`,
+    // Sin barras invertidas en el texto: en una plantilla de JS «\w» se queda en «w» (11/11 salía System32wscript.exe)
+    "$s.TargetPath=[IO.Path]::Combine($env:SystemRoot,'System32','wscript.exe')",
+    `$s.Arguments='"${q(join(RAIZ, 'windows', 'Realizador.vbs'))}" ${papel}'`,
+    `$s.WorkingDirectory='${q(RAIZ)}'`,
+    `$s.IconLocation='${q(join(RAIZ, 'windows', 'realizador.ico'))},0'`,
+    `$s.Description='Realizador de Gokudō (${papel === 'pc1' ? 'PC 1, realización' : 'PC 2, emisión'})'`,
     "$s.Save()",
   ].join(';');
   execFileSync('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', ps], { stdio: 'ignore' });
@@ -118,7 +124,7 @@ export function instalar({ papel, clave, ruta, emision = '', twitch = '', rutaLo
   if (atajo) {
     const nombre = papel === 'pc1' ? 'Realizador PC1' : 'Realizador PC2';
     try {
-      if (accesoDirecto(nombre, join(RAIZ, 'windows', `realizador-${papel}.bat`))) hechos.push(`Acceso directo «${nombre}» en el escritorio`);
+      if (accesoDirecto(nombre, papel)) hechos.push(`Acceso directo «${nombre}» en el escritorio`);
     } catch (e) { avisos.push(`No se pudo crear el acceso directo: ${e.message}`); }
   }
   return { hechos, avisos };
@@ -129,7 +135,17 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const arg = n => { const i = args.indexOf(n); return i !== -1 ? args[i + 1] : undefined; };
   try {
     // La clave de retransmisión llega por el entorno (REALIZADOR_EMISION) para que no se vea en la lista de procesos
-    const { hechos, avisos } = instalar({ papel: args[0], clave: arg('--clave'), ruta: arg('--ruta'), emision: process.env.REALIZADOR_EMISION || '', twitch: process.env.REALIZADOR_TWITCH || '' });
+    // --actualizar (lo usa el botón «Actualizar» del panel): sin preguntar nada, con la contraseña y la ruta de LoL
+    // que ya tiene este PC; las claves de Kick y Twitch se quedan como estaban
+    let clave = arg('--clave');
+    let ruta = arg('--ruta');
+    if (args.includes('--actualizar')) {
+      const rutaLocal = join(RAIZ, 'opciones.local.json');
+      const actuales = existsSync(rutaLocal) ? JSON.parse(readFileSync(rutaLocal, 'utf8').replace(/^﻿/, '')) : {};
+      clave = clave || actuales.clave;
+      ruta = ruta || actuales.rutaLoL;
+    }
+    const { hechos, avisos } = instalar({ papel: args[0], clave, ruta, emision: process.env.REALIZADOR_EMISION || '', twitch: process.env.REALIZADOR_TWITCH || '' });
     // Con clave de Twitch, el complemento para emitir a la vez (se baja de su página oficial y se comprueba su huella)
     if (args[0] === 'pc2' && cargarOpciones().obs?.emision?.twitch?.clave) {
       try {
@@ -149,6 +165,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     console.log('');
     for (const h of hechos) console.log(`  OK  ${h}`);
     for (const a of avisos) console.log(`  !!  ${a}`);
+    console.log('');
+    // Kaspersky cortó la primera prueba del botón Actualizar (11/11) tomándolo por un virus
+    console.log(`Si tu antivirus (Kaspersky, Avast…) avisa o borra algo del realizador, añade esta carpeta a sus exclusiones:\n  ${RAIZ}`);
     console.log('');
     console.log(args[0] === 'pc1'
       ? 'Listo. Abre «Realizador PC1» en el escritorio. Se conecta solo con el PC 2 que tenga la misma contraseña.'

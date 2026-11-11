@@ -45,7 +45,7 @@ import { atenderPublicacion, discordActivo, publicarCronica as cronicaEnDiscord,
 import { crearComandos } from './discord-comandos.js';
 import { cargarPartida, recibir as recibirPartida, resumen as resumenPartida, empezarPrueba, pararPrueba, enPrueba, olvidarPartida,
   ponerContexto, marcarObjetivo, deshacerMarca, ajustarIngame } from './partida.js';
-import { DESCARGAS, zipDescarga } from './descargas.js';
+import { DESCARGAS, zipDescarga, versionRealizador } from './descargas.js';
 import { fotoEstado, restaurarEstado, guardarEstadoSiCambia, guardarEstadoYa, estadoYaGuardado, camaraLineas } from './estado-guardado.js';
 import { VISTAS, clavePartida, vistaAutomatica, fotoFinal, fotoFinalDelDraft, completarFinal } from './vista.js';
 
@@ -1172,6 +1172,10 @@ const servidor = http.createServer(async (req, res) => {
   }
   // El puente, comprimido al vuelo con lo que hay en puente/ para que la descarga no se quede atrás
   // Descargas de la guía: el puente del marcador y el realizador de cada PC (server/descargas.js)
+  // Qué versión del realizador se reparte y la huella de cada zip (botón «Actualizar» de los PCs)
+  if (url.pathname === '/puente/realizador-version.json') {
+    try { return json(res, await versionRealizador()); } catch (e) { return json(res, { ok: false, error: e.message }, 500); }
+  }
   const descarga = url.pathname.match(/^\/puente\/([a-z0-9-]+\.zip)$/)?.[1];
   if (descarga && DESCARGAS[descarga]) {
     try {

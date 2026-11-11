@@ -8,7 +8,7 @@ if not defined NAV if exist "%ProgramFiles%\Microsoft\Edge\Application\msedge.ex
 if not defined NAV if exist "%ProgramFiles%\Google\Chrome\Application\chrome.exe" set "NAV=%ProgramFiles%\Google\Chrome\Application\chrome.exe"
 if not defined NAV if exist "%LocalAppData%\Google\Chrome\Application\chrome.exe" set "NAV=%LocalAppData%\Google\Chrome\Application\chrome.exe"
 if defined NAV (
-  start "" "%NAV%" --app=%URL% --window-size=1280,860
+  start "" "%NAV%" --app=%URL% --window-size=1440,900 --user-data-dir="%LOCALAPPDATA%\RealizadorGokudo\ventana" --no-first-run --no-default-browser-check
 ) else (
   start "" %URL%
 )
