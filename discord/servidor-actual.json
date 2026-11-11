@@ -13,6 +13,11 @@
           "nombre": "🤖・registro-bot",
           "tipo": "texto",
           "tema": "Lo que hace el bot."
+        },
+        {
+          "nombre": "📥・fuentes-scrims",
+          "tipo": "texto",
+          "tema": "Aquí llegan las ofertas de scrims de fuera (canales de anuncios seguidos, red ScrimRéseau). SrDirector solo las lee: salen al buscar en #scrims."
         }
       ]
     },
@@ -236,6 +241,16 @@
         {
           "nombre": "🔒・Shinigami privado",
           "tipo": "voz"
+        }
+      ]
+    },
+    {
+      "nombre": "⚔️ Scrims",
+      "canales": [
+        {
+          "nombre": "🔎・scrims",
+          "tipo": "texto",
+          "tema": "Busca o publica scrims con los botones del mensaje fijo. Las ofertas se borran solas al empezar."
         }
       ]
     }
