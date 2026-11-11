@@ -11,11 +11,13 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { crearApi, ErrorDiscord } from './discord-aplicar.js';
 import { mensajePanel } from '../server/tickets.js';
 import { mensajePanelScrims } from '../server/scrims.js';
+import { mensajePanelInhouses } from '../server/inhouses.js';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const PANELES = {
   tickets: { mensaje: mensajePanel, que: 'el botón «Abrir ticket»' },
   scrims: { mensaje: mensajePanelScrims, que: 'los botones de scrims' },
+  inhouses: { mensaje: mensajePanelInhouses, que: 'los botones de inhouses' },
 };
 
 export async function publicarPanel({ api, archivoIds = path.join(RAIZ, 'discord/ids.json'), guildId = null, prueba = false, log = console.log, panel = 'tickets' }) {

@@ -470,6 +470,34 @@ Lo pidió Pacopepe el 11/11/2026 (fase 1). Es `server/scrims.js` y, como los tic
 
 Pruebas: `test/scrims.test.js` (también la fase 2, con un Claude falso) y la del permiso de leer en `test/discord-gateway.test.js`.
 
+### Inhouses y la red de Gokudō
+
+Lo pidió Pacopepe el 11/11/2026. Son inhouses 5 contra 5 de LoL **abiertas a otros servidores**: se apuntan desde su propio servidor y todo se sincroniza. Sin IA.
+
+**La red** (`server/red.js`) son los servidores que reciben las inhouses de Gokudō. Hacen falta las dos partes, que es el «permiso expreso»:
+1. El staff del otro servidor (con «Gestionar servidor») invita a SrDirector y escribe `/gokudo-red unirse canal:#… tipo:inhouses`.
+2. En **#staff** de Gokudō sale la petición con **Aprobar** y **Rechazar**. Solo decide el staff de Gokudō.
+3. Al aprobarla, SrDirector escribe en su canal que ya está conectado y deja allí el mensaje con los botones.
+
+`/gokudo-red salir` lo quita. Se guarda en la pestaña «Red» de Sheets. `/gokudo-red` es un **comando global**: lo registra `discord-aplicar` (con `comandosGlobales` de `servidor.json`).
+
+**Las inhouses** (`server/inhouses.js`), en **#🎲・inhouses** (en ⚔️ Scrims) y en el canal de cada servidor de la red:
+- **🎲 Convocar inhouse:** en Gokudō, solo los **Oyabun y el staff**; en la red, su staff. Se pone cuándo, elo orientativo y notas, y sale **una tarjeta en todos los servidores de la red**. Cada uno puede tener una abierta a la vez.
+- **Apuntarse:** con el botón de cada rol (Top, Jungla, Medio, ADC y Support, **2 plazas por rol**). Al pulsarlo se pide el elo. Cualquiera puede **desapuntarse** mientras no esté llena. Todas las copias de la tarjeta se actualizan a la vez.
+- **Con 10, equipos equilibrados:** un jugador de cada rol en cada lado, con la combinación que más iguala el elo (Hierro IV = 0 … Challenger = 36; entiende «Platino II», «plat 2», «D4», «Emerald 1»…). SrDirector menciona a cada uno en el canal de su servidor.
+- **15 minutos antes:** abre dos canales de voz en Gokudō, **🔵 Azul** y **🔴 Rojo**, y avisa a los 10. Quien convocó crea la partida personalizada en el LoL. Riot solo deja crearlas solas con códigos de torneo, y eso necesita una clave aprobada por Riot.
+- **Resultado:** quien convocó, o el staff de Gokudō, pulsa **Ganó Azul** o **Ganó Rojo**. Se apunta en el **🏆 Ranking**, que se ve con su botón, y se borran las voces.
+- **Si no se llena** media hora después de su hora, se cancela sola. Si nadie pone el resultado en 4 horas, se cierra.
+- **🔔 Avísame:** menciona a quien lo pidió, en el canal de su servidor, cuando se convoca una inhouse a su hora.
+- **Dónde se guarda:** las abiertas, en la pestaña «Inhouses» de Sheets; el ranking, en «RankingInhouses» (sin hoja, en `data/`).
+
+**Para encenderlo:**
+1. `discord-aplicar --prueba --crear`, que solo debería decir «Crearía el canal #🎲・inhouses» y «Crearía el comando global /gokudo-red». Después, sin `--prueba`.
+2. `npm run discord-inhouses -- --env …`, que publica el mensaje con los botones.
+3. Para que otros servidores puedan invitar a SrDirector: en discord.com/developers › Bot, activar **Public Bot**. El enlace de invitación es `https://discord.com/oauth2/authorize?client_id=<ID de la app>&scope=bot%20applications.commands&permissions=84992`, que da ver canales, enviar mensajes, insertar enlaces y leer el historial.
+
+Pruebas: `test/inhouses.test.js`, con un servidor de fuera falso.
+
 ### Puntos del canal de Twitch
 
 Los espectadores ganan puntos del canal viendo el directo (los da Twitch: por tiempo de visualización, por seguir, por rachas…) y los canjean en Twitch por la recompensa **Sobre de Tenka Ichi**, que les da un sobre del gachapon. Solo existen en canales afiliados o partner.

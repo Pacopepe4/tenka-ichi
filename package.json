@@ -19,7 +19,8 @@
     "discord-aplicar": "node scripts/discord-aplicar.js",
     "discord-api-falso": "node scripts/discord-api-falso.js",
     "discord-tickets": "node scripts/discord-tickets.js",
-    "discord-scrims": "node scripts/discord-tickets.js --panel scrims"
+    "discord-scrims": "node scripts/discord-tickets.js --panel scrims",
+    "discord-inhouses": "node scripts/discord-tickets.js --panel inhouses"
   },
   "engines": {
     "node": ">=20"

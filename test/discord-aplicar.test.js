@@ -373,3 +373,13 @@ test('#tickets: nadie escribe ni abre hilos, el staff ve y gestiona los hilos pr
   assert.ok(canal('tickets'));
   assert.deepEqual(escritas().map(p => `${p.metodo} ${p.ruta.replace(/\d+/g, 'N')}`), ['POST /guilds/N/channels']);
 });
+
+test('registra el comando global /gokudo-red (el de server/red.js) y la segunda vez no lo toca', async () => {
+  const { COMANDO_RED } = await import('../server/red.js');
+  assert.deepEqual(leerConfig().comandosGlobales, [COMANDO_RED], 'servidor.json lleva el mismo comando que atiende la web');
+  await aplicar(opciones);
+  assert.deepEqual((discord.estado.globales || []).map(c => c.name), ['gokudo-red']);
+  discord.estado.peticiones = [];
+  await aplicar(respetando());
+  assert.ok(!discord.estado.peticiones.some(p => p.metodo === 'PUT' && /\/commands$/.test(p.ruta) && !/guilds/.test(p.ruta)), 'no lo vuelve a registrar');
+});

@@ -63,6 +63,12 @@ export function crearDiscordApiFalso({ nombre = 'Gokudō' } = {}) {
     // Las imágenes (icono, avatar...) llegan como data:image/...;base64: aquí se guarda un «hash» inventado
     const hashDe = uri => (uri ? `h${uri.length}` : null);
     if (m === 'GET' && ruta === '/gateway/bot') return responder(200, { url: estado.gateway || 'ws://127.0.0.1:9', shards: 1 });
+    // Los comandos globales del bot y otros servidores donde está (estado.otros: id → { id, name })
+    if (ruta === `/applications/${BOT.id}/commands`) {
+      if (m === 'GET') return responder(200, estado.globales || []);
+      if (m === 'PUT') { estado.globales = cuerpo.map(c => ({ id: nuevoId(), application_id: BOT.id, ...c })); return responder(200, estado.globales); }
+    }
+    if (m === 'GET' && (x = /^\/guilds\/(\d+)$/.exec(ruta)) && estado.otros?.[x[1]]) return responder(200, estado.otros[x[1]]);
     if ((x = /^\/channels\/(\d+)\/typing$/.exec(ruta)) && m === 'POST') return responder(204);
     if (m === 'GET' && ruta === '/users/@me') return responder(200, BOT);
     if (m === 'PATCH' && ruta === '/users/@me') { if ('avatar' in cuerpo) BOT.avatar = hashDe(cuerpo.avatar); return responder(200, BOT); }

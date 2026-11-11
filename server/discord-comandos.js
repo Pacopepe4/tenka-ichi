@@ -12,6 +12,8 @@ import { fileURLToPath } from 'node:url';
 import { crearTickets } from './tickets.js';
 import { crearGateway } from './discord-gateway.js';
 import { crearScrims } from './scrims.js';
+import { crearRed } from './red.js';
+import { crearInhouses, mensajePanelInhouses } from './inhouses.js';
 import { CLANES } from './clanes.js';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -98,13 +100,16 @@ export function crearComandos({ clave = process.env.DISCORD_PUBLIC_KEY, token = 
   urlApi = process.env.DISCORD_URL_API || 'https://discord.com/api/v10',
   ids = () => JSON.parse(readFileSync(path.join(RAIZ, 'discord/ids.json'), 'utf8')),
   familias = () => JSON.parse(readFileSync(path.join(RAIZ, 'data-proyecto/familias.json'), 'utf8')).familias,
-  tickets: opcionesTickets = {}, scrims: opcionesScrims = {} } = {}) {
+  tickets: opcionesTickets = {}, scrims: opcionesScrims = {}, red: opcionesRed = {}, inhouses: opcionesInhouses = {} } = {}) {
   const publica = clave && token ? leerClave(clave) : null;
   const activo = Boolean(publica);
   const base = urlApi.replace(/\/$/, '');
   const tickets = activo ? crearTickets({ token, urlApi: base, ids, clanes: CLANES, ...opcionesTickets }) : null;
   // El tablón de scrims (server/scrims.js): los botones de #scrims
   const scrims = activo ? crearScrims({ token, urlApi: base, ids, ...opcionesScrims }) : null;
+  // La red de Gokudō (server/red.js: otros servidores que se unen con /gokudo-red) y las inhouses (server/inhouses.js)
+  const red = activo ? crearRed({ token, urlApi: base, ids, paneles: { inhouses: mensajePanelInhouses }, ...opcionesRed }) : null;
+  const inhouses = activo ? crearInhouses({ token, urlApi: base, ids, red, ...opcionesInhouses }) : null;
 
   async function darRol(guildId, usuario, rol, motivo) {
     const r = await fetch(`${base}/guilds/${guildId}/members/${usuario}/roles/${rol}`, {
@@ -154,6 +159,11 @@ export function crearComandos({ clave = process.env.DISCORD_PUBLIC_KEY, token = 
     if ((i.type === BOTON || i.type === VENTANA) && String(i.data?.custom_id || '').startsWith('scrims:')) {
       return { estado: 200, cuerpo: scrims.atender(i) };
     }
+    if ((i.type === BOTON || i.type === VENTANA) && String(i.data?.custom_id || '').startsWith('inh:')) {
+      return { estado: 200, cuerpo: inhouses.atender(i) };
+    }
+    if (i.type === COMANDO && i.data?.name === 'gokudo-red') return { estado: 200, cuerpo: await red.comando(i) };
+    if (i.type === BOTON && String(i.data?.custom_id || '').startsWith('red:')) return { estado: 200, cuerpo: red.boton(i) };
     return { estado: 200, cuerpo: respuesta('No conozco ese comando.') };
   }
 
@@ -170,7 +180,8 @@ export function crearComandos({ clave = process.env.DISCORD_PUBLIC_KEY, token = 
   }
 
   // Las ofertas guardadas y el reloj que borra las que ya han empezado (lo arranca index.js; las pruebas, no)
-  const arrancarScrims = () => scrims?.arrancar();
+  // (y lo mismo con la red y las inhouses: cargar lo guardado y el reloj de cada minuto)
+  const arrancarScrims = () => { scrims?.arrancar(); red?.cargar().catch(() => {}); inhouses?.arrancar(); };
 
-  return { activo, atender, tickets, scrims, arrancarGateway, arrancarScrims };
+  return { activo, atender, tickets, scrims, red, inhouses, arrancarGateway, arrancarScrims };
 }

@@ -463,6 +463,22 @@ export async function aplicar({ api, config, familias, prueba = false, borrarSob
     if (cambia && !prueba) await api.pedir('PUT', ruta, [...config.comandos, ...quedan]);
   }
 
+  // Comandos globales (para todos los servidores donde está el bot: /gokudo-red, de la red de Gokudō). Solo los de
+  // servidor.json: se registran si faltan o han cambiado
+  if (config.comandosGlobales) {
+    const ruta = `/applications/${yo.id}/commands`;
+    const hay = await api.get(ruta);
+    const forma = c => JSON.stringify({ name: c.name, description: c.description, dmp: c.default_member_permissions ?? null,
+      options: (function opciones(os) { return (os || []).map(o => ({ type: o.type, name: o.name, description: o.description, required: !!o.required,
+        choices: (o.choices || []).map(x => [x.name, x.value]), options: opciones(o.options) })); }(c.options)) });
+    let cambia = hay.length !== config.comandosGlobales.length;
+    for (const c of config.comandosGlobales) {
+      const ya = hay.find(x => x.name === c.name);
+      if (!ya) { anotar('crear', 'el comando global', `/${c.name}`); cambia = true; } else if (forma(ya) !== forma(c)) { anotar('cambiar', 'el comando global', `/${c.name}`); cambia = true; }
+    }
+    if (cambia && !prueba) await api.pedir('PUT', ruta, config.comandosGlobales);
+  }
+
   // Emojis de las familias: se suben si faltan; si cambia la imagen se borra y se sube otra vez (Discord no deja
   // cambiar la imagen de un emoji). Los emojis que no son de las familias no se tocan.
   if (quiere.emojis.length) {
