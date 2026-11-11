@@ -73,6 +73,11 @@
           "nombre": "registro-bot",
           "emoji": "🤖",
           "tema": "Lo que hace el bot."
+        },
+        {
+          "nombre": "fuentes-scrims",
+          "emoji": "📥",
+          "tema": "Aquí llegan las ofertas de scrims de fuera (canales de anuncios seguidos, red ScrimRéseau). SrDirector solo las lee: salen al buscar en #scrims."
         }
       ]
     },

@@ -161,7 +161,10 @@ export function crearComandos({ clave = process.env.DISCORD_PUBLIC_KEY, token = 
   // se ha apagado con DISCORD_GATEWAY=0
   function arrancarGateway() {
     if (!activo || !tickets?.iaActiva || process.env.DISCORD_GATEWAY === '0') return null;
-    const g = crearGateway({ token, urlApi: base, alMensaje: (m, yo) => tickets.alMencionar(m, yo) });
+    // Cada mensaje: si menciona a SrDirector, contesta (tickets); si es de una fuente de scrims, solo lo lee (scrims).
+    // Leer las fuentes necesita «Message Content Intent»: se pide con DISCORD_LEER_FUENTES=1
+    const g = crearGateway({ token, urlApi: base, contenido: process.env.DISCORD_LEER_FUENTES === '1',
+      alMensaje: (m, yo) => Promise.all([tickets.alMencionar(m, yo), scrims?.leerFuente(m, yo)]) });
     g.arrancar();
     return g;
   }

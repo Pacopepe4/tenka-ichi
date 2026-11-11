@@ -2,11 +2,15 @@
 // cualquier canal o en un ticket. Los botones y los comandos no la necesitan (llegan por POST /discord/interacciones).
 // Solo pide los intents GUILDS y GUILD_MESSAGES: Discord siempre le da el texto de los mensajes que lo mencionan, así
 // que no hace falta el permiso privilegiado de «Message Content».
+// Para leer las fuentes de scrims (server/scrims.js) sí hace falta: con 'contenido' (DISCORD_LEER_FUENTES=1, después de
+// activar «Message Content Intent» en el Developer Portal) lo pide también. Si Discord no lo deja (cierre 4014: no está
+// activado en el portal), vuelve a conectarse sin él, para que las menciones sigan funcionando.
 // Mientras la web duerme (Render gratis), el bot está desconectado y no se entera de las menciones: al despertar se
 // vuelve a conectar solo. Con DISCORD_GATEWAY=0 no se conecta (para no tener dos conexiones, la de Render y la de un PC).
 import WebSocket from 'ws';
 
 const INTENTS = (1 << 0) | (1 << 9);   // GUILDS, GUILD_MESSAGES
+const CONTENIDO = 1 << 15;             // MESSAGE_CONTENT (privilegiado)
 const OP = { DISPATCH: 0, HEARTBEAT: 1, IDENTIFY: 2, RESUME: 6, RECONNECT: 7, INVALID: 9, HELLO: 10, ACK: 11 };
 // Códigos de cierre con los que no vale la pena volver a intentarlo
 const FATALES = { 4004: 'el DISCORD_BOT_TOKEN no vale', 4010: 'shard no válido', 4011: 'hace falta sharding', 4012: 'versión de la API no válida',
@@ -14,9 +18,10 @@ const FATALES = { 4004: 'el DISCORD_BOT_TOKEN no vale', 4010: 'shard no válido'
 const AGENTE = 'DiscordBot (https://tenka-ichi.onrender.com, 1.0)';
 
 export function crearGateway({ token, urlApi = 'https://discord.com/api/v10', alMensaje, log = console, crearSocket = url => new WebSocket(url),
-  esperar = (ms, fn) => setTimeout(fn, ms) }) {
+  esperar = (ms, fn) => setTimeout(fn, ms), contenido = false }) {
   let ws = null, latido = null, sinAck = false, secuencia = null, sesion = null, urlReanudar = null, yo = null;
   let intentos = 0, parado = false;
+  const intents = () => INTENTS | (contenido ? CONTENIDO : 0);
 
   const enviar = datos => { if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(datos)); };
 
@@ -57,7 +62,7 @@ export function crearGateway({ token, urlApi = 'https://discord.com/api/v10', al
           enviar({ op: OP.HEARTBEAT, d: secuencia });
         }, p.d.heartbeat_interval);
         if (sesion) enviar({ op: OP.RESUME, d: { token, session_id: sesion, seq: secuencia } });
-        else enviar({ op: OP.IDENTIFY, d: { token, intents: INTENTS, properties: { os: 'linux', browser: 'gokudo', device: 'gokudo' },
+        else enviar({ op: OP.IDENTIFY, d: { token, intents: intents(), properties: { os: 'linux', browser: 'gokudo', device: 'gokudo' },
           presence: { status: 'online', activities: [{ type: 4, name: 'Mostrador de tickets', state: 'Mencióname con @ y te contesto' }], afk: false } } });
       } else if (p.op === OP.ACK) sinAck = false;
       else if (p.op === OP.HEARTBEAT) enviar({ op: OP.HEARTBEAT, d: secuencia });
@@ -74,6 +79,12 @@ export function crearGateway({ token, urlApi = 'https://discord.com/api/v10', al
       }
     });
     ws.on('close', codigo => {
+      // Se pidió leer el contenido y el portal no lo deja: se sigue sin él (las menciones funcionan igual)
+      if (codigo === 4014 && contenido) {
+        contenido = false;
+        log.error('Gateway de Discord: «Message Content Intent» no está activado en el Developer Portal; sigo sin leer las fuentes de scrims');
+        return reconectar(false);
+      }
       if (FATALES[codigo]) { parado = true; cerrarLatido(); log.error(`Gateway de Discord: se para (${codigo}, ${FATALES[codigo]})`); return; }
       reconectar(codigo !== 1000 && codigo !== 4007 && codigo !== 4009);
     });
@@ -84,5 +95,6 @@ export function crearGateway({ token, urlApi = 'https://discord.com/api/v10', al
     arrancar: () => conectar().catch(e => { log.error('Gateway de Discord:', e.message); reconectar(false); }),
     parar: () => { parado = true; cerrarLatido(); try { ws?.close(1000); } catch {} },
     yo: () => yo,
+    leeContenido: () => contenido,
   };
 }

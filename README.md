@@ -451,7 +451,24 @@ Lo pidió Pacopepe el 11/11/2026 (fase 1). Es `server/scrims.js` y, como los tic
 1. `npm run discord-aplicar -- --prueba --crear --env ../draft-app-discord/.env`, que solo debería decir «Crearía la categoría ⚔️ Scrims» y «Crearía el canal #🔎・scrims». Después, lo mismo sin `--prueba`.
 2. `npm run discord-scrims -- --env ../draft-app-discord/.env`, que publica el mensaje con los botones. Los ids quedan en `discord/ids.json` como `canal:scrims` y `mensaje:scrims`: hay que hacer commit de ese archivo.
 
-Pruebas: `test/scrims.test.js`.
+**Fase 2: la central de solo lectura** (11/11). SrDirector lee también las ofertas de scrims de fuera y las mete en el tablón. Solo salen al **buscar** y en **Avísame**, nunca como tarjeta. Llevan «vía *origen*» y el enlace al mensaje original, para que cada uno escriba al equipo por su cuenta.
+- **Solo lee.** Nunca escribe en las fuentes ni a nadie. Enviar algo fuera solo se hace con el permiso expreso de quien sea (regla de Pacopepe). Leer con una cuenta de persona (self-bot) está prohibido por Discord y no se hace.
+- **Fuentes:**
+  - **#📥・fuentes-scrims** (oculto, en Staff). Aquí llegan solos:
+    - los **canales de anuncios que se siguen**: en el canal del otro servidor, «Seguir» y se elige este. Llegan como copia, y el enlace va al original;
+    - la red **ScrimRéseau**, si se entra y se elige este canal como el de recepción.
+  - Los canales de **otros servidores que hayan invitado a SrDirector** con permiso de solo lectura: sus ids van en `SCRIMS_FUENTES`, separados por comas.
+- **Cómo lee cada mensaje:**
+  1. Un filtro gratis exige una hora y alguna palabra de scrims (scrim, LFS, Bo3, elo…).
+  2. Lo que pasa el filtro lo lee **Haiku**, con una respuesta en formato fijo: equipo, cuándo (en hora de España), elo, formato, región y contacto.
+  3. Solo se quedan las de **EUW**, o las que no dicen región. Se descartan las ya pasadas y las repetidas (mismo equipo y misma hora).
+  - Coste: unos 0,005 céntimos por mensaje leído. `SCRIMS_TOPE_LECTURAS` (1000 al día) pone el tope.
+- **Para encenderlo:**
+  1. Activar **Message Content Intent** en discord.com/developers › Bot. Es un interruptor: desde el 10/06/2026 no pide revisión mientras el bot lo vean menos de 10.000 personas.
+  2. Poner `DISCORD_LEER_FUENTES=1` en Render. Si el portal no lo tiene activado, el bot se conecta igual sin ese permiso, las menciones siguen funcionando y deja un aviso en el registro.
+  3. Crear #📥・fuentes-scrims con `discord-aplicar --crear`; ya está en `servidor.json`.
+
+Pruebas: `test/scrims.test.js` (también la fase 2, con un Claude falso) y la del permiso de leer en `test/discord-gateway.test.js`.
 
 ### Puntos del canal de Twitch
 

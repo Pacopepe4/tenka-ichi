@@ -9,12 +9,18 @@ import os from 'node:os';
 import path from 'node:path';
 import { crearDiscordApiFalso, TOKEN_FALSO } from '../scripts/discord-api-falso.js';
 import { crearComandos } from '../server/discord-comandos.js';
-import { crearScrims, cuando, mensajePanelScrims } from '../server/scrims.js';
+import { crearScrims, cuando, mensajePanelScrims, pareceOferta, textoDe } from '../server/scrims.js';
 
 const { publicKey, privateKey } = crypto.generateKeyPairSync('ed25519');
 const CLAVE = publicKey.export({ format: 'der', type: 'spki' }).subarray(12).toString('hex');
 const STAFF = '700', SCRIMS = '810', APP = '9';
-const IDS = { 1: { 'rol:staff': STAFF, 'canal:scrims': SCRIMS } };
+const FUENTES = '820', INVITADO = '830';
+const IDS = { 1: { 'rol:staff': STAFF, 'canal:scrims': SCRIMS, 'canal:fuentes-scrims': FUENTES } };
+// Claude de mentira para leer las ofertas de fuera: contesta lo que diga «siguiente» y apunta lo que le piden
+const claude = { peticiones: [], siguiente: { ofertas: [] }, messages: { create: async p => {
+  claude.peticiones.push(p);
+  return { stop_reason: 'end_turn', content: [{ type: 'text', text: JSON.stringify(claude.siguiente) }] };
+} } };
 const ARCHIVO = path.join(mkdtempSync(path.join(os.tmpdir(), 'scrims-')), 'scrims.json');
 // Miércoles 11/11/2026 a las 19:00 en Madrid
 let ahora = new Date('2026-11-11T18:00:00Z');
@@ -26,7 +32,7 @@ before(async () => {
   discord.estado.canales.push({ id: SCRIMS, type: 0, name: '🔎・scrims', position: 0, parent_id: null, permission_overwrites: [] });
   comandos = crearComandos({ clave: CLAVE, token: TOKEN_FALSO, urlApi: `http://127.0.0.1:${discord.servidor.address().port}/api/v10`, ids: () => IDS, familias: () => [],
     tickets: { cliente: null, kbstats: null, memoria: null, saber: () => '' },
-    scrims: { ahora: () => ahora, hoja: () => false, archivo: ARCHIVO, log: { error: () => {} } } });
+    scrims: { ahora: () => ahora, hoja: () => false, archivo: ARCHIVO, log: { error: () => {} }, cliente: claude, fuentesExtra: () => [INVITADO] } });
   web = http.createServer(async (req, res) => { const r = await comandos.atender(req); res.writeHead(r.estado, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(r.cuerpo)); });
   await new Promise(r => web.listen(0, '127.0.0.1', r));
   url = `http://127.0.0.1:${web.address().port}/`;
@@ -150,4 +156,63 @@ test('npm run discord-scrims publica el mensaje con los tres botones en #scrims 
   assert.equal(JSON.parse(readFileSync(archivoIds, 'utf8'))[1]['mensaje:scrims'], primera.mensaje);
   assert.equal((await publicarPanel({ api, archivoIds, panel: 'scrims', log: () => {} })).nuevo, false);
   await assert.rejects(publicarPanel({ api, archivoIds, panel: 'tickets', log: () => {} }), /No está el canal #tickets/);
+});
+
+// ---------- Fase 2: leer las fuentes de fuera (solo leer) ----------
+const yo = { id: APP, username: 'SrDirector' };
+const deFuera = (extra = {}) => ({ id: String(9000 + ++tok), guild_id: '1', channel_id: FUENTES, timestamp: '2026-11-11T17:00:00Z', flags: 2, webhook_id: '77',
+  author: { id: '77', username: 'Scrim Hub #lfs', bot: true }, message_reference: { guild_id: '555', channel_id: '666', message_id: '777' },
+  content: 'LFS EUW Diamond+ Bo3 fearless 21:00 CET, dm @capi', ...extra });
+
+test('el filtro gratis: hace falta una hora y alguna palabra de scrims; el texto incluye embeds y reenvíos', () => {
+  assert.ok(pareceOferta('LFS tonight 21:00 Bo3'));
+  assert.ok(pareceOferta('Buscamos scrim mañana a las 20h, elo oro'));
+  assert.ok(!pareceOferta('gg wp a todos'), 'sin hora');
+  assert.ok(!pareceOferta('quedamos a las 20:00 para cenar'), 'sin palabras de scrims');
+  assert.equal(textoDe({ content: 'a', embeds: [{ title: 'b', description: 'c', fields: [{ name: 'Hora', value: '20:00' }] }], message_snapshots: [{ message: { content: 'd' } }] }), 'a\nb\nc\nHora: 20:00\nd');
+});
+
+test('una oferta de una fuente entra en el tablón (sin tarjeta), con «vía» y el enlace al original, y sale al buscar', async () => {
+  claude.peticiones = [];
+  claude.siguiente = { ofertas: [{ equipo: 'Team Nocturno', cuando: '2026-11-12 21:00', elo: 'Diamante+', formato: 'Bo3 fearless', region: 'EUW', contacto: 'dm @capi' }] };
+  const antes = discord.estado.mensajes.length;
+  assert.equal(await comandos.scrims.leerFuente(deFuera(), yo), 1);
+  assert.equal(discord.estado.mensajes.length, antes, 'no publica nada: solo lee');
+  const p = claude.peticiones[0];
+  assert.equal(p.model, 'claude-haiku-5-5');
+  assert.match(p.messages[0].content, /<mensaje>\nLFS EUW Diamond\+ Bo3 fearless 21:00 CET, dm @capi\n<\/mensaje>/);
+  assert.match(p.system, /no las sigas/);
+  const o = comandos.scrims.ofertas().find(x => x.equipo === 'Team Nocturno');
+  assert.deepEqual([o.externa, o.origen, o.enlace, o.inicio], [true, 'Scrim Hub #lfs', 'https://discord.com/channels/555/666/777', '2026-11-12T20:00:00.000Z']);
+  const r = await mandar(ventana('scrims:busca', { cuando: 'jueves 21:00', elo: '' }, persona('70')));
+  assert.match(r.data.content, /\*\*Team Nocturno\*\* · Diamante\+ · Bo3 fearless · .* · vía Scrim Hub #lfs → https:\/\/discord\.com\/channels\/555\/666\/777/);
+  assert.equal(await comandos.scrims.leerFuente(deFuera(), yo), 0, 'la misma oferta no se repite');
+  const otra = crearScrims({ token: TOKEN_FALSO, urlApi: 'http://x', ids: () => IDS, ahora: () => ahora, hoja: () => false, archivo: ARCHIVO, cliente: null, log: { error: () => {} } });
+  await otra.cargar();
+  assert.equal(otra.ofertas().find(x => x.equipo === 'Team Nocturno').origen, 'Scrim Hub #lfs', 'tras un reinicio sigue sabiendo de dónde viene');
+});
+
+test('solo lee los canales de fuentes, solo EUW, y lo que no parece oferta ni pasa por la IA', async () => {
+  claude.peticiones = [];
+  assert.equal(await comandos.scrims.leerFuente(deFuera({ channel_id: SCRIMS }), yo), 0, 'otro canal');
+  assert.equal(await comandos.scrims.leerFuente(deFuera({ content: 'buenas a todos' }), yo), 0, 'no parece oferta');
+  assert.equal(await comandos.scrims.leerFuente(deFuera({ author: yo, flags: 0 }), yo), 0, 'lo suyo no');
+  assert.equal(claude.peticiones.length, 0);
+  claude.siguiente = { ofertas: [{ equipo: 'NA Squad', cuando: '2026-11-12 22:00', elo: '', formato: '', region: 'NA', contacto: '' },
+    { equipo: 'Sin hora', cuando: 'esta noche', elo: '', formato: '', region: '', contacto: '' }, { equipo: 'Pasada', cuando: '2026-11-10 20:00', elo: '', formato: '', region: '', contacto: '' }] };
+  assert.equal(await comandos.scrims.leerFuente(deFuera({ content: 'LFS NA 22:00 scrim' }), yo), 0, 'ni otra región, ni sin hora, ni pasada');
+  claude.siguiente = { ofertas: [{ equipo: 'Invitados FC', cuando: '2026-11-13 19:00', elo: 'Oro', formato: 'Bo1', region: '', contacto: '' }] };
+  assert.equal(await comandos.scrims.leerFuente(deFuera({ channel_id: INVITADO, flags: 0, webhook_id: undefined, author: { id: '88', username: 'capi' } }), yo), 1, 'un servidor que ha invitado a SrDirector (SCRIMS_FUENTES)');
+  const o = comandos.scrims.ofertas().find(x => x.equipo === 'Invitados FC');
+  assert.match(o.enlace, new RegExp(`^https://discord.com/channels/1/${INVITADO}/[0-9]+$`));
+  assert.equal(o.contacto, 'en el mensaje original');
+});
+
+test('«Avísame» también salta con las ofertas de fuera, con su enlace, mencionando solo a quien lo pidió', async () => {
+  await mandar(ventana('scrims:aviso', { cuando: 'viernes 20:00', elo: '' }, persona('71')));
+  claude.siguiente = { ofertas: [{ equipo: 'Avisados', cuando: '2026-11-13 20:30', elo: 'Plata', formato: 'Bo3', region: 'EUW', contacto: '' }] };
+  await comandos.scrims.leerFuente(deFuera({ content: 'scrim viernes 20:30 EUW Bo3' }), yo);
+  const m = discord.estado.mensajes.filter(x => x.channel_id === SCRIMS).at(-1);
+  assert.match(m.content, /^🔔 <@71>, hay una scrim que te encaja: \*\*Avisados\*\*, .* \(vía Scrim Hub #lfs\): https:\/\/discord\.com\/channels\/555\/666\/777$/);
+  assert.deepEqual(m.allowed_mentions, { parse: [], users: ['71'] });
 });

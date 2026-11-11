@@ -77,3 +77,35 @@ test('con el token mal (cierre 4004) se para y no lo reintenta', async () => {
     discord.servidor.close();
   }
 });
+
+test('si se pide leer el contenido y el portal no lo deja (4014), vuelve a conectarse sin él', async () => {
+  const gw = new WebSocketServer({ port: 0, host: '127.0.0.1' });
+  await new Promise(r => gw.on('listening', r));
+  const identificaciones = [];
+  gw.on('connection', socket => {
+    socket.on('message', d => {
+      const p = JSON.parse(String(d));
+      if (p.op !== 2) return;
+      identificaciones.push(p.d.intents);
+      if (p.d.intents & (1 << 15)) socket.close(4014);
+    });
+    socket.send(JSON.stringify({ op: 10, d: { heartbeat_interval: 1000 } }));
+  });
+  const errores = [];
+  const discord = crearDiscordApiFalso();
+  await new Promise(r => discord.servidor.listen(0, '127.0.0.1', r));
+  discord.estado.gateway = `ws://127.0.0.1:${gw.address().port}`;
+  const g = crearGateway({ token: TOKEN_FALSO, urlApi: `http://127.0.0.1:${discord.servidor.address().port}/api/v10`, alMensaje: () => {}, contenido: true,
+    log: { log: () => {}, error: (...a) => errores.push(a.join(' ')) }, esperar: (ms, fn) => setTimeout(fn, 5) });
+  try {
+    g.arrancar();
+    await esperarA(() => identificaciones.length >= 2);
+    assert.deepEqual(identificaciones.slice(0, 2), [513 | (1 << 15), 513]);
+    assert.equal(g.leeContenido(), false);
+    assert.ok(errores.some(e => /Message Content Intent/.test(e)));
+  } finally {
+    g.parar();
+    gw.close();
+    discord.servidor.close();
+  }
+});
