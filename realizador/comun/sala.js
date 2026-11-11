@@ -61,6 +61,21 @@ export class Sala extends EventEmitter {
     this.emit('companero', v);
   }
 
+  // Otra sala (la que el PC 1 ha apuntado en la web): se sale de la de ahora y se entra en la nueva enseguida
+  cambiarSala(nueva) {
+    if (!/^[0-9a-f]{64}$/.test(String(nueva || '')) || nueva === this.sala) return false;
+    this.sala = nueva;
+    this.esperaMs = 2000;
+    const ws = this.ws;
+    this.ws = null;
+    if (this.unido) this.emit('conexion', false);
+    this.unido = false;
+    this.ponerCompanero(false);
+    try { ws?.close(); } catch { /* ya cerrado */ }
+    if (!this.cerrado) this.conectar();
+    return true;
+  }
+
   // Render dormido tarda en despertar: se reintenta cada vez más despacio (hasta 15 s)
   reintentar() {
     if (this.cerrado) return;

@@ -8,7 +8,7 @@ export function condiciones(d) {
   const lista = [
     {
       id: 'pcs', texto: 'Los dos PCs conectados', ok: Boolean(d.pc1 && d.pc2), bloquea: true,
-      ayuda: (enPc1 ? 'Abre «Realizador PC2» en el PC de emisión, con la misma contraseña.' : 'Abre «Realizador PC1» en el otro PC, con la misma contraseña.')
+      ayuda: d.claveMal ? 'La contraseña de este PC no es la del panel de Gokudō: vuelve a pasar el instalador con la del panel (la misma en los dos PCs).' : (enPc1 ? 'Abre «Realizador PC2» en el PC de emisión, con la misma contraseña.' : 'Abre «Realizador PC1» en el otro PC, con la misma contraseña.')
         + (d.sala ? ` Los dos tienen que enseñar el mismo código de sala (este: ${d.sala}); si no coincide, la contraseña es distinta: vuelve a pasar el instalador con la misma en los dos.` : ''),
     },
     {

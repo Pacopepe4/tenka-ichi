@@ -570,7 +570,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
   function condicionesAhora() {
     return condiciones({
       papel: 'pc2', pc1: pc1Conectado(), pc2: true, partidaPc1: partidaPc1(), partidaPc2: Boolean(estado.playback),
-      obs: obs ? Boolean(obs.listo) : null, obsProblema: obs?.problema || null, bufer: emision.salidas ? emision.salidas.bufer : null, sala: codigoSala(o.clave),
+      obs: obs ? Boolean(obs.listo) : null, obsProblema: obs?.problema || null, bufer: emision.salidas ? emision.salidas.bufer : null, sala: sala?.sala ? String(sala.sala).slice(0, 4).toUpperCase() : codigoSala(o.clave), claveMal: estado.claveMal,
     });
   }
   function tAntenaAhora() {
@@ -619,7 +619,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
       tDirecto: tD, tAntena: tA, margenReal: tA !== null && tD !== null ? tD - tA : null, margen: o.margenSegundos,
       modoRele: estado.modo, manual: estado.manual,
       registro: registro.slice(0, 40).map(l => ({ hora: l.hora, quien: 'PC 2', que: l.texto })),
-      app: app.publico(),
+      app: { ...app.publico(), sala: sala?.sala ? String(sala.sala).slice(0, 4).toUpperCase() : null },
       grabador: grabador ? { activo: grabador.activo, forma: grabador.forma?.nombre || null } : null,
       vista: obs ? {
         escena: estado.escenaObs, escenas: escenasMano(), camaraVirtual: estado.camaraVirtual, modo: o.obs?.vista ?? 'camara',
@@ -709,7 +709,31 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
       else if (d.tipo === 'emision') emision.orden(d).catch(e => registrar(`[emisión] ${e.message}`));
     });
   }
+  // La sala la decide el PC 1 y la apunta en la web de Gokudō: aquí se recoge con la contraseña del panel y se entra en
+  // ella. Así los dos se encuentran aunque al instalar se escribiera la contraseña distinta en cada uno (11/11).
+  // Se pregunta siempre (cada 10 s mientras no está el PC 1; cada minuto con él), por si el PC 1 cambia o la web se
+  // reinicia. Si la web dice que la contraseña de este PC no vale, se dice en el panel.
+  estado.claveMal = false;
+  let ultimaPeticionSala = 0;
+  async function recogerSala() {
+    if (!sala || !tenka?.listo || typeof tenka.accion !== 'function') return;
+    const cada = sala.companero ? 60000 : 10000;
+    if (Date.now() - ultimaPeticionSala < cada) return;
+    ultimaPeticionSala = Date.now();
+    try {
+      const r = await tenka.accion('salaRealizador', {});
+      if (estado.claveMal) registrar('[puente] la contraseña del panel ya vale');
+      estado.claveMal = false;
+      if (r?.sala && sala.cambiarSala(r.sala)) registrar('[puente] sala del PC 1 recogida de la web: entrando en ella');
+    } catch (e) {
+      if (/contraseña/i.test(e.message)) {
+        if (!estado.claveMal) registrar('[puente] la contraseña de este PC no es la del panel de Gokudō: vuelve a pasar INSTALAR-PC2.bat con la del panel');
+        estado.claveMal = true;
+      }
+    }
+  }
   const vuelta = async () => {
+    recogerSala().catch(() => {});
     try { await paso(); } catch (e) { registrar(`[relé] ${e.message}`); }
     temporizador = setTimeout(vuelta, r.cadaMs);
   };

@@ -85,6 +85,23 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
     sala.on('aviso', t => avisar(`Puente: ${t}`));
     sala.conectar();
   }
+  // La sala la decide este PC y la apunta en la web de Gokudō (con la contraseña del panel): el PC 2 la recoge de
+  // ahí, así se encuentran aunque al instalar se escribiera la contraseña distinta en cada uno (11/11)
+  let salaApuntada = false;
+  let claveMal = false;
+  const apuntarSala = () => {
+    if (!sala || !tenka?.listo) return;
+    tenka.accion('salaRealizador', { sala: sala.sala }).then(() => {
+      if (!salaApuntada) log('Sala del realizador apuntada en la web: el PC 2 la recoge de ahí');
+      salaApuntada = true;
+      claveMal = false;
+    }).catch(e => {
+      if (/contraseña/i.test(e.message) && !claveMal) { claveMal = true; avisar('La contraseña de este PC no es la del panel de Gokudō: vuelve a pasar INSTALAR-PC1.bat con la del panel'); }
+    });
+  };
+  tenka?.on('conexion', v => { if (v) setTimeout(apuntarSala, 500); });
+  const temporizadorSala = setInterval(apuntarSala, 30000);
+  temporizadorSala.unref?.();
   ejecutor = new Ejecutor({ opciones: o, cerebro, explorador, obs, tenka, sala });
 
   // Modo IA (opcional): consejos para el overlay, elección de repetición y resumen final. Si falla, reglas.
@@ -188,7 +205,7 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
     const c = condiciones({
       papel: 'pc1', pc1: true, pc2: ejecutor.releConectado,
       partidaPc1: Boolean(conexiones.explorador && partida), partidaPc2: Boolean(a?.juego),
-      obs: a ? a.obs === true : null, bufer: a ? a.bufer ?? null : null, sala: app.publico().sala,
+      obs: a ? a.obs === true : null, bufer: a ? a.bufer ?? null : null, sala: sala?.sala ? String(sala.sala).slice(0, 4).toUpperCase() : null,
     });
     const faltan = Number.isFinite(a?.faltan) ? Math.max(0, a.faltan - (Date.now() - a.recibido) / 1000) : null;
     return {
@@ -217,7 +234,7 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
       registro: registro.slice(0, 40),
       avisos: avisos.slice(0, 10),
       ia: o.ia?.activo || otraIa ? ia.foto() : null,
-      app: app.publico(),
+      app: { ...app.publico(), sala: sala?.sala ? String(sala.sala).slice(0, 4).toUpperCase() : null },
     };
   }
 
@@ -271,6 +288,7 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
       sala?.cerrar();
       obs?.cerrar();
       clearInterval(temporizadorAdelanto);
+      clearInterval(temporizadorSala);
       tenka?.cerrar();
       panel.parar();
       app.parar();
