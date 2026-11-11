@@ -2,18 +2,20 @@
 // «Actualizar» del panel, igual en los dos PCs.
 //
 // Actualizar: la web dice qué versión reparte y la huella SHA-256 de cada zip (/puente/realizador-version.json).
-// Si hay una nueva y no se está emitiendo, se baja el zip de este PC, se comprueba la huella, se descomprime en
-// .actualizacion/nueva y se lanza instalar/aplicar-actualizacion.js (de la versión NUEVA, copiado fuera) en segundo
-// plano; este proceso se cierra. El aplicador espera a que se cierre, guarda la versión de ahora en
-// .actualizacion/anterior, pone la nueva conservando lo de este PC (opciones.local.json, partidas, node, ffmpeg…),
-// vuelve a pasar el instalador sin preguntar nada y abre otra vez el realizador. «Volver a la anterior» hace lo mismo
-// con .actualizacion/anterior.
+// Si hay una nueva y no se está emitiendo, se baja el zip de este PC, se comprueba la huella y se abre con Node en
+// .actualizacion/nueva (sin PowerShell). Luego se copia su instalar/aplicar-actualizacion.js en
+// .actualizacion/aplicar.mjs, se deja .actualizacion/pendiente.json y este proceso se cierra. Quien lo aplica es el
+// lanzador (windows/Realizador.vbs, que espera a que se cierre el realizador): pasa windows/_aplicar.bat y lo vuelve
+// a abrir. Así Node no lanza procesos ocultos por su cuenta (el 11/11 Kaspersky cortó la primera prueba, que sí lo
+// hacía). El aplicador guarda la versión de ahora en .actualizacion/anterior, pone la nueva conservando lo de este PC
+// (opciones.local.json, partidas, node, ffmpeg…) y vuelve a pasar el instalador sin preguntar nada.
+// «Volver a la anterior» hace lo mismo con .actualizacion/anterior.
 import { EventEmitter } from 'node:events';
 import { existsSync, readFileSync, mkdirSync, rmSync, writeFileSync, appendFileSync, copyFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
-import { spawn, execFileSync } from 'node:child_process';
 import { RAIZ } from './opciones.js';
+import { extraerZip } from './zip.js';
 
 export const CARPETA_ACT = '.actualizacion';
 
@@ -46,26 +48,19 @@ export function registroEnArchivo(o, nombre, { consola = console.log } = {}) {
   };
 }
 
-// Lanza un proceso que sigue vivo cuando este se cierra, sin ventana
-export function lanzarOculto(programa, args, { cwd } = {}) {
-  const p = spawn(programa, args, { cwd, detached: true, stdio: 'ignore', windowsHide: true });
-  p.unref();
-  return p;
-}
-
 function descomprimir(zip, destino) {
   rmSync(destino, { recursive: true, force: true });
   mkdirSync(destino, { recursive: true });
-  execFileSync('powershell', ['-NoProfile', '-Command', `Expand-Archive -LiteralPath '${zip.replace(/'/g, "''")}' -DestinationPath '${destino.replace(/'/g, "''")}' -Force`], { stdio: 'ignore', timeout: 300000, windowsHide: true });
+  extraerZip(readFileSync(zip), destino);
 }
 
 export class Actualizador extends EventEmitter {
   // ocupado(): texto con el motivo si ahora no se puede actualizar (emitiendo, partida en marcha), o null.
   // salir(): cierra el realizador (para la cámara, el grabador… y termina el proceso).
   constructor({ papel, o = {}, raiz = RAIZ, ocupado = () => null, salir = () => process.exit(0), bajar = fetch, registrar = () => {},
-    node = process.execPath, lanzar = lanzarOculto, abrirZip = descomprimir, cadaMinutos = 30 }) {
+    abrirZip = descomprimir, cadaMinutos = 30 }) {
     super();
-    Object.assign(this, { papel, o, raiz, ocupado, salir, bajar, registrar, node, lanzar, abrirZip, cadaMinutos });
+    Object.assign(this, { papel, o, raiz, ocupado, salir, bajar, registrar, abrirZip, cadaMinutos });
     this.act = join(raiz, CARPETA_ACT);
     this.estado = { ...versionInstalada(raiz), nueva: null, fase: 'nada', error: null, anterior: existsSync(join(this.act, 'anterior')), resultado: this.leerResultado() };
   }
@@ -100,11 +95,11 @@ export class Actualizador extends EventEmitter {
     return nueva;
   }
 
-  // Copia el aplicador fuera de las carpetas que se van a tocar y lo lanza en segundo plano
-  lanzarAplicador(desde, modo) {
-    const aplicador = join(this.act, 'aplicar.mjs');
-    copyFileSync(join(desde, 'instalar', 'aplicar-actualizacion.js'), aplicador);
-    this.lanzar(this.node, [aplicador, '--carpeta', this.raiz, '--papel', this.papel, '--esperar', String(process.pid), '--modo', modo], { cwd: this.act });
+  // Deja el aplicador fuera de las carpetas que se van a tocar y la actualización apuntada: la aplica el lanzador
+  // (windows/Realizador.vbs) en cuanto este proceso se cierre
+  dejarPendiente(desde, modo) {
+    copyFileSync(join(desde, 'instalar', 'aplicar-actualizacion.js'), join(this.act, 'aplicar.mjs'));
+    writeFileSync(join(this.act, 'pendiente.json'), JSON.stringify({ modo, papel: this.papel, hora: new Date().toISOString() }));
   }
 
   async actualizar() {
@@ -129,7 +124,7 @@ export class Actualizador extends EventEmitter {
       if (!existsSync(join(carpetaNueva, 'instalar', 'aplicar-actualizacion.js'))) throw new Error('la versión bajada no trae su actualizador');
       // Que no se pierda la versión nueva por el camino: se repite la comprobación de la huella del zip guardado
       if (createHash('sha256').update(readFileSync(zip)).digest('hex') !== nueva.sha256) throw new Error('el zip guardado no coincide');
-      this.lanzarAplicador(carpetaNueva, 'actualizar');
+      this.dejarPendiente(carpetaNueva, 'actualizar');
       this.registrar(`[app] actualizando a la versión ${nueva.version}: el realizador se cierra y se vuelve a abrir solo`);
       this.cambiar({ fase: 'aplicando' });
       setTimeout(() => this.salir(), 800);
@@ -144,7 +139,8 @@ export class Actualizador extends EventEmitter {
     const motivo = this.ocupado();
     if (motivo) throw new Error(motivo);
     if (!existsSync(join(this.act, 'anterior', 'comun'))) throw new Error('no hay una versión anterior guardada');
-    this.lanzarAplicador(this.raiz, 'volver');
+    mkdirSync(this.act, { recursive: true });
+    this.dejarPendiente(this.raiz, 'volver');
     this.registrar('[app] volviendo a la versión anterior: el realizador se cierra y se vuelve a abrir solo');
     this.cambiar({ fase: 'aplicando' });
     setTimeout(() => this.salir(), 800);

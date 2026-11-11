@@ -1,17 +1,18 @@
-// Aplica una actualización del realizador (o vuelve a la anterior) con el realizador ya cerrado. Lo lanza el botón
-// del panel (comun/app.js) copiado en .actualizacion/aplicar.mjs, en segundo plano y sin ventana. No importa nada
-// del realizador: las carpetas que toca se cambian mientras corre.
+// Aplica una actualización del realizador (o vuelve a la anterior) con el realizador ya cerrado. El botón del panel
+// (comun/app.js) lo deja copiado en .actualizacion/aplicar.mjs con .actualizacion/pendiente.json, y lo pasa el
+// lanzador (windows/Realizador.vbs → windows/_aplicar.bat) cuando el realizador se ha cerrado. No importa nada del
+// realizador: las carpetas que toca se cambian mientras corre.
 //
-//   node aplicar.mjs --carpeta <realizador> --papel pc1|pc2 --esperar <pid> --modo actualizar|volver
+//   node aplicar.mjs --carpeta <realizador> --papel pc1|pc2 [--modo actualizar|volver]   (el modo, de pendiente.json)
 //
-//  1. Espera a que se cierre el realizador (pid). En el PC 2 cierra también OBS (sin forzar) y el puente oculto,
-//     para poder volver a configurarlos.
+//  1. En el PC 2 cierra también OBS (sin forzar) y el puente oculto, para poder volver a configurarlos.
 //  2. actualizar: guarda lo de ahora en .actualizacion/anterior y pone .actualizacion/nueva.
 //     volver: pone .actualizacion/anterior y la borra.
 //     Nunca se tocan las cosas de este PC: opciones.local.json, partidas, node, node_modules, ffmpeg, la clave del
 //     puente, la clave de la IA ni la propia carpeta .actualizacion.
 //  3. Pasa el instalador sin preguntar (instalar.js <papel> --actualizar: usa la contraseña y la ruta guardadas).
-//  4. Deja lo que ha pasado en .actualizacion/resultado.json (el panel lo enseña) y abre otra vez el realizador.
+//  4. Deja lo que ha pasado en .actualizacion/resultado.json (el panel lo enseña) y quita pendiente.json; el
+//     lanzador vuelve a abrir el realizador.
 //  Si algo falla al copiar, vuelve a poner lo de antes.
 import { existsSync, readdirSync, statSync, mkdirSync, copyFileSync, rmSync, writeFileSync, readFileSync, appendFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -72,7 +73,7 @@ function cerrarPuente() {
   try { execFileSync('powershell', ['-NoProfile', '-Command', ps], { stdio: 'ignore', windowsHide: true, timeout: 30000 }); } catch { /* no estaba */ }
 }
 
-export async function aplicar({ carpeta, papel, esperar, modo = 'actualizar', node = process.execPath, instalar = true, relanzar = true, dormirFn = esperarCierre }) {
+export async function aplicar({ carpeta, papel, esperar, modo = 'actualizar', node = process.execPath, instalar = true, relanzar = false, dormirFn = esperarCierre }) {
   const act = join(carpeta, '.actualizacion');
   const log = texto => { try { appendFileSync(join(act, 'actualizacion.log'), `${new Date().toISOString()} ${texto}\n`); } catch { /* sin log */ } };
   const resultado = { ok: false, modo, hora: null, version: null, hechos: [], avisos: [], error: null };
@@ -132,6 +133,7 @@ export async function aplicar({ carpeta, papel, esperar, modo = 'actualizar', no
     }
   }
   resultado.ok = !resultado.error;
+  rmSync(join(act, 'pendiente.json'), { force: true });
   resultado.hora = new Date().toISOString();
   try { writeFileSync(join(act, 'resultado.json'), JSON.stringify(resultado, null, 2)); } catch { /* sin resultado */ }
 
@@ -151,6 +153,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const arg = n => { const i = args.indexOf(n); return i !== -1 ? args[i + 1] : undefined; };
   const carpeta = arg('--carpeta');
   if (!carpeta || !existsSync(join(carpeta, 'opciones.json'))) { console.error('Falta --carpeta del realizador'); process.exit(1); }
-  aplicar({ carpeta, papel: arg('--papel') === 'pc2' ? 'pc2' : 'pc1', esperar: arg('--esperar'), modo: arg('--modo') === 'volver' ? 'volver' : 'actualizar' })
+  let pendiente = {};
+  try { pendiente = JSON.parse(readFileSync(join(carpeta, '.actualizacion', 'pendiente.json'), 'utf8')); } catch { /* sin pendiente */ }
+  const modo = (arg('--modo') || pendiente.modo) === 'volver' ? 'volver' : 'actualizar';
+  aplicar({ carpeta, papel: (arg('--papel') || pendiente.papel) === 'pc2' ? 'pc2' : 'pc1', esperar: arg('--esperar'), modo, relanzar: args.includes('--relanzar') })
     .then(r => process.exit(r.ok ? 0 : 1));
 }

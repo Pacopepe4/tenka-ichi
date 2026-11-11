@@ -22,7 +22,9 @@ echo NO CIERRES ESTA VENTANA NEGRA mientras dure el directo (puedes minimizarla)
 echo.
 :arrancar
 if not defined SINPAGINA start "" /b cmd /c "ping -n 4 127.0.0.1 >nul & call "%~dp0_abrir-pagina.bat" http://localhost:4600/"
-"%NODE%" pc1\agente.js
+rem Si al cerrarse deja una actualizacion pendiente y no lo abrio Realizador.vbs, se la pasa a el (misma linea:
+rem el aplicador cambia este archivo)
+"%NODE%" pc1\agente.js & if not defined OCULTO if exist ".actualizacion\pendiente.json" (start "" wscript.exe "%~dp0Realizador.vbs" pc1 sinpagina & exit /b 0)
 if defined OCULTO exit /b 0
 echo.
 pause
