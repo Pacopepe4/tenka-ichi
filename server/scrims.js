@@ -18,6 +18,8 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { archivoDatos } from './datos.js';
 import { hojaActiva, asegurarPestana, leer, escribirEncima } from './sheets.js';
+import { crearValoracion, riotIdsDe, nombreDeValor, CITA } from './valoracion.js';
+import { eloNumero } from './elo.js';
 
 const AGENTE = 'DiscordBot (https://tenka-ichi.onrender.com, 1.0)';
 const BERMELLON = 0xBE2A2F;
@@ -111,7 +113,7 @@ const INSTRUCCIONES = `Lees mensajes de canales de scrims de League of Legends y
 
 export function mensajePanelScrims() {
   return {
-    embeds: [{ color: BERMELLON, title: '⚔️ Scrims de Gokudō', footer: { text: '極道 · Gokudō' },
+    embeds: [{ color: BERMELLON, title: '⚔️ Scrims de Gokudō', footer: { text: '極道 · Gokudō · MMR de WhatIsMyMMR.com · SrDirector no está respaldado por Riot Games' },
       description: '**📣 Publicar scrim**: pon cuándo, tu elo y el formato, y sale aquí como tarjeta (se borra sola al empezar).\n'
         + '**🔎 Buscar scrim**: dime cuándo quieres jugar y te enseño las que encajan.\n'
         + '**🔔 Avísame**: te menciono aquí en cuanto alguien publique una que te encaje.\n\n'
@@ -137,6 +139,7 @@ const ventanas = {
   buscar: { custom_id: 'scrims:busca', title: 'Buscar scrim', components: [
     campo('cuando', '¿Cuándo quieres jugar? (hora de España)', { max: 40, ejemplo: 'jueves 20:00' }),
     campo('elo', 'Elo (opcional)', { requerido: false, max: 40, ejemplo: 'Platino' }),
+    campo('mios', 'Tu equipo: Riot IDs o multi de op.gg (opcional)', { requerido: false, largo: true, max: 400, ejemplo: 'Nombre#TAG, Otro#EUW… o el enlace del multi de op.gg' }),
   ] },
   avisame: { custom_id: 'scrims:aviso', title: 'Avísame si sale una scrim', components: [
     campo('cuando', '¿Cuándo quieres jugar? (hora de España)', { max: 40, ejemplo: 'viernes 21:00' }),
@@ -150,7 +153,16 @@ const valor = (i, id) => String(i.data.components?.flatMap(f => f.components || 
 export function crearScrims({ token, urlApi, ids, ahora = () => new Date(), hoja = hojaActiva, asegurar = asegurarPestana, leerHoja = leer, escribirHoja = escribirEncima,
   archivo = archivoDatos('scrims.json'), log = console, cliente, modelo = process.env.TICKETS_MODELO || 'claude-haiku-5-5',
   fuentesExtra = () => String(process.env.SCRIMS_FUENTES || '').split(',').map(s => s.trim()).filter(Boolean),
-  topeLecturas = Number(process.env.SCRIMS_TOPE_LECTURAS) || 1000 } = {}) {
+  topeLecturas = Number(process.env.SCRIMS_TOPE_LECTURAS) || 1000, valoracion = crearValoracion() } = {}) {
+  // El nivel de un equipo (server/valoracion.js): por los Riot IDs que traiga la oferta (multi de op.gg, «Nombre#TAG»)
+  // o, si no trae, por el elo que pone. Se calcula por detrás y se guarda con la oferta
+  async function ponerNivel(o, texto) {
+    try {
+      const riotIds = riotIdsDe(texto);
+      const n = riotIds.length ? await valoracion.valorarEquipo(riotIds) : null;
+      o.nivel = n || (o.elo ? { v: eloNumero(o.elo), texto: nombreDeValor(eloNumero(o.elo)), jugadores: 0, mmr: 0, declarado: true } : null);
+    } catch (e) { log.error('Scrims: no he podido valorar un equipo:', e.message); }
+  }
   if (cliente === undefined) cliente = process.env.ANTHROPIC_API_KEY ? new Anthropic({ timeout: 60_000, maxRetries: 1 }) : null;
   const lecturas = new Map();   // día → mensajes de fuentes leídos con la IA (tope diario)
   const nombres = new Map();    // guild → nombre, para «vía …»
@@ -176,13 +188,15 @@ export function crearScrims({ token, urlApi, ids, ahora = () => new Date(), hoja
   const responderTarde = (i, datos) => pedir('PATCH', `/webhooks/${i.application_id}/${i.token}/messages/@original`, datos, { bot: false });
 
   // En la columna «Notas» va, en las de fuera, de dónde vienen ({ origen, enlace })
-  const aFila = o => [o.id, o.inicio, o.equipo, o.elo, o.formato, o.contacto, o.externa ? JSON.stringify({ origen: o.origen, enlace: o.enlace }) : '', o.autor, o.nombre, `${o.canal}/${o.mensaje}`, o.creada]
+  const extra = o => (o.externa || o.nivel ? JSON.stringify({ ...(o.externa && { origen: o.origen, enlace: o.enlace }), ...(o.nivel && { nivel: o.nivel }) }) : '');
+  const aFila = o => [o.id, o.inicio, o.equipo, o.elo, o.formato, o.contacto, extra(o), o.autor, o.nombre, `${o.canal}/${o.mensaje}`, o.creada]
     .map(s => (/^[=+\-@]/.test(String(s ?? '')) ? `'${s}` : String(s ?? '')));
   const deFila = f => {
     const [canal, mensaje] = String(f[9] || '').split('/');
     let fuera = null;
     try { fuera = String(f[6] || '').startsWith('{') ? JSON.parse(f[6]) : null; } catch {}
-    return { id: f[0], inicio: f[1], equipo: f[2], elo: f[3], formato: f[4], contacto: f[5], autor: f[7], nombre: f[8], canal, mensaje, creada: f[10], ...(fuera && { externa: true, origen: fuera.origen, enlace: fuera.enlace }) };
+    return { id: f[0], inicio: f[1], equipo: f[2], elo: f[3], formato: f[4], contacto: f[5], autor: f[7], nombre: f[8], canal, mensaje, creada: f[10],
+      ...(fuera?.origen && { externa: true, origen: fuera.origen, enlace: fuera.enlace }), ...(fuera?.nivel && { nivel: fuera.nivel }) };
   };
 
   async function cargar() {
@@ -279,6 +293,8 @@ export function crearScrims({ token, urlApi, ids, ahora = () => new Date(), hoja
       await guardar();
       await responderTarde(i, { content: `Publicada: ${enlace(o, i.guild_id)}`, allowed_mentions: { parse: [] } });
       await avisar(o, { guild: i.guild_id, autor: autor.id, responder: o.mensaje });
+      await ponerNivel(o, `${o.contacto}`);
+      if (o.nivel) await guardar();
     });
     return { type: DIFERIDA, data: { flags: SOLO_TU } };
   }
@@ -289,7 +305,21 @@ export function crearScrims({ token, urlApi, ids, ahora = () => new Date(), hoja
     const elo = valor(i, 'elo');
     const salen = vivas().filter(o => encaja(o, desde, elo)).sort((a, b) => a.inicio.localeCompare(b.inicio));
     if (!salen.length) return aviso(`Ahora mismo no hay ninguna scrim para ${cuandoTexto(desde)}${elo ? ` de ${elo}` : ''}. Pulsa **🔔 Avísame** y te menciono si sale una.`);
-    return aviso(`Scrims para ${cuandoTexto(desde)}${elo ? ` (${elo})` : ''}:\n${salen.slice(0, 10).map(o => `• **${o.equipo}** · ${o.elo || '—'} · ${o.formato || '—'} · ${cuandoTexto(new Date(o.inicio))}${o.externa ? ` · vía ${o.origen}` : ''} → ${enlace(o, i.guild_id)}`).join('\n')}`);
+    const mios = riotIdsDe(valor(i, 'mios'));
+    const nivelDe = o => (o.nivel ? ` · nivel ≈ ${o.nivel.texto}${o.nivel.mmr ? ` (MMR de ${o.nivel.mmr})` : o.nivel.declarado ? ' (declarado)' : ''}` : '');
+    const linea = (o, etiqueta = '') => `• ${etiqueta}**${o.equipo}**${nivelDe(o)} · ${o.elo || '—'} · ${o.formato || '—'} · ${cuandoTexto(new Date(o.inicio))}${o.externa ? ` · vía ${o.origen}` : ''} → ${enlace(o, i.guild_id)}`;
+    const conMmr = lista => (lista.some(o => o.nivel?.mmr) ? `\n-# ${CITA}` : '');
+    if (!mios.length) return aviso(`Scrims para ${cuandoTexto(desde)}${elo ? ` (${elo})` : ''}:\n${salen.slice(0, 10).map(o => linea(o)).join('\n')}${conMmr(salen)}\n-# Pon los Riot IDs de tu equipo al buscar y te las ordeno por nivel parecido.`);
+    // Con los Riot IDs de su equipo: se valora su equipo (puede tardar unos segundos) y se ordenan por nivel parecido
+    despues(async () => {
+      const mio = await valoracion.valorarEquipo(mios);
+      if (!mio) return responderTarde(i, { content: `No he encontrado el nivel de tu equipo (ni MMR ni rango), así que van por hora:\n${salen.slice(0, 10).map(o => linea(o)).join('\n')}${conMmr(salen)}`, allowed_mentions: { parse: [] } });
+      const distancia = o => (o.nivel ? Math.abs(o.nivel.v - mio.v) : 99);
+      const orden = salen.slice().sort((a, b) => distancia(a) - distancia(b) || a.inicio.localeCompare(b.inicio));
+      const etiqueta = o => (!o.nivel ? '❔ ' : Math.abs(o.nivel.v - mio.v) <= 2 ? '🟰 ' : o.nivel.v > mio.v ? '⬆️ ' : '⬇️ ');
+      await responderTarde(i, { content: `Tu equipo: nivel ≈ **${mio.texto}**${mio.mmr ? ` (MMR de ${mio.mmr} de ${mio.jugadores})` : ''}. Scrims para ${cuandoTexto(desde)}, primero las de tu nivel (🟰 parecido, ⬆️ más fuerte, ⬇️ más flojo, ❔ sin datos):\n${orden.slice(0, 10).map(o => linea(o, etiqueta(o))).join('\n')}${mio.mmr || orden.some(o => o.nivel?.mmr) ? `\n-# ${CITA}` : ''}`, allowed_mentions: { parse: [] } });
+    });
+    return { type: DIFERIDA, data: { flags: SOLO_TU } };
   }
 
   function avisame(i) {
@@ -373,6 +403,7 @@ export function crearScrims({ token, urlApi, ids, ahora = () => new Date(), hoja
       const o = { id: crypto.randomBytes(5).toString('hex'), inicio: inicio.toISOString(), equipo, elo: recortar(l.elo, 40), formato: recortar(l.formato, 60),
         contacto: recortar(l.contacto, 300) || 'en el mensaje original', autor: '', nombre: '', canal: '', mensaje: '', creada: ahora().toISOString(),
         externa: true, origen: await origenDe(m), enlace: enlaceDe(m) };
+      await ponerNivel(o, texto);
       ofertas.push(o);
       nuevas++;
       await avisar(o);

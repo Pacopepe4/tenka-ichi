@@ -16,6 +16,9 @@ import crypto from 'node:crypto';
 import { archivoDatos } from './datos.js';
 import { hojaActiva, asegurarPestana, leer, escribirEncima } from './sheets.js';
 import { cuando } from './scrims.js';
+import { eloNumero } from './elo.js';
+import { crearValoracion, riotIdsDe, nombreDeValor, CITA } from './valoracion.js';
+export { eloNumero };
 
 const AGENTE = 'DiscordBot (https://tenka-ichi.onrender.com, 1.0)';
 const BERMELLON = 0xBE2A2F, AZUL = 0x39C6F0;
@@ -33,18 +36,6 @@ const horaCorta = f => new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madr
 const aviso = texto => ({ type: MENSAJE, data: { content: texto, flags: SOLO_TU, allowed_mentions: { parse: [] } } });
 const valorDe = (i, id) => String(i.data.components?.flatMap(f => f.components || []).find(c => c.custom_id === id)?.value || '').trim();
 
-// El elo en número para equilibrar: Hierro IV = 0 … Challenger = 36. Entiende «Platino II», «plat 2», «D4», «Emerald 1»…
-const TIERS = [[/^(hierro|iron|i)$/, 0], [/^(bronce|bronze|b)$/, 4], [/^(plata|silver|s)$/, 8], [/^(oro|gold|g)$/, 12], [/^(platino|plat|platinum|p)$/, 16],
-  [/^(esmeralda|emerald|e)$/, 20], [/^(diamante|diamond|dia|d)$/, 24], [/^(master|maestro|m)$/, 28], [/^(grandmaster|gm|gran maestro)$/, 32], [/^(challenger|aspirante|chall|c)$/, 36]];
-const DIVISION = { iv: 0, 4: 0, iii: 1, 3: 1, ii: 2, 2: 2, i: 3, 1: 3 };
-export function eloNumero(texto) {
-  const t = sinTildes(texto).replace(/[^a-z0-9 ]/g, ' ').trim();
-  const m = /^([a-z]+(?: maestro)?)\s*([iv]+|[1-4])?\b/.exec(t) || /^([a-z])([1-4])$/.exec(t.replace(/\s+/g, ''));
-  if (!m) return 12;   // si no se entiende, como un oro
-  const tier = TIERS.find(([r]) => r.test(m[1]));
-  if (!tier) return 12;
-  return tier[1] + (tier[1] >= 28 ? 0 : (DIVISION[m[2]] ?? 0));
-}
 
 // Los equipos más igualados: un jugador de cada rol en cada lado (2^5 combinaciones)
 export function equilibrar(plazas) {
@@ -63,7 +54,7 @@ const NOMBRE_ELO = n => ['Hierro', 'Bronce', 'Plata', 'Oro', 'Platino', 'Esmeral
 
 export function mensajePanelInhouses() {
   return {
-    embeds: [{ color: BERMELLON, title: '🎲 Inhouses de Gokudō', footer: { text: '極道 · Gokudō' },
+    embeds: [{ color: BERMELLON, title: '🎲 Inhouses de Gokudō', footer: { text: '極道 · Gokudō · MMR de WhatIsMyMMR.com · SrDirector no está respaldado por Riot Games' },
       description: 'Personalizadas 5 contra 5 abiertas a toda la red de Gokudō.\n\n'
         + '**🎲 Convocar inhouse**: los Oyabun y el staff (en otros servidores de la red, su staff).\n'
         + '**Apúntate** con el botón de tu rol en la tarjeta de la inhouse: con 10, SrDirector hace los equipos igualados.\n'
@@ -80,7 +71,7 @@ export function mensajePanelInhouses() {
 const campo = (id, label, { requerido = true, max = 60, ejemplo = '', largo = false } = {}) => ({ type: FILA, components: [{ type: TEXTO, custom_id: id, label, style: largo ? 2 : 1, required: requerido, max_length: max, placeholder: ejemplo }] });
 
 export function crearInhouses({ token, urlApi, ids, red, ahora = () => new Date(), hoja = hojaActiva, asegurar = asegurarPestana, leerHoja = leer, escribirHoja = escribirEncima,
-  archivo = archivoDatos('inhouses.json'), archivoRanking = archivoDatos('ranking-inhouses.json'), log = console } = {}) {
+  archivo = archivoDatos('inhouses.json'), archivoRanking = archivoDatos('ranking-inhouses.json'), log = console, valoracion = crearValoracion() } = {}) {
   const base = urlApi.replace(/\/$/, '');
   let inhouses = [];     // las abiertas, llenas o en juego
   let ranking = {};      // id → { nombre, partidas, victorias }
@@ -151,7 +142,8 @@ export function crearInhouses({ token, urlApi, ids, red, ahora = () => new Date(
   const jugadores = x => ROLES.flatMap(([r]) => x.plazas[r]);
   const llena = x => ROLES.every(([r]) => x.plazas[r].length === PLAZAS);
   const nombreServidor = guild => (guild === casa() ? 'Gokudō' : red.canales('inhouses').find(c => c.guild === guild)?.nombre || 'otro servidor');
-  const linea = j => `${j.nombre} · ${j.elo}${j.guild !== casa() ? ` · ${nombreServidor(j.guild)}` : ''}`;
+  const nivelDe = j => (j.fuente === 'mmr' ? `${nombreDeValor(j.valor)} (MMR)` : j.fuente === 'riot' ? `${nombreDeValor(j.valor)} (Riot)` : j.elo);
+  const linea = j => `${j.nombre} · ${nivelDe(j)}${j.guild !== casa() ? ` · ${nombreServidor(j.guild)}` : ''}`;
 
   function tarjeta(x) {
     const cabecera = `**Cuándo:** ${cuandoTexto(x.inicio)}\n**Elo:** ${x.elo || 'abierto'} · **Convoca:** ${x.convoca.nombre}${x.convoca.guild !== casa() ? ` (${nombreServidor(x.convoca.guild)})` : ''}${x.notas ? `\n${x.notas}` : ''}`;
@@ -171,7 +163,7 @@ export function crearInhouses({ token, urlApi, ids, red, ahora = () => new Date(
         { type: BOTON, style: GRIS, custom_id: `inh:cancelar:${x.id}`, label: 'Cancelar' },
       ] });
     }
-    return { embeds: [{ color: x.equipos ? AZUL : BERMELLON, title: `🎲 Inhouse de las ${horaCorta(x.inicio)}`, description: cabecera, fields, footer: { text: estado } }],
+    return { embeds: [{ color: x.equipos ? AZUL : BERMELLON, title: `🎲 Inhouse de las ${horaCorta(x.inicio)}`, description: cabecera, fields, footer: { text: jugadores(x).some(j => j.fuente === 'mmr') ? `${estado} · ${CITA}` : estado } }],
       components: filas, allowed_mentions: { parse: [] } };
   }
 
@@ -241,7 +233,20 @@ export function crearInhouses({ token, urlApi, ids, red, ahora = () => new Date(
     if (jugadores(x).some(j => j.id === i.member.user.id)) return aviso('Ya estás apuntado en esta inhouse. Para cambiar de rol, desapúntate primero.');
     if (x.plazas[rol]?.length >= PLAZAS) return aviso('Ese rol ya está lleno.');
     return { type: VENTANA, data: { custom_id: `inh:apunta:${id}:${rol}`, title: `Apuntarme de ${ROLES.find(([r]) => r === rol)[1]}`,
-      components: [campo('elo', 'Tu elo (para hacer equipos igualados)', { max: 30, ejemplo: 'Platino II · Esmeralda 4 · D3' })] } };
+      components: [campo('riot', 'Tu Riot ID (para tu MMR o tu rango)', { max: 30, ejemplo: 'Nombre#TAG' }),
+        campo('elo', 'Tu elo, por si no se encuentra (opcional)', { requerido: false, max: 30, ejemplo: 'Platino II · Esmeralda 4 · D3' })] } };
+  }
+
+  // La valoración de cada jugador (server/valoracion.js): MMR de WhatIsMyMMR si lo hay, si no su rango de Riot, si no el
+  // elo que pone. Se calcula por detrás al apuntarse; los equipos se hacen cuando están las diez
+  const pendientes = new Map();   // id de inhouse:jugador → promesa
+  function valorarJugador(x, j) {
+    const p = valoracion.valorar(j.riot, j.elo === 'sin decir' ? '' : j.elo).then(v => {
+      if (v.v != null) j.valor = v.v;
+      j.nivel = v.texto; j.fuente = v.fuente;
+    }).catch(e => log.error('Inhouses: valoración:', e.message)).finally(() => pendientes.delete(`${x.id}:${j.id}`));
+    pendientes.set(`${x.id}:${j.id}`, p);
+    return p;
   }
 
   function apuntar(i, id, rol) {
@@ -250,16 +255,23 @@ export function crearInhouses({ token, urlApi, ids, red, ahora = () => new Date(
     const quien = i.member.user;
     if (jugadores(x).some(j => j.id === quien.id)) return aviso('Ya estás apuntado en esta inhouse.');
     if (!x.plazas[rol] || x.plazas[rol].length >= PLAZAS) return aviso('Ese rol ya está lleno.');
+    const riot = riotIdsDe(valorDe(i, 'riot'))[0] || (/#/.test(valorDe(i, 'riot')) ? recortar(valorDe(i, 'riot'), 30) : '');
     const elo = recortar(valorDe(i, 'elo'), 30) || 'sin decir';
-    x.plazas[rol].push({ id: quien.id, nombre: recortar(quien.global_name || quien.username, 40), elo, valor: eloNumero(elo), guild: i.guild_id });
+    const j = { id: quien.id, nombre: recortar(quien.global_name || quien.username, 40), riot, elo, valor: eloNumero(elo), guild: i.guild_id };
+    x.plazas[rol].push(j);
+    valorarJugador(x, j);
     const completa = llena(x);
-    if (completa) { x.equipos = equilibrar(x.plazas); x.estado = 'llena'; }
+    if (completa) x.estado = 'llena';   // ya no se apunta nadie más; los equipos, cuando estén las valoraciones
     despues(async () => {
+      if (completa) {
+        await Promise.all(jugadores(x).map(k => pendientes.get(`${x.id}:${k.id}`)).filter(Boolean));
+        x.equipos = equilibrar(x.plazas);
+      }
       await guardar();
       await repintar(x);
       if (completa) await avisarJugadores(x, `🎲 ¡Inhouse completa! Equipos hechos para ${cuandoTexto(x.inicio)}: mira la tarjeta. Os aviso 15 minutos antes.`);
     });
-    return aviso(`Apuntado de **${ROLES.find(([r]) => r === rol)[1]}** (${elo}).${completa ? ' ¡Con esto está completa: equipos hechos!' : ''}`);
+    return aviso(`Apuntado de **${ROLES.find(([r]) => r === rol)[1]}**${riot ? ` como ${riot}` : ''}.${completa ? ' ¡Con esto está completa: hago los equipos!' : ''}`);
   }
 
   function salir(i, id) {

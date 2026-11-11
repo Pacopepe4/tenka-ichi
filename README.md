@@ -498,6 +498,27 @@ Lo pidió Pacopepe el 11/11/2026. Son inhouses 5 contra 5 de LoL **abiertas a ot
 
 Pruebas: `test/inhouses.test.js`, con un servidor de fuera falso.
 
+### La valoración de los jugadores: MMR si lo hay
+
+Lo pidió Pacopepe el 11/11/2026: «que se base en el MMR, no en el elo». Está en `server/valoracion.js`. Cada jugador se valora por su **Riot ID** y se usa lo primero que haya:
+1. **El MMR de ranked de WhatIsMyMMR.com.** Su API es pública y gratis, y permite expresamente bots de Discord.
+   - Condiciones: citarlos (licencia CC BY 4.0), usar un User-Agent propio (`Node:es.gokudo.srdirector:v1.0`) y no pasar de 60 consultas por minuto. Se cumplen con la cita en los paneles y las tarjetas, y con una cola de una consulta por segundo.
+   - **Ojo:** solo tienen datos de quien ha jugado solo ranked hace poco y ya está en su base. El 11/11 no tenían ninguna de seis cuentas de la liga.
+2. **El rango oficial de SoloQ**, con la API de Riot y `RIOT_API_KEY`. Si no hay clave, se salta este paso.
+   - **Nunca calculamos un MMR nosotros:** las normas de Riot prohíben los «calculadores de MMR o de ELO». Solo se usa su rango tal cual (tier, división y LP).
+3. **El elo que declara el jugador.**
+
+Todo se pasa a la misma escala: Hierro IV = 0 … Diamante I = 27, Master 28 o más. Se guarda 6 horas por Riot ID. Los paneles llevan el aviso que pide Riot: «SrDirector no está respaldado por Riot Games».
+
+- **Scrims:**
+  - Al publicar (y en las ofertas de fuera), se sacan los Riot ID del texto: un multi de op.gg, un perfil de op.gg o «Nombre#TAG». El equipo se valora por detrás.
+  - En **Buscar** se pueden poner los Riot ID (o el multi de op.gg) de tu equipo, y salen primero los rivales de tu nivel: 🟰 parecido (dos divisiones o menos), ⬆️ más fuerte, ⬇️ más flojo, ❔ sin datos.
+- **Inhouses:** al apuntarse se pide el **Riot ID** (y el elo, por si no se encuentra). Los equipos se hacen cuando están las diez valoraciones, y la tarjeta enseña de dónde sale cada nivel: «(MMR)», «(Riot)» o el elo declarado.
+
+**La clave de Riot** (opcional, para el paso 2): en developer.riotgames.com, **Register Product › Personal API Key**, describiéndolo como un bot para una comunidad pequeña y privada. Las claves personales son para eso y no caducan; la de desarrollo caduca cada 24 horas. Se pone en Render como `RIOT_API_KEY`.
+
+Pruebas: `test/valoracion.test.js`, con un WhatIsMyMMR y una Riot de mentira.
+
 ### Puntos del canal de Twitch
 
 Los espectadores ganan puntos del canal viendo el directo (los da Twitch: por tiempo de visualización, por seguir, por rachas…) y los canjean en Twitch por la recompensa **Sobre de Tenka Ichi**, que les da un sobre del gachapon. Solo existen en canales afiliados o partner.

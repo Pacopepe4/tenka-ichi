@@ -15,6 +15,21 @@ const { publicKey, privateKey } = crypto.generateKeyPairSync('ed25519');
 const CLAVE = publicKey.export({ format: 'der', type: 'spki' }).subarray(12).toString('hex');
 const STAFF = '700', SCRIMS = '810', APP = '9';
 const FUENTES = '820', INVITADO = '830';
+// Valoración de mentira (sin internet): unos Riot IDs con MMR, otros con rango de Riot y el resto, el elo declarado
+const NIVELES = { 'fuerte#euw': [26, 'mmr'], 'igual#euw': [16, 'mmr'], 'flojo#euw': [6, 'riot'], 'mio#euw': [16, 'mmr'], 'alto#euw': [30, 'mmr'] };
+const VALORACION = {
+  valorar: async (riot, elo = '') => {
+    const n = NIVELES[String(riot).toLowerCase()];
+    if (n) return { v: n[0], fuente: n[1], texto: n[1] === 'mmr' ? `MMR ≈ ${1000 + n[0] * 60}` : 'rango de Riot' };
+    return elo ? { v: (await import('../server/elo.js')).eloNumero(elo), fuente: 'elo', texto: elo } : { v: null, fuente: 'ninguna', texto: 'sin datos' };
+  },
+  valorarEquipo: async ids => {
+    const vs = ids.map(i => NIVELES[i.toLowerCase()]).filter(Boolean);
+    if (!vs.length) return null;
+    const v = vs.reduce((s, x) => s + x[0], 0) / vs.length;
+    return { v, texto: `nivel ${v}`, jugadores: vs.length, mmr: vs.filter(x => x[1] === 'mmr').length };
+  },
+};
 const IDS = { 1: { 'rol:staff': STAFF, 'canal:scrims': SCRIMS, 'canal:fuentes-scrims': FUENTES } };
 // Claude de mentira para leer las ofertas de fuera: contesta lo que diga «siguiente» y apunta lo que le piden
 const claude = { peticiones: [], siguiente: { ofertas: [] }, messages: { create: async p => {
@@ -32,7 +47,7 @@ before(async () => {
   discord.estado.canales.push({ id: SCRIMS, type: 0, name: '🔎・scrims', position: 0, parent_id: null, permission_overwrites: [] });
   comandos = crearComandos({ clave: CLAVE, token: TOKEN_FALSO, urlApi: `http://127.0.0.1:${discord.servidor.address().port}/api/v10`, ids: () => IDS, familias: () => [],
     tickets: { cliente: null, kbstats: null, memoria: null, saber: () => '' },
-    scrims: { ahora: () => ahora, hoja: () => false, archivo: ARCHIVO, log: { error: () => {} }, cliente: claude, fuentesExtra: () => [INVITADO] } });
+    scrims: { ahora: () => ahora, hoja: () => false, archivo: ARCHIVO, log: { error: () => {} }, cliente: claude, fuentesExtra: () => [INVITADO], valoracion: VALORACION } });
   web = http.createServer(async (req, res) => { const r = await comandos.atender(req); res.writeHead(r.estado, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(r.cuerpo)); });
   await new Promise(r => web.listen(0, '127.0.0.1', r));
   url = `http://127.0.0.1:${web.address().port}/`;
@@ -87,7 +102,7 @@ test('buscar enseña las que empiezan una hora antes o después (y del elo que s
   await publicar({ cuando: 'viernes 21:00', equipo: 'Tengu Sombra', elo: 'Esmeralda' });
   const r = await mandar(ventana('scrims:busca', { cuando: 'viernes 21:30', elo: '' }, persona('30')));
   assert.equal(r.data.flags, 64);
-  assert.match(r.data.content, /\*\*Tengu Sombra\*\* · Esmeralda · Bo3 fearless/);
+  assert.match(r.data.content, /\*\*Tengu Sombra\*\* · nivel ≈ Esmeralda IV \(declarado\) · Esmeralda · Bo3 fearless/);
   assert.match(r.data.content, /https:\/\/discord\.com\/channels\/1\/810\/\d+/);
   assert.match((await mandar(ventana('scrims:busca', { cuando: 'viernes 21:00', elo: 'hierro' }, persona('30')))).data.content, /no hay ninguna scrim/);
   assert.match((await mandar(ventana('scrims:busca', { cuando: 'viernes 23:30', elo: '' }, persona('30')))).data.content, /Avísame/);
@@ -185,7 +200,7 @@ test('una oferta de una fuente entra en el tablón (sin tarjeta), con «vía» y
   const o = comandos.scrims.ofertas().find(x => x.equipo === 'Team Nocturno');
   assert.deepEqual([o.externa, o.origen, o.enlace, o.inicio], [true, 'Scrim Hub #lfs', 'https://discord.com/channels/555/666/777', '2026-11-12T20:00:00.000Z']);
   const r = await mandar(ventana('scrims:busca', { cuando: 'jueves 21:00', elo: '' }, persona('70')));
-  assert.match(r.data.content, /\*\*Team Nocturno\*\* · Diamante\+ · Bo3 fearless · .* · vía Scrim Hub #lfs → https:\/\/discord\.com\/channels\/555\/666\/777/);
+  assert.match(r.data.content, /\*\*Team Nocturno\*\* · nivel ≈ Diamante IV \(declarado\) · Diamante\+ · Bo3 fearless · .* · vía Scrim Hub #lfs → https:\/\/discord\.com\/channels\/555\/666\/777/);
   assert.equal(await comandos.scrims.leerFuente(deFuera(), yo), 0, 'la misma oferta no se repite');
   const otra = crearScrims({ token: TOKEN_FALSO, urlApi: 'http://x', ids: () => IDS, ahora: () => ahora, hoja: () => false, archivo: ARCHIVO, cliente: null, log: { error: () => {} } });
   await otra.cargar();
@@ -215,4 +230,19 @@ test('«Avísame» también salta con las ofertas de fuera, con su enlace, menci
   const m = discord.estado.mensajes.filter(x => x.channel_id === SCRIMS).at(-1);
   assert.match(m.content, /^🔔 <@71>, hay una scrim que te encaja: \*\*Avisados\*\*, .* \(vía Scrim Hub #lfs\): https:\/\/discord\.com\/channels\/555\/666\/777$/);
   assert.deepEqual(m.allowed_mentions, { parse: [], users: ['71'] });
+});
+
+test('con los Riot IDs de tu equipo, Buscar te ordena los rivales por nivel parecido (MMR o rango), y cita a WhatIsMyMMR', async () => {
+  for (const [equipo, contacto] of [['Rivales Fuertes', 'MD · Fuerte#EUW'], ['Rivales Iguales', 'Igual#EUW'], ['Rivales Flojos', 'https://op.gg/lol/summoners/euw/Flojo-EUW']]) {
+    await publicar({ cuando: 'domingo 19:00', equipo, elo: '', contacto }, persona('80'));
+  }
+  const nivel = equipo => comandos.scrims.ofertas().find(o => o.equipo === equipo).nivel;
+  assert.deepEqual([nivel('Rivales Fuertes').v, nivel('Rivales Iguales').v, nivel('Rivales Flojos').v], [26, 16, 6]);
+  const r = await mandar(ventana('scrims:busca', { cuando: 'domingo 19:00', elo: '', mios: 'Mio#EUW' }, persona('81')));
+  assert.deepEqual(r, { type: 5, data: { flags: 64 } }, 'contesta enseguida y valora por detrás');
+  const texto = discord.estado.respuestas[`s${tok}`].content;
+  assert.match(texto, /^Tu equipo: nivel ≈ \*\*nivel 16\*\* \(MMR de 1 de 1\)/);
+  const orden = [...texto.matchAll(/^• (\S+) \*\*(Rivales \w+)\*\*/gm)].map(m => `${m[1]} ${m[2]}`);
+  assert.deepEqual(orden.slice(0, 3), ['🟰 Rivales Iguales', '⬆️ Rivales Fuertes', '⬇️ Rivales Flojos']);
+  assert.match(texto, /MMR estimado por WhatIsMyMMR\.com · SrDirector no está respaldado por Riot Games/);
 });

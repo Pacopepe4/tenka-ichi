@@ -18,6 +18,21 @@ const APP = '9', CASA = '1', FUERA = '2';
 const STAFF = '700', OYABUN = '701', INH = '840', INH_FUERA = '850', CANAL_STAFF = '860', CATEGORIA = '870';
 const IDS = { [CASA]: { 'rol:staff': STAFF, 'rol:jefes': OYABUN, 'canal:inhouses': INH, 'canal:staff': CANAL_STAFF, 'categoria:scrims': CATEGORIA } };
 const carpeta = mkdtempSync(path.join(os.tmpdir(), 'inhouses-'));
+// Valoración de mentira (sin internet): unos Riot IDs con MMR, otros con rango de Riot y el resto, el elo declarado
+const NIVELES = { 'fuerte#euw': [26, 'mmr'], 'igual#euw': [16, 'mmr'], 'flojo#euw': [6, 'riot'], 'mio#euw': [16, 'mmr'], 'alto#euw': [30, 'mmr'] };
+const VALORACION = {
+  valorar: async (riot, elo = '') => {
+    const n = NIVELES[String(riot).toLowerCase()];
+    if (n) return { v: n[0], fuente: n[1], texto: n[1] === 'mmr' ? `MMR ≈ ${1000 + n[0] * 60}` : 'rango de Riot' };
+    return elo ? { v: (await import('../server/elo.js')).eloNumero(elo), fuente: 'elo', texto: elo } : { v: null, fuente: 'ninguna', texto: 'sin datos' };
+  },
+  valorarEquipo: async ids => {
+    const vs = ids.map(i => NIVELES[i.toLowerCase()]).filter(Boolean);
+    if (!vs.length) return null;
+    const v = vs.reduce((s, x) => s + x[0], 0) / vs.length;
+    return { v, texto: `nivel ${v}`, jugadores: vs.length, mmr: vs.filter(x => x[1] === 'mmr').length };
+  },
+};
 let ahora = new Date('2026-11-11T18:00:00Z');   // miércoles 19:00 en Madrid
 let discord, web, url, comandos, tok = 0, idInhouse;
 
@@ -32,7 +47,7 @@ before(async () => {
     tickets: { cliente: null, kbstats: null, memoria: null, saber: () => '' },
     scrims: { hoja: () => false, archivo: path.join(carpeta, 'scrims.json'), cliente: null, log: sinLog },
     red: { hoja: () => false, archivo: path.join(carpeta, 'red.json'), log: sinLog },
-    inhouses: { ahora: () => ahora, hoja: () => false, archivo: path.join(carpeta, 'inhouses.json'), archivoRanking: path.join(carpeta, 'ranking.json'), log: sinLog } });
+    inhouses: { ahora: () => ahora, hoja: () => false, archivo: path.join(carpeta, 'inhouses.json'), archivoRanking: path.join(carpeta, 'ranking.json'), log: sinLog, valoracion: VALORACION } });
   web = http.createServer(async (req, res) => { const r = await comandos.atender(req); res.writeHead(r.estado, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(r.cuerpo)); });
   await new Promise(r => web.listen(0, '127.0.0.1', r));
   url = `http://127.0.0.1:${web.address().port}/`;
@@ -110,7 +125,7 @@ test('apuntarse por rol (se pide el elo); las dos copias se actualizan; no dos v
   const ventanaRol = await mandar(clic(`inh:rol:${idInhouse}:TOP`, { quien: persona('50') }));
   assert.equal(ventanaRol.type, 9);
   assert.equal(ventanaRol.data.custom_id, `inh:apunta:${idInhouse}:TOP`);
-  assert.match((await mandar(ventana(`inh:apunta:${idInhouse}:TOP`, { elo: 'Platino II' }, { quien: persona('50') }))).data.content, /Apuntado de \*\*Top\*\* \(Platino II\)/);
+  assert.match((await mandar(ventana(`inh:apunta:${idInhouse}:TOP`, { riot: '', elo: 'Platino II' }, { quien: persona('50') }))).data.content, /^Apuntado de \*\*Top\*\*\.$/);
   assert.match((await mandar(ventana(`inh:apunta:${idInhouse}:TOP`, { elo: 'Diamante 4' }, { guild: FUERA, canal: INH_FUERA, quien: persona('60') }))).data.content, /Apuntado de \*\*Top\*\*/);
   for (const canal of [INH, INH_FUERA]) {
     const top = tarjetaEn(canal).embeds[0].fields[0];
@@ -129,7 +144,7 @@ test('con 10 se hacen los equipos igualados y se avisa a cada uno en su servidor
   assert.match((await mandar(clic('inh:salir:' + idInhouse, { quien: persona('54') }))).data.content, /Desapuntado/);
   await mandar(ventana(`inh:apunta:${idInhouse}:SUPPORT`, { elo: 'Platino 4' }, { quien: persona('54') }));
   const ultima = await mandar(ventana(`inh:apunta:${idInhouse}:SUPPORT`, { elo: 'Esmeralda 4' }, { guild: FUERA, canal: INH_FUERA, quien: persona('64') }));
-  assert.match(ultima.data.content, /está completa: equipos hechos/);
+  assert.match(ultima.data.content, /está completa: hago los equipos/);
   const x = comandos.inhouses.inhouses()[0];
   assert.equal(x.estado, 'llena');
   assert.ok(x.equipos.diferencia <= 4, `equipos igualados (diferencia ${x.equipos.diferencia})`);
@@ -175,4 +190,17 @@ test('«Avísame»: menciona a quien lo pidió en su servidor cuando convocan un
   await comandos.inhouses.reloj();
   assert.equal(comandos.inhouses.inhouses().length, 0);
   assert.match(tarjetaEn(INH).embeds[0].footer.text, /Cancelada · no se llenó/);
+});
+
+test('al apuntarse con su Riot ID se usa su MMR (o su rango de Riot) y la tarjeta cita a WhatIsMyMMR', async () => {
+  ahora = new Date('2026-11-15T10:00:00Z');
+  await mandar(ventana('inh:nueva', { cuando: 'domingo 22:00', elo: '', notas: '' }, { quien: persona('34', { roles: [STAFF] }) }));
+  const id = comandos.inhouses.inhouses().at(-1).id;
+  const v = await mandar(clic(`inh:rol:${id}:MEDIO`, { quien: persona('90') }));
+  assert.deepEqual(v.data.components.map(f => f.components[0].custom_id), ['riot', 'elo']);
+  assert.match((await mandar(ventana(`inh:apunta:${id}:MEDIO`, { riot: 'Alto#EUW', elo: '' }, { quien: persona('90') }))).data.content, /Apuntado de \*\*Medio\*\* como Alto#EUW/);
+  const t = tarjetaEn(INH);
+  assert.match(t.embeds[0].fields[2].value, /Jugador 90 · Master \(MMR\)/);
+  assert.match(t.embeds[0].footer.text, /MMR estimado por WhatIsMyMMR\.com/);
+  assert.match(mensajePanelInhouses().embeds[0].footer.text, /SrDirector no está respaldado por Riot Games/);
 });
