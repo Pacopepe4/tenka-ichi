@@ -350,3 +350,20 @@ details.ayuda[open] summary { margin-bottom: 6px; }
 .realizador-lista { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; font-size: 14px; }
 .realizador-lista li { display: flex; gap: 10px; }
 .realizador-lista .t { min-width: 52px; color: var(--hai); font-variant-numeric: tabular-nums; }
+
+/* ---------- Resumen final del realizador (la «replay final»): su bloque, su aviso en la barra y, con la cuenta atrás o en
+   antena, el apartado del realizador justo debajo de «En pantalla» ---------- */
+main > section#realizador[data-resumen="arriba"] { order: -2; }
+#realizadorResumenAviso[hidden], .realizador-resumen[hidden], .realizador-resumen .fila[hidden] { display: none; }
+#realizadorResumenAviso { border-color: rgba(235, 210, 138, .45); }
+#realizadorResumenAviso::before { background: var(--oro); box-shadow: 0 0 8px rgba(235, 210, 138, .8); }
+.realizador-resumen { margin-top: 14px; padding: 12px 14px 14px; border: 1px solid var(--sumi-linea); border-radius: 8px; background: var(--sumi); }
+.realizador-resumen h3 { margin: 0; }
+.realizador-resumen .estado { margin-top: 4px; font-size: 16px; color: var(--washi); font-variant-numeric: tabular-nums; }
+.realizador-resumen[data-fase="sin"] .estado, .realizador-resumen[data-fase=""] .estado { color: var(--hai); font-size: 14px; }
+.realizador-resumen .fila { margin-top: 10px; }
+#realizadorResumenLanzar { padding: 14px 26px; font-size: 17px; }
+.realizador-resumen[data-fase="cuenta"] { border-color: rgba(235, 210, 138, .5); box-shadow: 0 0 24px rgba(235, 210, 138, .08); }
+.realizador-resumen[data-fase="cuenta"] .estado { color: var(--oro); font-size: 20px; }
+.realizador-resumen[data-fase="emitiendo"] { border-color: rgba(224, 48, 58, .5); box-shadow: 0 0 24px rgba(224, 48, 58, .12); }
+.realizador-resumen[data-fase="emitiendo"] .estado { color: var(--shu-claro); font-weight: 700; }

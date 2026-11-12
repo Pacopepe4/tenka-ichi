@@ -31,6 +31,7 @@
     <a class="pastilla" id="chipDraftcore" href="#draftcore" data-ir="preparar" data-etiqueta="DraftCore" title="El draft de DraftCore: pulsa para conectarlo">Sin conectar</a>
     <a class="pastilla" id="chipPartida" href="#en-partida" data-ir="directo" data-etiqueta="Partida" title="El puente del PC del espectador y la partida">Sin puente</a>
     <a class="pastilla" id="realizadorConexion" href="#realizador" data-ir="directo" data-etiqueta="Realizador" title="El realizador automático (PC 1 y PC 2)">Sin conectar</a>
+    <a class="pastilla" id="realizadorResumenAviso" href="#realizador" data-ir="directo" data-etiqueta="Resumen" title="El resumen final de la partida: la cuenta atrás o el montaje en antena" hidden></a>
   </div>
   <!-- La contraseña buena, la que usan panel.js y realizador.js: la pone entrada.js -->
   <input id="clave" type="hidden">
@@ -147,6 +148,16 @@
       <p class="estado" id="realizadorEmision">Directo: esperando al PC 1</p>
       <div class="fila">
         <button id="realizadorEmitir">Empezar directo</button>
+      </div>
+      <!-- Resumen final de la partida (la «replay final»): cuenta atrás de 120 s en Casters y el montaje en la escena Resumen -->
+      <div class="realizador-resumen" id="realizadorResumen" hidden>
+        <h3>Resumen final</h3>
+        <p class="estado" id="realizadorResumenEstado" aria-live="polite"></p>
+        <div class="fila" id="realizadorResumenBotones">
+          <button type="button" id="realizadorResumenLanzar" disabled>Lanzar resumen ya</button>
+          <button type="button" id="realizadorResumenCancelar" class="secundario" disabled>Cancelar</button>
+          <button type="button" id="realizadorResumenRepetir" class="secundario" disabled>Repetir</button>
+        </div>
       </div>
       <p class="estado" id="realizadorPlano">Esperando al PC 1</p>
       <div class="fila">
