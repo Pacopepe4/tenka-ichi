@@ -1143,6 +1143,8 @@ const servidor = http.createServer(async (req, res) => {
     if (req.method !== 'POST') return json(res, { ok: false, error: 'Método no permitido' }, 405);
     const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
     const ahora = Date.now(), f = fallosClave.get(ip);
+    // Las direcciones que fallaron una vez y no volvieron se quedaban para siempre: de vez en cuando se barren las pasadas
+    if (fallosClave.size > 500) for (const [k, v] of fallosClave) if (ahora - v.desde > FRENO_CLAVE.ventana) fallosClave.delete(k);
     if (f && ahora - f.desde > FRENO_CLAVE.ventana) fallosClave.delete(ip);
     if ((fallosClave.get(ip)?.n || 0) >= FRENO_CLAVE.fallos) return json(res, { ok: false, error: 'Demasiados intentos' }, 429);
     let cuerpo;
