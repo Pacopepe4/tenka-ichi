@@ -1,6 +1,6 @@
 // Overlay de partida (/ingame/): marcador en directo con lo que manda el puente del PC donde se mira
 // la partida, temporizadores de los objetivos, lo que lleva cada clan (buffs, alma, inhibidores),
-// avisos de objetivos y resumen de pelea, la cámara del caster abajo a la derecha (si está activada) y, cuando lo
+// avisos de objetivos y resumen de pelea, la cámara del caster abajo a la izquierda (si está activada) y, cuando lo
 // saca el panel, el línea por línea, la ficha de un jugador o la gráfica de oro. Los clanes salen del
 // enfrentamiento del panel (lado azul a la izquierda).
 // El aspecto es el estilo A de Gokudō («Placas», estilo-a.css, acotado a data-estilo="a" en <body>). Pacopepe se quedó con
@@ -501,12 +501,12 @@ function pintarLineas(mostrar) {
   });
 }
 
-// ---------- cámara del caster en partida, abajo a la derecha ----------
-// Un hueco transparente abajo a la derecha (abajo a la izquierda va el minimapa del LoL): la cámara va por debajo del
+// ---------- cámara del caster en partida, abajo a la izquierda ----------
+// Un hueco transparente abajo a la izquierda (abajo a la derecha va el minimapa del LoL): la cámara va por debajo del
 // overlay en OBS, justo donde dice el panel (camaraPartida en comun.js). Va por su cuenta, se vea o no el línea por línea: sale (con su animación) cuando se
 // activa en el panel y hay partida, y se va al quitarla. Lleva el marco de caster: el emblema de Gokudō y el nombre y
-// el detalle que se escriban en el panel. Es ingame.camaras[0]; la segunda de la lista no sale (la izquierda de
-// antes chocaría con el minimapa)
+// el detalle que se escriban en el panel. Es ingame.camaras[0]; la segunda de la lista no sale (la derecha de
+// antes chocaría con el marco del minimapa)
 function pintarCamaraPartida() {
   const cam = estado?.ingame?.camaras?.[0];
   const ver = Boolean(cam?.activa && partida?.activo);

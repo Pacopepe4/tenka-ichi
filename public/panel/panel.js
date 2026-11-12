@@ -694,8 +694,8 @@ function pintarIngame() {
   pintarCamaraPartida();
 }
 
-// ---------- Cámara del caster en partida, abajo a la derecha ----------
-// Un solo hueco, abajo a la derecha (camaraPartida en comun.js; abajo a la izquierda va el minimapa), que va por su cuenta: no depende del línea por línea.
+// ---------- Cámara del caster en partida, abajo a la izquierda ----------
+// Un solo hueco, abajo a la izquierda (camaraPartida en comun.js; abajo a la derecha va el minimapa), que va por su cuenta: no depende del línea por línea.
 // Es ingame.camaras[0] en el estado (la segunda de la lista, la derecha de antes, ya no sale). Marcarla se aplica al
 // momento; el nombre y el detalle, con el botón, como en las cámaras del draft
 let camaraPartidaRellena = false;
@@ -715,7 +715,7 @@ function pintarCamaraPartida() {
 $('#camaraPartidaActiva').onchange = async e => {
   const activa = e.target.checked;
   const r = await enviar('ingame', { camaras: [{ activa }] });
-  if (r.ok) aviso(activa ? 'Cámara del caster activada: sale en la partida, abajo a la derecha' : 'Cámara del caster quitada');
+  if (r.ok) aviso(activa ? 'Cámara del caster activada: sale en la partida, abajo a la izquierda' : 'Cámara del caster quitada');
 };
 $('#guardarCamaraPartida').onclick = async () => {
   const r = await enviar('ingame', { camaras: [{ nombre: $('#camaraPartidaNombre').value.trim(), detalle: $('#camaraPartidaDetalle').value.trim() }] });

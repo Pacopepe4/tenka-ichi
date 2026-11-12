@@ -126,16 +126,17 @@ export function disposicionCamaras(n) {
 // Desde el 08/11 solo hay un estilo (el A)
 export const ESCALA_LINEAS = 0.68;  // 09/11: Pacopepe lo quiere más pequeño aún (antes 0.78)
 
-// Cámara del caster en partida: un hueco en 16:9 abajo a la derecha (el de la derecha de siempre), con la placa del
-// nombre (PLACA_CAMARA_PARTIDA) pegada debajo hasta el borde. Coordenadas del lienzo, sin la placa. Va por su cuenta,
-// se vea o no el línea por línea (12/11). El minimapa del LoL pasó abajo a la izquierda (marco del realizador en x 30,
-// y 804, 250×250: con su placa y su pestaña ocupa de x 0 a 300 y de y 780 al borde), así que ahí no va nada del
-// overlay: la cámara de la izquierda que había antes se quitó. Tampoco pisa la caja del línea por línea (hasta x 1490)
+// Cámara del caster en partida: un hueco en 16:9 abajo a la izquierda (el de la izquierda de siempre), con la placa
+// del nombre (PLACA_CAMARA_PARTIDA) pegada debajo hasta el borde. Coordenadas del lienzo, sin la placa. Va por su
+// cuenta, se vea o no el línea por línea (12/11). Abajo a la derecha va el marco del minimapa del LoL, pegado al borde
+// para que cuadre con el mapa (lo calibra el realizador: más o menos de x 1640 a 1920 y de y 780 al borde): ahí no va
+// nada del overlay (ZONA_MINIMAPA), así que la cámara de la derecha que había antes se quitó. Tampoco pisa la caja del
+// línea por línea (desde x 430)
 export const PLACA_CAMARA_PARTIDA = 44;
-export const ZONA_MINIMAPA = { x: 0, y: 780, w: 300, h: 300 };
+export const ZONA_MINIMAPA = { x: 1620, y: 780, w: 300, h: 300 };
 export function camaraPartida() {
   const w = 320, h = 180, margen = 16;
-  return { x: 1920 - margen - w, y: 1080 - PLACA_CAMARA_PARTIDA - h, w, h };
+  return { x: margen, y: 1080 - PLACA_CAMARA_PARTIDA - h, w, h };
 }
 // Alias de antes (lo que lo importe recibe ya solo el hueco de partida)
 export const camarasLineas = () => [camaraPartida()];

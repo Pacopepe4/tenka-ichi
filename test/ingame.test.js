@@ -226,47 +226,50 @@ test('el línea por línea va encogido a ESCALA_LINEAS: su caja de 1560×436 que
   const lineas = cajaLineas();
   assert.ok(Math.abs(lineas.x - 429.6) < 1 && Math.abs(lineas.x + lineas.w - 1490.4) < 1 && Math.abs(lineas.y - 783.5) < 1);
   assert.equal(lineas.y + lineas.h, 1080);
-  // Y no pisa la zona del minimapa, que va abajo a la izquierda
+  // Y no pisa la zona del minimapa, que va abajo a la derecha
   assert.ok(!seCruzan(lineas, ZONA_MINIMAPA), 'el línea por línea no pisa el minimapa');
 });
 
-test('la cámara del caster en partida: un solo hueco en 16:9 abajo a la derecha, con la placa hasta el borde', () => {
+test('la cámara del caster en partida: un solo hueco en 16:9 abajo a la izquierda, con la placa hasta el borde', () => {
   const h = camaraPartida();
-  assert.deepEqual(h, { x: 1584, y: 856, w: 320, h: 180 });
+  assert.deepEqual(h, { x: 16, y: 856, w: 320, h: 180 });
   assert.equal(h.w / h.h, 16 / 9, 'la cámara no se deforma');
   assert.equal(h.y + h.h + PLACA_CAMARA_PARTIDA, 1080, 'la placa del nombre llega justo al borde de abajo');
-  assert.ok(h.x + h.w + FILO_MARCO <= 1920, 'dentro del lienzo, con su filo');
+  assert.ok(h.x - FILO_MARCO >= 0, 'dentro del lienzo, con su filo');
   assert.equal(PLACA_CAMARA_PARTIDA, 44);
-  // La placa mide lo mismo en el CSS, y el marco lleva el radio de Gokudō arriba, como siempre
-  assert.match(leerRepo('public/ingame/ingame.css'), /\.placa-cam \{[^}]*height: 44px/);
+  // La placa mide lo mismo en el CSS, y el marco lleva el radio de Gokudō arriba, como siempre (sin espejo: va a la izquierda)
+  const css = leerRepo('public/ingame/ingame.css');
+  assert.match(css, /\.placa-cam \{[^}]*height: 44px/);
+  assert.ok(!/\.camara-partida \.placa-cam \{ flex-direction: row-reverse/.test(css));
   assert.match(leerRepo('public/ingame/estilo-a.css'), /\.camara-partida \{ border-radius: 8px 8px 0 0;/);
-  // El nombre de antes sigue valiendo, pero ya solo da este hueco (la cámara de la izquierda se quitó)
+  // El nombre de antes sigue valiendo, pero ya solo da este hueco (la cámara de la derecha se quitó)
   assert.deepEqual(camarasLineas(), [h]);
 });
 
-test('nada del overlay pisa el minimapa de abajo a la izquierda, y la cámara no pisa el línea por línea ni las fichas', () => {
-  // La zona del minimapa: el marco del realizador en x 30, y 804, 250×250, con su placa de 10, su sombra y la pestaña
-  // de arriba (unos 20 px por fuera)
-  const marco = { x: 30, y: 804, w: 250, h: 250 };
-  assert.ok(ZONA_MINIMAPA.x <= marco.x - 20 && ZONA_MINIMAPA.y <= marco.y - 20, 'la zona cubre el marco y lo que asoma');
-  assert.ok(ZONA_MINIMAPA.x + ZONA_MINIMAPA.w >= marco.x + marco.w + 20 && ZONA_MINIMAPA.y + ZONA_MINIMAPA.h === 1080);
+test('nada del overlay pisa el marco del minimapa de abajo a la derecha, y la cámara no pisa el línea por línea ni las fichas', () => {
+  // La zona del minimapa: su marco va pegado a la esquina de abajo a la derecha (más o menos de x 1640 a 1920 y de
+  // y 780 al borde, lo calibra el realizador), con algo de aire
+  assert.deepEqual(ZONA_MINIMAPA, { x: 1620, y: 780, w: 300, h: 300 });
+  assert.ok(ZONA_MINIMAPA.x <= 1640 && ZONA_MINIMAPA.y <= 780 && ZONA_MINIMAPA.x + ZONA_MINIMAPA.w >= 1920 && ZONA_MINIMAPA.y + ZONA_MINIMAPA.h >= 1080);
   const cam = marcoCamara(camaraPartida());
   assert.ok(!seCruzan(cam, ZONA_MINIMAPA), 'la cámara no pisa el minimapa');
   const lineas = cajaLineas();
   assert.ok(!seCruzan(cam, lineas), 'la cámara no pisa el línea por línea');
-  assert.ok(cam.x > lineas.x + lineas.w, 'y queda a su derecha, con aire');
+  assert.ok(cam.x + cam.w < lineas.x, 'y queda a su izquierda, con aire');
   // El marcador, los temporizadores, los módulos y los avisos van todos arriba (top de 112 a 172 px, en .arriba)
   assert.ok(cam.y > 700, 'muy por debajo del marcador y los avisos');
-  // Las fichas: la del lado azul empieza pasado el minimapa; la del rojo, con la cámara fuera, se aparta a su izquierda
+  // Las fichas: la del lado rojo no pisa el minimapa; la del azul, con la cámara fuera, se aparta a su derecha
   const css = leerRepo('public/ingame/ingame.css');
   const azul = cajaFicha({ left: px(reglaCss(css, '.ficha.azul'), 'left') });
+  const azulConCamara = cajaFicha({ left: px(reglaCss(css, 'body.con-camara-partida .ficha.azul'), 'left') });
   const rojo = cajaFicha({ right: px(reglaCss(css, '.ficha.rojo'), 'right') });
-  const rojoConCamara = cajaFicha({ right: px(reglaCss(css, 'body.con-camara-partida .ficha.rojo'), 'right') });
-  assert.ok([azul, rojo, rojoConCamara].every(f => Number.isFinite(f.x)), 'las tres posiciones se leen del CSS');
-  assert.ok(!seCruzan(azul, ZONA_MINIMAPA), 'la ficha azul no pisa el minimapa');
-  assert.ok(!seCruzan(rojo, ZONA_MINIMAPA) && !seCruzan(rojoConCamara, ZONA_MINIMAPA));
-  assert.ok(!seCruzan(rojoConCamara, cam), 'la ficha roja se aparta de la cámara');
-  assert.ok(azul.x < 960 && rojoConCamara.x + rojoConCamara.w > 960, 'cada una sigue en su lado');
+  assert.ok([azul, azulConCamara, rojo].every(f => Number.isFinite(f.x)), 'las tres posiciones se leen del CSS');
+  assert.equal(azul.x, 72, 'sin cámara, la ficha azul sigue donde estaba');
+  for (const f of [azul, azulConCamara, rojo]) assert.ok(!seCruzan(f, ZONA_MINIMAPA), 'ninguna ficha pisa el minimapa');
+  assert.ok(seCruzan(azul, cam), 'sin apartarse, la ficha azul chocaría con la cámara');
+  assert.ok(!seCruzan(azulConCamara, cam), 'la ficha azul se aparta de la cámara');
+  assert.ok(!seCruzan(rojo, cam));
+  assert.ok(azulConCamara.x < 960 && rojo.x + rojo.w > 960, 'cada una sigue en su lado');
 });
 
 // Las funciones de verdad de ingame.js, sacadas del archivo y ejecutadas con lo mínimo alrededor (sin navegador)
@@ -308,7 +311,7 @@ test('la cámara del caster sale por su cuenta en partida, se vea o no el línea
     pintarGraficos();
     assert.equal(mundo.pintadas.length, 1, `sale también con ${tipo}`);
   }
-  // Quitada en el panel: se va (aunque esté el línea por línea), y la ficha roja vuelve a su sitio
+  // Quitada en el panel: se va (aunque esté el línea por línea), y la ficha azul vuelve a su sitio
   mundo.estado = { grafico: { tipo: 'lineas' }, ingame: { camaras: camaras(false) } };
   pintarGraficos();
   assert.equal(mundo.lineas, true);

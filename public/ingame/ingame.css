@@ -224,7 +224,7 @@ body.oculto .sello::before, body.oculto .retrato::before { animation-play-state:
 .barra .relleno.rojo { left: 50%; transform-origin: 0 50%; }
 .dif { white-space: nowrap; }
 
-/* ---------- Cámara del caster en partida (abajo a la derecha; a la izquierda va el minimapa) ---------- */
+/* ---------- Cámara del caster en partida (abajo a la izquierda; a la derecha va el minimapa) ---------- */
 /* La ventana es transparente: la cámara va por debajo del overlay en OBS, en la posición que da el panel
    (camaraPartida en comun.js, que es quien la coloca). Entra y sale por su cuenta, se vea o no el línea por línea */
 .camaras-partida { position: absolute; inset: 0; pointer-events: none; }
@@ -239,9 +239,6 @@ body.oculto .sello::before, body.oculto .retrato::before { animation-play-state:
 .sello-cam img { width: 24px; height: 24px; object-fit: contain; }
 .nombre-cam { position: relative; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .detalle-cam { position: relative; min-width: 0; margin-left: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* Va en el lado derecho: en espejo, como todo el lado rojo */
-.camara-partida .placa-cam { flex-direction: row-reverse; }
-.camara-partida .detalle-cam { margin-left: 0; margin-right: auto; }
 /* Guía para colocar las cámaras en OBS (?guia=1 o la vista previa del panel): la ventana rayada, con su medida */
 .medidas-cam { display: none; }
 body.guia .medidas-cam { display: grid; place-items: center; position: absolute; inset: 0;
@@ -250,12 +247,12 @@ body.guia .medidas-cam { display: grid; place-items: center; position: absolute;
 
 /* ---------- Ficha de un jugador (abajo, en el lado de su clan) ---------- */
 .ficha { position: absolute; bottom: 56px; display: grid; grid-template-columns: 290px 400px; gap: 22px; align-items: stretch; animation: fichaEntra var(--t-lento) var(--curva) both; }
-/* La del lado azul empieza pasada la zona del minimapa, que va abajo a la izquierda (ZONA_MINIMAPA en comun.js: hasta
-   x 300 y desde y 780); antes iba en x 72 */
-.ficha.azul { left: 324px; }
-.ficha.rojo { right: 72px; grid-template-columns: 400px 290px; transition: right var(--t-medio) var(--curva); }
-/* Con la cámara del caster fuera (abajo a la derecha, desde x 1584), la del lado rojo se aparta a su izquierda */
-body.con-camara-partida .ficha.rojo { right: 360px; }
+.ficha.azul { left: 72px; transition: left var(--t-medio) var(--curva); }
+/* Con la cámara del caster fuera (abajo a la izquierda, hasta x 336), la del lado azul se aparta a su derecha */
+body.con-camara-partida .ficha.azul { left: 360px; }
+/* La del lado rojo no pisa el marco del minimapa, abajo a la derecha (ZONA_MINIMAPA en comun.js: desde x 1620 y desde
+   y 780); antes iba a 72 px del borde y se metía en él */
+.ficha.rojo { right: 324px; grid-template-columns: 400px 290px; }
 .ficha.rojo .ficha-carta { order: 2; }
 .ficha.sale { animation: fichaSale var(--t-medio) var(--curva-salida) both; }
 @keyframes fichaEntra { from { opacity: 0; transform: translateY(30px); } }
