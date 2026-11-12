@@ -12,6 +12,7 @@ import { anunciar, ficha, igual, CABECERA } from '../comun/puente.js';
 import { Sala } from '../comun/sala.js';
 import { Obs, segundosAtras } from '../pc1/obs.js';
 import { Emision } from './emision.js';
+import { Resumen, reloj } from './resumen.js';
 import { condiciones } from '../comun/condiciones.js';
 import { arrancarPanel } from '../pc1/panel.js';
 import { POR_DEFECTO as BORDES, ajusteBorde, suavizar, zoomConBorde, posicionSeguido } from './bordes.js';
@@ -22,6 +23,7 @@ import { Actualizador, codigoSala } from '../comun/app.js';
 import { abrirObs, obsCorriendo } from './abrir-obs.js';
 import { readFileSync, writeFileSync, existsSync, appendFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { pathToFileURL as aUrl } from 'node:url';
 import { RAIZ } from '../comun/opciones.js';
 
 // Qué enseña el panel de Gokudō: un draft en marcha (DraftCore conectado o con turnos), el draft recién
@@ -113,7 +115,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
   const conVista = (o.obs?.vista ?? 'camara') !== 'no';
   if (typeof obs?.on === 'function') {
     obs.on('evento', d => {
-      if (d?.eventType === 'CurrentProgramSceneChanged') { estado.escenaObs = d.eventData?.sceneName || null; panel?.emitir(); }
+      if (d?.eventType === 'CurrentProgramSceneChanged') { estado.escenaObs = d.eventData?.sceneName || null; resumen.fueraDeEscena(estado.escenaObs); panel?.emitir(); }
       if (d?.eventType === 'VirtualcamStateChanged') { estado.camaraVirtual = Boolean(d.eventData?.outputActive); panel?.emitir(); }
     });
     obs.on('conexion', async v => {
@@ -208,6 +210,30 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
     opciones: o.emision, obs, registrar,
     escenas: { juego: o.obs?.escenaJuego, previa: o.obs?.escenaPausa, final: o.obs?.escenaCasters, draft: o.obs?.escenaDraft || 'Draft' },
   });
+
+  // Resumen en vídeo al acabar la partida (pc2/resumen.js): los clips de las jugadas destacadas, seguidos, en la escena
+  // Resumen. Primero el clip del búfer de OBS, que lleva el sonido del juego (Pacopepe, 12/11: «Búfer de OBS», aunque
+  // se vea el marcador dentro); si no lo hay, el limpio del LoL, que va sin sonido.
+  const urlPlaca = aUrl(join(RAIZ, 'obs', 'resumen.html')).href;
+  const resumen = new Resumen({
+    opciones: o.resumen, obs, registrar,
+    escenas: { resumen: o.obs?.escenaResumen || 'Resumen', casters: o.obs?.escenaCasters || 'Casters' },
+    fuente: o.obs?.fuenteResumen || 'Resumen clip', placa: o.obs?.placaResumen || 'Overlay RESUMEN',
+    urlPlaca: item => `${urlPlaca}?t=${encodeURIComponent(reloj(item.t ?? item.desde))}`,
+    clipDe: jugada => [
+      estado.clips.get(jugada) && { ...estado.clips.get(jugada), bufer: o.obs?.segundosBufer ?? 60 },
+      estado.clipsLol.get(jugada) && { ...estado.clipsLol.get(jugada), bufer: o.clips?.clipSegundos ?? 60 },
+    ].filter(Boolean),
+    // La antena llegó al final y aún falta algún clip (la API del LoL se calla al acabar): un último clip del búfer
+    guardarFinal: async jugadas => {
+      if (!obs?.listo || !jugadas.length) return;
+      const ruta = await obs.guardarRepeticion();
+      const t = (Number.isFinite(estado.tFin) ? estado.tFin : tAntenaAhora() ?? 0) + (o.emision?.segundosTrasFin ?? 5);
+      for (const j of jugadas) estado.clips.set(j, { ruta, t });
+      registrar(`[resumen] clip del final guardado para ${jugadas.join(', ')}`);
+    },
+  });
+  emision.on('final', () => { resumen.alAcabarEnAntena().catch(e => registrar(`[resumen] ${e.message}`)); });
 
   // Panel de Gokudō (solo para mirar): si hay draft, y cuántas cámaras tiene puestas
   const tenka = otroTenka !== undefined ? otroTenka
@@ -587,6 +613,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
         finEsperado: Number.isFinite(estado.finHora) ? estado.finHora + o.margenSegundos * 1000 : null,
       });
     } catch (e) { registrar(`[emisión] ${e.message}`); }
+    resumen.actualizar({ draft: Boolean(draftDeTenka(tenka?.estado)), enJuego: emision.fase === 'previa' || emision.fase === 'directo' });
     camaras?.paso().catch(() => {});
   }
   // Segundos que faltan para que la partida salga en antena (desde el principio)
@@ -601,6 +628,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
       obs: obs ? obs.listo : null,
       juego: Boolean(pb), faltan: faltan(), emision: emision.publico(),
       bufer: emision.salidas ? emision.salidas.bufer : null,
+      resumen: obs ? resumen.publico() : null,  // sin OBS en este PC no hay resumen en vídeo
     };
   }
 
@@ -615,7 +643,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
       camaras: camaras ? camaras.publico() : null,
       draft: draftDeTenka(tenka?.estado),
       condiciones: c.lista, listo: c.listo,
-      emision: emision.publico(), faltan: faltan(),
+      emision: emision.publico(), faltan: faltan(), resumen: obs ? resumen.publico() : null,
       tDirecto: tD, tAntena: tA, margenReal: tA !== null && tD !== null ? tD - tA : null, margen: o.margenSegundos,
       modoRele: estado.modo, manual: estado.manual,
       registro: registro.slice(0, 40).map(l => ({ hora: l.hora, quien: 'PC 2', que: l.texto })),
@@ -652,7 +680,10 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
     }
     if (typeof d.enPartida === 'boolean') estado.pc1EnPartida = d.enPartida;
     if (Array.isArray(d.planos)) estado.planos = d.planos.filter(p => Number.isFinite(p.inicio)).sort((a, b) => a.inicio - b.inicio);
-    if (Array.isArray(d.obs)) estado.accionesObs = d.obs.filter(a => a && a.id && Number.isFinite(a.t));
+    // Con el id de la partida delante: las jugadas se llaman igual en cada partida (j1, j2…) y si no, en la segunda
+    // partida de una serie se saltarían sus clips y repeticiones como «ya hechas»
+    if (Array.isArray(d.obs)) estado.accionesObs = d.obs.filter(a => a && a.id && Number.isFinite(a.t)).map(a => (d.partida ? { ...a, id: `${d.partida}/${a.id}` } : a));
+    if (Array.isArray(d.resumen)) resumen.recibirLista(d.resumen);
     if (typeof d.manual === 'boolean') {
       if (estado.manual && !d.manual) { estado.ordenManual = null; registrar('[relé] el realizador vuelve a mandar'); }
       estado.manual = d.manual;
@@ -685,6 +716,10 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
         await emision.orden(await leerCuerpo(req));
         return responder(res, { ok: true, emision: emision.publico() });
       }
+      if (req.method === 'POST' && url.pathname === '/resumen') {
+        await resumen.orden(await leerCuerpo(req));
+        return responder(res, { ok: true, resumen: resumen.publico() });
+      }
       responder(res, { ok: false, error: 'No existe' }, 404);
     } catch (e) {
       responder(res, { ok: false, error: e.message }, 500);
@@ -707,6 +742,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
       // Un PC 1 anterior mandaba la orden suelta (su tipo pisaba el del mensaje): también vale
       else if (d.tipo === 'seguir' || d.tipo === 'general') recibirOrden(d);
       else if (d.tipo === 'emision') emision.orden(d).catch(e => registrar(`[emisión] ${e.message}`));
+      else if (d.tipo === 'resumen') resumen.orden(d).catch(e => registrar(`[resumen] ${e.message}`));
     });
   }
   // La sala la decide el PC 1 y la apunta en la web de Gokudō: aquí se recoge con la contraseña del panel y se entra en
@@ -750,12 +786,14 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
 
   // Cada cambio de la emisión sale enseguida hacia el PC 1 (y su página), sin esperar al latido
   emision.on('cambio', () => { sala?.enviar({ tipo: 'estado', ...estadoPublico() }); panel?.emitir(); });
+  resumen.on('cambio', () => { sala?.enviar({ tipo: 'estado', ...estadoPublico() }); panel?.emitir(); });
   let panel = null;
 
   rele = {
     app,
     estado,
     emision,
+    resumen,
     camaras,
     elegirCamaras,
     foto,
@@ -764,6 +802,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
         panel = arrancarPanel({
           puerto: o.panelPc2?.puerto ?? 4601, host: '127.0.0.1', foto,
           emision: d => emision.orden(d),
+          resumen: d => resumen.orden(d),
           camaras: async d => {
             if (d?.leer) { await camaras?.leerDisponibles(); return; }
             elegirCamaras(d?.elegidos);
@@ -799,7 +838,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
       return servidor;
     },
     parar() {
-      clearTimeout(temporizador); parado = true; clearTimeout(temporizadorBordes); clearInterval(latido); anuncio?.parar(); sala?.cerrar();
+      clearTimeout(temporizador); parado = true; resumen.detener(); clearTimeout(temporizadorBordes); clearInterval(latido); anuncio?.parar(); sala?.cerrar();
       if (otroTenka === undefined) tenka?.cerrar();
       if (typeof conObs !== 'object') obs?.cerrar();
       if (otroGrabador === undefined) grabador?.parar();

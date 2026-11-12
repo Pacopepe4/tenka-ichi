@@ -101,10 +101,10 @@ Todos los tiempos están en `reglas` de `opciones.json`.
 
 En el PC donde va OBS (el PC 2, o el mismo PC en las pruebas), con OBS **cerrado**: doble clic en `windows/4-configurar-obs.bat` (o `npm run configurar-obs`). Deja hecho:
 
-- **Colección de escenas `Realizador`** con `Juego` (captura de la ventana de LoL + overlay de Gokudō), `Repeticion` (fuente multimedia `Repeticion clip`, overlay y `Overlay REPLAY`, la placa REPETICIÓN de `obs/replay.html`), `Casters` (fondo, cámara y rótulo), `Pausa` (fondo y rótulo) y `Draft` (cuatro cámaras `Camara draft 1…4` debajo del overlay). Los nombres salen de `obs` en `opciones.json`.
-- **Transiciones `Repeticion entrada` y `Repeticion salida`**: stingers de `obs/repeticion-entrada.webm` y `obs/repeticion-salida.webm` (0,9 s con transparencia; tapan la pantalla a los 400 ms, que es cuando OBS cambia de escena). Se usan desde la carpeta del realizador: si la mueves, vuelve a ejecutar el instalador.
+- **Colección de escenas `Realizador`** con `Juego` (captura de la ventana de LoL + overlay de Gokudō), `Repeticion` (fuente multimedia `Repeticion clip`, overlay y `Overlay REPLAY`, la placa REPETICIÓN de `obs/replay.html`), `Casters` (fondo, cámara y rótulo), `Pausa` (fondo y rótulo), `Draft` (cuatro cámaras `Camara draft 1…4` debajo del overlay) y `Resumen` (fuente multimedia `Resumen clip` y la placa `Overlay RESUMEN` de `obs/resumen.html`; ver «Resumen en vídeo»). Los nombres salen de `obs` en `opciones.json`.
+- **Transiciones `Repeticion entrada` y `Repeticion salida`**: stingers de `obs/repeticion-entrada.webm` y `obs/repeticion-salida.webm` (1 s con transparencia; una barrida de noche con el filo bermellón que tapa la pantalla del todo de 0,25 a 0,68 s, y OBS cambia de escena a los 400 ms. Se generan con `node herramientas/barrida/generar.js`). Se usan desde la carpeta del realizador: si la mueves, vuelve a ejecutar el instalador.
 - **Cámaras del draft:** se eligen una vez en la página del PC 2 (http://localhost:4601/, pestaña **Cámaras**): qué cámara del PC va en cada hueco. Cuántas salen y qué es cada una se pone en el panel de Gokudō (apartado Cámaras); el relé las encaja solo en los huecos del overlay. Sin elegir nada, van las cámaras del PC por orden.
-- **Perfil `Realizador`**: copia del perfil que usas ahora (clave de emisión, codificador, resolución) con el búfer de repetición activado (`obs.segundosBufer`, 45 s), el codificador según la tarjeta gráfica (`obs.codificador: "auto"`: NVENC con una NVIDIA GTX 10 o RTX, el de AMD con una RX 5000 o más nueva, QuickSync con una Intel Arc, UHD o Iris, siempre que OBS lo dé como disponible en su último registro; si no, x264. También se puede fijar `"x264"`, `"nvenc"`, `"amd"` o `"qsv"`, o `""` para dejar el de tu perfil) y los clips en `Vídeos\Realizador`. Si no tenías perfil, uno nuevo a 1080p60.
+- **Perfil `Realizador`**: copia del perfil que usas ahora (clave de emisión, codificador, resolución) con el búfer de repetición activado (`obs.segundosBufer`, 60 s desde el 12/11: antes 45; para que quepan las peleas largas del resumen), el codificador según la tarjeta gráfica (`obs.codificador: "auto"`: NVENC con una NVIDIA GTX 10 o RTX, el de AMD con una RX 5000 o más nueva, QuickSync con una Intel Arc, UHD o Iris, siempre que OBS lo dé como disponible en su último registro; si no, x264. También se puede fijar `"x264"`, `"nvenc"`, `"amd"` o `"qsv"`, o `""` para dejar el de tu perfil) y los clips en `Vídeos\Realizador`. Si no tenías perfil, uno nuevo a 1080p60.
 - **Servidor WebSocket** activado en el puerto de `obs.url` con contraseña. La contraseña se apunta en `opciones.local.json` (`obs.clave`, `obs.activo: true`). Si el agente va en el otro PC, copia allí la contraseña que sale en pantalla y pon `"url": "ws://IP-DEL-PC-2:4455"`.
 - OBS arranca con esa colección y ese perfil.
 
@@ -146,6 +146,44 @@ Para cada directo, `windows/5-abrir-obs.bat` abre OBS con el búfer de repetici�
 
 Al acabar la jugada, el agente guarda el búfer. Cuando llega el hueco tranquilo, carga el clip, salta a `Repeticion` y vuelve a `Juego` al terminar. La repetición enseña los últimos 12 s de la jugada y arranca `reglas.repeticion.colchon` segundos antes (1,5 por defecto), por si OBS tarda un poco en guardar el clip.
 
+## Resumen en vídeo al acabar la partida (12/11)
+
+Cuando acaba la partida, en la emisión sale un **resumen en vídeo**: los clips de las jugadas destacadas, uno detrás de otro, en la escena `Resumen`. Diseño aprobado el 08/11 (enfoque A): `docs/superpowers/specs/2026-11-08-resumen-video-design.md`. El resumen escrito de la IA sigue igual.
+
+**Hay que volver a configurar OBS** en el PC 2 (OBS cerrado, `windows/4-configurar-obs.bat` o volver a pasar `INSTALAR-PC2.bat`): crea la escena `Resumen` y sube el búfer a 60 s. Sin la escena, el resumen no sale (el registro dice que no puede poner la escena).
+
+Cómo va, paso a paso:
+
+1. **Candidatas (PC 1, `pc1/cerebro.js`).** Cada jugada lleva `j.resumen` si es una pelea (2 muertes o más), tiene un objetivo grande (dragón, Barón, heraldo, Atakhan, larvas, alma), un ace, un multikill de 2 o más o una muerte que corta una racha de 3 o más (*shutdown*). También entra la que tiene una repetición programada. Las torres, los inhibidores y las muertes sueltas sin nada especial no entran.
+2. **Clips (PC 2).** El PC 1 manda `guardar` también para las candidatas, en `fin + 1` (como mucho 1 s antes del final, porque la antena se para ahí). El PC 2 guarda el clip limpio del LoL (grabador) y el del búfer de OBS, igual que para las repeticiones.
+3. **Lista (PC 1, al ver el final).** Con IA, la misma llamada del resumen final devuelve `destacadas` (ids de las candidatas en el orden en que salen; se tiran los que no son candidatos). Sin IA, o si falla, todas las candidatas en orden de partida. La jugada que acaba la partida (la última, si pasa en los últimos 30 s) entra siempre, al final; si no hay, un trozo del final (`nexo`). Cada recorte va de `inicio − 3` a `fin + 2`, con 20 s como mucho (se queda el final). Va al PC 2 con el guion: `resumen: [{ jugada, desde, hasta, t }]` en segundos de partida.
+4. **Emisión (PC 2, `pc2/resumen.js`).** Fases `sin` → `preparando` (faltan clips) → `listo` → `cuenta` → `emitiendo` → `hecho`. Cuando la emisión pasa a `Casters` al acabar la partida arranca la cuenta atrás (`resumen.esperaSegundos`, 120 s: lo que tardan los casters en despedirse). Al llegar a 0 pone la escena `Resumen`, carga cada clip en `Resumen clip` en el principio de su recorte y pasa al siguiente (corte seco; la placa se recarga con el minuto `?t=12:34` y hace un fundido corto). Al acabar vuelve a `Casters`. Si al llegar el final aún falta algún clip (la Replay API puede callarse al acabar), guarda uno más del búfer en ese momento; lo que siga faltando se salta.
+   - Usa el clip del búfer de OBS, que lleva el sonido del juego aunque se vea el marcador dentro (Pacopepe, 12/11), y si no lo hay el limpio del LoL, que va sin sonido. Un clip que no carga se salta y se apunta en el registro.
+   - Un draft o una partida nueva en antena paran la cuenta (y el resumen) y queda en `listo`, sin tocar la escena. Si alguien saca la escena `Resumen` a mano mientras sale, también se para.
+   - Si no hay clips, se queda en `sin`.
+5. **Botón.** En la pestaña Directo de los dos paneles (PC 1 y PC 2) hay un recuadro «Resumen en vídeo» con su estado, la cuenta atrás y los botones **Lanzar resumen** (en `listo` o durante la cuenta), **Cancelar** (para la cuenta o el resumen y vuelve a Casters) y **Repetir resumen** (lo pone otra vez). No deja lanzarlo con una partida en antena ni antes de que esté listo.
+
+**Contrato con el panel de Gokudō** (por la sala del realizador; el panel solo habla con el PC 1):
+
+- Panel → PC 1: `{ tipo: 'panelResumen', accion: 'lanzar' | 'cancelar' | 'repetir' }`. El PC 1 lo pasa al PC 2 como `{ tipo: 'resumen', accion }` (por la sala; sin sala, `POST /resumen` al relé), igual que `panelEmision` → `emision`.
+- PC 2 → PC 1: en su `{ tipo: 'estado', … }` de cada segundo, `resumen: { fase, jugadas, segundos, faltan, clipActual }`.
+- PC 1 → panel: en la `{ tipo: 'foto', … }` de cada segundo, el mismo campo `resumen` (o `null` sin el PC 2). `fase`: `sin | preparando | listo | cuenta | emitiendo | hecho`; `jugadas`: cuántos clips; `segundos`: lo que dura el resumen entero; `faltan`: segundos de cuenta atrás que quedan (o `null`); `clipActual`: número del clip que sale, desde 1 (o `null` si no se emite).
+- Los paneles locales: `POST /resumen { accion }` en http://localhost:4600/ (PC 1, lo pasa al PC 2) y http://localhost:4601/ (PC 2).
+
+**Opciones** (`opciones.json`): `reglas.resumen` (`activo`, `minimoMuertes` 2, `objetivos`, `multikill` 2, `rachaCortada` 3, `antes` 3, `despues` 2, `maximoClip` 20, `finalSegundos` 30, `nexoSegundos` 12), `resumen.esperaSegundos` (120) y en `obs`: `segundosBufer` (60), `escenaResumen` («Resumen»), `fuenteResumen` («Resumen clip») y `placaResumen` («Overlay RESUMEN»).
+
+**De paso (12/11):** las acciones de OBS que el PC 1 manda al PC 2 llevan delante el id de la partida. Las jugadas se llaman igual en cada partida (j1, j2…) y, sin eso, en la segunda partida de una serie el PC 2 saltaba sus clips y repeticiones como «ya hechos».
+
+**Probado** con `npm test` (`test/resumen.test.js`): candidatas, recortes, IA de mentira, el secuenciador con el OBS de mentira, la sala (`panelResumen` y el campo `resumen` de la foto) y una partida de punta a punta con el LoL de mentira (Casters → cuenta atrás → Resumen → Casters). **Sin probar todavía:** con OBS de verdad (que `SetMediaInputCursor` deja cada clip en su punto, la placa por `file://` con `?t=` y el audio de cada clip) ni una partida real.
+
+**Pendiente (fuera de esta tanda):**
+- [ ] Archivo de vídeo por partida para redes y la web (`pc2/montaje.js`, ffmpeg con `-ss`/`-t`, `concat`, H.264 `veryfast -crf 23`, prioridad baja; opción `resumen.archivo`).
+- [ ] Interruptor de las webcams de los casters (`camarasCasters` en el estado y `{ tipo: 'panelCamarasCasters', visible }`, con `SetSceneItemEnabled` sobre `Camara casters`).
+- [ ] Mensaje `resumenPartida` del PC 1 al panel para la newsletter (titular, resumen, marcador, jugadas, destacadas).
+- [ ] Placa definitiva `obs/resumen.html` (hilo de overlays; ahora va una provisional en estilo Gokudō).
+- [ ] Prueba «como en directo» con OBS real y una partida con varias jugadas candidatas.
+- [x] Audio del resumen: sale el clip del búfer de OBS (con el sonido del juego); el limpio del LoL solo si no hay otro, y va mudo.
+
 ## Gokudō (opcional)
 
 Los instaladores lo dejan activado en los dos PCs con la contraseña del panel (`"tenkaIchi": { "activo": true, "url": "wss://tenka-ichi.onrender.com/ws", "clave": "…" }`). El PC 1 manda al panel lo que enseña el overlay (línea por línea, gráfica de oro, ficha); el PC 2 solo mira si hay draft y cuántas cámaras lleva.
@@ -182,6 +220,7 @@ pc1/panel.js, pc1/panel/   panel de supervisión
 pc1/obs.js, pc1/tenka.js   clientes de obs-websocket y del panel de Gokudō
 pc1/grabada.js             modo partida grabada (explora la repetición y luego la realiza)
 pc2/rele.js                relé del PC 2 (antena, cámara con zoom, OBS en local)
+pc2/resumen.js             resumen en vídeo al acabar la partida (secuenciador de clips en la escena Resumen)
 comun/sala.js, puente.js   puente entre PCs: sala de Gokudō por internet, o anuncio en la red local
 instalar/instalar.js       instalación de cada PC (lo usan INSTALAR-PC1.bat e INSTALAR-PC2.bat)
 herramientas/capturar.js   captura de datos del juego (fase 1)

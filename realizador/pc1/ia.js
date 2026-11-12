@@ -197,7 +197,9 @@ Tu trabajo, cuando te lo pidan:
    No repitas lo mismo que salió hace poco (mira overlayReciente) salvo que haya un motivo claro.
 2. Titular: una frase corta (máximo 70 caracteres) en español de España, con tono de narrador, sobre lo más interesante que está pasando o va a pasar. Sin inventar datos que no estén en el resumen. null si no hay nada que contar.
 3. Repetición: si te dan varias jugadas que acabaron a la vez, elige la que más merece repetirse (la que más cambia la partida: muertes, objetivos grandes, un ace, un robo).
-4. Resumen final: 3 a 5 frases para los casters con lo que decidió la partida.
+4. Resumen final: 3 a 5 frases para los casters con lo que decidió la partida. Si te dan candidatas para el resumen en vídeo,
+   en "destacadas" van los ids de las que merecen salir (solo de entre las candidatas), en el orden en que deben salir.
+   Entran todas las que importan, sin límite fijo; quita solo las que no aportan nada.
 
 Responde solo con el JSON que se te pide. Sé breve en "motivo" (una frase).`;
 
@@ -216,6 +218,11 @@ export const ESQUEMAS = {
     type: 'object', additionalProperties: false, required: ['titular', 'resumen'],
     properties: { titular: { type: 'string' }, resumen: { type: 'string' } },
   },
+  // El mismo, con las jugadas destacadas para el resumen en vídeo (ids de las candidatas, en el orden en que salen)
+  resumenConDestacadas: ids => ({
+    type: 'object', additionalProperties: false, required: ['titular', 'resumen', 'destacadas'],
+    properties: { titular: { type: 'string' }, resumen: { type: 'string' }, destacadas: { type: 'array', items: { type: 'string', enum: ids } } },
+  }),
 };
 
 export class Ia extends EventEmitter {
@@ -408,8 +415,11 @@ export class Ia extends EventEmitter {
   }
 
   // Al acabar la partida. Siempre devuelve algo: si la IA falla, el resumen por reglas.
-  async resumenFinal({ cerebro, jugadores = [], tFin = null, carpeta = null }) {
-    let r = resumenReglas(cerebro, jugadores, tFin);
+  // candidatas: jugadas que pueden entrar en el resumen en vídeo. En la misma llamada la IA dice cuáles salen y en qué
+  // orden («destacadas»; se tiran los ids que no son candidatos). Sin IA o si falla, destacadas null: entran todas.
+  async resumenFinal({ cerebro, jugadores = [], tFin = null, carpeta = null, candidatas = [] }) {
+    let r = { ...resumenReglas(cerebro, jugadores, tFin), destacadas: null };
+    const ids = candidatas.map(j => j.id);
     if (this.estado.activa && this.o.resumenFinal !== false && cerebro.jugadas.length) {
       try {
         const datos = {
@@ -417,9 +427,13 @@ export class Ia extends EventEmitter {
           equipos: resumenPartida({ cerebro, jugadores, tA: tFin, tD: tFin }).equipos,
           marcador: marcador(cerebro, jugadores),
           jugadas: cerebro.jugadas.map(j => jugadaCorta(j, null)),
+          ...(ids.length ? { candidatasResumenVideo: ids } : {}),
         };
-        const ia = await this.pedir(`La partida ha terminado. Todo lo que pasó:\n${JSON.stringify(datos)}\n\nEscribe el titular y el resumen final.`, ESQUEMAS.resumen, { maxTokens: 2500 });
-        r = { titular: ia.titular, resumen: ia.resumen, hecho: 'ia' };
+        const pide = ids.length ? 'Escribe el titular y el resumen final, y elige las destacadas para el resumen en vídeo.' : 'Escribe el titular y el resumen final.';
+        const ia = await this.pedir(`La partida ha terminado. Todo lo que pasó:\n${JSON.stringify(datos)}\n\n${pide}`,
+          ids.length ? ESQUEMAS.resumenConDestacadas(ids) : ESQUEMAS.resumen, { maxTokens: 2500 });
+        const destacadas = ids.length && Array.isArray(ia.destacadas) ? ia.destacadas.filter(id => ids.includes(id)) : null;
+        r = { titular: ia.titular, resumen: ia.resumen, hecho: 'ia', destacadas };
       } catch (e) { this.ctx?.apuntar?.('ia', 'falla', { motivo: `resumen final: ${e.message}` }); }
     }
     this.resumen = { ...r, hora: new Date().toISOString() };

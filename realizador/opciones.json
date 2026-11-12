@@ -61,6 +61,10 @@
     "pararTrasSegundos": 60
   },
 
+  "resumen": {
+    "esperaSegundos": 120
+  },
+
   "reglas": {
     "anticipacion": 5,
     "anticipacionObjetivo": 10,
@@ -85,6 +89,18 @@
       "grupoSegundos": 30,
       "esperaIaSegundos": 15,
       "sueltas": { "activo": true, "calmaNecesaria": 25, "separacion": 90 }
+    },
+    "resumen": {
+      "activo": true,
+      "minimoMuertes": 2,
+      "objetivos": ["DragonKill", "BaronKill", "HeraldKill", "AtakhanKill", "HordeKill", "DragonSoul"],
+      "multikill": 2,
+      "rachaCortada": 3,
+      "antes": 3,
+      "despues": 2,
+      "maximoClip": 20,
+      "finalSegundos": 30,
+      "nexoSegundos": 12
     },
     "inicio": {
       "activo": true,
@@ -133,13 +149,16 @@
     "escenaCasters": "Casters",
     "escenaPausa": "Pausa",
     "escenaDraft": "Draft",
+    "escenaResumen": "Resumen",
+    "fuenteResumen": "Resumen clip",
+    "placaResumen": "Overlay RESUMEN",
     "camarasDraft": ["", "", "", ""],
     "repeticion": {
       "transicionEntrada": "Repeticion entrada",
       "transicionSalida": "Repeticion salida",
       "overlay": "Overlay REPLAY"
     },
-    "segundosBufer": 45,
+    "segundosBufer": 60,
     "codificador": "auto",
     "emision": { "servidor": "rtmps://fa723fc1b171.global-contribute.live-video.net/" },
     "minimapa": { "x": 1640, "y": 804, "lado": 250 },

@@ -294,6 +294,8 @@ export class Emision extends EventEmitter {
       if (this.c.pararAlAcabar) this.pararEn = ahora + this.c.pararTrasSegundos * 1000;
       this.registrar(`[emisión] partida terminada (${motivo}): escena ${this.escenas.final}${this.c.pararAlAcabar ? `; se corta en ${this.c.pararTrasSegundos} s` : '; la siguiente entra sola'}`);
       this.emit('cambio');
+      // Para el resumen en vídeo (pc2/resumen.js): arranca su cuenta atrás
+      this.emit('final');
     }
   }
 }

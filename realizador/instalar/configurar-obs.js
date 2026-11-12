@@ -1,6 +1,6 @@
 // Deja OBS listo para el realizador (PC 2, o el mismo PC en las pruebas de un solo PC). Con OBS cerrado:
 //
-//   - Colección de escenas "Realizador": Juego, Repeticion, Casters, Pausa y Draft, con sus fuentes
+//   - Colección de escenas "Realizador": Juego, Repeticion, Casters, Pausa, Draft y Resumen, con sus fuentes
 //     (captura del juego, overlay de Gokudō, "Repeticion clip", cámaras, rótulos y audio). En Draft, cuatro
 //     cámaras debajo del overlay: el relé las encaja en los huecos del draft y les pone la cámara elegida.
 //     Con las transiciones de la repetición (obs/repeticion-entrada.webm y -salida.webm) y el overlay de REPLAY
@@ -33,6 +33,7 @@ const ALTO = 1080;
 export const RECURSOS = join(dirname(fileURLToPath(import.meta.url)), '..', 'obs');
 export const TRANSICIONES = { entrada: 'Repeticion entrada', salida: 'Repeticion salida' };
 export const OVERLAY_REPLAY = 'Overlay REPLAY';
+export const PLACA_RESUMEN = 'Overlay RESUMEN';
 export const ALERTAS = 'Alertas Kick';
 export const MARCO_MINIMAPA = 'Marco minimapa';
 
@@ -142,7 +143,7 @@ function stinger(nombre, archivo) {
   };
 }
 
-export function crearColeccion({ escenas, fuenteRepeticion, overlay = '', recursos = null, alertas = '', minimapa = {} }) {
+export function crearColeccion({ escenas, fuenteRepeticion, fuenteResumen = 'Resumen clip', placaResumen = PLACA_RESUMEN, overlay = '', recursos = null, alertas = '', minimapa = {} }) {
   const juego = fuente('Juego LoL', 'game_capture', {
     capture_mode: 'window', window: VENTANA_LOL, priority: 2, capture_cursor: false, allow_transparency: false,
   });
@@ -154,6 +155,16 @@ export function crearColeccion({ escenas, fuenteRepeticion, overlay = '', recurs
     is_local_file: true, local_file: '', looping: false, restart_on_activate: false,
     close_when_inactive: false, clear_on_media_end: false, hw_decode: true,
   }, { audio: true, pistas: 1 });  // el clip repetido suena en la emisión, pero no se graba en otros clips
+  // Resumen en vídeo al acabar la partida: los clips seguidos (los carga el relé) y la placa RESUMEN con el minuto
+  const clipResumen = fuente(fuenteResumen, 'ffmpeg_source', {
+    is_local_file: true, local_file: '', looping: false, restart_on_activate: false,
+    close_when_inactive: false, clear_on_media_end: false, hw_decode: true,
+  }, { audio: true, pistas: 1 });
+  const fPlaca = recursos && existsSync(join(recursos, 'resumen.html')) ? fuente(placaResumen, 'browser_source', {
+    is_local_file: false, url: pathToFileURL(join(recursos, 'resumen.html')).href, width: ANCHO, height: ALTO, fps: 30,
+    shutdown: false, restart_when_active: true, reroute_audio: false,
+    css: 'body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }',
+  }) : rotulo('Rotulo resumen', 'RESUMEN', 64);
   const fondo = fuente('Fondo', 'color_source', { color: 0xFF130D0C, width: ANCHO, height: ALTO }, { version: 'color_source_v3' });
   const camara = fuente('Camara casters', 'dshow_input', {});
   // Sin la carpeta obs/ (pruebas antiguas), un rótulo de texto; con ella, el overlay de REPLAY (apagado: lo
@@ -191,6 +202,8 @@ export function crearColeccion({ escenas, fuenteRepeticion, overlay = '', recurs
     escena(escenas.casters, conAlertas([[fondo], [camara], [rCasters, { x: ANCHO / 2, y: 980 }]])),
     escena(escenas.pausa, conAlertas([[fondo], [rPausa, { x: ANCHO / 2, y: ALTO / 2 }]])),
     escena(escenas.draft || 'Draft', conAlertas([[fondo], ...camarasDraft.map((c, i) => [c, { ...huecos[i], oculto: true }]), [marcador]])),
+    // Como la repetición: el clip y la placa, sin el marcador ni las alertas
+    escena(escenas.resumen || 'Resumen', [[clipResumen], [fPlaca, recursos ? null : { x: 220, y: 80 }]]),
   ];
 
   return {
@@ -198,7 +211,7 @@ export function crearColeccion({ escenas, fuenteRepeticion, overlay = '', recurs
     current_scene: lista[0].name,
     current_program_scene: lista[0].name,
     scene_order: lista.map(e => ({ name: e.name })),
-    sources: [...lista, juego, marcador, clip, fondo, camara, ...camarasDraft, rRepeticion, rCasters, rPausa, ...(fAlertas ? [fAlertas] : []), ...(fMinimapa ? [fMinimapa] : [])],
+    sources: [...lista, juego, marcador, clip, clipResumen, fPlaca, fondo, camara, ...camarasDraft, rRepeticion, rCasters, rPausa, ...(fAlertas ? [fAlertas] : []), ...(fMinimapa ? [fMinimapa] : [])],
     groups: [],
     // Pistas de audio: 1 = emisión (juego y micro), 2 = solo juego (lo que suena al repetir un clip), 3 = juego y
     // micro (para el resumen). El búfer de repetición graba la 2 y la 3: así en la repetición no se oye a los casters
@@ -407,13 +420,13 @@ export function configurarObs({ carpeta, opciones, rutaLocal, overlay, overlayPo
   // 2. Colección de escenas
   const escenas = join(carpeta, 'basic', 'scenes');
   const url = overlay ?? (o.overlay || buscarOverlay(escenas, u => esDeGokudo(u, overlayPorDefecto)) || overlayPorDefecto || '');
-  const nombres = { juego: o.escenaJuego, repeticion: o.escenaRepeticion, casters: o.escenaCasters, pausa: o.escenaPausa, draft: o.escenaDraft || 'Draft' };
+  const nombres = { juego: o.escenaJuego, repeticion: o.escenaRepeticion, casters: o.escenaCasters, pausa: o.escenaPausa, draft: o.escenaDraft || 'Draft', resumen: o.escenaResumen || 'Resumen' };
   const rutaColeccion = join(escenas, `${NOMBRE}.json`);
   guardarCopia(rutaColeccion, `${NOMBRE}.json`);
   // Las alertas de Kick salen de la misma web que el overlay (/alertas/), salvo que opciones.json diga otra
   let alertas = o.alertas ?? '';
   if (o.alertas === undefined && /^https?:/i.test(url)) { try { alertas = new URL('/alertas/', url).href; } catch { /* sin dirección */ } }
-  escribir(rutaColeccion, JSON.stringify(crearColeccion({ escenas: nombres, fuenteRepeticion: o.fuenteRepeticion, overlay: url, alertas, minimapa: o.minimapa || {}, recursos: recursos && existsSync(recursos) ? recursos : null }), null, 4));
+  escribir(rutaColeccion, JSON.stringify(crearColeccion({ escenas: nombres, fuenteRepeticion: o.fuenteRepeticion, fuenteResumen: o.fuenteResumen || 'Resumen clip', placaResumen: o.placaResumen || PLACA_RESUMEN, overlay: url, alertas, minimapa: o.minimapa || {}, recursos: recursos && existsSync(recursos) ? recursos : null }), null, 4));
   hechos.push(`Colección "${NOMBRE}": ${Object.values(nombres).join(', ')}`);
   if (recursos && existsSync(recursos)) hechos.push(`Transiciones de la repetición ("${TRANSICIONES.entrada}", "${TRANSICIONES.salida}") y "${OVERLAY_REPLAY}"`);
   if (alertas) hechos.push(`Alertas de Kick en todas las escenas (${alertas})`);

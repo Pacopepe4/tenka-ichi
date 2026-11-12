@@ -148,6 +148,12 @@ export class Obs extends EventEmitter {
   // Pone el clip en la fuente de repetición, salta a su escena y lo arranca unos segundos antes del final
   // (o en cursorMs, si se sabe exactamente dónde: los clips limpios del grabador del LoL)
   async lanzarRepeticion({ ruta, fuente, escena, segundosAtras, cursorMs, transicion }) {
+    await this.cargarClip({ ruta, fuente, segundosAtras, cursorMs });
+    await this.escenaCon(escena, transicion);
+  }
+
+  // Pone el clip en una fuente multimedia y lo deja en su punto, sin cambiar de escena (la repetición y el resumen)
+  async cargarClip({ ruta, fuente, segundosAtras, cursorMs }) {
     await this.pedir('SetInputSettings', { inputName: fuente, inputSettings: { local_file: ruta, is_local_file: true, restart_on_activate: false } });
     await this.pedir('TriggerMediaInputAction', { inputName: fuente, mediaAction: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_RESTART' });
     await new Promise(r => setTimeout(r, 300));
@@ -156,7 +162,11 @@ export class Obs extends EventEmitter {
       if (Number.isFinite(cursorMs)) await this.pedir('SetMediaInputCursor', { inputName: fuente, mediaCursor: Math.max(0, mediaDuration > 0 ? Math.min(cursorMs, mediaDuration - 500) : cursorMs) });
       else if (mediaDuration > 0) await this.pedir('SetMediaInputCursor', { inputName: fuente, mediaCursor: Math.max(0, mediaDuration - segundosAtras * 1000) });
     } catch { /* si no da la duración, el clip va desde el principio */ }
-    await this.escenaCon(escena, transicion);
+  }
+
+  // Cambia la dirección de una fuente de navegador (la placa del resumen con el minuto de cada clip)
+  ponerUrl(fuente, url) {
+    return this.pedir('SetInputSettings', { inputName: fuente, inputSettings: { url, is_local_file: false } });
   }
 }
 

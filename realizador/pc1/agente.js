@@ -169,7 +169,7 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
     cerebro.jugadores = explorador.jugadores;  // para el guion de los primeros minutos (bot, junglas, cangrejo)
     ia.partidaNueva();
     const buzon = new Buzon(join(o.registro.raiz || RAIZ, o.registro.carpeta), partida.id);
-    ejecutor.reiniciar(cerebro, buzon);
+    ejecutor.reiniciar(cerebro, buzon, partida.id);
     ejecutor.apuntar('realizador', 'partida nueva', info);
     log(`Partida encontrada (${info.modo || 'modo desconocido'}). Registro en ${buzon.carpeta}`);
   });
@@ -180,9 +180,13 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
     ejecutor.apuntar('realizador', 'fin de la partida', { ...info, t: ejecutor.tFin });
     cerebro.finPartida = ejecutor.tFin;
     const c = cerebro;
-    ia.resumenFinal({ cerebro: c, jugadores: explorador.jugadores, tFin: ejecutor.tFin, carpeta: ejecutor.buzon?.carpeta })
-      .then(r => { ejecutor.apuntar(r.hecho === 'ia' ? 'ia' : 'realizador', 'resumen final', { titular: r.titular || null }); panel?.emitir(); })
-      .catch(() => {});
+    const tFin = ejecutor.tFin;
+    // Resumen escrito y, en la misma llamada, las jugadas destacadas para el resumen en vídeo (sin IA, todas las
+    // candidatas). La lista va al PC 2 con el guion: allí sale cuando la emisión pase a Casters.
+    const lista = r => { if (c === cerebro) ejecutor.ponerResumen(c.listaResumen(tFin, r?.destacadas ?? null)); };
+    ia.resumenFinal({ cerebro: c, jugadores: explorador.jugadores, tFin, carpeta: ejecutor.buzon?.carpeta, candidatas: c.candidatasResumen() })
+      .then(r => { ejecutor.apuntar(r.hecho === 'ia' ? 'ia' : 'realizador', 'resumen final', { titular: r.titular || null }); lista(r); panel?.emitir(); })
+      .catch(() => lista(null));
   });
   explorador.on('evento', e => {
     const j = cerebro.agregar(e);
@@ -208,12 +212,15 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
       obs: a ? a.obs === true : null, bufer: a ? a.bufer ?? null : null, sala: sala?.sala ? String(sala.sala).slice(0, 4).toUpperCase() : null,
     });
     const faltan = Number.isFinite(a?.faltan) ? Math.max(0, a.faltan - (Date.now() - a.recibido) / 1000) : null;
+    // Resumen en vídeo: su estado lo lleva el PC 2; la cuenta atrás se descuenta desde que llegó
+    const resumen = a?.resumen ? { ...a.resumen, faltan: Number.isFinite(a.resumen.faltan) ? Math.max(0, Math.ceil(a.resumen.faltan - (Date.now() - a.recibido) / 1000)) : null } : null;
     return {
       papel: 'pc1',
       condiciones: c.lista,
       listo: c.listo,
       emision: a?.emision || null,
       faltan,
+      resumen,
       conexiones,
       partida,
       jugadores: explorador.jugadores,
@@ -244,6 +251,7 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
     control: async ({ manual }) => ejecutor.ponerManual(manual),
     orden: async orden => ejecutor.ordenManual(orden),
     emision: async orden => ejecutor.emision(orden),
+    resumen: async ({ accion }) => ejecutor.resumen(accion),
     app: async ({ accion }) => {
       if (accion === 'comprobar') return { nueva: await app.comprobar() };
       if (accion === 'actualizar') return app.actualizar();
@@ -261,6 +269,7 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
         if (d.tipo === 'panelControl') await ejecutor.ponerManual(Boolean(d.manual), 'panel de Gokudō');
         else if (d.tipo === 'panelOrden' && d.orden) await ejecutor.ordenManual(d.orden, 'panel de Gokudō');
         else if (d.tipo === 'panelEmision') await ejecutor.emision(d, 'panel de Gokudō');
+        else if (d.tipo === 'panelResumen') await ejecutor.resumen(d.accion, 'panel de Gokudō');
       } catch (e) { avisar(`Orden del panel de Gokudō: ${e.message}`); }
     });
     fotoSala = setInterval(() => sala.enviar({ tipo: 'foto', ...foto(), registro: registro.slice(0, 15) }), 1000);

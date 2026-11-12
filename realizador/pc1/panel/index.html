@@ -92,6 +92,16 @@
   .enAntena[hidden] { display: none; }
   .enAntena .que { font-size: 18px; font-weight: 600; }
   .como { margin-top: 20px; color: var(--suave); font-size: 13px; }
+  /* Resumen en vídeo al acabar la partida */
+  .resumen { margin-top: 20px; display: grid; gap: 10px; }
+  .resumen[hidden] { display: none; }
+  .resumen .cabeza { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .resumen .que { font-size: 18px; font-weight: 600; }
+  .resumen .cuentaResumen { font-size: 40px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
+  .resumen .cuentaResumen[hidden] { display: none; }
+  .resumen.vivo { border-color: var(--rojo); }
+  .resumen button.lanzar { background: var(--acento); color: #111; border-color: var(--acento); font-weight: 700; padding: 12px 18px; }
+  .resumen button[hidden] { display: none; }
   .como ol { margin: 6px 0 0; padding-left: 18px; }
   .como li { padding: 2px 0; }
 
@@ -214,6 +224,17 @@
           <div class="reloj"><span>Margen</span><b id="margen">--</b></div>
           <div class="barra" title="Margen de la antena respecto al directo"><i id="barra" style="width:0"></i></div>
         </div>
+        <section class="resumen" id="cajaResumen" hidden>
+          <div class="cabeza"><h2 style="margin:0">Resumen en vídeo</h2><span class="insignia" id="resumenFase"></span></div>
+          <div class="que" id="resumenQue"></div>
+          <div class="cuentaResumen" id="resumenCuenta" hidden></div>
+          <div class="sub" id="resumenSub"></div>
+          <div class="filaBotones">
+            <button class="lanzar" id="resumenLanzar" data-accion="lanzar" hidden>Lanzar resumen</button>
+            <button id="resumenRepetir" data-accion="repetir" hidden>Repetir resumen</button>
+            <button id="resumenCancelar" data-accion="cancelar" hidden>Cancelar</button>
+          </div>
+        </section>
         <section class="enAntena" id="cajaEnAntena" hidden>
           <div><h2 style="margin:0 0 4px">En antena</h2><div class="que" id="queResumen"></div></div>
           <button id="irRealizacion">Ver realización</button>
@@ -429,6 +450,40 @@
     modo = b.dataset.m;
     try { localStorage.setItem('modo', modo); } catch {}
     if (f) pintar();
+  };
+
+  // ---------- Resumen en vídeo (lo lleva el PC 2; el PC 1 enseña lo mismo y manda las órdenes) ----------
+  const FASES_RESUMEN = { sin: 'Sin resumen', preparando: 'Preparando', listo: 'Listo', cuenta: 'Cuenta atrás', emitiendo: 'En antena', hecho: 'Emitido' };
+  function pintarResumen() {
+    const r = f.resumen;
+    $('cajaResumen').hidden = !r;
+    if (!r) return;
+    const n = `${r.jugadas} clip${r.jugadas === 1 ? '' : 's'}`;
+    const dura = r.segundos ? `${reloj(r.segundos)} min` : '';
+    let que = '', sub = '';
+    if (r.fase === 'sin') { que = 'Todavía no hay resumen'; sub = 'Al acabar la partida sale solo, con las jugadas destacadas, 2 minutos después de pasar a Casters.'; }
+    else if (r.fase === 'preparando') { que = `Preparando: ${n}, unos ${dura}`; sub = 'Faltan clips: la partida aún no ha acabado en antena.'; }
+    else if (r.fase === 'listo') { que = `Listo: ${n}, ${dura}`; sub = 'Sale solo después de pasar a Casters; o lánzalo ya.'; }
+    else if (r.fase === 'cuenta') { que = 'El resumen sale en'; sub = `${n}, ${dura}. Los casters pueden lanzarlo ya si han acabado.`; }
+    else if (r.fase === 'emitiendo') { que = `En antena: clip ${r.clipActual ?? '…'} de ${r.jugadas}`; sub = 'Al acabar vuelve a Casters.'; }
+    else if (r.fase === 'hecho') { que = `Emitido: ${n}, ${dura}`; sub = 'Se puede poner otra vez.'; }
+    $('resumenFase').textContent = FASES_RESUMEN[r.fase] || r.fase;
+    $('resumenFase').className = `insignia ${r.fase === 'emitiendo' ? 'vivo' : r.fase === 'listo' || r.fase === 'cuenta' ? 'listo' : 'espera'}`;
+    $('cajaResumen').classList.toggle('vivo', r.fase === 'emitiendo');
+    $('resumenQue').textContent = que;
+    $('resumenCuenta').hidden = r.fase !== 'cuenta';
+    $('resumenCuenta').textContent = r.fase === 'cuenta' ? reloj(r.faltan) : '';
+    $('resumenSub').textContent = sub;
+    $('resumenLanzar').hidden = !['listo', 'cuenta'].includes(r.fase);
+    $('resumenLanzar').textContent = r.fase === 'cuenta' ? 'Lanzar resumen ya' : 'Lanzar resumen';
+    $('resumenRepetir').hidden = r.fase !== 'hecho';
+    $('resumenCancelar').hidden = !['cuenta', 'emitiendo'].includes(r.fase);
+  }
+  $('cajaResumen').onclick = e => {
+    const a = e.target.closest('button')?.dataset.accion;
+    if (!a) return;
+    if (a === 'lanzar' && f.emision?.enElAire && !confirm('¿Poner el resumen ahora? Sale en la emisión.')) return;
+    mandar('/resumen', { accion: a });
   };
 
   // ---------- Realización (PC 1) ----------
@@ -649,6 +704,7 @@
     $('conex').innerHTML = Object.entries(f.conexiones || {}).filter(([k, v]) => v !== null && v !== undefined && NOMBRES[k])
       .map(([k, v]) => `<span><i class="punto ${v ? 'si' : 'no'}"></i>${NOMBRES[k]}</span>`).join('');
     pintarDirecto();
+    pintarResumen();
     if (pc1) { pintarRealizacion(); pintarIa(); }
     if (f.camaras) pintarCamaras();
     pintarRegistro();

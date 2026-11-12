@@ -37,6 +37,8 @@ export class Ejecutor extends EventEmitter {
     this.cambios = true;
     this.overlayPuesto = null;   // lo último que se mandó al overlay de Gokudō (firma)
     this.overlayMandando = false;
+    this.partida = null;         // id de la partida (el PC 2 lo usa para no mezclar los clips de una partida con otra)
+    this.resumenLista = null;    // resumen en vídeo: [{ jugada, desde, hasta }] al ver el final (lo hace el agente)
     // Si el panel de Gokudō se reconecta, se le vuelve a decir qué tiene que enseñar
     tenka?.on?.('conexion', v => { if (v) this.overlayPuesto = null; });
   }
@@ -52,9 +54,11 @@ export class Ejecutor extends EventEmitter {
   parar() { clearTimeout(this.temporizador); }
 
   // Partida nueva: cerebro y buzón nuevos, y se olvida el guion anterior
-  reiniciar(cerebro, buzon) {
+  reiniciar(cerebro, buzon, partida = null) {
     this.cerebro = cerebro;
     this.buzon = buzon;
+    this.partida = partida;
+    this.resumenLista = null;
     this.congelados = [];
     this.guion = [];
     this.hechas.clear();
@@ -71,6 +75,21 @@ export class Ejecutor extends EventEmitter {
     if (!this.releConectado) throw new Error('El PC 2 no está conectado: abre «Realizador PC2» en el PC de emisión');
     await this.mandar('emision', { accion: orden.accion, modo: orden.modo });
     this.apuntar(quien, `emisión: ${orden.accion}`, { modo: orden.modo });
+  }
+
+  // Botón del resumen en vídeo (lanzar | cancelar | repetir): lo hace el PC 2, que es donde está OBS
+  async resumen(accion, quien = 'persona') {
+    if (!['lanzar', 'cancelar', 'repetir'].includes(accion)) throw new Error(`Orden del resumen desconocida: ${accion}`);
+    if (!this.releConectado) throw new Error('El PC 2 no está conectado: abre «Realizador PC2» en el PC de emisión');
+    await this.mandar('resumen', { accion });
+    this.apuntar(quien, `resumen: ${accion}`, {});
+  }
+
+  // Lista del resumen en vídeo para el PC 2 (va con el guion)
+  ponerResumen(lista) {
+    this.resumenLista = Array.isArray(lista) ? lista : null;
+    this.cambios = true;
+    this.apuntar('realizador', 'resumen en vídeo', { jugadas: this.resumenLista?.length ?? 0, lista: (this.resumenLista || []).map(x => x.jugada).join(', ') });
   }
 
   hayCambios() { this.cambios = true; }
@@ -117,6 +136,9 @@ export class Ejecutor extends EventEmitter {
             // Segundo en que acabó la partida (o null): el PC 2 pasa a la escena final al llegar ahí
             tFin: this.tFin ?? null,
             enPartida: Boolean(this.explorador.enPartida),
+            partida: this.partida,
+            // Resumen en vídeo (al ver el final): el PC 2 lo emite cuando la emisión pasa a Casters
+            resumen: this.resumenLista,
           });
           this.ultimoEnvio = Date.now();
         } catch (e) { this.emit('aviso', `No se pudo mandar el guion al PC 2: ${e.message}`); }
@@ -194,13 +216,19 @@ export class Ejecutor extends EventEmitter {
   }
 
   // Lo que el PC 2 tiene que hacer en su OBS y cuándo (segundo de antena): guardar el búfer al acabar cada
-  // jugada que se repite y lanzar las repeticiones. Así no hace falta llegar a su OBS desde aquí.
+  // jugada que se repite o entra en el resumen y lanzar las repeticiones. Así no hace falta llegar a su OBS desde aquí.
+  // Con el final ya visto, nada se guarda después del final: la antena se queda parada ahí.
   accionesObs(tA) {
     const lista = [];
     const colchon = this.o.reglas.repeticion.colchon ?? 0;
+    const tope = Number.isFinite(this.tFin) ? this.tFin - 1 : Infinity;
+    const red = x => Math.round(x * 100) / 100;
     for (const j of this.cerebro.jugadas) {
-      if (j.repetir && (tA === null || j.fin + 30 > tA)) lista.push({ id: `guardar-${j.id}`, tipo: 'guardar', t: Math.round((j.fin + 1) * 100) / 100, jugada: j.id });
+      if ((j.repetir || j.resumen) && (tA === null || j.fin + 30 > tA)) lista.push({ id: `guardar-${j.id}`, tipo: 'guardar', t: red(Math.min(j.fin + 1, tope)), jugada: j.id });
     }
+    // Sin jugada que acabe la partida, el resumen termina con el nexo: un clip más justo al final
+    const nexo = this.resumenLista?.find(x => x.jugada === 'nexo');
+    if (nexo && (tA === null || nexo.hasta + 30 > tA)) lista.push({ id: 'guardar-nexo', tipo: 'guardar', t: red(tope), jugada: 'nexo' });
     for (const a of this.cerebro.acciones) {
       if (a.tipo === 'repeticion' && (tA === null || a.t + 10 > tA)) lista.push({ ...a, colchon });
     }

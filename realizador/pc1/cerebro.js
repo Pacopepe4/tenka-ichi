@@ -124,6 +124,8 @@ export class Cerebro {
   }
 
   agregarMuerte(e) {
+    // Racha que corta esta muerte (antes de ponerla a cero): un «shutdown» entra en el resumen en vídeo
+    const cortada = e.victima && !(e.id && this.muertesVistas.has(e.id)) ? (this.rachas.get(e.victima.campeon) || 0) : 0;
     this.contarRacha(e);
     let j = this.abierta(e.t, ['muerte', 'pelea', 'objetivo']);
     if (!j) {
@@ -144,6 +146,8 @@ export class Cerebro {
     if (j.muertes >= this.r.repeticion.minimoMuertes) j.repetir = true;
     // Una muerte suelta (o una pelea pequeña) también puede repetirse, pero pidiendo más calma (ver planificarAcciones)
     else if (this.r.repeticion.sueltas?.activo) j.repetir = true;
+    j.rachaCortada = Math.max(j.rachaCortada || 0, cortada);
+    this.marcarResumen(j);
     return j;
   }
 
@@ -160,6 +164,7 @@ export class Cerebro {
     this.sumar(j, e);
     j.objetivos.push(e.nombre);
     if (this.r.repeticion.objetivos.includes(e.nombre)) j.repetir = true;
+    this.marcarResumen(j);
     return j;
   }
 
@@ -179,7 +184,61 @@ export class Cerebro {
     this.sumar(j, e);
     if (e.nombre === 'Ace' && this.r.repeticion.objetivos.includes('Ace')) j.repetir = true;
     if (e.nombre === 'Multikill' && (e.detalle?.racha || 0) >= 3) j.repetir = true;
+    if (e.nombre === 'Multikill') j.multikill = Math.max(j.multikill || 0, e.detalle?.racha || 0);
+    this.marcarResumen(j);
     return j;
+  }
+
+  // ---------- resumen en vídeo al acabar la partida ----------
+  // Candidata (j.resumen): una pelea (2 muertes o más), un objetivo grande, un ace, un multikill de 2 o más o una
+  // muerte que corta una racha de 3 o más. Los criterios van en reglas.resumen. Las torres, los inhibidores y las
+  // muertes sueltas sin nada especial no entran. El PC 2 guarda su clip al acabar (como el de una repetición).
+  marcarResumen(j) {
+    const c = this.r.resumen;
+    if (!c || c.activo === false || j.resumen) return;
+    const objetivos = c.objetivos || ['DragonKill', 'BaronKill', 'HeraldKill', 'AtakhanKill', 'HordeKill', 'DragonSoul'];
+    if (j.muertes >= (c.minimoMuertes ?? 2) || j.objetivos.some(o => objetivos.includes(o))
+      || j.eventos.some(e => e.nombre === 'Ace') || (j.multikill || 0) >= (c.multikill ?? 2)
+      || (j.rachaCortada || 0) >= (c.rachaCortada ?? 3)) j.resumen = true;
+  }
+
+  // Candidatas al resumen: las marcadas y las que tienen una repetición programada (todas las muertes pueden
+  // llevar j.repetir por las «sueltas», así que cuenta la repetición de verdad, no la marca)
+  candidatasResumen() {
+    return this.jugadas.filter(j => j.resumen || String(j.repeticion || '').startsWith('rep-'));
+  }
+
+  // La jugada que acaba la partida: la última, si pasa en los últimos «finalSegundos». Si no hay ninguna
+  // (se tira el nexo sin pelea), null: el resumen acaba con un trozo del final («nexo»).
+  jugadaFinal(tFin) {
+    const c = this.r.resumen || {};
+    if (!Number.isFinite(tFin)) return null;
+    const ultima = [...this.jugadas].sort((a, b) => a.ultimoT - b.ultimoT).at(-1);
+    return ultima && ultima.ultimoT >= tFin - (c.finalSegundos ?? 30) ? ultima : null;
+  }
+
+  // Lista del resumen en vídeo (segundos de partida): { jugada, desde, hasta } por clip, en el orden en que salen.
+  // destacadas: los ids que eligió la IA (solo valen las candidatas); sin IA, todas las candidatas en orden de partida.
+  // Cada recorte va de inicio − antes a fin + despues, con «maximoClip» como mucho (se queda el final, lo decisivo).
+  // La jugada que acaba la partida entra siempre (la última); sin jugada final, el nexo: los últimos segundos.
+  listaResumen(tFin, destacadas = null) {
+    const c = this.r.resumen || {};
+    if (c.activo === false) return [];
+    const candidatas = this.candidatasResumen().sort((a, b) => a.inicio - b.inicio);
+    let elegidas = candidatas;
+    if (Array.isArray(destacadas)) {
+      const porId = new Map(candidatas.map(j => [j.id, j]));
+      elegidas = [...new Set(destacadas)].map(id => porId.get(id)).filter(Boolean);
+    }
+    const final = this.jugadaFinal(tFin);
+    if (final) elegidas = [...elegidas.filter(j => j !== final), final];
+    const lista = elegidas.map(j => {
+      const hasta = Math.min(j.fin + (c.despues ?? 2), Number.isFinite(tFin) ? tFin : Infinity);
+      const desde = Math.max(0, j.inicio - (c.antes ?? 3), hasta - (c.maximoClip ?? 20));
+      return { jugada: j.id, desde: red(desde), hasta: red(hasta), t: red(j.primerT), ...(j === final ? { final: true } : {}) };
+    });
+    if (!final && Number.isFinite(tFin)) lista.push({ jugada: 'nexo', desde: red(Math.max(0, tFin - (c.nexoSegundos ?? 12))), hasta: red(tFin), t: red(tFin), final: true });
+    return lista;
   }
 
   prioridad(j) {
