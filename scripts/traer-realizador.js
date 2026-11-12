@@ -13,7 +13,7 @@ if (!existsSync(path.join(origen, 'pc2', 'rele.js'))) {
   console.error(`No parece el repositorio del realizador: ${origen}`);
   process.exit(1);
 }
-const FUERA = new Set(['.git', 'node_modules', 'test', 'simulador', 'partidas', 'capturas', 'opciones.local.json', '.gitignore', '.gitattributes']);
+const FUERA = new Set(['.git', 'node_modules', 'test', 'simulador', 'docs', 'partidas', 'capturas', 'opciones.local.json', '.gitignore', '.gitattributes']);
 rmSync(destino, { recursive: true, force: true });
 cpSync(origen, destino, { recursive: true, filter: f => !FUERA.has(path.basename(f)) || f === origen });
 // Versión (commit del repositorio del realizador): la usan el botón «Actualizar» de los PCs y /puente/realizador-version.json
