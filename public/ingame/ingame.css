@@ -72,6 +72,9 @@ body.oculto #lienzo { opacity: 0; transform: translateY(-24px); }
 /* El resplandor de un objetivo vivo o un punto de alma: un halo detrás del sello cuya opacidad late (nada de filtros) */
 .sello::before { content: ''; position: absolute; inset: -4px; border-radius: 50%; opacity: 0; pointer-events: none; box-shadow: 0 0 14px 3px var(--color, var(--washi)); }
 .vivo .sello::before, .punto .sello::before { animation: latido 1.6s ease-in-out infinite; }
+/* Con el marcador oculto (sin partida o quitado desde el panel), los halos que laten se quedan quietos: no se ven y así
+   no piden frames (el overlay lo tiene cargado en un marco aunque enseñe otra vista) */
+body.oculto .sello::before, body.oculto .retrato::before { animation-play-state: paused; }
 @keyframes latido { 0%, 100% { opacity: .25; } 50% { opacity: .9; } }
 
 /* ---------- Temporizadores (debajo del reloj) y módulos de cada clan ---------- */
