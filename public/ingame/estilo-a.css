@@ -128,8 +128,6 @@
 [data-estilo="a"] .runa { border-radius: 50%; background: rgba(12, 13, 19, .7); box-shadow: 0 0 0 1px var(--sumi-linea); }
 [data-estilo="a"] .mision { box-shadow: 0 0 0 1px #4A4B5E; }
 [data-estilo="a"] .mision.vacio { box-shadow: inset 0 0 0 1px var(--sumi-linea); }
-/* En letra de texto, no en Dela: «≈11,5k» en Dela no cabe en su columna de 66 px y se junta con los puntos */
-[data-estilo="a"] .jugador .oro { font-family: var(--dela); font-size: 18px; color: var(--washi); }
 /* En medio: puntos del fantasy (el que va por delante, del color de su familia) y la diferencia de oro */
 [data-estilo="a"] .puntos b { font-family: var(--dela); font-size: 27px; color: var(--hai); }
 [data-estilo="a"] .rotulo-pts { font-size: 16px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--hai); }

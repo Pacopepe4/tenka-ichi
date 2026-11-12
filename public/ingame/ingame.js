@@ -100,7 +100,9 @@ function cifra(el, valor, formato = String) {
   latir(el);
   const desde = anterior, inicio = performance.now();
   const paso = ahora => {
-    const p = Math.min(1, (ahora - inicio) / CIFRA_MS);
+    // La hora del fotograma puede ser un pelín anterior a «inicio»: sin el máximo, el primer paso se pasaba al otro lado
+    // del valor de partida y salía «≈-0,0k» un instante
+    const p = Math.max(0, Math.min(1, (ahora - inicio) / CIFRA_MS));
     const suave = 1 - (1 - p) ** 3;
     texto(el, formato(p < 1 ? Math.round(desde + (valor - desde) * suave) : valor));
     if (p < 1) pasos.set(el, requestAnimationFrame(paso));
@@ -393,8 +395,8 @@ filas.innerHTML = [0, 1, 2, 3, 4].map(i => `<div class="fila" style="--i:${i}" d
     const quien = '<span class="quien"><span class="linea-nombre"><b class="nombre"></b>'
       + '<span class="recompensa" hidden><svg><use href="#i-oro"/></svg><b></b></span></span><small class="kda"><b class="kda-cifras"></b><span class="cs"></span></small></span>';
     const objetos = '<span class="objetos"><span class="huecos"></span><i class="hueco abalorio"><img alt="" hidden></i></span>';
-    const oro = '<span class="oro"></span>';
-    const partes = lado === 'azul' ? [retrato, iconos, quien, objetos, oro] : [oro, objetos, quien, iconos, retrato];
+    // Sin el oro de cada jugador (12/11, Pacopepe: «quita el oro individual, deja la diferencia y ya»)
+    const partes = lado === 'azul' ? [retrato, iconos, quien, objetos] : [objetos, quien, iconos, retrato];
     return `<div class="jugador ${lado}">${partes.join('')}</div>`;
   }).join(`<div class="medio">
     <span class="puntos azul"><b></b></span>
@@ -475,7 +477,6 @@ function pintarLineas(mostrar) {
       const recompensa = caja.querySelector('.recompensa');
       recompensa.hidden = !(j.recompensa >= 100);
       texto(recompensa.querySelector('b'), `≈${j.recompensa}`);
-      cifra(caja.querySelector('.oro'), j.oro, n => `≈${miles(n)}`);
     }
     const dif = difs[i];
     const lado = Math.abs(dif) < 100 ? '' : dif > 0 ? 'azul' : 'rojo';
