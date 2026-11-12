@@ -65,3 +65,32 @@ test('el PC 1 apunta la sala y el PC 2 la recoge; con otra contraseña, no', asy
     assert.ok(!JSON.stringify(pc2.estados).includes(sala), 'la sala no va en el estado que se reparte a todos');
   } finally { pc1.ws.close(); pc2.ws.close(); }
 });
+
+// Resumen final (la «replay final»): el panel manda panelResumen y llega tal cual al PC 1; la foto del PC 1 con su
+// campo resumen llega tal cual al panel
+test('panelResumen pasa del panel al PC 1 tal cual, y la foto con el resumen, del PC 1 al panel', async () => {
+  const { createHash } = await import('node:crypto');
+  const sala = createHash('sha256').update(`realizador:${CLAVE}`).digest('hex');
+  const unirse = papel => new Promise((ok, mal) => {
+    const ws = new WebSocket(`${urlWeb.replace('http', 'ws')}/realizador`);
+    const cola = [], esperas = [];
+    ws.on('message', m => { const d = JSON.parse(m); const e = esperas.shift(); e ? e(d) : cola.push(d); });
+    ws.siguiente = () => (cola.length ? Promise.resolve(cola.shift()) : new Promise(r => esperas.push(r)));
+    ws.hasta = async tipo => { for (;;) { const d = await ws.siguiente(); if (d.tipo === tipo) return d; } };
+    ws.on('open', () => { ws.send(JSON.stringify({ tipo: 'unirse', sala, papel })); ok(ws); });
+    ws.on('error', mal);
+  });
+  const pc1 = await unirse('pc1');
+  const panel = await unirse('panel');
+  try {
+    await pc1.hasta('unido');
+    await panel.hasta('unido');
+    for (const accion of ['lanzar', 'cancelar', 'repetir']) {
+      panel.send(JSON.stringify({ tipo: 'panelResumen', accion }));
+      assert.deepEqual(await pc1.siguiente(), { tipo: 'panelResumen', accion });
+    }
+    const foto = { tipo: 'foto', resumen: { fase: 'cuenta', jugadas: 7, segundos: 84, faltan: 72, clipActual: null } };
+    pc1.send(JSON.stringify(foto));
+    assert.deepEqual(await panel.hasta('foto'), foto);
+  } finally { pc1.close(); panel.close(); }
+});

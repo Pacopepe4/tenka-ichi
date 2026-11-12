@@ -1,5 +1,6 @@
 // Sección «Realizador automático» del panel: se une a la sala del realizador (/realizador) con la huella de la
 // contraseña del panel (la misma que ponen sus instaladores), pinta lo que manda su PC 1 (foto, cada segundo) y le manda tomar el control u órdenes de cámara.
+import { vistaResumen } from './resumen.js';
 const $ = s => document.querySelector(s);
 const esc = t => String(t ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
 const reloj = t => (t === null || t === undefined ? '--:--' : `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`);
@@ -79,6 +80,7 @@ function pintar() {
   $('#realizadorAntena').textContent = reloj(f?.tAntena);
   $('#realizadorMargen').textContent = f?.margenReal === null || f?.margenReal === undefined ? '--' : `${Math.round(f.margenReal)} s`;
   pintarEmision(f);
+  pintarResumen(f);
   $('#realizadorPlano').textContent = '';
   $('#realizadorPlano').innerHTML = !f ? (presentes.pc1 ? 'Esperando datos del PC 1' : 'Esperando al PC 1')
     : f.manual ? 'Control manual' : f.planoActual ? plano(f.planoActual) : (f.tAntena === null ? 'Esperando partida' : 'Sin plano');
@@ -122,6 +124,25 @@ function pintarEmision(f) {
   b.classList.toggle('manual', boton.accion === 'terminar');
 }
 
+// Resumen final al acabar la partida: cuenta atrás de 120 s en Casters y luego el montaje en la escena Resumen
+// (lo hace el PC 1). Lo que toca en cada fase, en resumen.js
+function pintarResumen(f) {
+  const v = vistaResumen(f);
+  const bloque = $('#realizadorResumen');
+  bloque.hidden = !v.visible;
+  bloque.dataset.fase = v.fase || '';
+  $('#realizadorResumenEstado').textContent = v.texto;
+  $('#realizadorResumenBotones').hidden = !v.botones;
+  $('#realizadorResumenLanzar').disabled = !v.lanzar;
+  $('#realizadorResumenCancelar').disabled = !v.cancelar;
+  $('#realizadorResumenRepetir').disabled = !v.repetir;
+  // Con la cuenta atrás o el resumen en antena, el apartado sube arriba (debajo de «En pantalla») y sale en la barra
+  $('#realizador').dataset.resumen = v.arriba ? 'arriba' : '';
+  const aviso = $('#realizadorResumenAviso');
+  aviso.hidden = !v.aviso;
+  aviso.textContent = v.aviso || '';
+}
+
 input.addEventListener('change', conectar);
 setInterval(() => { if (claveActual() !== claveUsada) conectar(); }, 1500);
 $('#realizadorControl').onclick = () => mandar({ tipo: 'panelControl', manual: !foto?.manual });
@@ -130,6 +151,12 @@ $('#realizadorEmitir').onclick = () => {
   if (accion === 'terminar' && !window.confirm('¿Terminar la emisión?')) return;
   mandar({ tipo: 'panelEmision', accion, modo: foto?.emision?.modo || 'emitir' });
 };
+$('#realizadorResumenLanzar').onclick = () => mandar({ tipo: 'panelResumen', accion: 'lanzar' });
+$('#realizadorResumenCancelar').onclick = () => {
+  if (foto?.resumen?.fase === 'emitiendo' && !window.confirm('¿Cortar el resumen que está en antena?')) return;
+  mandar({ tipo: 'panelResumen', accion: 'cancelar' });
+};
+$('#realizadorResumenRepetir').onclick = () => mandar({ tipo: 'panelResumen', accion: 'repetir' });
 $('#realizadorGeneral').onclick = () => mandar({ tipo: 'panelOrden', orden: { tipo: 'general' } });
 $('#realizadorJugadores').onclick = e => {
   const b = e.target.closest('button');
