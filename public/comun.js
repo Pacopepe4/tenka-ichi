@@ -42,6 +42,17 @@ export function fechaCorta(fecha, largo = false) {
 
 export const icono = id => `/ddragon/icono/${id}.png`;
 export const splash = id => `/ddragon/splash/${id}.jpg`;
+// La definitiva (la R) de cada campeón, con el nombre del id del campeón (npm run ddragon-definitivas)
+export const definitiva = id => `/ddragon/definitiva/${id}.png`;
+// El modo espectador del cliente no da el enfriamiento de la R: solo se sabe el nivel. La R se desbloquea a nivel 6 y
+// sube a 11 y 16 (rango 0 a 3); estos cinco la tienen desde nivel 1 (es su cambio de forma o de postura) y se ven
+// encendidos desde el principio
+export const RANGOS_DEFINITIVA = [6, 11, 16];
+const R_DESDE_NIVEL_1 = new Set(['Elise', 'Jayce', 'Karma', 'Nidalee', 'Udyr']);
+export function estadoDefinitiva(campeon, nivel) {
+  const rango = RANGOS_DEFINITIVA.filter(n => (Number(nivel) || 0) >= n).length;
+  return { rango, encendida: rango > 0 || R_DESDE_NIVEL_1.has(campeon) };
+}
 export const logo = clan => `/logos/${clan}.png`;
 
 // Conexión en directo con reconexión automática.

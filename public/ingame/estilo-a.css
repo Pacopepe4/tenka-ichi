@@ -97,14 +97,24 @@
 [data-estilo="a"] .lineas-cabeza .nombre { font-family: var(--dela); font-size: 30px; }
 [data-estilo="a"] .lineas-cabeza .sol { border-radius: 0; filter: drop-shadow(0 0 8px rgba(224, 48, 58, .55)); }
 [data-estilo="a"] .fila + .fila { border-top: 1px solid rgba(42, 43, 56, .8); }
-[data-estilo="a"] .retrato img { border-radius: 6px; box-shadow: 0 0 0 2px var(--lado); }
+[data-estilo="a"] .retrato > img { border-radius: 6px; box-shadow: 0 0 0 2px var(--lado); }
 [data-estilo="a"] .retrato .nivel { font-family: var(--dela); font-size: 15px; font-weight: 400; background: var(--sumi); color: var(--washi); border-radius: 4px; box-shadow: 0 0 0 1px var(--sumi-linea); }
 [data-estilo="a"] .retrato .muerte { font-family: var(--dela); font-size: 19px; color: var(--shu-neon); text-shadow: var(--neon-suave); background: rgba(12, 13, 19, .55); border-radius: 6px; }
 /* La racha: un halo bermellón que late detrás del retrato */
 [data-estilo="a"] .retrato::before { border-radius: 8px; box-shadow: 0 0 16px 4px rgba(255, 76, 86, .7); }
-[data-estilo="a"] .retrato.racha img { box-shadow: 0 0 0 2px var(--shu-claro); }
-[data-estilo="a"] .retrato.racha-alta img { box-shadow: 0 0 0 2px #FF8A90; }
+[data-estilo="a"] .retrato.racha > img { box-shadow: 0 0 0 2px var(--shu-claro); }
+[data-estilo="a"] .retrato.racha-alta > img { box-shadow: 0 0 0 2px #FF8A90; }
 [data-estilo="a"] .retrato.racha-alta::before { box-shadow: 0 0 22px 6px rgba(255, 59, 70, .9); }
+/* La definitiva: placa de noche (#15161F) con su filo (#2A2B38); encendida, el filo pasa a bermellón fino con halo.
+   Las muescas de rango son rombos: apagados en gris de filo claro (el #2A2B38 no se ve sobre la placa del panel),
+   bermellón con halo según se ganan */
+[data-estilo="a"] .definitiva { padding: 2px; border-radius: 6px; background: var(--sumi-alzado, #15161F);
+  box-shadow: 0 0 0 1.5px var(--sumi-linea, #2A2B38), 0 2px 6px rgba(0, 0, 0, .55); }
+[data-estilo="a"] .definitiva img { border-radius: 4px; }
+[data-estilo="a"] .definitiva.encendida { box-shadow: 0 0 0 1.5px var(--shu, #E0303A), 0 0 8px rgba(224, 48, 58, .7), 0 2px 6px rgba(0, 0, 0, .55); }
+[data-estilo="a"] .definitiva .rangos i { border-radius: 1px; transform: rotate(45deg); background: #4A4B5E; box-shadow: 0 0 0 1px rgba(12, 13, 19, .9); }
+[data-estilo="a"] .definitiva.r1 .rangos i:nth-child(1), [data-estilo="a"] .definitiva.r2 .rangos i:nth-child(-n+2), [data-estilo="a"] .definitiva.r3 .rangos i {
+  background: var(--shu-claro, #FF4C56); box-shadow: 0 0 0 1px rgba(12, 13, 19, .9), 0 0 5px rgba(224, 48, 58, .9); }
 [data-estilo="a"] .quien .nombre { font-family: var(--dela); font-size: 20px; }
 [data-estilo="a"] .recompensa { padding: 1px 8px 1px 5px; border-radius: 999px; background: rgba(224, 48, 58, .14); box-shadow: inset 0 0 0 1px rgba(255, 76, 86, .55); color: var(--shu-neon); }
 [data-estilo="a"] .recompensa svg { color: var(--shu-neon); }
