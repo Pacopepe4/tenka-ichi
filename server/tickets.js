@@ -10,7 +10,7 @@
 // las cartas del gachapon y los puntos del fantasy en vivo, las estadísticas de KB Stats (server/kbstats.js) y la liga
 // en vivo; si no lo sabe, o es de una persona concreta, llama ella al staff. Sin clave, el ticket funciona igual y avisa al staff. Topes al día: TICKETS_TOPE_PERSONA preguntas por
 // persona (el staff no tiene) y TICKETS_TOPE_DIA en todo el servidor.
-import Anthropic from '@anthropic-ai/sdk';
+import { sdkCargado, clientePerezoso } from './ia.js';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -149,7 +149,7 @@ export function crearTickets({ token, urlApi, ids, cliente, modelo = process.env
   fichaKb = () => readFileSync(path.join(RAIZ, 'discord/kbstats-jugadores.md'), 'utf8'), memoria,
   ahora = () => new Date(), log = console } = {}) {
   const base = urlApi.replace(/\/$/, '');
-  if (cliente === undefined) cliente = process.env.ANTHROPIC_API_KEY && process.env.TICKETS_IA !== '0' ? new Anthropic({ timeout: 60_000, maxRetries: 1 }) : null;
+  if (cliente === undefined) cliente = process.env.ANTHROPIC_API_KEY && process.env.TICKETS_IA !== '0' ? clientePerezoso({ timeout: 60_000, maxRetries: 1 }) : null;
   const iaActiva = Boolean(cliente);
   // KB Stats tarda unos 20 s en leerse: se empieza a leer al arrancar, no en la primera pregunta
   if (kbstats === undefined) {
@@ -288,7 +288,9 @@ ${pregunta}
       if (typeof j.respuesta !== 'string' || !j.respuesta.trim()) throw new Error('respuesta vacía');
       return { respuesta: recortar(j.respuesta.trim(), MAX_RESPUESTA), llamarStaff: Boolean(j.llamarStaff), aprender: Array.isArray(j.aprender) ? j.aprender : [] };
     } catch (e) {
-      if (e instanceof Anthropic.RateLimitError) log.error('Tickets: la API de Anthropic pide esperar (429)');
+      const Anthropic = sdkCargado();   // (con un cliente de las pruebas no hace falta cargarlo)
+      if (!Anthropic) log.error('Tickets: la IA ha fallado:', e.message);
+      else if (e instanceof Anthropic.RateLimitError) log.error('Tickets: la API de Anthropic pide esperar (429)');
       else if (e instanceof Anthropic.AuthenticationError) log.error('Tickets: ANTHROPIC_API_KEY no vale');
       else if (e instanceof Anthropic.APIError) log.error(`Tickets: la API de Anthropic respondió ${e.status}: ${e.message}`);
       else log.error('Tickets: la IA ha fallado:', e.message);

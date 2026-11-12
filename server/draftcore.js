@@ -5,7 +5,6 @@
 //   ban1..ban5 / ban6..ban10  bans azul / rojo      b1..b5 / r1..r5  picks azul / rojo
 //   turn         turno actual (1..20)          hovered          campeón en hover
 //   Los campeones vienen con el id de Data Dragon ("Ahri", "MonkeyKing"...).
-import { io } from 'socket.io-client';
 
 // Las pruebas usan un DraftCore de mentira con DRAFTCORE_URL_WS y DRAFTCORE_URL_WEB
 const SERVIDOR = process.env.DRAFTCORE_URL_WS || 'https://ws.lol.draftcore.net';
@@ -107,6 +106,8 @@ export function conectar(codigo, { alDraft, alHover, alTiempo, alEstado }) {
 
   async function abrir(releer = false) {
     const version = await versionCliente(codigo, { forzar: releer });
+    // socket.io-client tarda en cargarse: solo cuando el panel se conecta a DraftCore, no al arrancar la web
+    const { io } = await import('socket.io-client');
     if (cerrado) return;
     socket = io(SERVIDOR, {
       path: '/socket.io',
