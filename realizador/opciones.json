@@ -1,6 +1,6 @@
 {
   "margenSegundos": 120,
-  "hudAntena": { "MinimapScale": 0.78, "FlipMiniMap": "1" },
+  "hudAntena": { "MinimapScale": 0.78 },
   "clips": { "activo": true, "monitor": 0, "fps": 60, "bitrate": 15000, "guardarSegundos": 120, "clipSegundos": 60 },
 
   "explorador": {
@@ -142,7 +142,7 @@
     "segundosBufer": 45,
     "codificador": "auto",
     "emision": { "servidor": "rtmps://fa723fc1b171.global-contribute.live-video.net/" },
-    "minimapa": { "x": 30, "y": 804, "lado": 250 },
+    "minimapa": { "x": 1640, "y": 804, "lado": 250 },
     "vista": "camara",
     "bitrateEmision": 6000,
     "overlay": ""

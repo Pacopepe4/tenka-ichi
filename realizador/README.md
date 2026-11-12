@@ -126,7 +126,7 @@ Tus colecciones y perfiles de siempre no se tocan (siguen en los menús de OBS),
 
 **Calmas (10/11):** pasado el minuto 5, un rato sin jugadas ya no es plano general parado: hilo conductor por los junglas y las líneas (un jungla 25 s, una línea 15 s, el otro jungla, la siguiente línea; `reglas.calma`). Huecos de menos de 12 s, como antes.
 
-**Minimapa del PC 2:** el instalador pone el del LoL de la antena al 26 de la barra (`hudAntena.MinimapScale: 0.78`; la escala va de 0 a 3). Desde el 12/11 va **abajo a la izquierda** (`FlipMiniMap` en el LoL de la antena; marco en `obs.minimapa` x 30, y 804, lado 250) para dejar sitio a la cámara del caster a la derecha.
+**Minimapa del PC 2:** el instalador pone el del LoL de la antena al 26 de la barra (`hudAntena.MinimapScale: 0.78`; la escala va de 0 a 3).
 
 **Búfer de repeticiones vigilado (10/11):** con OBS conectado, el PC 2 lo mantiene siempre en marcha; si se para, lo vuelve a arrancar (un intento cada `emision.reintentoSegundos` como mucho). Se apaga con `emision.buferSiempre: false`.
 
