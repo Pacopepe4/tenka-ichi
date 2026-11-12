@@ -63,3 +63,19 @@ test('el PC 1 apunta la sala y el PC 2 la recoge; con otra contraseña, no', asy
     assert.ok(!JSON.stringify(pc2.estados).includes(sala), 'la sala no va en el estado que se reparte a todos');
   } finally { pc1.ws.close(); pc2.ws.close(); }
 });
+
+// Una trama de WebSocket mal formada (opcode 3, reservado) en /ws o en /realizador: ws cierra esa conexión y da un
+// error que, sin nadie que lo escuchara, tumbaba la web entera
+test('una trama mal formada en /ws o /realizador cierra esa conexión, no la web', async () => {
+  for (const ruta of ['/ws', '/realizador']) {
+    const ws = new WebSocket(`${urlWeb.replace('http', 'ws')}${ruta}`);
+    ws.on('error', () => {});
+    await new Promise((ok, mal) => { ws.once('open', ok); ws.once('error', mal); });
+    const cerrada = new Promise(r => ws.once('close', r));
+    ws._socket.write(Buffer.from([0x83, 0x80, 1, 2, 3, 4]));
+    await cerrada;
+    await esperar(200);
+    assert.equal(web.exitCode, null, `la web sigue encendida tras la trama en ${ruta}`);
+    assert.equal((await fetch(`${urlWeb}/salud`)).status, 200);
+  }
+});

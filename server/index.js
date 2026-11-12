@@ -1246,6 +1246,11 @@ wss.on('connection', (ws, req) => {
   }
   if (ws.canal !== 'alertas') ws.send(JSON.stringify({ tipo: 'sorteo', sorteo: sorteo.vista() }));
   ws.on('close', () => clientes.delete(ws));
+  // Una trama mal formada (o demasiado grande) da un error en esa conexión, que ws cierra sola. Sin quien lo escuche,
+  // el error tumbaba la web entera
+  ws.on('error', e => console.error('WebSocket /ws:', e.message));
+  ws.vivo = true;
+  ws.on('pong', () => { ws.vivo = true; });
   ws.on('message', async raw => {
     let m;
     try { m = JSON.parse(raw); } catch { return; }
