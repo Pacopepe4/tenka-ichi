@@ -99,8 +99,10 @@ const estado = {
   avisosPropios: true,
   // Marcador de partida: estilo (solo queda el A, «Placas» de Gokudō) e interruptores de lo nuevo, encendidos por defecto
   // (sirven para ocultar algo si no va bien, no para tener que activarlo). oroIngresos apagado vuelve al valor de los objetos.
-  // camaras: las cámaras de los casters a los lados del línea por línea (izquierda y derecha), que sí hay que activar:
-  // huecos transparentes como los del draft, con el nombre y el detalle que se escriban en el panel
+  // camaras: la cámara del caster en partida, que sí hay que activar: un hueco transparente como los del draft, pegado
+  // abajo a la izquierda y por su cuenta (no depende del línea por línea), con el nombre y el detalle del panel. Es la
+  // primera de la lista; la segunda (la derecha de antes, que chocaba con el marco del minimapa) ya no sale, pero se
+  // queda en el estado para que lo guardado de antes, con dos, siga valiendo
   ingame: { estilo: 'a', puntosFantasy: true, resumenPelea: true, oroIngresos: true,
     camaras: [{ activa: false, nombre: '', detalle: '' }, { activa: false, nombre: '', detalle: '' }] },
   aviso: null,
@@ -581,7 +583,8 @@ async function accion(nombre, d = {}) {
       // Desde el 08/11 solo hay un estilo del marcador (el A de Gokudō): el campo se queda por compatibilidad
       if (d.estilo === 'a') estado.ingame.estilo = 'a';
       for (const k of ['puntosFantasy', 'resumenPelea', 'oroIngresos']) if (typeof d[k] === 'boolean') estado.ingame[k] = d[k];
-      // Las cámaras de los casters: la lista de las dos, cada una con lo que cambie (activarla, o su nombre y su detalle)
+      // La cámara del caster en partida es la primera de la lista: llega con lo que cambie (activarla, o su nombre y su
+      // detalle). Lo que no llega, como la segunda, se queda como estaba
       if (Array.isArray(d.camaras)) estado.ingame.camaras = estado.ingame.camaras.map((c, i) => camaraLineas(d.camaras[i], c));
       ajustarIngame(estado.ingame);
       emitirPartida();  // el oro cambia al momento si se toca el interruptor de los ingresos

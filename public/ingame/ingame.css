@@ -122,7 +122,7 @@ body.oculto #lienzo { opacity: 0; transform: translateY(-24px); }
 
 /* ---------- Línea por línea (abajo, en el centro) ---------- */
 /* El panel va dentro de su zona, que ocupa el lienzo entero y va siempre encogida hacia abajo y al centro (la escala
-   la pone el marcador: ESCALA_LINEAS en comun.js), haya cámaras de casters a los lados o no. La gráfica de oro va en
+   la pone el marcador: ESCALA_LINEAS en comun.js). La gráfica de oro va en
    esta misma zona y con la misma caja: las dos salen exactamente en el mismo hueco */
 .zona-lineas { position: absolute; inset: 0; pointer-events: none; transform-origin: 50% 100%; transform: scale(var(--escala-lineas, .78)); }
 /* Entra subiendo desde el borde, con las filas escalonadas; se va bajando */
@@ -207,12 +207,12 @@ body.oculto #lienzo { opacity: 0; transform: translateY(-24px); }
 .barra .relleno.rojo { left: 50%; transform-origin: 0 50%; }
 .dif { white-space: nowrap; }
 
-/* ---------- Cámaras de los casters (un hueco a cada lado del línea por línea) ---------- */
+/* ---------- Cámara del caster en partida (abajo a la derecha; a la izquierda va el minimapa) ---------- */
 /* La ventana es transparente: la cámara va por debajo del overlay en OBS, en la posición que da el panel
-   (camarasLineas en comun.js, que es quien las coloca). Entran un momento después del panel y se van con él */
-.camaras-lineas { position: absolute; inset: 0; pointer-events: none; }
-.camara-lineas { position: absolute; animation: camaraEntra var(--t-lento) var(--curva) both .16s; }
-.camara-lineas.sale { animation: camaraSale var(--t-medio) var(--curva-salida) both; }
+   (camaraPartida en comun.js, que es quien la coloca). Entra y sale por su cuenta, se vea o no el línea por línea */
+.camaras-partida { position: absolute; inset: 0; pointer-events: none; }
+.camara-partida { position: absolute; animation: camaraEntra var(--t-lento) var(--curva) both .16s; }
+.camara-partida.sale { animation: camaraSale var(--t-medio) var(--curva-salida) both; }
 @keyframes camaraEntra { from { opacity: 0; transform: translateY(28px); } }
 @keyframes camaraSale { to { opacity: 0; transform: translateY(24px); } }
 .ventana-cam { position: relative; }
@@ -222,9 +222,9 @@ body.oculto #lienzo { opacity: 0; transform: translateY(-24px); }
 .sello-cam img { width: 24px; height: 24px; object-fit: contain; }
 .nombre-cam { position: relative; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .detalle-cam { position: relative; min-width: 0; margin-left: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* La de la derecha va en espejo, como todo el lado rojo */
-.camara-lineas.derecha .placa-cam { flex-direction: row-reverse; }
-.camara-lineas.derecha .detalle-cam { margin-left: 0; margin-right: auto; }
+/* Va en el lado derecho: en espejo, como todo el lado rojo */
+.camara-partida .placa-cam { flex-direction: row-reverse; }
+.camara-partida .detalle-cam { margin-left: 0; margin-right: auto; }
 /* Guía para colocar las cámaras en OBS (?guia=1 o la vista previa del panel): la ventana rayada, con su medida */
 .medidas-cam { display: none; }
 body.guia .medidas-cam { display: grid; place-items: center; position: absolute; inset: 0;
@@ -233,8 +233,12 @@ body.guia .medidas-cam { display: grid; place-items: center; position: absolute;
 
 /* ---------- Ficha de un jugador (abajo, en el lado de su clan) ---------- */
 .ficha { position: absolute; bottom: 56px; display: grid; grid-template-columns: 290px 400px; gap: 22px; align-items: stretch; animation: fichaEntra var(--t-lento) var(--curva) both; }
-.ficha.azul { left: 72px; }
-.ficha.rojo { right: 72px; grid-template-columns: 400px 290px; }
+/* La del lado azul empieza pasada la zona del minimapa, que va abajo a la izquierda (ZONA_MINIMAPA en comun.js: hasta
+   x 300 y desde y 780); antes iba en x 72 */
+.ficha.azul { left: 324px; }
+.ficha.rojo { right: 72px; grid-template-columns: 400px 290px; transition: right var(--t-medio) var(--curva); }
+/* Con la cámara del caster fuera (abajo a la derecha, desde x 1584), la del lado rojo se aparta a su izquierda */
+body.con-camara-partida .ficha.rojo { right: 360px; }
 .ficha.rojo .ficha-carta { order: 2; }
 .ficha.sale { animation: fichaSale var(--t-medio) var(--curva-salida) both; }
 @keyframes fichaEntra { from { opacity: 0; transform: translateY(30px); } }

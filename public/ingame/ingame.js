@@ -1,11 +1,11 @@
 // Overlay de partida (/ingame/): marcador en directo con lo que manda el puente del PC donde se mira
 // la partida, temporizadores de los objetivos, lo que lleva cada clan (buffs, alma, inhibidores),
-// avisos de objetivos y resumen de pelea y, cuando lo saca el panel, el línea por línea (con las cámaras de los
-// casters a los lados, si están activadas), la ficha de un jugador o la gráfica de oro. Los clanes salen del
+// avisos de objetivos y resumen de pelea, la cámara del caster abajo a la derecha (si está activada) y, cuando lo
+// saca el panel, el línea por línea, la ficha de un jugador o la gráfica de oro. Los clanes salen del
 // enfrentamiento del panel (lado azul a la izquierda).
 // El aspecto es el estilo A de Gokudō («Placas», estilo-a.css, acotado a data-estilo="a" en <body>). Pacopepe se quedó con
 // él el 08/11 y la B se borró.
-import { cargarClanes, conectarDirecto, logo, icono, splash, camarasLineas, ESCALA_LINEAS } from '/comun.js';
+import { cargarClanes, conectarDirecto, logo, icono, splash, camaraPartida, ESCALA_LINEAS } from '/comun.js';
 import { cartaHTML } from '/carta.js';
 
 const $ = s => document.querySelector(s);
@@ -336,7 +336,7 @@ function pintarGraficos() {
   const hay = tipo => g?.tipo === tipo && Boolean(partida?.activo);
   const lineas = hay('lineas') && (partida.lineas || []).length === 5;
   pintarLineas(lineas);
-  pintarCamarasLineas(lineas);
+  pintarCamaraPartida();
   pintarFicha(hay('ficha') ? g : null);
   pintarGrafica(hay('oro'));
 }
@@ -379,12 +379,9 @@ function pintarIcono(img, src) {
 
 function pintarLineas(mostrar) {
   const caja = $('.lineas');
-  // La zona del panel (la misma de la gráfica de oro) va siempre encogida a ESCALA_LINEAS, tenga cámaras o no: así no
-  // cambia de tamaño al marcar una cámara y la gráfica sale justo en el mismo hueco
-  if (mostrar) {
-    $('.zona-lineas').style.setProperty('--escala-lineas', ESCALA_LINEAS);
-    $('.zona-lineas').classList.toggle('con-camaras', camarasActivas().length > 0);
-  }
+  // La zona del panel (la misma de la gráfica de oro) va siempre encogida a ESCALA_LINEAS: así la gráfica sale justo en
+  // el mismo hueco
+  if (mostrar) $('.zona-lineas').style.setProperty('--escala-lineas', ESCALA_LINEAS);
   aparecer(caja, mostrar);
   if (!mostrar) return;
   const conPuntos = interruptor('puntosFantasy');
@@ -465,27 +462,29 @@ function pintarLineas(mostrar) {
   });
 }
 
-// ---------- cámaras de los casters, a los lados del línea por línea ----------
-// Dos huecos transparentes, uno a cada lado del panel: la cámara va por debajo del overlay en OBS, justo donde dice el
-// panel (camarasLineas en comun.js). Cada una se activa aparte y lleva el marco de caster: el emblema de Koryu Budo
-// (tal cual, sobre su papel) y el nombre y el detalle que se escriban en el panel
-const LADO_CAMARA = ['izquierda', 'derecha'];
-const camarasActivas = () => (estado?.ingame?.camaras || []).map((cam, i) => ({ ...cam, i, clave: LADO_CAMARA[i] })).filter(c => c.activa && LADO_CAMARA[c.i]);
-function pintarCamarasLineas(mostrar) {
-  const huecos = camarasLineas();
-  lista($('.camaras-lineas'), mostrar ? camarasActivas() : [], cam => {
+// ---------- cámara del caster en partida, abajo a la derecha ----------
+// Un hueco transparente abajo a la derecha (abajo a la izquierda va el minimapa del LoL): la cámara va por debajo del
+// overlay en OBS, justo donde dice el panel (camaraPartida en comun.js). Va por su cuenta, se vea o no el línea por línea: sale (con su animación) cuando se
+// activa en el panel y hay partida, y se va al quitarla. Lleva el marco de caster: el emblema de Gokudō y el nombre y
+// el detalle que se escriban en el panel. Es ingame.camaras[0]; la segunda de la lista no sale (la izquierda de
+// antes chocaría con el minimapa)
+function pintarCamaraPartida() {
+  const cam = estado?.ingame?.camaras?.[0];
+  const ver = Boolean(cam?.activa && partida?.activo);
+  document.body.classList.toggle('con-camara-partida', ver);
+  const h = camaraPartida();
+  lista($('.camaras-partida'), ver ? [{ ...cam, clave: 'partida' }] : [], () => {
     const el = document.createElement('div');
-    el.className = `camara-lineas ${cam.clave}`;
+    el.className = 'camara-partida';
     el.innerHTML = '<div class="ventana-cam"><div class="medidas-cam"><span></span></div></div>'
       + '<div class="placa-cam"><span class="sello-cam"><img src="/marca/gokudo.png" alt=""></span><span class="nombre-cam"></span><span class="detalle-cam"></span></div>';
     return el;
-  }, (el, cam) => {
-    const h = huecos[cam.i];
+  }, (el, c) => {
     Object.assign(el.style, { left: `${h.x}px`, top: `${h.y}px`, width: `${h.w}px` });
     el.querySelector('.ventana-cam').style.height = `${h.h}px`;
-    el.querySelector('.medidas-cam span').innerHTML = `Cámara ${cam.clave}<br>${h.w}×${h.h} en x ${h.x}, y ${h.y}`;
-    el.querySelector('.nombre-cam').textContent = cam.nombre || 'Caster';
-    el.querySelector('.detalle-cam').textContent = cam.detalle || '';
+    el.querySelector('.medidas-cam span').innerHTML = `Cámara del caster<br>${h.w}×${h.h} en x ${h.x}, y ${h.y}`;
+    el.querySelector('.nombre-cam').textContent = c.nombre || 'Caster';
+    el.querySelector('.detalle-cam').textContent = c.detalle || '';
   });
 }
 

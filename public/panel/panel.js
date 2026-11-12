@@ -1,5 +1,5 @@
 // Panel de producción: conecta DraftCore, configura el enfrentamiento, corrige huecos y registra resultados
-import { cargarCampeones, cargarClanes, conectarDirecto, icono, logo, disposicionCamaras, camarasLineas, compite, fechaCorta } from '/comun.js';
+import { cargarCampeones, cargarClanes, conectarDirecto, icono, logo, disposicionCamaras, camaraPartida, compite, fechaCorta } from '/comun.js';
 import { imagenTierlist, imagenClasificacion, descargar, publicar } from '/compartir.js';
 
 const $ = s => document.querySelector(s);
@@ -691,47 +691,35 @@ function pintarIngame() {
   const i = estado?.ingame || { estilo: 'a', puntosFantasy: true, resumenPelea: true, oroIngresos: true };
   for (const k of ['resumenPelea', 'puntosFantasy', 'oroIngresos']) $(`#${k}`).checked = i[k] !== false;
   pintarOpcionesFicha();
-  pintarCamarasLineas();
+  pintarCamaraPartida();
 }
 
-// ---------- Cámaras de los casters, a los lados del línea por línea ----------
-// Dos huecos, uno a cada lado del panel (camarasLineas en comun.js): izquierda y derecha. Marcar una se aplica al
+// ---------- Cámara del caster en partida, abajo a la derecha ----------
+// Un solo hueco, abajo a la derecha (camaraPartida en comun.js; abajo a la izquierda va el minimapa), que va por su cuenta: no depende del línea por línea.
+// Es ingame.camaras[0] en el estado (la segunda de la lista, la derecha de antes, ya no sale). Marcarla se aplica al
 // momento; el nombre y el detalle, con el botón, como en las cámaras del draft
-const LADO_CAMARA = ['izquierda', 'derecha'];
-let camarasLineasRellenas = false;
-function pintarCamarasLineas() {
-  const lista = estado?.ingame?.camaras;
-  if (!lista) return;
-  const caja = $('.lista-camaras-lineas');
-  // Las filas se montan una vez: lo escrito no se pisa cada vez que llega el estado
-  if (!camarasLineasRellenas) {
-    camarasLineasRellenas = true;
-    caja.innerHTML = lista.map((c, i) => `<div class="fila-camara-lineas">
-      <label class="casilla"><input type="checkbox" class="activa"><span class="donde"><b>Cámara ${LADO_CAMARA[i]}</b><span class="medida"></span></span></label>
-      <input class="nombre" aria-label="Nombre del caster de la cámara ${LADO_CAMARA[i]}" placeholder="Nombre del caster" maxlength="40">
-      <input class="detalle" aria-label="Detalle de la cámara ${LADO_CAMARA[i]}" placeholder="@usuario" maxlength="60">
-    </div>`).join('');
-    caja.querySelectorAll('.fila-camara-lineas').forEach((f, i) => {
-      f.querySelector('.nombre').value = lista[i].nombre;
-      f.querySelector('.detalle').value = lista[i].detalle;
-      f.querySelector('.activa').addEventListener('change', async e => {
-        const activa = e.target.checked;
-        const r = await enviar('ingame', { camaras: LADO_CAMARA.map((_, j) => (j === i ? { activa } : {})) });
-        if (r.ok) aviso(activa ? `Cámara ${LADO_CAMARA[i]} activada: sale con el línea por línea` : `Cámara ${LADO_CAMARA[i]} quitada`);
-      });
-    });
+let camaraPartidaRellena = false;
+function pintarCamaraPartida() {
+  const cam = estado?.ingame?.camaras?.[0];
+  if (!cam) return;
+  // Lo escrito no se pisa cada vez que llega el estado: el nombre y el detalle se rellenan una vez
+  if (!camaraPartidaRellena) {
+    camaraPartidaRellena = true;
+    $('#camaraPartidaNombre').value = cam.nombre;
+    $('#camaraPartidaDetalle').value = cam.detalle;
   }
-  const huecos = camarasLineas();
-  caja.querySelectorAll('.fila-camara-lineas').forEach((f, i) => {
-    const h = huecos[i];
-    f.querySelector('.activa').checked = Boolean(lista[i].activa);
-    f.querySelector('.medida').textContent = `${h.w}×${h.h} en x ${h.x}, y ${h.y}`;
-  });
+  $('#camaraPartidaActiva').checked = Boolean(cam.activa);
+  const h = camaraPartida();
+  $('#camaraPartidaMedida').textContent = `${h.w}×${h.h} en x ${h.x}, y ${h.y}`;
 }
-$('#guardarCamarasLineas').onclick = async () => {
-  const camaras = [...document.querySelectorAll('.fila-camara-lineas')].map(f => ({ nombre: f.querySelector('.nombre').value.trim(), detalle: f.querySelector('.detalle').value.trim() }));
-  const r = await enviar('ingame', { camaras });
-  if (r.ok) aviso('Nombres de los casters en el overlay');
+$('#camaraPartidaActiva').onchange = async e => {
+  const activa = e.target.checked;
+  const r = await enviar('ingame', { camaras: [{ activa }] });
+  if (r.ok) aviso(activa ? 'Cámara del caster activada: sale en la partida, abajo a la derecha' : 'Cámara del caster quitada');
+};
+$('#guardarCamaraPartida').onclick = async () => {
+  const r = await enviar('ingame', { camaras: [{ nombre: $('#camaraPartidaNombre').value.trim(), detalle: $('#camaraPartidaDetalle').value.trim() }] });
+  if (r.ok) aviso('Nombre del caster en el overlay');
 };
 
 // Estadísticas del fantasy desde la partida: cada puesto del panel con el jugador de esa línea.

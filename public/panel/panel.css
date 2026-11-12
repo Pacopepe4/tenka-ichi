@@ -321,15 +321,13 @@ details.ayuda summary { cursor: pointer; color: var(--washi); font-weight: 500; 
 details.ayuda[open] summary { margin-bottom: 6px; }
 
 
-/* Cámaras de los casters en el línea por línea (apartado Partida): una fila por cámara, con su casilla */
-.camaras-lineas h4 { margin: 0; font-size: 14px; font-weight: 500; color: var(--washi); }
-.camaras-lineas .ayuda { margin-top: 12px; }
-.lista-camaras-lineas { display: grid; gap: 10px; margin-top: 10px; }
-.fila-camara-lineas { display: grid; grid-template-columns: 210px minmax(150px, 1.4fr) minmax(120px, 1fr); gap: 10px; align-items: center;
-  padding-left: 12px; border-left: 4px solid var(--washi); }
-.fila-camara-lineas .donde { display: flex; flex-direction: column; font-size: 13px; color: var(--hai); line-height: 1.35; }
-.fila-camara-lineas .donde b { color: var(--washi); font-size: 15px; }
-@media (max-width: 760px) { .fila-camara-lineas { grid-template-columns: 1fr 1fr; } .fila-camara-lineas .casilla { grid-column: 1 / -1; } }
+/* Cámara del caster en partida (Ajustes del directo): su casilla, el nombre y el detalle en una fila */
+.camara-partida .ayuda { margin-top: 12px; }
+.fila-camara-partida { display: grid; grid-template-columns: 210px minmax(150px, 1.4fr) minmax(120px, 1fr); gap: 10px; align-items: center;
+  margin-top: 10px; padding-left: 12px; border-left: 4px solid var(--washi); }
+.fila-camara-partida .donde { display: flex; flex-direction: column; font-size: 13px; color: var(--hai); line-height: 1.35; }
+.fila-camara-partida .donde b { color: var(--washi); font-size: 15px; }
+@media (max-width: 760px) { .fila-camara-partida { grid-template-columns: 1fr 1fr; } .fila-camara-partida .casilla { grid-column: 1 / -1; } }
 
 /* Sorteo en directo (Competición) */
 .sorteo-vivo-panel h3 { margin: 0 0 8px; font-size: 16px; }

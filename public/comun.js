@@ -106,13 +106,21 @@ export function disposicionCamaras(n) {
   }
 }
 
-// Cámaras de los casters en el línea por línea del marcador de partida: dos huecos en 16:9, uno a cada lado del panel
-// (izquierda y derecha), abajo, con la placa del nombre de 44 px pegada debajo. Mismas coordenadas del lienzo y sin
-// la placa. El panel (y la gráfica de oro, que sale en su mismo hueco) va siempre encogido a ESCALA_LINEAS, que el
-// marcador pone en .zona-lineas, haya cámaras o no: así queda de x 430 a 1490 y de y 784 al borde de abajo.
-// Si se toca el tamaño del línea por línea o la escala, se tocan los huecos. Desde el 08/11 solo hay un estilo (el A)
+// El línea por línea del marcador de partida (y la gráfica de oro, que sale en su mismo hueco) va siempre encogido a
+// ESCALA_LINEAS, que el marcador pone en .zona-lineas: así queda de x 430 a 1490 y de y 784 al borde de abajo.
+// Desde el 08/11 solo hay un estilo (el A)
 export const ESCALA_LINEAS = 0.68;  // 09/11: Pacopepe lo quiere más pequeño aún (antes 0.78)
-export function camarasLineas() {
-  const w = 320, h = 180, x = 16, y = 856;
-  return [{ x, y, w, h }, { x: 1920 - x - w, y, w, h }];
+
+// Cámara del caster en partida: un hueco en 16:9 abajo a la derecha (el de la derecha de siempre), con la placa del
+// nombre (PLACA_CAMARA_PARTIDA) pegada debajo hasta el borde. Coordenadas del lienzo, sin la placa. Va por su cuenta,
+// se vea o no el línea por línea (12/11). El minimapa del LoL pasó abajo a la izquierda (marco del realizador en x 30,
+// y 804, 250×250: con su placa y su pestaña ocupa de x 0 a 300 y de y 780 al borde), así que ahí no va nada del
+// overlay: la cámara de la izquierda que había antes se quitó. Tampoco pisa la caja del línea por línea (hasta x 1490)
+export const PLACA_CAMARA_PARTIDA = 44;
+export const ZONA_MINIMAPA = { x: 0, y: 780, w: 300, h: 300 };
+export function camaraPartida() {
+  const w = 320, h = 180, margen = 16;
+  return { x: 1920 - margen - w, y: 1080 - PLACA_CAMARA_PARTIDA - h, w, h };
 }
+// Alias de antes (lo que lo importe recibe ya solo el hueco de partida)
+export const camarasLineas = () => [camaraPartida()];
