@@ -2,7 +2,7 @@
    (#15161F, filo #2A2B38, 8 px de radio), cada familia con su tubo de neón en el borde y el bermellón con halo para lo
    que está vivo. Dela Gothic One en nombres y cifras, Yuji Boku en los kanji. Sin oro ni cortes en diagonal.
    Todo acotado a [data-estilo="a"]: si se elige la B, este archivo se borra. Las medidas (alturas, anchos, rellenos)
-   son las de siempre: de ellas dependen los huecos de las cámaras de los casters (camarasLineas en comun.js). */
+   son las de siempre: de ellas depende la caja del línea por línea (ESCALA_LINEAS en comun.js) y la vigilan las pruebas. */
 [data-estilo="a"] { --placa: rgba(21, 22, 31, .95); --filo-fino: inset 0 0 0 1px var(--sumi-linea); }
 
 /* ---------- Marcador ---------- */
@@ -133,10 +133,10 @@
 [data-estilo="a"] .dif.azul { color: var(--clan-azul-texto, var(--azul-lado)); }
 [data-estilo="a"] .dif.rojo { color: var(--clan-rojo-texto, #FF5A63); }
 
-/* ---------- Cámaras de los casters ---------- */
+/* ---------- Cámara del caster en partida ---------- */
 /* Marco de caster: filo fino de noche, el tubo bermellón encima y la placa con el emblema y el nombre */
-[data-estilo="a"] .camara-lineas { border-radius: 8px 8px 0 0; box-shadow: 0 0 0 1px rgba(12, 13, 19, .9), 0 0 0 2px var(--sumi-linea), 0 -10px 30px rgba(0, 0, 0, .4); }
-[data-estilo="a"] .camara-lineas::before { content: ''; position: absolute; left: 10px; right: 10px; top: -6px; height: 3px; border-radius: 2px; background: var(--shu-claro);
+[data-estilo="a"] .camara-partida { border-radius: 8px 8px 0 0; box-shadow: 0 0 0 1px rgba(12, 13, 19, .9), 0 0 0 2px var(--sumi-linea), 0 -10px 30px rgba(0, 0, 0, .4); }
+[data-estilo="a"] .camara-partida::before { content: ''; position: absolute; left: 10px; right: 10px; top: -6px; height: 3px; border-radius: 2px; background: var(--shu-claro);
   box-shadow: 0 0 6px #FF3B46, 0 0 14px var(--shu); }
 [data-estilo="a"] .placa-cam { background: rgba(15, 16, 23, .97); border-top: 1px solid var(--sumi-linea); }
 [data-estilo="a"] .sello-cam { box-shadow: 0 0 0 1.5px var(--sumi-linea); }

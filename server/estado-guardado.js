@@ -21,8 +21,8 @@ export function fotoEstado(e, { draftcore = false } = {}) {
 const esLista = (v, n) => Array.isArray(v) && v.length === n;
 const lados = (v, valido) => Boolean(v) && ['azul', 'rojo'].every(l => valido(v[l]));
 
-// Una cámara de caster del línea por línea (ingame.camaras), venga del panel o de lo guardado: lo que falte o venga
-// mal se queda como estaba
+// Una cámara de caster del marcador de partida (ingame.camaras; la que sale es la primera), venga del panel o de lo
+// guardado: lo que falte o venga mal se queda como estaba
 export const camaraLineas = (x, antes) => ({
   activa: typeof x?.activa === 'boolean' ? x.activa : antes.activa,
   nombre: String(x?.nombre ?? antes.nombre).slice(0, 40), detalle: String(x?.detalle ?? antes.detalle).slice(0, 60),

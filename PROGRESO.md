@@ -421,3 +421,13 @@ Diseño aprobado en `docs/superpowers/specs/2026-10-04-ingame-mejoras-design.md`
   - **Lo que hace el PC 1:** el contrato se le pasó al hilo del realizador el 10/11 (`tenka.accion('adelanto', datos)`).
 - **Postdraft:** la carta entera encogida no se veía (dibujo oscuro bajo su velo, textos cortados). Ahora cada jugador lleva el icono de su carta: el dibujo sin velo, la tier en una esquina y el filo de su color. Los iconos de 256×256 están en `public/cartas/mini/` (48), salen de `scripts/hacer-mini-cartas.mjs` (ffmpeg) y el catálogo los lleva en `mini`; sin icono, el dibujo grande.
 - Pruebas: 270 (`test/adelanto.test.js` nueva). Comprobado en local de punta a punta (falso puente + falso PC 1).
+
+## 12/11: la cámara del caster en partida va por su cuenta, y el minimapa pasa abajo a la izquierda
+
+- **Lo que pidió el usuario:** «la cámara dejará de estar unida al línea por línea y funcionará aparte cuando esté en partida». Después aclaró que lo que va pegado a la esquina izquierda es el marco del minimapa: «Perdón el marco de la cámara no era, era del mapa».
+- **Reparto abajo:** el minimapa del LoL va abajo a la izquierda (marco del realizador en x 30, y 804, 250×250; con su placa y su pestaña 極道 MAPA ocupa de x 0 a 300 y de y 780 al borde: `ZONA_MINIMAPA` en `public/comun.js`). Ahí no va nada del overlay.
+- **Cámara del caster en partida:** un solo hueco, el de la derecha de siempre: 320×180 en x 1584, y 856, con la placa de 44 px hasta el borde (`camaraPartida()` en `public/comun.js`; `camarasLineas()` queda como alias). Sale mientras esté marcada en el panel y haya partida, se vea o no el línea por línea, con su entrada y su salida (`pintarCamaraPartida` en `public/ingame/ingame.js`). La de la izquierda se quitó: chocaría con el minimapa.
+- **Fichas:** la del lado azul pasa de x 72 a x 324 (iba encima del minimapa); la del rojo, con la cámara fuera, se aparta a su izquierda (`right: 360px`). Lo demás (marcador, avisos, módulos) va arriba, y el línea por línea y la gráfica siguen de x 430 a 1490.
+- **Panel:** bloque propio «Cámara del caster en partida» en Ajustes del directo, con su casilla, el nombre, el @detalle y la medida para OBS. Los avisos ya no hablan del línea por línea.
+- **Estado:** sigue siendo `ingame.camaras` con dos; la que sale es la primera y la segunda se queda por compatibilidad con lo guardado.
+- Pruebas nuevas en `test/ingame.test.js` (el hueco, que no pisa el minimapa ni el línea por línea, las fichas y que la cámara sale sin el línea por línea). Capturas en `docs/capturas/gokudo/optimizacion/`.

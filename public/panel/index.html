@@ -257,11 +257,15 @@
 
     <section id="ajustes-directo" data-fases="preparar directo">
       <h2>Ajustes del directo</h2>
-      <details class="plegable camaras-lineas">
-        <summary>Cámaras de los casters, a los lados del línea por línea</summary>
-        <div class="lista-camaras-lineas"></div>
-        <div class="fila"><button id="guardarCamarasLineas" class="secundario">Poner los nombres en el overlay</button></div>
-        <p class="ayuda">Un marco de caster a cada lado del línea por línea, con el nombre que escribas: salen y se van con él. Marca las que quieras; en OBS, pon cada cámara por debajo del overlay y encájala en su hueco con la medida que tiene al lado. El hueco solo está mientras el línea por línea está fuera: lo cómodo es tener una escena de juego con las cámaras ya colocadas y pasar a ella en ese rato.</p>
+      <details class="plegable camara-partida">
+        <summary>Cámara del caster en partida</summary>
+        <div class="fila-camara-partida">
+          <label class="casilla"><input type="checkbox" id="camaraPartidaActiva"><span class="donde"><b>Sacar la cámara</b><span class="medida" id="camaraPartidaMedida"></span></span></label>
+          <input id="camaraPartidaNombre" aria-label="Nombre del caster de la cámara en partida" placeholder="Nombre del caster" maxlength="40">
+          <input id="camaraPartidaDetalle" aria-label="Detalle de la cámara en partida" placeholder="@usuario" maxlength="60">
+        </div>
+        <div class="fila"><button id="guardarCamaraPartida" class="secundario">Poner el nombre en el overlay</button></div>
+        <p class="ayuda">Un marco de caster abajo a la derecha del marcador de partida (abajo a la izquierda va el minimapa), con el nombre que escribas. Va por su cuenta: sale mientras esté marcada y haya partida, con línea por línea o sin él. En OBS, pon la cámara por debajo del overlay y encájala en su hueco con la medida que tiene al lado.</p>
       </details>
       <details class="plegable">
         <summary>Qué sale en el marcador</summary>
