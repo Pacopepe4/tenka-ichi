@@ -1269,8 +1269,15 @@ wss.on('connection', (ws, req) => {
   });
 });
 
-// Mantiene vivas las conexiones (Render corta las que están inactivas)
-setInterval(() => { for (const ws of clientes) if (ws.readyState === 1) ws.ping(); }, 25000);
+// Mantiene vivas las conexiones (Render corta las que están inactivas) y suelta las que no contestan al latido anterior:
+// una pantalla que se quedó sin red sin cerrar la conexión seguía recibiendo (en el vacío) cada estado y cada partida
+setInterval(() => {
+  for (const ws of clientes) {
+    if (!ws.vivo) { ws.terminate(); continue; }
+    ws.vivo = false;
+    if (ws.readyState === 1) ws.ping();
+  }
+}, 25000);
 
 await Promise.all([cargar(), cargarPlantillas(), cargarCalendario(), cargarAjustes()]);
 await Promise.all([cargarTierlist(), cargarGacha(), cargarTierlistsPublico(), cargarCronicas()]);
