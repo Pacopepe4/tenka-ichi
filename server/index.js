@@ -1146,6 +1146,8 @@ const servidor = http.createServer(async (req, res) => {
     if (req.method !== 'POST') return json(res, { ok: false, error: 'Método no permitido' }, 405);
     const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
     const ahora = Date.now(), f = fallosClave.get(ip);
+    // Las direcciones que fallaron una vez y no volvieron se quedaban para siempre: de vez en cuando se barren las pasadas
+    if (fallosClave.size > 500) for (const [k, v] of fallosClave) if (ahora - v.desde > FRENO_CLAVE.ventana) fallosClave.delete(k);
     if (f && ahora - f.desde > FRENO_CLAVE.ventana) fallosClave.delete(ip);
     if ((fallosClave.get(ip)?.n || 0) >= FRENO_CLAVE.fallos) return json(res, { ok: false, error: 'Demasiados intentos' }, 429);
     let cuerpo;
@@ -1249,6 +1251,11 @@ wss.on('connection', (ws, req) => {
   }
   if (ws.canal !== 'alertas') ws.send(JSON.stringify({ tipo: 'sorteo', sorteo: sorteo.vista() }));
   ws.on('close', () => clientes.delete(ws));
+  // Una trama mal formada (o demasiado grande) da un error en esa conexión, que ws cierra sola. Sin quien lo escuche,
+  // el error tumbaba la web entera
+  ws.on('error', e => console.error('WebSocket /ws:', e.message));
+  ws.vivo = true;
+  ws.on('pong', () => { ws.vivo = true; });
   ws.on('message', async raw => {
     let m;
     try { m = JSON.parse(raw); } catch { return; }
@@ -1267,8 +1274,15 @@ wss.on('connection', (ws, req) => {
   });
 });
 
-// Mantiene vivas las conexiones (Render corta las que están inactivas)
-setInterval(() => { for (const ws of clientes) if (ws.readyState === 1) ws.ping(); }, 25000);
+// Mantiene vivas las conexiones (Render corta las que están inactivas) y suelta las que no contestan al latido anterior:
+// una pantalla que se quedó sin red sin cerrar la conexión seguía recibiendo (en el vacío) cada estado y cada partida
+setInterval(() => {
+  for (const ws of clientes) {
+    if (!ws.vivo) { ws.terminate(); continue; }
+    ws.vivo = false;
+    if (ws.readyState === 1) ws.ping();
+  }
+}, 25000);
 
 await Promise.all([cargar(), cargarPlantillas(), cargarCalendario(), cargarAjustes()]);
 await Promise.all([cargarTierlist(), cargarGacha(), cargarTierlistsPublico(), cargarCronicas()]);

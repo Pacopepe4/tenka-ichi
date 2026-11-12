@@ -50,20 +50,24 @@ export const logo = clan => `/logos/${clan}.png`;
 // Con canal: 'sorteo' solo llega el sorteo del calendario en directo (la portada no necesita el estado del draft);
 // con 'alertas', solo las alertas de Kick (seguidores, subs, regalos y kicks) para la fuente de OBS /alertas/
 export function conectarDirecto({ alEstado, alRespuesta, alConexion, alPartida, alVersion, alSorteo, alAlerta, canal }) {
-  let ws, pendientes = new Map(), id = 0, version = null;
+  let ws, pendientes = new Map(), id = 0, version = null, intentos = 0;
   function abrir() {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     ws = new WebSocket(`${proto}://${location.host}/ws${canal ? `?canal=${canal}` : ''}`);
-    ws.onopen = () => alConexion?.(true);
+    ws.onopen = () => { intentos = 0; alConexion?.(true); };
     ws.onclose = () => {
       alConexion?.(false);
       // Lo que estuviera esperando respuesta se da por perdido, para que ningún botón se quede esperando
       for (const [, resolver] of pendientes) resolver({ ok: false, sinConexion: true, error: 'Se ha cortado la conexión con la web: prueba otra vez' });
       pendientes.clear();
-      setTimeout(abrir, 1500);
+      // Reintenta cada vez más despacio (1,5 s, 3 s, 6 s… hasta 15 s), con algo de azar: si la web se reinicia, las
+      // fuentes de OBS y las páginas abiertas no vuelven todas a la vez ni insisten cada segundo y medio mientras no está
+      const espera = Math.min(15000, 1500 * 2 ** intentos++) * (0.8 + Math.random() * 0.4);
+      setTimeout(abrir, espera);
     };
     ws.onmessage = e => {
-      const m = JSON.parse(e.data);
+      let m;
+      try { m = JSON.parse(e.data); } catch { return; }
       if (m.tipo === 'hola') {
         if (version && m.version !== version) { if (alVersion) alVersion(m.version); else location.reload(); }
         version ??= m.version;

@@ -1,5 +1,6 @@
 // La entrada del panel (public/panel/entrada.js) pregunta a /api/clave si la contraseña vale; quien falla muchas espera
 import { test, before, after } from 'node:test';
+import { puertoLibre, esperarWeb, pararWeb as pararProceso } from './web-de-prueba.js';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -14,22 +15,16 @@ const esperar = ms => new Promise(r => setTimeout(r, ms));
 
 before(async () => {
   carpeta = await mkdtemp(path.join(os.tmpdir(), 'tenka-entrada-'));
-  const puerto = 4600 + Math.floor(Math.random() * 90);
+  const puerto = await puertoLibre();
   urlWeb = `http://127.0.0.1:${puerto}`;
   const entorno = { ...process.env };
   for (const k of Object.keys(entorno)) if (/^(GOOGLE_|TWITCH_|DISCORD_|RENDER|GACHA_|IMPORTACIONES)/.test(k)) delete entorno[k];
   web = spawn(process.execPath, ['server/index.js'], { cwd: RAIZ, stdio: 'ignore',
     env: { ...entorno, PORT: String(puerto), PANEL_CLAVE: CLAVE, SESION_SECRETO: 'secreto-de-las-pruebas', CARPETA_DATOS: carpeta } });
-  for (let i = 0; i < 75; i++) {
-    try { if ((await fetch(`${urlWeb}/salud`)).ok) return; } catch {}
-    await esperar(200);
-  }
-  throw new Error('La web no arranca');
+  await esperarWeb(web, urlWeb);
 });
 after(async () => {
-  const fin = new Promise(r => web.once('exit', r));
-  web.kill();
-  await fin;
+  await pararProceso(web);
   await rm(carpeta, { recursive: true, force: true });
 });
 

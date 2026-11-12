@@ -3,6 +3,7 @@
 // y una partida del fantasy guardada desde el panel.
 // La web arranca con datos temporales: no toca data/ ni la plantilla del repositorio.
 import { test, before, after } from 'node:test';
+import { puertoLibre, esperarWeb, pararWeb as pararProceso } from './web-de-prueba.js';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { mkdtemp, writeFile, readFile, rm } from 'node:fs/promises';
@@ -18,7 +19,7 @@ let twitch, urlTwitch, carpeta, web, urlWeb;
 
 const esperar = ms => new Promise(r => setTimeout(r, ms));
 async function arrancarWeb() {
-  const puerto = 3900 + Math.floor(Math.random() * 90);
+  const puerto = await puertoLibre();
   urlWeb = `http://127.0.0.1:${puerto}`;
   const entorno = { ...process.env };
   for (const k of Object.keys(entorno)) if (/^(GOOGLE_|TWITCH_|DISCORD_|RENDER)/.test(k)) delete entorno[k];
@@ -33,17 +34,11 @@ async function arrancarWeb() {
       ARCHIVO_LEGACY: path.join(carpeta, 'legacy.json') },   // sin las LEGACY del proyecto: los sobres traen siempre cuatro cartas
   });
   web.stderr.on('data', d => { if (process.env.VER_WEB) process.stderr.write(d); });
-  for (let i = 0; i < 60; i++) {
-    try { if ((await fetch(`${urlWeb}/salud`)).ok) return; } catch {}
-    await esperar(200);
-  }
-  throw new Error('La web no arranca');
+  await esperarWeb(web, urlWeb);
 }
 async function pararWeb() {
   if (!web) return;
-  const fin = new Promise(r => web.once('exit', r));
-  web.kill();
-  await fin;
+  await pararProceso(web);
   web = null;
 }
 

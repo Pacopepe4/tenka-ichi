@@ -1,6 +1,7 @@
 // Quitar partidas de prueba (server/importaciones.js, «quitarPartidas»): salen de «Registro» y «Estadisticas», pero
 // antes se copian a «RegistroQuitadas» y «EstadisticasQuitadas». Con la web entera contra la hoja de mentira
 import { test, before, after } from 'node:test';
+import { puertoLibre, esperarWeb, pararWeb as pararProceso } from './web-de-prueba.js';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { mkdtemp, writeFile, rm } from 'node:fs/promises';
@@ -21,7 +22,7 @@ before(async () => {
 after(async () => { await pararWeb(); await rm(carpeta, { recursive: true, force: true }); });
 
 async function arrancarWeb(urlSheets) {
-  const puerto = 4700 + Math.floor(Math.random() * 90);
+  const puerto = await puertoLibre();
   urlWeb = `http://127.0.0.1:${puerto}`;
   const entorno = { ...process.env };
   for (const k of Object.keys(entorno)) if (/^(GOOGLE_|TWITCH_|DISCORD_|RENDER|GACHA_|IMPORTACIONES)/.test(k)) delete entorno[k];
@@ -29,10 +30,9 @@ async function arrancarWeb(urlSheets) {
     env: { ...entorno, PORT: String(puerto), PANEL_CLAVE: 'clave', SESION_SECRETO: 'secreto', CARPETA_DATOS: carpeta,
       ARCHIVO_PLANTILLAS: path.join(RAIZ, 'data-proyecto', 'plantillas.json'), ARCHIVO_IMPORTACIONES: path.join(carpeta, 'importaciones.json'),
       GOOGLE_URL_SHEETS: urlSheets, GOOGLE_SHEET_ID: 'hoja', GOOGLE_CREDENTIALS: 'prueba', IMPORTACIONES: '1' } });
-  for (let i = 0; i < 75; i++) { try { if ((await fetch(`${urlWeb}/salud`)).ok) return; } catch {} await esperar(200); }
-  throw new Error('La web no arranca');
+  await esperarWeb(web, urlWeb);
 }
-async function pararWeb() { if (!web) return; const fin = new Promise(r => web.once('exit', r)); web.kill(); await fin; web = null; }
+async function pararWeb() { if (!web) return; await pararProceso(web); web = null; }
 
 const CAB_REG = ['Fecha', 'Jornada', 'Fase', 'Serie', 'Partida', 'Clan azul', 'Clan rojo', 'Ganador', 'Lado', 'Tipo', 'Orden', 'Rol', 'Jugador', 'Clan', 'Campeón', 'Resultado'];
 const filasPartida = (fecha, azul, rojo) => ['azul', 'rojo'].flatMap(lado => ['pick', 'ban'].flatMap(tipo => [1, 2, 3, 4, 5].map(o =>

@@ -43,6 +43,8 @@ export function crearSalasRealizador({ maxSalas = 50 } = {}) {
     ws.vivo = true;
     ws.on('pong', () => { ws.vivo = true; });
     ws.on('close', () => salir(ws));
+    // Una trama mal formada o de más de maxPayload: ws cierra esa conexión; sin quien escuche el error, caía la web entera
+    ws.on('error', e => console.error('WebSocket /realizador:', e.message));
     ws.on('message', raw => {
       let m;
       try { m = JSON.parse(raw); } catch { return; }

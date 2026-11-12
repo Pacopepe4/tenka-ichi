@@ -12,7 +12,7 @@
 // SrDirector (SCRIMS_FUENTES, ids separados por comas). Nunca escribe en las fuentes ni a nadie. Hace falta el permiso
 // «Message Content Intent» (DISCORD_LEER_FUENTES=1). Un filtro gratis descarta lo que no parece una oferta y Haiku lee el
 // resto (equipo, cuándo, elo, formato, región y contacto); solo EUW.
-import Anthropic from '@anthropic-ai/sdk';
+import { clientePerezoso } from './ia.js';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -163,7 +163,7 @@ export function crearScrims({ token, urlApi, ids, ahora = () => new Date(), hoja
       o.nivel = n || (o.elo ? { v: eloNumero(o.elo), texto: nombreDeValor(eloNumero(o.elo)), jugadores: 0, mmr: 0, declarado: true } : null);
     } catch (e) { log.error('Scrims: no he podido valorar un equipo:', e.message); }
   }
-  if (cliente === undefined) cliente = process.env.ANTHROPIC_API_KEY ? new Anthropic({ timeout: 60_000, maxRetries: 1 }) : null;
+  if (cliente === undefined) cliente = process.env.ANTHROPIC_API_KEY ? clientePerezoso({ timeout: 60_000, maxRetries: 1 }) : null;
   const lecturas = new Map();   // día → mensajes de fuentes leídos con la IA (tope diario)
   const nombres = new Map();    // guild → nombre, para «vía …»
   const base = urlApi.replace(/\/$/, '');

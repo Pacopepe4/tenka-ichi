@@ -58,7 +58,8 @@ const fallos = new Map();
 const VENTANA_MS = 10 * 60000, INTENTOS = 8;
 function demasiadosFallos(id) {
   const recientes = (fallos.get(id) || []).filter(t => Date.now() - t < VENTANA_MS);
-  fallos.set(id, recientes);
+  // Sin fallos recientes no se guarda nada: la lista no crece con cada persona que alguna vez canjeó un código
+  if (recientes.length) fallos.set(id, recientes); else fallos.delete(id);
   return recientes.length >= INTENTOS;
 }
 
@@ -67,7 +68,7 @@ export async function canjearCodigo(u, texto) {
   const c = leer(), escrito = limpiar(texto);
   if (!escrito) throw new Error('Escribe el código que sale en el directo');
   if (!c || escrito !== c.texto) {
-    fallos.get(u.id).push(Date.now());
+    fallos.set(u.id, [...(fallos.get(u.id) || []), Date.now()]);
     throw new Error('Ese código no vale: revisa que esté bien escrito');
   }
   if (c.caduca <= Date.now()) throw new Error('Ese código ya ha caducado');

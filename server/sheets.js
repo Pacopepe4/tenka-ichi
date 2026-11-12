@@ -1,6 +1,5 @@
 // Acceso mínimo a Google Sheets con una cuenta de servicio.
 // Se activa con GOOGLE_SHEET_ID y GOOGLE_CREDENTIALS (el JSON de la clave, entero).
-import { JWT } from 'google-auth-library';
 
 let cliente = null;
 let ultimoError = null;
@@ -49,10 +48,12 @@ const clienteDePruebas = {
   },
 };
 
-function jwt() {
+// google-auth-library tarda un par de segundos en cargarse: solo se carga si hay hoja de verdad, la primera vez que hace falta
+async function jwt() {
   if (URL_PRUEBAS) return clienteDePruebas;
   if (!cliente) {
     const c = credenciales();
+    const { JWT } = await import('google-auth-library');
     cliente = new JWT({ email: c.client_email, key: c.private_key, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
   }
   return cliente;
@@ -77,7 +78,7 @@ const pestanasVistas = new Set();
 
 async function peticion(opciones) {
   try {
-    const r = await jwt().request(opciones);
+    const r = await (await jwt()).request(opciones);
     ultimoError = null;
     return r;
   } catch (e) {

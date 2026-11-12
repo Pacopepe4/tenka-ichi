@@ -4,6 +4,7 @@
 // archivos y después con la web entera contra un Google Sheets de mentira (scripts/sheets-falso.js), que es como está
 // publicada, también cuando la hoja falla a medias.
 import { test, before, after } from 'node:test';
+import { puertoLibre, esperarWeb, pararWeb as pararProceso } from './web-de-prueba.js';
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { mkdtemp, writeFile, readFile, readdir, rm } from 'node:fs/promises';
@@ -202,7 +203,7 @@ const escrituras = (hoja, ...pestanas) => hoja.peticiones.filter(p => pestanas.i
 let web = null, urlWeb;
 const esperar = ms => new Promise(r => setTimeout(r, ms));
 async function arrancarWeb(urlSheets) {
-  const puerto = 4400 + Math.floor(Math.random() * 90);
+  const puerto = await puertoLibre();
   urlWeb = `http://127.0.0.1:${puerto}`;
   const entorno = { ...process.env };
   for (const k of Object.keys(entorno)) if (/^(GOOGLE_|TWITCH_|DISCORD_|RENDER|GACHA_)/.test(k)) delete entorno[k];
@@ -211,17 +212,11 @@ async function arrancarWeb(urlSheets) {
       GOOGLE_URL_SHEETS: urlSheets, GOOGLE_SHEET_ID: 'hoja-de-prueba', GOOGLE_CREDENTIALS: 'prueba', GACHA_TEMPORADA: '2' } });
   web.stderr.on('data', d => { if (process.env.VER_WEB) process.stderr.write(d); });
   web.stdout.on('data', d => { if (process.env.VER_WEB) process.stderr.write(d); });
-  for (let i = 0; i < 75; i++) {
-    try { if ((await fetch(`${urlWeb}/salud`)).ok) return; } catch {}
-    await esperar(200);
-  }
-  throw new Error('La web no arranca');
+  await esperarWeb(web, urlWeb);
 }
 async function pararWeb() {
   if (!web) return;
-  const fin = new Promise(r => web.once('exit', r));
-  web.kill();
-  await fin;
+  await pararProceso(web);
   web = null;
 }
 
