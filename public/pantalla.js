@@ -132,7 +132,7 @@ function encender(red) {
   const p = panel(red);
   if (red === 'kick') {
     p.innerHTML = `<iframe class="pantalla-video" src="https://player.kick.com/${REDES.kick}?autoplay=true&muted=true" title="Directo de Gokudō en Kick"
-      allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>${barraMini('kick')}`;
+      allow="autoplay; fullscreen; picture-in-picture"></iframe>${barraMini('kick')}`;
   }
   if (red === 'twitch') twitch?.then(t => t?.mostrar(activa === 'twitch'));
   if (red === 'trailer') {
@@ -142,7 +142,7 @@ function encender(red) {
     </button>`;
     p.querySelector('.trailer-portada').addEventListener('click', () => {
       p.innerHTML = `<iframe class="pantalla-video" src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(REDES.trailerYoutube)}?autoplay=1&rel=0&playsinline=1"
-        title="Tráiler del gachapon de Gokudō" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
+        title="Tráiler del gachapon de Gokudō" allow="autoplay; encrypted-media; fullscreen; picture-in-picture"></iframe>`;
     });
   }
   if ((red === 'x' || red === 'tiktok') && p.dataset.fallo) { p.innerHTML = perfil(red); delete p.dataset.fallo; return; }
