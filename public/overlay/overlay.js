@@ -28,17 +28,29 @@ const plural = (n, uno, varios) => `${numero(n)} ${n === 1 ? uno : varios}`;
 const mmss = s => { s = Math.max(0, Math.floor(s)); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; };
 const escapar = s => String(s ?? '').replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]);
 const nombreClan = id => clanes.clan(id).nombre;
+// Se escribe solo lo que cambia: reescribir un texto o un trozo de HTML igual invalida el layout (o rehace las imágenes)
+// en cada estado aunque en pantalla no cambie nada
+const texto = (el, v) => { v = String(v ?? ''); if (el.textContent !== v) el.textContent = v; };
+const html = (el, v) => { if (el.dataset.html !== v) { el.dataset.html = v; el.innerHTML = v; } };
+const src = (img, v) => { if (img.getAttribute('src') !== v) img.src = v; };
+// Vuelve a lanzar la animación de una clase sin forzar un reflow (quitar la clase, leer offsetWidth y volver a ponerla):
+// si aún no la tiene, basta con ponerla; si ya la tiene, se rebobinan sus animaciones
+function relanzar(el, clase, nombres) {
+  if (!el.classList.contains(clase)) { el.classList.add(clase); return; }
+  for (const a of el.getAnimations({ subtree: true })) if (nombres.includes(a.animationName)) { a.currentTime = 0; a.play(); }
+}
+const ANIMA_RECIEN = ['revelar', 'revelar-rojo', 'barrer', 'barrer-rojo'];
 
 for (const lado of ['azul', 'rojo']) {
   // Cada pick: el splash, el rol, el jugador y el campeón; en el postdraft, además, su carta, lo que lleva con ese
   // campeón, sus números de la liga y sus puntos del fantasy
   $(`.picks.${lado}`).innerHTML = ROLES.map((_, i) =>
-    `<div class="slot" data-i="${i}"><div class="arte"></div><div class="velo"></div><div class="trazo"></div><div class="barra"></div>
+    `<div class="slot" data-i="${i}"><div class="recorte"><div class="arte"></div><div class="velo"></div><div class="trazo"></div><div class="barra"></div>
       <div class="mini-carta"></div>
       <div class="textos"><div class="linea-rol"><span class="rol"></span><span class="jugador"></span></div><div class="campeon"></div>
         <div class="con-campeon"></div><div class="general"></div></div>
-      <div class="fantasy-slot"><b></b><span>puntos fantasy</span></div></div>`).join('');
-  $(`.bans.${lado}`).innerHTML = Array.from({ length: 5 }, (_, i) => `<div class="ban" data-i="${i}"></div>`).join('')
+      <div class="fantasy-slot"><b></b><span>puntos fantasy</span></div></div></div>`).join('');
+  $(`.bans.${lado}`).innerHTML = Array.from({ length: 5 }, (_, i) => `<div class="ban" data-i="${i}"><div class="recorte"></div></div>`).join('')
     + '<span class="hanko" title="Bans">禁</span>';
 }
 
@@ -49,8 +61,9 @@ const nombreEquipo = (c, lado) => (c.id === 'NONAME' ? `Lado ${lado}` : c.nombre
 // overlay.css usa --azul-lado y --rojo-lado, y --azul-texto y --rojo-texto para las cifras
 function ponerColorLado(lado, c) {
   const raiz = document.documentElement.style;
-  raiz.setProperty(`--${lado}-lado`, c.color);
-  raiz.setProperty(`--${lado}-texto`, c.texto);
+  // En la raíz: reescribirlas aunque sean iguales recalcula el estilo de toda la página
+  if (raiz.getPropertyValue(`--${lado}-lado`) !== c.color) raiz.setProperty(`--${lado}-lado`, c.color);
+  if (raiz.getPropertyValue(`--${lado}-texto`) !== c.texto) raiz.setProperty(`--${lado}-texto`, c.texto);
 }
 
 function pintar(e) {
@@ -64,28 +77,28 @@ function pintar(e) {
     const c = clanes.clan(eq.clan);
     ponerColorLado(lado, c);
     const placa = $(`.placa.${lado}`);
-    placa.style.setProperty('--color-clan', c.texto);
-    placa.querySelector('.logo').src = logo(c.id);
-    placa.querySelector('.nombre').textContent = nombreEquipo(c, lado);
-    placa.querySelector('.lema').textContent = c.lema || '';
-    placa.querySelector('.kanji-fondo').textContent = c.kanji || '';
+    if (placa.style.getPropertyValue('--color-clan') !== c.texto) placa.style.setProperty('--color-clan', c.texto);
+    src(placa.querySelector('.logo'), logo(c.id));
+    texto(placa.querySelector('.nombre'), nombreEquipo(c, lado));
+    texto(placa.querySelector('.lema'), c.lema || '');
+    texto(placa.querySelector('.kanji-fondo'), c.kanji || '');
 
     $(`.picks.${lado}`).querySelectorAll('.slot').forEach((slot, i) => {
       const campeon = d.picks[lado][i];
       const esActivo = activo?.tipo === 'pick' && activo.lado === lado && activo.indice === i;
       const mostrado = campeon || (esActivo ? d.hover : null);
       // Pincelada solo cuando el pick se fija en directo (no al cargar la página)
-      if (campeon && campeon !== fijados[lado][i] && !primeraVez) {
-        slot.classList.remove('recien'); void slot.offsetWidth; slot.classList.add('recien');
-      }
+      if (campeon && campeon !== fijados[lado][i] && !primeraVez) relanzar(slot, 'recien', ANIMA_RECIEN);
       fijados[lado][i] = campeon;
       slot.classList.toggle('lleno', Boolean(campeon));
       slot.classList.toggle('hover', !campeon && Boolean(mostrado));
       slot.classList.toggle('activo', esActivo);
-      slot.querySelector('.arte').style.backgroundImage = mostrado ? `url(${splash(mostrado)})` : '';
-      slot.querySelector('.rol').textContent = ROL_LEGIBLE[ROLES[i]];
-      slot.querySelector('.jugador').textContent = eq.jugadores[i] || '';
-      slot.querySelector('.campeon').textContent = mostrado ? campeones.nombre(mostrado) : '';
+      // El splash va en la capa de dentro de .arte (overlay.css), por la variable --arte
+      const arte = slot.querySelector('.arte'), fondo = mostrado ? `url(${splash(mostrado)})` : '';
+      if (arte.style.getPropertyValue('--arte') !== fondo) arte.style.setProperty('--arte', fondo);
+      texto(slot.querySelector('.rol'), ROL_LEGIBLE[ROLES[i]]);
+      texto(slot.querySelector('.jugador'), eq.jugadores[i] || '');
+      texto(slot.querySelector('.campeon'), mostrado ? campeones.nombre(mostrado) : '');
     });
 
     $(`.bans.${lado}`).querySelectorAll('.ban').forEach((ban, i) => {
@@ -95,7 +108,7 @@ function pintar(e) {
       ban.classList.toggle('activo', esActivo);
       ban.classList.toggle('lleno', Boolean(campeon));
       ban.classList.toggle('hover', !campeon && Boolean(mostrado));
-      ban.innerHTML = mostrado ? `<img src="${icono(mostrado)}" alt="">` : '';
+      html(ban.querySelector('.recorte'), mostrado ? `<img src="${icono(mostrado)}" alt="">` : '');
     });
   }
   primeraVez = false;
@@ -108,10 +121,10 @@ function pintar(e) {
   pedirPrevia(e);
 
   const cfg = e.config;
-  $('.reposo .jornada').textContent = cfg.fase === 'Fase de liga' ? `${cfg.jornada} de la liguilla` : cfg.jornada;
+  texto($('.reposo .jornada'), cfg.fase === 'Fase de liga' ? `${cfg.jornada} de la liguilla` : cfg.jornada);
   const fl = $('.fearless');
   fl.hidden = !(cfg.formato === 'bo3f' && e.fearless.length);
-  fl.querySelector('.iconos').innerHTML = e.fearless.map(c => `<img src="${icono(c)}" alt="">`).join('');
+  html(fl.querySelector('.iconos'), e.fearless.map(c => `<img src="${icono(c)}" alt="">`).join(''));
 
   // La tarjeta sale cuando el pick o el ban llega en directo, no con el que ya estaba al cargar la página
   if (e.aviso && e.aviso.id !== ultimoAviso) {
@@ -142,13 +155,13 @@ function pintarMarcador(e) {
   const m = $('.marcador');
   if (cfg.formato === 'bo3f') {
     const victorias = lado => e.resultados.filter(r => r.clan === e.equipos[lado].clan).length;
-    m.querySelector('.arriba').textContent = cfg.jornada;
-    m.querySelector('.grande').innerHTML = `<span class="v azul">${victorias('azul')}</span><span class="raya">–</span><span class="v rojo">${victorias('rojo')}</span>`;
-    m.querySelector('.abajo').textContent = `Partida ${cfg.partida}, fearless`;
+    texto(m.querySelector('.arriba'), cfg.jornada);
+    html(m.querySelector('.grande'), `<span class="v azul">${victorias('azul')}</span><span class="raya">–</span><span class="v rojo">${victorias('rojo')}</span>`);
+    texto(m.querySelector('.abajo'), `Partida ${cfg.partida}, fearless`);
   } else {
-    m.querySelector('.arriba').textContent = cfg.fase;
-    m.querySelector('.grande').textContent = cfg.jornada;
-    m.querySelector('.abajo').textContent = '';
+    texto(m.querySelector('.arriba'), cfg.fase);
+    html(m.querySelector('.grande'), escapar(cfg.jornada));
+    texto(m.querySelector('.abajo'), '');
   }
 }
 
@@ -157,12 +170,12 @@ function pintarTiempo(d) {
   const hay = d.activo && typeof d.tiempo === 'number';
   sello.hidden = !hay;
   if (!hay) return;
-  sello.textContent = Math.max(0, Math.ceil(d.tiempo));
+  texto(sello, Math.max(0, Math.ceil(d.tiempo)));
   sello.classList.toggle('urgente', d.tiempo <= 10);
   // Cada turno nuevo, el sello se vuelve a estampar
   if (d.turno !== ultimoTurno) {
     ultimoTurno = d.turno;
-    sello.classList.remove('estampa'); void sello.offsetWidth; sello.classList.add('estampa');
+    relanzar(sello, 'estampa', ['encender-sello']);
   }
 }
 
@@ -462,7 +475,7 @@ function cuentaCodigo() {
   if (caja.hidden) return;
   const quedan = (caducaCodigo - Date.now()) / 1000;
   if (quedan <= 0) { caja.hidden = true; document.body.classList.remove('con-codigo'); return; }
-  caja.querySelector('.codigo-cuenta').textContent = mmss(quedan);
+  texto(caja.querySelector('.codigo-cuenta'), mmss(quedan));
 }
 setInterval(cuentaCodigo, 500);
 
