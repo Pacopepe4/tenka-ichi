@@ -453,16 +453,18 @@ export function configurarObs({ carpeta, opciones, rutaLocal, overlay, overlayPo
     porQue = ` — ${e.motivo}`;
   }
   escribir(join(perfil, 'basic.ini'), ponerEnIni(ini, ajustesPerfil({ carpetaClips, segundosBufer: o.segundosBufer, codificador, idAvanzado })));
-  // En la salida avanzada, la calidad de la emisión va en streamEncoder.json: se respeta la del perfil copiado y, si
-  // venía de la salida sencilla, su tasa de bits (o 6000)
+  // En la salida avanzada, la calidad de la emisión va en streamEncoder.json. La tasa de bits la pone opciones.json
+  // (obs.bitrateEmision, 6000 por defecto: lo más que deja Twitch y Kick lo admite); el 12/11 el PC 2 copió 2500 de su
+  // perfil viejo y 1080p60 se veía borroso. Con obs.bitrateEmision: null se respeta la del perfil copiado.
   const rutaCodificador = join(perfil, 'streamEncoder.json');
   let ajustesCodificador = {};
   try { ajustesCodificador = JSON.parse(leerTexto(rutaCodificador)) || {}; } catch { /* no había */ }
   const bitsSencilla = Number(leerIni(ini).SimpleOutput?.VBitrate) || 6000;
-  ajustesCodificador = { rate_control: 'CBR', keyint_sec: 2, ...ajustesCodificador, bitrate: ajustesCodificador.bitrate || bitsSencilla };
+  const bitsElegidos = o.bitrateEmision === null ? (ajustesCodificador.bitrate || bitsSencilla) : (Number(o.bitrateEmision) || 6000);
+  ajustesCodificador = { rate_control: 'CBR', keyint_sec: 2, ...ajustesCodificador, bitrate: bitsElegidos };
   if (codificador === 'x264') ajustesCodificador.preset ??= 'veryfast';
   writeFileSync(rutaCodificador, JSON.stringify(ajustesCodificador, null, 2));
-  hechos.push(`Perfil "${NOMBRE}"${base ? ` (copia de "${actual.Profile || actual.ProfileDir}")` : ''}: búfer de repetición de ${o.segundosBufer} s, codificador ${codificador ? (CODIFICADORES[codificador]?.nombre || codificador) : 'el de tu perfil'}${porQue}, clips en ${carpetaClips}`);
+  hechos.push(`Perfil "${NOMBRE}"${base ? ` (copia de "${actual.Profile || actual.ProfileDir}")` : ''}: búfer de repetición de ${o.segundosBufer} s, codificador ${codificador ? (CODIFICADORES[codificador]?.nombre || codificador) : 'el de tu perfil'}${porQue}, emisión a ${ajustesCodificador.bitrate} kbps, clips en ${carpetaClips}`);
   // Clave de retransmisión (Kick): solo si está en opciones.local.json de este PC (la pide INSTALAR-PC2.bat). Nunca
   // se enseña ni se apunta en ningún sitio más: va directa al service.json del perfil. Sin clave, se queda la del
   // perfil copiado.

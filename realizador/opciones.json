@@ -144,6 +144,7 @@
     "emision": { "servidor": "rtmps://fa723fc1b171.global-contribute.live-video.net/" },
     "minimapa": { "x": 1640, "y": 804, "lado": 250 },
     "vista": "camara",
+    "bitrateEmision": 6000,
     "overlay": ""
   },
 
