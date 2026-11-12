@@ -45,7 +45,7 @@ test('la insignia de la definitiva va superpuesta al retrato, se esconde si no h
   // Fuera del flujo de la fila: no cambia la caja del línea por línea (las columnas del retrato siguen en 56 px)
   assert.match(regla('.definitiva'), /position: absolute;/);
   assert.match(regla('.retrato'), /position: relative; width: 56px; height: 56px;/);
-  assert.match(css, /\.jugador\.azul \{ grid-template-columns: 56px auto minmax\(0, 1fr\) auto 84px; \}/);
+  assert.match(css, /\.jugador\.azul \{ grid-template-columns: 56px auto minmax\(0, 1fr\) auto; \}/);  // sin la columna del oro (12/11)
   // En la esquina de abajo del lado de fuera: a la izquierda en el azul y a la derecha en el rojo (el nivel, al revés)
   assert.match(regla('.azul .retrato .definitiva'), /left: -\d+px/);
   assert.match(regla('.rojo .retrato .definitiva'), /right: -\d+px/);
