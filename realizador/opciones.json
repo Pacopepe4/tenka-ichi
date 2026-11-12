@@ -22,8 +22,8 @@
     "desplazamientoCamara": { "x": 0, "y": 1911.85, "z": -1200 },
     "degradadoTrasSegundos": 15,
     "zoom": {
-      "general": { "fov": 54, "distancia": 1.1 },
-      "abierto": { "fov": 48, "distancia": 0.95 },
+      "general": { "fov": 57, "distancia": 1.1 },
+      "abierto": { "fov": 51, "distancia": 0.95 },
       "cerca": { "fov": 42, "distancia": 0.8 },
       "modo": "secuencia",
       "transicionSegundos": 2,
