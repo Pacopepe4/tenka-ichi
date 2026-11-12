@@ -41,7 +41,18 @@ const tiempoAhora = () => (partida ? partida.tiempo + Math.min(3, (Date.now() - 
 const clanDe = lado => clanes.clan(estado?.equipos?.[lado]?.clan || 'NONAME');
 const nombreClan = lado => { const c = clanDe(lado); return c.id === 'NONAME' ? (lado === 'azul' ? 'Lado azul' : 'Lado rojo') : c.nombre; };
 const enso = () => `<svg class="enso" viewBox="0 0 40 40" aria-hidden="true"><circle class="pista" cx="20" cy="20" r="16"/><circle class="trazo" cx="20" cy="20" r="16" pathLength="100"/></svg>`;
-const trazar = (el, p) => { el.querySelector('.trazo').style.strokeDashoffset = String(100 - Math.max(0, Math.min(1, p)) * 100); };
+// Se escribe solo lo que cambia: el marcador se refresca cada segundo (y los relojes cada 250 ms), y reescribir un texto
+// igual invalida el layout del panel entero aunque en pantalla no cambie nada
+const texto = (el, v) => { v = String(v ?? ''); if (el.textContent !== v) el.textContent = v; };
+const clase = (el, v) => { if (el.className !== v) el.className = v; };
+const variable = (el, k, v) => { if (el.style.getPropertyValue(k) !== v) el.style.setProperty(k, v); };
+const src = (img, v) => { if (img.getAttribute('src') !== v) img.src = v; };
+// El trazo del ensō, redondeado a medio punto de los 100 de la vuelta (medio píxel): por debajo no se ve, y así no se
+// repinta cada 250 ms con una transición nueva por un cambio invisible
+const trazar = (el, p) => {
+  const v = String(Math.round((100 - Math.max(0, Math.min(1, p)) * 100) * 2) / 2), trazo = el.querySelector('.trazo');
+  if (trazo.style.strokeDashoffset !== v) trazo.style.strokeDashoffset = v;
+};
 const interruptor = k => estado?.ingame?.[k] !== false;  // lo nuevo viene encendido: solo se apaga a propósito
 
 // Tinta del sello: oscura sobre los colores claros (nube, hextech, ancestral…), clara sobre los oscuros
@@ -62,33 +73,40 @@ function lista(caja, items, crear, actualizar) {
   items.forEach((item, orden) => {
     let el = caja.querySelector(`[data-clave="${item.clave}"]:not(.sale)`);
     if (!el) { el = crear(item); el.dataset.clave = item.clave; caja.append(el); }
-    el.style.order = orden;
+    if (el.style.order !== String(orden)) el.style.order = orden;
     actualizar(el, item);
   });
 }
 
-// Una cifra que cambia sin saltos: cuenta del valor anterior al nuevo y hace un pequeño latido
-const cuentas = new WeakMap();
+// Una cifra que cambia sin saltos: cuenta del valor anterior al nuevo y hace un pequeño latido. Cada cifra lleva como
+// mucho una cuenta en marcha (la nueva cancela la anterior) y solo escribe cuando cambia el texto que se ve
+const cuentas = new WeakMap(), pasos = new WeakMap();
+function parar(el) { cancelAnimationFrame(pasos.get(el)); pasos.delete(el); }
+// Para poner un texto que no es la cifra («–», «Igual»…): corta la cuenta que hubiera en marcha
+function fijar(el, valor, literal) { parar(el); cuentas.set(el, valor); texto(el, literal); }
+// El latido (.cambia) se relanza rebobinando su animación, sin quitar la clase y leer offsetWidth (eso fuerza un
+// reflow por cada cifra que cambia); al acabar se quita la clase sola
+function latir(el) {
+  const a = el.getAnimations().find(x => x.animationName === 'cambia');
+  if (a) { a.currentTime = 0; a.play(); } else el.classList.add('cambia');
+}
+document.addEventListener('animationend', e => { if (e.animationName === 'cambia') e.target.classList.remove('cambia'); });
 function cifra(el, valor, formato = String) {
   const anterior = cuentas.get(el);
-  if (anterior === undefined || anterior === valor || !Number.isFinite(valor)) {
-    cuentas.set(el, valor);
-    el.textContent = formato(valor);
-    return;
-  }
+  if (anterior === valor && pasos.has(el)) return;   // ya va camino de ese valor
+  parar(el);
   cuentas.set(el, valor);
+  if (anterior === undefined || anterior === valor || !Number.isFinite(valor) || !Number.isFinite(anterior)) { texto(el, formato(valor)); return; }
+  latir(el);
   const desde = anterior, inicio = performance.now();
-  el.classList.remove('cambia');
-  void el.offsetWidth;
-  el.classList.add('cambia');
   const paso = ahora => {
     const p = Math.min(1, (ahora - inicio) / CIFRA_MS);
     const suave = 1 - (1 - p) ** 3;
-    el.textContent = formato(Math.round(desde + (valor - desde) * suave));
-    if (p < 1 && cuentas.get(el) === valor) requestAnimationFrame(paso);
-    else if (cuentas.get(el) === valor) el.textContent = formato(valor);
+    texto(el, formato(p < 1 ? Math.round(desde + (valor - desde) * suave) : valor));
+    if (p < 1) pasos.set(el, requestAnimationFrame(paso));
+    else pasos.delete(el);
   };
-  requestAnimationFrame(paso);
+  pasos.set(el, requestAnimationFrame(paso));
 }
 
 // Entrada y salida de una pieza: la animación la pone el CSS (.sale); aquí solo se espera a que acabe para ocultarla
@@ -114,19 +132,20 @@ function pintarEquipos() {
   for (const lado of ['azul', 'rojo']) {
     const c = clanDe(lado);
     for (const caja of document.querySelectorAll(`.marcador .lado.${lado}, .lineas-cabeza .equipo.${lado}, .grafica-cabeza .equipo.${lado}, .modulos.${lado}`)) {
-      caja.style.setProperty('--clan', c.color);
-      caja.style.setProperty('--clan-texto', c.texto);
+      variable(caja, '--clan', c.color);
+      variable(caja, '--clan-texto', c.texto);
     }
-    document.documentElement.style.setProperty(`--clan-${lado}`, c.color);
-    document.documentElement.style.setProperty(`--clan-${lado}-texto`, c.texto);
+    // En la raíz: reescribirlas aunque sean iguales recalcula el estilo de toda la página
+    variable(document.documentElement, `--clan-${lado}`, c.color);
+    variable(document.documentElement, `--clan-${lado}-texto`, c.texto);
     const s = $(`.marcador .lado.${lado}`);
-    s.querySelector('.logo').src = logo(c.id);
-    s.querySelector('.nombre').textContent = nombreClan(lado);
-    s.querySelector('.kanji').textContent = c.kanji || '';
-    s.querySelector('.kanji-fondo').textContent = c.kanji || '';
+    src(s.querySelector('.logo'), logo(c.id));
+    texto(s.querySelector('.nombre'), nombreClan(lado));
+    texto(s.querySelector('.kanji'), c.kanji || '');
+    texto(s.querySelector('.kanji-fondo'), c.kanji || '');
     for (const cab of document.querySelectorAll(`.lineas-cabeza .equipo.${lado}, .grafica-cabeza .equipo.${lado}`)) {
-      cab.querySelector('.logo').src = logo(c.id);
-      cab.querySelector('.nombre').textContent = nombreClan(lado);
+      src(cab.querySelector('.logo'), logo(c.id));
+      texto(cab.querySelector('.nombre'), nombreClan(lado));
     }
   }
 }
@@ -151,7 +170,7 @@ function pintarPartida() {
       cajaCaidos.dataset.firma = firmaCaidos;
       cajaCaidos.innerHTML = caidos.map(j => `<span class="caido"><img src="${icono(j.campeon)}" alt=""><b></b></span>`).join('');
     }
-    cajaCaidos.querySelectorAll('.caido b').forEach((b, i) => { b.textContent = caidos[i].reaparece; });
+    cajaCaidos.querySelectorAll('.caido b').forEach((b, i) => { texto(b, caidos[i].reaparece); });
     // Dragones del clan como sellos bajo su lado: 4 huecos hasta el alma (vacíos, un rombo sin rellenar) y,
     // detrás, los ancestrales. Empiezan junto al centro y crecen hacia fuera, en espejo
     const dr = s.querySelector('.dragones');
@@ -168,9 +187,9 @@ function pintarPartida() {
   const dif = p.azul.oro - p.rojo.oro;
   const igual = Math.abs(dif) < 100;
   const d = $('.diferencia');
-  d.className = `diferencia${igual ? '' : dif > 0 ? ' azul' : ' rojo'}`;
-  d.querySelector('.flecha').textContent = igual ? '' : dif > 0 ? '◀' : '▶';
-  if (igual) { cuentas.set(d.querySelector('b'), 0); d.querySelector('b').textContent = 'Oro igualado'; }
+  clase(d, `diferencia${igual ? '' : dif > 0 ? ' azul' : ' rojo'}`);
+  texto(d.querySelector('.flecha'), igual ? '' : dif > 0 ? '◀' : '▶');
+  if (igual) fijar(d.querySelector('b'), 0, 'Oro igualado');
   else cifra(d.querySelector('b'), Math.abs(dif), n => `≈${miles(n)}`);
 
   // Avisos: los que ya estaban al abrir el overlay no se repiten. Los de objetivos solo si el panel los tiene
@@ -210,10 +229,10 @@ function pintarTemporizadores() {
   }, (el, o) => {
     const vivo = t >= o.aparece;
     el.classList.toggle('vivo', vivo);
-    el.style.setProperty('--color', o.tipo === 'dragon' && o.ancestral ? COLOR_DRAGON.ancestral : '');
-    el.querySelector('small').textContent = o.tipo === 'dragon' && o.ancestral ? 'Ancestral'
-      : o.tipo === 'larvas' && vivo && o.quedan < 3 ? `Larvas · ${o.quedan}` : OBJETIVO[o.tipo]?.nombre || o.tipo;
-    el.querySelector('b').textContent = vivo ? 'vivo' : mmss(o.aparece - t);
+    variable(el, '--color', o.tipo === 'dragon' && o.ancestral ? COLOR_DRAGON.ancestral : '');
+    texto(el.querySelector('small'), o.tipo === 'dragon' && o.ancestral ? 'Ancestral'
+      : o.tipo === 'larvas' && vivo && o.quedan < 3 ? `Larvas · ${o.quedan}` : OBJETIVO[o.tipo]?.nombre || o.tipo);
+    texto(el.querySelector('b'), vivo ? 'vivo' : mmss(o.aparece - t));
     trazar(el, vivo ? 1 : (t - o.desde) / Math.max(1, o.aparece - o.desde));
   });
 }
@@ -245,8 +264,8 @@ function pintarModulos() {
       el.innerHTML = `<span class="sello${m.lleno ? ' lleno' : ''}">${m.lleno ? '' : enso()}<span class="kanji">${m.kanji}</span></span><span class="texto"><small></small><b></b></span>`;
       return el;
     }, (el, m) => {
-      el.querySelector('small').textContent = m.etiqueta;
-      el.querySelector('b').textContent = m.valor;
+      texto(el.querySelector('small'), m.etiqueta);
+      texto(el.querySelector('b'), m.valor);
       if (m.p != null) trazar(el, m.p);
     });
   }
@@ -382,7 +401,7 @@ function pintarLineas(mostrar) {
   // La zona del panel (la misma de la gráfica de oro) va siempre encogida a ESCALA_LINEAS, tenga cámaras o no: así no
   // cambia de tamaño al marcar una cámara y la gráfica sale justo en el mismo hueco
   if (mostrar) {
-    $('.zona-lineas').style.setProperty('--escala-lineas', ESCALA_LINEAS);
+    variable($('.zona-lineas'), '--escala-lineas', String(ESCALA_LINEAS));
     $('.zona-lineas').classList.toggle('con-camaras', camarasActivas().length > 0);
   }
   aparecer(caja, mostrar);
@@ -396,18 +415,16 @@ function pintarLineas(mostrar) {
     for (const lado of ['azul', 'rojo']) {
       const j = l[lado];
       const caja = fila.querySelector(`.jugador.${lado}`);
-      caja.style.visibility = j ? '' : 'hidden';
+      if (caja.style.visibility !== (j ? '' : 'hidden')) caja.style.visibility = j ? '' : 'hidden';
       if (!j) continue;
-      const img = caja.querySelector('.retrato img');
-      const src = icono(j.campeon);
-      if (img.getAttribute('src') !== src) img.src = src;
-      caja.querySelector('.nivel').textContent = j.nivel;
+      src(caja.querySelector('.retrato img'), icono(j.campeon));
+      texto(caja.querySelector('.nivel'), j.nivel);
       const retrato = caja.querySelector('.retrato');
       retrato.classList.toggle('muerto', j.muerto);
       // En racha (3 asesinatos o más sin morir) el recuadro se ilumina; a partir de 5, más
       retrato.classList.toggle('racha', !j.muerto && j.racha >= 3);
       retrato.classList.toggle('racha-alta', !j.muerto && j.racha >= 5);
-      caja.querySelector('.muerte').textContent = j.muerto && j.reaparece ? j.reaparece : '';
+      texto(caja.querySelector('.muerte'), j.muerto && j.reaparece ? j.reaparece : '');
       // Solo los objetos que se tienen, sin huecos vacíos; el abalorio aparte
       const huecos = caja.querySelector('.huecos');
       const ids = (j.objetos || []).slice(0, 6).filter(Boolean);
@@ -433,24 +450,26 @@ function pintarLineas(mostrar) {
       pintarIcono(mision.querySelector('img'), j.mision?.objeto && `/ddragon/objeto/${j.mision.objeto}.png`);
       mision.classList.toggle('vacio', !j.mision);
       // El nombre del panel para ese puesto, si lo hay; si no, el del cliente
-      caja.querySelector('.nombre').textContent = estado?.equipos?.[lado]?.jugadores?.[i] || j.nombre;
-      caja.querySelector('.kda-cifras').textContent = `${j.k} / ${j.d} / ${j.a}`;
-      caja.querySelector('.cs').textContent = `${j.cs} CS`;
+      texto(caja.querySelector('.nombre'), estado?.equipos?.[lado]?.jugadores?.[i] || j.nombre);
+      texto(caja.querySelector('.kda-cifras'), `${j.k} / ${j.d} / ${j.a}`);
+      texto(caja.querySelector('.cs'), `${j.cs} CS`);
       // Shutdown: lo que se lleva quien lo mate por encima de lo normal (aproximado, el juego no lo da).
       // Por debajo de 100 no sale: el margen de error de la estimación es de ese orden
       const recompensa = caja.querySelector('.recompensa');
       recompensa.hidden = !(j.recompensa >= 100);
-      recompensa.querySelector('b').textContent = `≈${j.recompensa}`;
+      texto(recompensa.querySelector('b'), `≈${j.recompensa}`);
       cifra(caja.querySelector('.oro'), j.oro, n => `≈${miles(n)}`);
     }
     const dif = difs[i];
     const lado = Math.abs(dif) < 100 ? '' : dif > 0 ? 'azul' : 'rojo';
     const ancho = lado ? Math.abs(dif) / escala : 0;
-    fila.querySelector('.relleno.azul').style.transform = `scaleX(${lado === 'azul' ? ancho : 0})`;
-    fila.querySelector('.relleno.rojo').style.transform = `scaleX(${lado === 'rojo' ? ancho : 0})`;
+    for (const [rel, suyo] of [[fila.querySelector('.relleno.azul'), 'azul'], [fila.querySelector('.relleno.rojo'), 'rojo']]) {
+      const t = `scaleX(${lado === suyo ? ancho : 0})`;
+      if (rel.style.transform !== t) rel.style.transform = t;
+    }
     const d = fila.querySelector('.dif');
-    d.className = `dif ${lado}`;
-    if (lado) cifra(d, Math.abs(dif), n => `≈${miles(n)}`); else { cuentas.set(d, 0); d.textContent = 'Igual'; }
+    clase(d, `dif ${lado}`);
+    if (lado) cifra(d, Math.abs(dif), n => `≈${miles(n)}`); else fijar(d, 0, 'Igual');
     // Puntos provisionales de los dos, con el que va por delante resaltado
     const pa = l.azul?.puntos, pr = l.rojo?.puntos;
     const delante = pa == null || pr == null || pa === pr ? '' : pa > pr ? 'azul' : 'rojo';
@@ -459,7 +478,7 @@ function pintarLineas(mostrar) {
       const v = l[lado]?.puntos;
       caja.classList.toggle('delante', delante === lado);
       caja.classList.toggle('sin', v == null);
-      if (v == null) { cuentas.set(caja.querySelector('b'), 0); caja.querySelector('b').textContent = '–'; }
+      if (v == null) fijar(caja.querySelector('b'), 0, '–');
       else cifra(caja.querySelector('b'), Math.round(v * 10), n => decimal(n / 10));
     }
   });
@@ -507,15 +526,14 @@ function pintarFicha(g) {
   if (!j) { fichaPintada = null; return; }
   const lado = g.lado, i = g.indice, rol = partida.lineas[i].rol;
   const c = clanDe(lado);
-  caja.className = `ficha ${lado}`;
-  caja.style.setProperty('--clan', c.color);
-  caja.style.setProperty('--clan-texto', c.texto);
+  clase(caja, `ficha ${lado}`);
+  variable(caja, '--clan', c.color);
+  variable(caja, '--clan-texto', c.texto);
   const nombre = estado?.equipos?.[lado]?.jugadores?.[i] || j.nombre;
-  caja.querySelector('.ficha-nombre').textContent = nombre;
-  caja.querySelector('.ficha-rol').textContent = `${ROL[rol] || rol} · ${nombreClan(lado)}`;
-  caja.querySelector('.ficha-logo').src = logo(c.id);
-  const campeon = caja.querySelector('.ficha-campeon');
-  if (campeon.getAttribute('src') !== icono(j.campeon)) campeon.src = icono(j.campeon);
+  texto(caja.querySelector('.ficha-nombre'), nombre);
+  texto(caja.querySelector('.ficha-rol'), `${ROL[rol] || rol} · ${nombreClan(lado)}`);
+  src(caja.querySelector('.ficha-logo'), logo(c.id));
+  src(caja.querySelector('.ficha-campeon'), icono(j.campeon));
   // La carta solo se vuelve a montar si cambia de jugador (la ficha se refresca cada segundo)
   const clave = `${g.id}|${lado}|${i}`;
   if (fichaPintada !== clave) {
@@ -534,7 +552,7 @@ function pintarFicha(g) {
     });
   }
   const nivel = caja.querySelector('.ficha-retrato-nivel');
-  if (nivel) nivel.textContent = j.nivel;
+  if (nivel) texto(nivel, j.nivel);
   const minutos = Math.max(1, tiempoAhora() / 60);
   const cifras = [
     ['KDA', `${j.k}/${j.d}/${j.a}`, ''],
@@ -546,11 +564,11 @@ function pintarFicha(g) {
   ];
   const cajaCifras = caja.querySelector('.ficha-cifras');
   if (cajaCifras.children.length !== cifras.length) cajaCifras.innerHTML = cifras.map((_, k) => `<div class="ficha-cifra" style="--i:${k}"><small></small><b></b></div>`).join('');
-  cifras.forEach(([etiqueta, valor, clase], k) => {
+  cifras.forEach(([etiqueta, valor, extra], k) => {
     const el = cajaCifras.children[k];
-    el.className = `ficha-cifra ${clase}`;
-    el.querySelector('small').textContent = etiqueta;
-    el.querySelector('b').textContent = valor;
+    clase(el, `ficha-cifra ${extra}`);
+    texto(el.querySelector('small'), etiqueta);
+    texto(el.querySelector('b'), valor);
   });
   // Sus objetos, sin huecos vacíos, y el abalorio aparte
   const objetos = caja.querySelector('.ficha-objetos');
@@ -563,7 +581,7 @@ function pintarFicha(g) {
   }
   const puntos = caja.querySelector('.ficha-puntos');
   puntos.hidden = !interruptor('puntosFantasy');
-  if (j.puntos == null) { cuentas.set(puntos.querySelector('b'), 0); puntos.querySelector('b').textContent = '–'; }
+  if (j.puntos == null) fijar(puntos.querySelector('b'), 0, '–');
   else cifra(puntos.querySelector('b'), Math.round(j.puntos * 10), n => decimal(n / 10));
 }
 
@@ -632,7 +650,7 @@ pintarEstilo();
 
 setInterval(() => {
   if (!partida) return;
-  $('.reloj').textContent = mmss(tiempoAhora());
+  texto($('.reloj'), mmss(tiempoAhora()));
   pintarTemporizadores();
   pintarModulos();
 }, 250);
