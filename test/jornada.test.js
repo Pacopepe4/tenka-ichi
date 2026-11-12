@@ -1,6 +1,7 @@
 // La jornada de punta a punta con la web entera y datos temporales: sobres sin repetidas, códigos de directo,
 // fundir repetidas, el cierre de la jornada con sus premios y las estadísticas del postdraft y de las fichas.
 import { test, before, after } from 'node:test';
+import { puertoLibre, esperarWeb, pararWeb as pararProceso } from './web-de-prueba.js';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
@@ -86,7 +87,7 @@ before(async () => {
     ...carta('prueba-ana', 'Ana', 'KAIJU-TOP', 4), ...carta('prueba-ana', 'Ana', 'TORA-TOP', 3), ...carta('prueba-ana', 'Ana', 'KAIJU-ADC', 1),
     ...carta('prueba-ana', 'Ana', 'BOOST-TENGU', 3), ...carta('prueba-beto', 'Beto', 'TORA-TOP', 1), ...carta('prueba-beto', 'Beto', 'TORA-ADC', 2),
   ]));
-  const puerto = 4200 + Math.floor(Math.random() * 90);
+  const puerto = await puertoLibre();
   urlWeb = `http://127.0.0.1:${puerto}`;
   const entorno = { ...process.env };
   for (const k of Object.keys(entorno)) if (/^(GOOGLE_|TWITCH_|DISCORD_|RENDER)/.test(k)) delete entorno[k];
@@ -96,17 +97,14 @@ before(async () => {
       ARCHIVO_BOOSTS: path.join(carpeta, 'boosts.json'), ARCHIVO_CAMPEONES: path.join(carpeta, 'campeones.json'),
       ARCHIVO_LEGACY: path.join(carpeta, 'legacy.json') } });
   web.stderr.on('data', d => { if (process.env.VER_WEB) process.stderr.write(d); });
-  for (let i = 0; i < 60; i++) {
-    try { if ((await fetch(`${urlWeb}/salud`)).ok) break; } catch {}
-    await esperar(200);
-  }
+  await esperarWeb(web, urlWeb);
   panel = await conectarPanel();
   ana = await entrar('Ana');
   beto = await entrar('Beto');
 });
 after(async () => {
   panel?.ws.close();
-  if (web) { const fin = new Promise(r => web.once('exit', r)); web.kill(); await fin; }
+  if (web) { await pararProceso(web); }
   await rm(carpeta, { recursive: true, force: true });
 });
 

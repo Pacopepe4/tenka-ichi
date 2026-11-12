@@ -2,6 +2,7 @@
 // el Kick de cada espectador a su cuenta, canjes que dan sobres una sola vez, renovación y retirada de tokens y reinicio.
 // La web arranca con datos temporales: no toca data/ ni la hoja de Google.
 import { test, before, after } from 'node:test';
+import { puertoLibre, esperarWeb, pararWeb as pararProceso } from './web-de-prueba.js';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { mkdtemp, writeFile, readFile, rm } from 'node:fs/promises';
@@ -17,7 +18,7 @@ let kick, urlKick, carpeta, web, urlWeb;
 
 const esperar = ms => new Promise(r => setTimeout(r, ms));
 async function arrancarWeb() {
-  const puerto = 3800 + Math.floor(Math.random() * 90);
+  const puerto = await puertoLibre();
   urlWeb = `http://127.0.0.1:${puerto}`;
   const entorno = { ...process.env };
   for (const k of Object.keys(entorno)) if (/^(GOOGLE_|TWITCH_|DISCORD_|KICK_|RENDER)/.test(k)) delete entorno[k];
@@ -31,17 +32,11 @@ async function arrancarWeb() {
       ARCHIVO_LEGACY: path.join(carpeta, 'legacy.json') },
   });
   web.stderr.on('data', d => { if (process.env.VER_WEB) process.stderr.write(d); });
-  for (let i = 0; i < 60; i++) {
-    try { if ((await fetch(`${urlWeb}/salud`)).ok) return; } catch {}
-    await esperar(200);
-  }
-  throw new Error('La web no arranca');
+  await esperarWeb(web, urlWeb);
 }
 async function pararWeb() {
   if (!web) return;
-  const fin = new Promise(r => web.once('exit', r));
-  web.kill();
-  await fin;
+  await pararProceso(web);
   web = null;
 }
 

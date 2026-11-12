@@ -3,6 +3,7 @@
 // nombres que no pueden ser fórmulas en Sheets, regalos del staff, reinicio y el modo de producción sin claves.
 // La web arranca con datos temporales: no toca data/ ni la plantilla del repositorio.
 import { test, before, after } from 'node:test';
+import { puertoLibre, esperarWeb, pararWeb as pararProceso } from './web-de-prueba.js';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { mkdtemp, writeFile, readFile, rm } from 'node:fs/promises';
@@ -20,7 +21,7 @@ const esperar = ms => new Promise(r => setTimeout(r, ms));
 
 // Arranca la web con datos temporales; `extra` añade o cambia variables de entorno
 async function lanzar(extra = {}) {
-  const puerto = 3700 + Math.floor(Math.random() * 90);   // otro tramo que el de twitch.test.js, que corre a la vez
+  const puerto = await puertoLibre();
   const url = `http://127.0.0.1:${puerto}`;
   const entorno = { ...process.env };
   for (const k of Object.keys(entorno)) if (/^(GOOGLE_|TWITCH_|DISCORD_|RENDER)/.test(k)) delete entorno[k];
@@ -33,18 +34,12 @@ async function lanzar(extra = {}) {
       ARCHIVO_LEGACY: path.join(carpeta, 'legacy.json'), ...extra },   // sin las LEGACY del proyecto: los sobres traen siempre cuatro cartas
   });
   proceso.stderr.on('data', d => { if (process.env.VER_WEB) process.stderr.write(d); });
-  for (let i = 0; i < 60; i++) {
-    try { if ((await fetch(`${url}/salud`)).ok) return { proceso, url }; } catch {}
-    await esperar(200);
-  }
-  proceso.kill();
-  throw new Error('La web no arranca');
+  await esperarWeb(proceso, url);
+  return { proceso, url };
 }
 async function parar(instancia) {
   if (!instancia) return;
-  const fin = new Promise(r => instancia.proceso.once('exit', r));
-  instancia.proceso.kill();
-  await fin;
+  await pararProceso(instancia.proceso);
 }
 const entornoDiscord = () => ({ DISCORD_CLIENT_ID: CLIENTE.id, DISCORD_CLIENT_SECRET: CLIENTE.secreto,
   DISCORD_URL_WEB: urlDiscord, DISCORD_URL_API: `${urlDiscord}/api/v10`, DISCORD_URL_CDN: `${urlDiscord}/cdn` });

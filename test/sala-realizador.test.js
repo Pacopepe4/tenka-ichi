@@ -1,5 +1,6 @@
 // Sala del realizador (11/11): el PC 1 la apunta en la web y el PC 2 la recoge, solo con la contraseña del panel
 import { test, before, after } from 'node:test';
+import { puertoLibre, esperarWeb } from './web-de-prueba.js';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -15,16 +16,13 @@ const esperar = ms => new Promise(r => setTimeout(r, ms));
 
 before(async () => {
   carpeta = await mkdtemp(path.join(os.tmpdir(), 'tenka-sala-realizador-'));
-  const puerto = 4300 + Math.floor(Math.random() * 90);
+  const puerto = await puertoLibre();
   urlWeb = `http://127.0.0.1:${puerto}`;
   const entorno = { ...process.env };
   for (const k of Object.keys(entorno)) if (/^(GOOGLE_|TWITCH_|DISCORD_|RENDER)/.test(k)) delete entorno[k];
   web = spawn(process.execPath, ['server/index.js'], { cwd: RAIZ, stdio: ['ignore', 'pipe', 'pipe'],
     env: { ...entorno, PORT: String(puerto), PANEL_CLAVE: CLAVE, SESION_SECRETO: 'secreto-de-las-pruebas', CARPETA_DATOS: carpeta } });
-  for (let i = 0; i < 60; i++) {
-    try { if ((await fetch(`${urlWeb}/salud`)).ok) break; } catch {}
-    await esperar(250);
-  }
+  await esperarWeb(web, urlWeb);
 });
 
 after(async () => {

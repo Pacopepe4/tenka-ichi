@@ -1,6 +1,7 @@
 // Importaciones (server/importaciones.js): plantillas y tiers que el usuario dicta en el chat y que la web publicada lleva a
 // la hoja al arrancar, una sola vez cada una. Con la web entera contra un Google Sheets de mentira (scripts/sheets-falso.js).
 import { test, before, after } from 'node:test';
+import { puertoLibre, esperarWeb, pararWeb as pararProceso } from './web-de-prueba.js';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { mkdtemp, writeFile, readFile, rm } from 'node:fs/promises';
@@ -37,7 +38,7 @@ async function plantillasDeAntes() {
 after(async () => { await pararWeb(); await rm(carpeta, { recursive: true, force: true }); });
 
 async function arrancarWeb(urlSheets, importar = '1') {
-  const puerto = 4500 + Math.floor(Math.random() * 90);
+  const puerto = await puertoLibre();
   urlWeb = `http://127.0.0.1:${puerto}`;
   const entorno = { ...process.env };
   for (const k of Object.keys(entorno)) if (/^(GOOGLE_|TWITCH_|DISCORD_|RENDER|GACHA_|IMPORTACIONES)/.test(k)) delete entorno[k];
@@ -47,17 +48,11 @@ async function arrancarWeb(urlSheets, importar = '1') {
       GOOGLE_URL_SHEETS: urlSheets, GOOGLE_SHEET_ID: 'hoja-de-prueba', GOOGLE_CREDENTIALS: 'prueba', ...(importar ? { IMPORTACIONES: importar } : {}) } });
   web.stderr.on('data', d => { if (process.env.VER_WEB) process.stderr.write(d); });
   web.stdout.on('data', d => { if (process.env.VER_WEB) process.stderr.write(d); });
-  for (let i = 0; i < 75; i++) {
-    try { if ((await fetch(`${urlWeb}/salud`)).ok) return; } catch {}
-    await esperar(200);
-  }
-  throw new Error('La web no arranca');
+  await esperarWeb(web, urlWeb);
 }
 async function pararWeb() {
   if (!web) return;
-  const fin = new Promise(r => web.once('exit', r));
-  web.kill();
-  await fin;
+  await pararProceso(web);
   web = null;
 }
 function panel(accion, datos = {}) {

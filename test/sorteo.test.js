@@ -1,6 +1,7 @@
 // El sorteo del calendario en directo: las 24 bolas, lo que ve el público (nunca lo que falta ni la semilla antes de
 // tiempo), el guardado solo al final, el ensayo y la web entera con su canal «sorteo».
 import { test, before, after } from 'node:test';
+import { puertoLibre, esperarWeb, pararWeb as pararProceso } from './web-de-prueba.js';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -155,20 +156,17 @@ function conectar(canal) {
 
 before(async () => {
   carpeta = await mkdtemp(path.join(os.tmpdir(), 'tenka-sorteo-'));
-  const puerto = 4300 + Math.floor(Math.random() * 90);
+  const puerto = await puertoLibre();
   urlWeb = `http://127.0.0.1:${puerto}`;
   const entorno = { ...process.env };
   for (const k of Object.keys(entorno)) if (/^(GOOGLE_|TWITCH_|DISCORD_|RENDER)/.test(k)) delete entorno[k];
   web = spawn(process.execPath, ['server/index.js'], { cwd: RAIZ, stdio: ['ignore', 'pipe', 'pipe'],
     env: { ...entorno, PORT: String(puerto), PANEL_CLAVE: CLAVE, SESION_SECRETO: 'secreto-de-las-pruebas', CARPETA_DATOS: carpeta } });
   web.stderr.on('data', d => { if (process.env.VER_WEB) process.stderr.write(d); });
-  for (let i = 0; i < 60; i++) {
-    try { if ((await fetch(`${urlWeb}/salud`)).ok) break; } catch {}
-    await esperar(200);
-  }
+  await esperarWeb(web, urlWeb);
 });
 after(async () => {
-  if (web) { const fin = new Promise(r => web.once('exit', r)); web.kill(); await fin; }
+  if (web) { await pararProceso(web); }
   await rm(carpeta, { recursive: true, force: true });
 });
 
