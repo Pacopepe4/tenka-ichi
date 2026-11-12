@@ -48,8 +48,8 @@ const OTRO = { azul: 'rojo', rojo: 'azul' };
 const DRAGON = { Fire: 'infernal', Water: 'oceano', Earth: 'montana', Air: 'nube', Hextech: 'hextech', Chemtech: 'quimtech', Elder: 'ancestral' };
 const ROLES = ['TOP', 'JUNGLA', 'MEDIO', 'ADC', 'SUPPORT'];
 const POSICION = { TOP: 0, JUNGLE: 1, MIDDLE: 2, MID: 2, BOTTOM: 3, BOT: 3, UTILITY: 4, SUPPORT: 4 };
-const SIN_DATOS_MS = 10000;      // sin latidos del puente durante 10 s, el puente se da por cerrado
-const GRACIA_PARTIDA_MS = 20000; // sin datos de la partida durante 20 s, se da por parada: un corte corto no quita el marcador
+const SIN_DATOS_MS = Number(process.env.PUENTE_SIN_DATOS_MS) || 10000;      // sin latidos del puente durante 10 s, el puente se da por cerrado
+const GRACIA_PARTIDA_MS = Number(process.env.PARTIDA_GRACIA_MS) || 20000; // sin datos de la partida durante 20 s, se da por parada: un corte corto no quita el marcador
 
 // Interruptores del panel que cambian el cálculo (los demás, puntos y peleas, solo deciden si el overlay los enseña)
 const ajustes = { oroIngresos: true };

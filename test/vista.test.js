@@ -1,6 +1,7 @@
 // Qué enseña el overlay (draft, postdraft, partida y final), la pantalla final y el estado del panel, que tiene que
 // sobrevivir a un reinicio de la web. Primero las piezas sueltas y después la web entera con datos temporales.
 import { test, before, after } from 'node:test';
+import { puertoLibre, esperarWeb, pararWeb as pararProceso } from './web-de-prueba.js';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
@@ -157,29 +158,25 @@ let carpeta, web, urlWeb;
 const esperar = ms => new Promise(r => setTimeout(r, ms));
 
 async function arrancarWeb() {
-  const puerto = 4100 + Math.floor(Math.random() * 90);
+  const puerto = await puertoLibre();
   urlWeb = `http://127.0.0.1:${puerto}`;
   const entorno = { ...process.env };
   for (const k of Object.keys(entorno)) if (/^(GOOGLE_|TWITCH_|DISCORD_|RENDER)/.test(k)) delete entorno[k];
   web = spawn(process.execPath, ['server/index.js'], {
     cwd: RAIZ, stdio: ['ignore', 'pipe', 'pipe'],
     env: { ...entorno, PORT: String(puerto), PANEL_CLAVE: CLAVE, SESION_SECRETO: 'secreto-de-las-pruebas', ESPERA_VISTA_MS: '250', REPLAY_MAX_MS: '700',
+      // el puente se da por cerrado a los 4 s y la partida por parada a los 8 (en directo, 10 y 20): la prueba de abajo espera menos
+      PUENTE_SIN_DATOS_MS: '4000', PARTIDA_GRACIA_MS: '8000',
       CARPETA_DATOS: carpeta, ARCHIVO_PLANTILLAS: path.join(carpeta, 'plantillas.json'),
       ARCHIVO_BOOSTS: path.join(carpeta, 'boosts.json'), ARCHIVO_CAMPEONES: path.join(carpeta, 'campeones.json'),
       ARCHIVO_LEGACY: path.join(carpeta, 'legacy.json') },
   });
   web.stderr.on('data', d => { if (process.env.VER_WEB) process.stderr.write(d); });
-  for (let i = 0; i < 60; i++) {
-    try { if ((await fetch(`${urlWeb}/salud`)).ok) return; } catch {}
-    await esperar(200);
-  }
-  throw new Error('La web no arranca');
+  await esperarWeb(web, urlWeb);
 }
 async function pararWeb() {
   if (!web) return;
-  const fin = new Promise(r => web.once('exit', r));
-  web.kill();
-  await fin;
+  await pararProceso(web);
   web = null;
 }
 
@@ -406,8 +403,9 @@ test('si el puente se cae en plena partida, el overlay sigue en la partida y no 
   await c.accion('siguiente');
   await paquete(30, [inicio]);
   await c.hasta(e => e.vistaOverlay === 'partida', 'el marcador');
-  // Más de 20 s sin saber nada del puente: la partida se da por parada, pero no por terminada
-  await esperar(24000);
+  // Más de 20 s sin saber nada del puente (8 en la prueba, más los 3 s que tarda la web en mirarlo): la partida se da
+  // por parada, pero no por terminada
+  await esperar(12000);
   assert.equal(c.partida.activo, false);
   assert.equal(c.partida.puente.conectado, false);
   assert.equal(c.estado.vistaOverlay, 'partida');
