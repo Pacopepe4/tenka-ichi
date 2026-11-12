@@ -5,7 +5,7 @@
 // enfrentamiento del panel (lado azul a la izquierda).
 // El aspecto es el estilo A de Gokudō («Placas», estilo-a.css, acotado a data-estilo="a" en <body>). Pacopepe se quedó con
 // él el 08/11 y la B se borró.
-import { cargarClanes, conectarDirecto, logo, icono, splash, camaraPartida, ESCALA_LINEAS } from '/comun.js';
+import { cargarClanes, conectarDirecto, logo, icono, splash, definitiva, estadoDefinitiva, camaraPartida, ESCALA_LINEAS } from '/comun.js';
 import { cartaHTML } from '/carta.js';
 
 const $ = s => document.querySelector(s);
@@ -360,13 +360,32 @@ function pintarGraficos() {
   pintarGrafica(hay('oro'));
 }
 
+// ---------- la definitiva (la R) de cada campeón ----------
+// Una insignia pegada al retrato, en la esquina de abajo del lado de fuera: el icono de la R, apagado (gris y medio
+// transparente) hasta que se desbloquea y encendido después, con una muesca por rango (niveles 6, 11 y 16) al lado.
+// El modo espectador no da el enfriamiento: solo el nivel. La misma insignia va en la ficha, junto a su retrato
+const INSIGNIA_DEFINITIVA = '<i class="definitiva r0" hidden><img alt="" hidden><b class="rangos"><i></i><i></i><i></i></b></i>';
+// Si el icono no carga, la insignia entera se esconde, como los hechizos y las runas (y no se vuelve a pedir)
+document.addEventListener('error', e => {
+  const insignia = e.target.tagName === 'IMG' && e.target.closest('.definitiva');
+  if (insignia) { e.target.dataset.roto = e.target.getAttribute('src'); e.target.hidden = true; insignia.hidden = true; }
+}, true);
+// Solo escribe el src, el hidden y las clases si cambian (el marcador se refresca cada segundo)
+function pintarDefinitiva(insignia, campeon, nivel) {
+  const img = insignia.querySelector('img');
+  pintarIcono(img, campeon && definitiva(campeon));
+  if (insignia.hidden !== img.hidden) insignia.hidden = img.hidden;
+  const { rango, encendida } = estadoDefinitiva(campeon, nivel);
+  clase(insignia, `definitiva r${rango}${encendida ? ' encendida' : ''}`);
+}
+
 // ---------- línea por línea ----------
 // Cada fila es un puesto (top, jungla, medio, ADC y apoyo, en ese orden): retrato, hechizos, runa y misión de rol, nombre,
 // KDA y súbditos, objetos y oro de cada jugador; en medio, la diferencia de oro y los puntos provisionales del fantasy de los dos
 const filas = $('.lineas .filas');
 filas.innerHTML = [0, 1, 2, 3, 4].map(i => `<div class="fila" style="--i:${i}" data-i="${i}">
   ${['azul', 'rojo'].map(lado => {
-    const retrato = '<span class="retrato"><img alt=""><i class="nivel"></i><i class="muerte"></i></span>';
+    const retrato = `<span class="retrato"><img alt=""><i class="nivel"></i><i class="muerte"></i>${INSIGNIA_DEFINITIVA}</span>`;
     // Pegados al retrato: los dos hechizos apilados y, al lado, la piedra angular sobre el hueco de la misión de rol
     const icono = clase => `<i class="${clase}"><img alt="" hidden></i>`;
     const iconos = `<span class="iconos"><span class="sums">${icono('sum')}${icono('sum')}</span>`
@@ -414,8 +433,9 @@ function pintarLineas(mostrar) {
       const caja = fila.querySelector(`.jugador.${lado}`);
       if (caja.style.visibility !== (j ? '' : 'hidden')) caja.style.visibility = j ? '' : 'hidden';
       if (!j) continue;
-      src(caja.querySelector('.retrato img'), icono(j.campeon));
+      src(caja.querySelector('.retrato > img'), icono(j.campeon));
       texto(caja.querySelector('.nivel'), j.nivel);
+      pintarDefinitiva(caja.querySelector('.definitiva'), j.campeon, j.nivel);
       const retrato = caja.querySelector('.retrato');
       retrato.classList.toggle('muerto', j.muerto);
       // En racha (3 asesinatos o más sin morir) el recuadro se ilumina; a partir de 5, más
@@ -533,6 +553,7 @@ function pintarFicha(g) {
   texto(caja.querySelector('.ficha-rol'), `${ROL[rol] || rol} · ${nombreClan(lado)}`);
   src(caja.querySelector('.ficha-logo'), logo(c.id));
   src(caja.querySelector('.ficha-campeon'), icono(j.campeon));
+  pintarDefinitiva(caja.querySelector('.ficha-campeon-caja .definitiva'), j.campeon, j.nivel);
   // La carta solo se vuelve a montar si cambia de jugador (la ficha se refresca cada segundo)
   const clave = `${g.id}|${lado}|${i}`;
   if (fichaPintada !== clave) {
