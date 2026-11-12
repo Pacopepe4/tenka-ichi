@@ -1,0 +1,1103 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Animaciones del directo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Yuji+Boku&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap">
+<style>
+/* Hoja de propuestas de animación para el overlay del directo de Gokudō. Cada muestra se dibuja en un lienzo de
+   1920×1080 (las medidas de verdad del overlay) que se encoge para caber en su marco. Las muestras solo animan
+   transform y opacity: los halos de neón se pintan una vez y, como mucho, cambian de opacidad. */
+:root {
+  --noche: #0C0D13; --placa: #15161F; --filo: #2A2B38;
+  --shu: #E0303A; --shu-claro: #FF4C56; --shu-hondo: #BE2A2F; --shu-neon: #FF5A63;
+  --oro: #EBD28A; --washi: #E7DFD2; --hai: #8D8A99; --gris-claro: #CFC9D6;
+  --dela: 'Dela Gothic One', 'Zen Kaku Gothic New', sans-serif;
+  --pincel: 'Yuji Boku', serif;
+  --gothic: 'Zen Kaku Gothic New', 'Segoe UI', sans-serif;
+  --neon: 0 0 6px #FF3B46, 0 0 18px #E0303A, 0 0 36px #BE2A2F;
+  --neon-suave: 0 0 4px rgba(255, 59, 70, .9), 0 0 14px rgba(224, 48, 58, .7);
+  --tubo: 0 0 0 1.5px var(--shu-claro), 0 0 14px rgba(224, 48, 58, .55), inset 0 0 10px rgba(224, 48, 58, .25);
+  --curva: cubic-bezier(.2, .8, .2, 1);
+  --curva-salida: cubic-bezier(.5, 0, .75, 0);
+  --curva-tinta: cubic-bezier(.7, 0, .2, 1);
+  --golpe: cubic-bezier(.2, .9, .3, 1.35);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: var(--noche); }
+body { background: var(--noche); color: var(--washi); font-family: var(--gothic); font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; cursor: pointer; }
+code { font-family: ui-monospace, Consolas, monospace; font-size: .88em; color: var(--gris-claro); background: rgba(42, 43, 56, .55); padding: 1px 5px; border-radius: 4px; }
+
+/* ---------- Página ---------- */
+.pagina { max-width: 1240px; margin: 0 auto; padding: 0 32px 80px; }
+.cabeza { display: flex; align-items: center; gap: 32px; padding: 52px 0 30px; border-bottom: 1px solid var(--filo); }
+.cabeza .kanji { flex: none; font-family: var(--pincel); font-size: 92px; line-height: 1; color: var(--shu-neon); text-shadow: var(--neon); }
+.cabeza h1 { font-family: var(--dela); font-weight: 400; font-size: 42px; line-height: 1.2; }
+.cabeza p { margin-top: 10px; max-width: 62em; color: var(--hai); font-size: 16.5px; }
+.cabeza p b { color: var(--washi); font-weight: 700; }
+
+.reglas { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 28px 0 10px; }
+.regla { padding: 14px 18px; background: var(--placa); border-radius: 8px; box-shadow: inset 0 0 0 1px var(--filo); font-size: 14.5px; color: var(--hai); }
+.regla b { display: block; margin-bottom: 2px; font-family: var(--dela); font-weight: 400; font-size: 15px; color: var(--washi); letter-spacing: .02em; }
+.familias { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 8px; }
+.familias span { display: inline-flex; align-items: center; gap: 7px; font-size: 13.5px; color: var(--gris-claro); }
+.familias i { width: 12px; height: 12px; border-radius: 3px; background: var(--c); box-shadow: 0 0 8px color-mix(in srgb, var(--c) 60%, transparent); }
+
+.indice { position: sticky; top: 0; z-index: 30; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 14px 0; margin-bottom: 8px;
+  background: linear-gradient(180deg, var(--noche) 75%, rgba(12, 13, 19, 0)); }
+.indice a { padding: 6px 12px; border-radius: 8px; background: var(--placa); box-shadow: inset 0 0 0 1px var(--filo); color: var(--gris-claro); font-size: 14px; text-decoration: none; white-space: nowrap; }
+.indice a:hover { color: var(--washi); box-shadow: inset 0 0 0 1px #4A4B5E; }
+.indice a b { font-family: var(--dela); font-weight: 400; color: var(--shu-neon); margin-right: 6px; }
+.boton { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border: 0; border-radius: 8px; background: rgba(12, 13, 19, .9);
+  box-shadow: var(--tubo); color: var(--washi); font-weight: 700; font-size: 14.5px; transition: transform .15s var(--curva); }
+.boton:hover { color: #fff; }
+.boton:active { transform: translateY(1px) scale(.97); }
+.boton.suave { box-shadow: inset 0 0 0 1px var(--filo); background: var(--placa); color: var(--gris-claro); }
+.boton.suave[aria-pressed="true"] { box-shadow: inset 0 0 0 1.5px var(--washi); color: var(--washi); }
+.boton:focus-visible, .indice a:focus-visible { outline: 2px solid var(--washi); outline-offset: 3px; }
+.indice .boton { margin-left: auto; }
+.boton svg { width: 15px; height: 15px; }
+
+/* ---------- Cada propuesta ---------- */
+.propuesta { margin-top: 40px; scroll-margin-top: 70px; }
+.titulo-prop { display: flex; align-items: baseline; gap: 14px; margin-bottom: 14px; }
+.titulo-prop .num { font-family: var(--dela); font-size: 30px; color: var(--shu-neon); text-shadow: var(--neon-suave); }
+.titulo-prop h2 { font-family: var(--dela); font-weight: 400; font-size: 30px; line-height: 1.2; }
+.titulo-prop .kanji-prop { margin-left: auto; font-family: var(--pincel); font-size: 34px; color: var(--hai); }
+
+.marco { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 8px; background: var(--noche); box-shadow: inset 0 0 0 1px var(--filo), 0 18px 40px rgba(0, 0, 0, .45); }
+.marco .etiqueta-marco { position: absolute; z-index: 5; right: 10px; top: 10px; padding: 3px 8px; border-radius: 6px; background: rgba(12, 13, 19, .8);
+  box-shadow: inset 0 0 0 1px var(--filo); font-size: 11.5px; letter-spacing: .08em; color: var(--hai); pointer-events: none; }
+.controles { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
+.controles .pista { font-size: 13.5px; color: var(--hai); }
+
+.ficha { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; margin-top: 16px; }
+.ficha > div { padding: 18px 22px; background: var(--placa); border-radius: 8px; box-shadow: inset 0 0 0 1px var(--filo); }
+.ficha .frase { font-size: 17px; color: var(--washi); }
+.datos-prop { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin-top: 14px; font-size: 15px; }
+.datos-prop dt { color: var(--hai); font-size: 12.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; padding-top: 2px; }
+.datos-prop dd { color: var(--gris-claro); }
+.datos-prop dd b { color: var(--washi); }
+.coste h3 { font-family: var(--dela); font-weight: 400; font-size: 16px; margin-bottom: 10px; }
+.medidor { display: grid; grid-template-columns: 56px auto 1fr; gap: 4px 12px; align-items: start; margin-bottom: 10px; font-size: 14.5px; color: var(--gris-claro); }
+.medidor > span:first-child { font-weight: 700; color: var(--washi); font-size: 13px; letter-spacing: .08em; padding-top: 2px; }
+.barras { display: inline-flex; gap: 3px; padding-top: 5px; }
+.barras i { width: 14px; height: 9px; border-radius: 2px; background: #262735; }
+.barras[data-n="1"] i:nth-child(-n+1), .barras[data-n="2"] i:nth-child(-n+2), .barras[data-n="3"] i:nth-child(-n+3) { background: var(--c, #6FBF73); }
+.barras[data-n="1"] { --c: #6FBF73; } .barras[data-n="2"] { --c: #D9B95C; } .barras[data-n="3"] { --c: var(--shu-claro); }
+.medidor small { display: block; font-size: 13.5px; color: var(--hai); line-height: 1.45; }
+.medidor b { color: var(--washi); font-weight: 700; }
+.anima { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 12px; }
+.anima span { padding: 2px 9px; border-radius: 6px; font-size: 12.5px; font-weight: 700; letter-spacing: .04em; background: rgba(12, 13, 19, .7); box-shadow: inset 0 0 0 1px var(--filo); color: var(--gris-claro); }
+.anima span.si { color: #9BE09F; box-shadow: inset 0 0 0 1px rgba(111, 191, 115, .5); }
+.hacer { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--filo); font-size: 14.5px; color: var(--gris-claro); }
+.hacer b { color: var(--washi); }
+.trabajo { display: inline-block; margin-left: 6px; padding: 1px 9px; border-radius: 6px; font-size: 12.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.trabajo.poco { color: #9BE09F; box-shadow: inset 0 0 0 1px rgba(111, 191, 115, .5); }
+.trabajo.medio { color: #E9CF86; box-shadow: inset 0 0 0 1px rgba(217, 185, 92, .5); }
+
+.deuda { margin-top: 56px; padding: 22px 26px; background: var(--placa); border-radius: 8px; box-shadow: inset 0 0 0 1px var(--filo); }
+.deuda h2 { font-family: var(--dela); font-weight: 400; font-size: 22px; margin-bottom: 8px; }
+.deuda p { color: var(--hai); font-size: 15px; }
+.deuda ul { margin: 10px 0 0 20px; color: var(--gris-claro); font-size: 15px; }
+.deuda li + li { margin-top: 5px; }
+.pie { margin-top: 40px; color: var(--hai); font-size: 13.5px; text-align: center; }
+
+@media (max-width: 860px) {
+  .pagina { padding: 0 16px 60px; }
+  .cabeza { flex-direction: column; align-items: flex-start; gap: 12px; padding-top: 32px; }
+  .cabeza .kanji { font-size: 64px; }
+  .cabeza h1 { font-size: 30px; }
+  .ficha { grid-template-columns: 1fr; }
+  .titulo-prop h2 { font-size: 22px; }
+  .titulo-prop .num { font-size: 22px; }
+  .indice .boton { margin-left: 0; }
+}
+
+/* =====================================================================================================
+   Lienzo de 1920×1080 (todo lo de dentro va en píxeles del overlay de verdad)
+   ===================================================================================================== */
+.lienzo { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; overflow: hidden; font-family: var(--gothic); color: var(--washi); }
+.lienzo * { box-sizing: border-box; }
+.noche { position: absolute; inset: 0;
+  background: radial-gradient(ellipse 60% 40% at 50% 100%, rgba(224, 48, 58, .14), transparent 70%),
+    radial-gradient(ellipse 70% 60% at 50% 42%, #141623 0%, var(--noche) 72%); }
+/* Un «juego» de mentira para las muestras de la partida: noche con un mapa insinuado */
+.noche.juego { background:
+    radial-gradient(ellipse 40% 30% at 30% 70%, rgba(57, 198, 240, .06), transparent 70%),
+    radial-gradient(ellipse 40% 30% at 72% 32%, rgba(224, 48, 58, .06), transparent 70%),
+    repeating-linear-gradient(0deg, rgba(42, 43, 56, .22) 0 1px, transparent 1px 120px),
+    repeating-linear-gradient(90deg, rgba(42, 43, 56, .22) 0 1px, transparent 1px 120px),
+    radial-gradient(ellipse 80% 70% at 50% 50%, #12131C 0%, var(--noche) 80%); }
+.noche .marca-agua { position: absolute; left: 50%; top: 56%; transform: translate(-50%, -50%); font-family: var(--dela); font-size: 26px; letter-spacing: .4em; color: rgba(141, 138, 153, .22); text-transform: uppercase; white-space: nowrap; }
+
+/* Piezas comunes */
+.placa { position: absolute; background: rgba(21, 22, 31, .95); border-radius: 8px; box-shadow: inset 0 0 0 1px var(--filo), 0 14px 34px rgba(0, 0, 0, .45); overflow: hidden; }
+.tubo { position: absolute; width: 4px; border-radius: 2px; background: var(--c); box-shadow: 0 0 8px var(--c), 0 0 22px var(--c); }
+.escudo { display: grid; place-items: center; flex: none; border-radius: 8px; background: rgba(12, 13, 19, .9); font-family: var(--pincel); color: var(--ct);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--c) 70%, transparent), 0 0 16px color-mix(in srgb, var(--c) 35%, transparent);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--c) 60%, transparent); }
+.sello-neon { display: grid; place-items: center; border-radius: 8px; background: rgba(12, 13, 19, .92); color: var(--shu-neon); font-family: var(--pincel);
+  box-shadow: var(--tubo); text-shadow: var(--neon-suave); }
+.az { --c: var(--ca); --ct: var(--cta); }
+.ro { --c: var(--cr); --ct: var(--ctr); }
+
+/* Keyframes compartidos (solo transform y opacity) */
+@keyframes baja { from { opacity: 0; transform: translateY(-26px); } }
+@keyframes sube { from { opacity: 0; transform: translateY(18px); } }
+@keyframes aparece { from { opacity: 0; } }
+@keyframes desde-lado { from { opacity: 0; transform: translateX(var(--desde, -48px)); } }
+@keyframes crece { from { opacity: 0; transform: scale(.82); } }
+/* Un tubo que arranca: falla un par de veces y se queda encendido (como el REPLAY y las alertas, pero con opacity) */
+@keyframes prende { 0% { opacity: 0; } 14% { opacity: 1; } 24% { opacity: .12; } 38% { opacity: 1; } 46% { opacity: .3; } 60%, 100% { opacity: 1; } }
+@keyframes estampa { from { opacity: 0; transform: scale(1.9); } 60% { opacity: 1; } to { opacity: 1; transform: none; } }
+@keyframes zumbido { 0%, 100%, 47%, 53% { opacity: 1; } 50% { opacity: .78; } }
+
+/* =====================================================================================================
+   01 · Tubo que prende (entrada del draft)
+   ===================================================================================================== */
+.m1 .cab { top: 32px; width: 700px; height: 128px; display: flex; align-items: center; gap: 22px; }
+.m1 .cab.az { left: 48px; padding: 0 40px 0 34px; }
+.m1 .cab.ro { left: 1172px; padding: 0 34px 0 40px; flex-direction: row-reverse; }
+.m1 .cab .tubo { top: 14px; bottom: 14px; }
+.m1 .cab.az .tubo { left: 12px; } .m1 .cab.ro .tubo { right: 12px; }
+.m1 .cab .escudo { width: 92px; height: 92px; font-size: 56px; }
+.m1 .cab .equipo { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.m1 .cab.ro .equipo { text-align: right; }
+.m1 .cab .nombre { font-family: var(--dela); font-size: 52px; line-height: 1.3; }
+.m1 .cab .lema { font-size: 21px; font-weight: 500; color: var(--ct); }
+.m1 .cab .kf { position: absolute; top: -12px; font-family: var(--pincel); font-size: 150px; line-height: 1; color: var(--ct); opacity: .14; white-space: nowrap; }
+.m1 .cab.az .kf { right: 40px; } .m1 .cab.ro .kf { left: 40px; }
+.m1 .marc { position: absolute; top: 26px; left: 748px; width: 424px; height: 104px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.m1 .marc small { font-size: 18px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--hai); }
+.m1 .marc b { font-family: var(--dela); font-weight: 400; font-size: 44px; line-height: 1.15; }
+.m1 .picks { position: absolute; top: 200px; width: 540px; display: flex; flex-direction: column; gap: 12px; }
+.m1 .picks.az { left: 48px; } .m1 .picks.ro { left: 1332px; }
+.m1 .slot { position: relative; height: 124px; border-radius: 8px; overflow: hidden; box-shadow: inset 0 0 0 1px var(--filo);
+  background: linear-gradient(90deg, rgba(21, 22, 31, .98) 0%, rgba(21, 22, 31, .82) 44%, color-mix(in srgb, var(--c) 30%, #15161F) 100%); }
+.m1 .picks.ro .slot { background: linear-gradient(270deg, rgba(21, 22, 31, .98) 0%, rgba(21, 22, 31, .82) 44%, color-mix(in srgb, var(--c) 30%, #15161F) 100%); }
+.m1 .slot .tubo { top: 12px; bottom: 12px; }
+.m1 .picks.az .tubo { left: 10px; } .m1 .picks.ro .tubo { right: 10px; }
+.m1 .slot .tx { position: absolute; top: 18px; display: flex; flex-direction: column; }
+.m1 .picks.az .tx { left: 36px; } .m1 .picks.ro .tx { right: 36px; text-align: right; }
+.m1 .slot .rol { font-size: 15px; font-weight: 700; letter-spacing: .14em; color: var(--hai); }
+.m1 .slot .rol b { color: var(--washi); font-size: 19px; letter-spacing: 0; margin: 0 6px; }
+.m1 .slot .camp { font-family: var(--dela); font-size: 44px; line-height: 1.2; }
+.m1 .slot .kanji-slot { position: absolute; top: 50%; margin-top: -60px; font-family: var(--pincel); font-size: 120px; line-height: 1; color: var(--ct); opacity: .1; }
+.m1 .picks.az .kanji-slot { right: 30px; } .m1 .picks.ro .kanji-slot { left: 30px; }
+.m1 .centro { position: absolute; left: 760px; top: 380px; width: 400px; text-align: center; }
+.m1 .centro .k { font-family: var(--pincel); font-size: 150px; line-height: 1; color: var(--shu-neon); text-shadow: var(--neon); }
+.m1 .centro small { display: block; margin-top: 16px; font-size: 18px; font-weight: 700; letter-spacing: .4em; color: var(--hai); }
+.m1 .bans { position: absolute; top: 916px; display: flex; gap: 12px; align-items: center; }
+.m1 .bans.az { left: 48px; } .m1 .bans.ro { right: 48px; flex-direction: row-reverse; }
+.m1 .ban { width: 88px; height: 88px; border-radius: 8px; background: var(--placa); box-shadow: inset 0 0 0 1px var(--filo), inset 0 -3px 0 var(--c); display: grid; place-items: center;
+  font-family: var(--dela); font-size: 30px; color: #4A4B5E; }
+.m1 .bans .sello-neon { width: 48px; height: 48px; font-size: 30px; margin: 0 6px; }
+.m1 .franja { position: absolute; left: 620px; top: 892px; width: 680px; height: 144px; display: flex; align-items: center; justify-content: center; gap: 14px; font-family: var(--dela); font-size: 24px; }
+.m1 .franja .sello-neon { width: 42px; height: 42px; font-size: 26px; }
+/* La animación */
+.m1.anda .cab { animation: baja .5s var(--curva) both; }
+.m1.anda .cab.ro { animation-delay: .08s; }
+.m1.anda .cab .tubo { animation: prende .75s steps(1, end) .32s both; }
+.m1.anda .cab.ro .tubo { animation-delay: .4s; }
+.m1.anda .cab .kf { animation: kanji-asoma 1s var(--curva) .3s both; }
+.m1.anda .cab.ro .kf { --desde: -30px; }
+@keyframes kanji-asoma { from { opacity: 0; transform: translateX(var(--desde, 30px)); } to { opacity: .14; transform: none; } }
+.m1.anda .marc { animation: sube .5s var(--curva) .2s both; }
+.m1.anda .slot { animation: desde-lado .55s var(--curva) both; animation-delay: calc(.35s + var(--i) * .07s); }
+.m1.anda .picks.ro .slot { --desde: 48px; }
+.m1.anda .slot .tubo { animation: prende .6s steps(1, end) both; animation-delay: calc(.55s + var(--i) * .07s); }
+.m1.anda .ban, .m1.anda .bans .sello-neon { animation: crece .35s var(--curva) both; animation-delay: calc(.95s + var(--i, 0) * .04s); }
+.m1.anda .centro { animation: aparece .7s ease .6s both; }
+.m1.anda .franja { animation: sube .45s var(--curva) 1.05s both; }
+
+/* =====================================================================================================
+   Marcador de la partida (estilo A, simplificado) para las muestras 02, 03 y 05
+   ===================================================================================================== */
+.arriba { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform: scale(.86); transform-origin: 50% 0; }
+.mc { position: absolute; top: 0; left: 50%; margin-left: -545px; display: grid; grid-template-columns: 460px 170px 460px; }
+.mc-lado { display: grid; grid-template-rows: 74px 36px; }
+.mc-placa { position: relative; display: flex; align-items: center; gap: 14px; padding: 0 30px 0 26px; background: rgba(21, 22, 31, .95); border-radius: 8px 8px 0 0; box-shadow: inset 0 0 0 1px var(--filo); overflow: hidden; }
+.mc-lado.ro .mc-placa { flex-direction: row-reverse; padding: 0 26px 0 30px; }
+.mc-placa::before { content: ''; position: absolute; inset: 0; opacity: .22; background: linear-gradient(90deg, var(--c) 0%, transparent 70%); }
+.mc-lado.ro .mc-placa::before { background: linear-gradient(270deg, var(--c) 0%, transparent 70%); }
+.mc-placa .tubo { top: 12px; bottom: 12px; }
+.mc-lado.az .tubo { left: 9px; } .mc-lado.ro .tubo { right: 9px; }
+.mc-placa .escudo { width: 52px; height: 52px; font-size: 30px; position: relative; }
+.mc-nombre { position: relative; display: flex; flex-direction: column; flex: 1; font-family: var(--dela); font-size: 30px; line-height: 1.2; }
+.mc-lado.ro .mc-nombre { text-align: right; }
+.mc-nombre small { font-family: var(--pincel); font-size: 19px; color: var(--ct); letter-spacing: .12em; }
+.mc-k { position: relative; font-family: var(--dela); font-weight: 400; font-size: 46px; line-height: 1; }
+.mc-datos { display: flex; align-items: center; justify-content: flex-end; gap: 18px; padding: 0 18px; background: rgba(12, 13, 19, .92); border-radius: 0 0 8px 8px; box-shadow: inset 0 0 0 1px var(--filo);
+  font-family: var(--dela); font-size: 17px; color: var(--washi); }
+.mc-lado.ro .mc-datos { justify-content: flex-start; }
+.mc-datos span { color: var(--hai); font-family: var(--gothic); font-weight: 700; font-size: 13px; letter-spacing: .08em; margin-right: 4px; }
+.mc-centro { display: grid; grid-template-rows: 74px 36px; }
+.mc-reloj { position: relative; display: grid; place-items: center; background: var(--noche); font-family: var(--dela); font-size: 31px; box-shadow: inset 0 0 0 1px var(--filo); }
+.mc-reloj::after { content: ''; position: absolute; left: 22px; right: 22px; bottom: 6px; height: 3px; border-radius: 2px; background: var(--shu-claro); box-shadow: 0 0 6px #FF3B46, 0 0 14px var(--shu); }
+.mc-dif { display: grid; place-items: center; background: rgba(12, 13, 19, .92); font-family: var(--dela); font-size: 19px; color: var(--cta); box-shadow: inset 0 0 0 1px var(--filo); }
+.mc-tiempos { position: absolute; top: 110px; left: 50%; margin-left: -200px; width: 400px; display: flex; justify-content: center; gap: 22px; padding: 9px 22px 10px;
+  background: rgba(12, 13, 19, .92); border-radius: 0 0 8px 8px; box-shadow: inset 0 0 0 1px var(--filo); }
+.mc-tiempos div { display: flex; align-items: center; gap: 9px; }
+.mc-tiempos i { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; box-shadow: inset 0 0 0 2.5px rgba(231, 223, 210, .14); font-style: normal; font-family: var(--pincel); font-size: 17px; }
+.mc-tiempos small { display: block; font-size: 12px; font-weight: 700; letter-spacing: .1em; color: var(--hai); line-height: 1.1; }
+.mc-tiempos b { font-family: var(--dela); font-weight: 400; font-size: 21px; line-height: 1.1; }
+
+/* =====================================================================================================
+   02 · Telón de noche (cambio de vista)
+   ===================================================================================================== */
+.m2 .vista { position: absolute; inset: 0; opacity: 0; }
+.m2 .vista.ve { opacity: 1; }
+/* Draft y postdraft, en pequeño: placas, picks y el centro */
+.m2 .cab { top: 32px; width: 700px; height: 128px; display: flex; align-items: center; gap: 22px; }
+.m2 .cab.az { left: 48px; padding: 0 40px 0 34px; }
+.m2 .cab.ro { left: 1172px; padding: 0 34px 0 40px; flex-direction: row-reverse; }
+.m2 .cab .tubo { top: 14px; bottom: 14px; } .m2 .cab.az .tubo { left: 12px; } .m2 .cab.ro .tubo { right: 12px; }
+.m2 .cab .escudo { width: 92px; height: 92px; font-size: 56px; }
+.m2 .cab b { font-family: var(--dela); font-weight: 400; font-size: 52px; }
+.m2 .cab.ro b { flex: 1; text-align: right; }
+.m2 .marc { position: absolute; top: 40px; left: 748px; width: 424px; text-align: center; }
+.m2 .marc small { display: block; font-size: 18px; font-weight: 700; letter-spacing: .18em; color: var(--hai); }
+.m2 .marc b { font-family: var(--dela); font-weight: 400; font-size: 44px; }
+.m2 .picks { position: absolute; top: 200px; display: flex; flex-direction: column; gap: 12px; }
+.m2 .picks.az { left: 48px; } .m2 .picks.ro { right: 48px; }
+.m2 .picks div { position: relative; height: 124px; border-radius: 8px; box-shadow: inset 0 0 0 1px var(--filo); display: flex; align-items: center; padding: 0 36px;
+  background: linear-gradient(90deg, rgba(21, 22, 31, .98) 0%, rgba(21, 22, 31, .82) 44%, color-mix(in srgb, var(--c) 28%, #15161F) 100%);
+  font-family: var(--dela); font-size: 40px; }
+.m2 .picks.ro div { justify-content: flex-end; background: linear-gradient(270deg, rgba(21, 22, 31, .98) 0%, rgba(21, 22, 31, .82) 44%, color-mix(in srgb, var(--c) 28%, #15161F) 100%); }
+.m2 .picks div::before { content: ''; position: absolute; top: 12px; bottom: 12px; width: 4px; border-radius: 2px; background: var(--c); box-shadow: 0 0 8px var(--c), 0 0 18px var(--c); }
+.m2 .picks.az div::before { left: 10px; } .m2 .picks.ro div::before { right: 10px; }
+.m2 .draft .picks { width: 540px; }
+.m2 .post .picks { width: 620px; gap: 8px; }
+.m2 .post .picks div { height: 132px; font-size: 32px; }
+.m2 .post .picks div small { display: block; font-family: var(--gothic); font-size: 16px; color: var(--hai); }
+.m2 .post .picks div span { display: flex; flex-direction: column; }
+.m2 .post .picks div em { position: absolute; top: 50%; margin-top: -36px; width: 112px; height: 72px; display: grid; place-items: center; font-style: normal; font-size: 32px; line-height: 1;
+  background: rgba(12, 13, 19, .88); border-radius: 6px; box-shadow: inset 0 0 0 1px var(--filo), inset 0 2px 0 var(--shu); }
+.m2 .post .picks.az div em { right: 14px; } .m2 .post .picks.ro div em { left: 14px; }
+.m2 .centro-draft { position: absolute; left: 760px; top: 420px; width: 400px; text-align: center; font-family: var(--pincel); font-size: 150px; line-height: 1; color: var(--shu-neon); text-shadow: var(--neon); }
+.m2 .vs { position: absolute; left: 692px; top: 200px; width: 536px; height: 356px; }
+.m2 .vs .clan { position: absolute; top: 0; bottom: 0; width: 262px; border-radius: 8px; box-shadow: inset 0 0 0 1px var(--filo); display: flex; flex-direction: column; justify-content: flex-end; padding: 20px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c) 35%, #15161F), #15161F 85%); }
+.m2 .vs .clan.az { left: 0; } .m2 .vs .clan.ro { right: 0; text-align: right; }
+.m2 .vs .clan b { font-family: var(--dela); font-weight: 400; font-size: 74px; line-height: 1; }
+.m2 .vs .clan span { font-size: 18px; color: var(--gris-claro); margin-top: 8px; }
+.m2 .vs .clan i { position: absolute; top: 30px; font-family: var(--pincel); font-style: normal; font-size: 140px; line-height: 1; color: var(--ct); opacity: .3; }
+.m2 .vs .clan.az i { left: 26px; } .m2 .vs .clan.ro i { right: 26px; }
+.m2 .vs .sello-neon { position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px; font-size: 40px; }
+.m2 .nombre-vista { position: absolute; left: 50%; bottom: 40px; transform: translateX(-50%); padding: 6px 16px; border-radius: 8px; background: rgba(12, 13, 19, .85); box-shadow: inset 0 0 0 1px var(--filo);
+  font-size: 18px; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: var(--hai); }
+/* El telón: una sola capa de noche lisa que sube, se queda un instante y sigue hacia arriba */
+.m2 .telon { position: absolute; z-index: 10; left: 0; top: 0; width: 1920px; height: 1080px; background: var(--noche); transform: translateY(102%); }
+.m2 .telon::before, .m2 .telon::after { content: ''; position: absolute; left: 0; right: 0; height: 4px; background: var(--shu-claro); box-shadow: 0 0 8px #FF3B46, 0 0 26px var(--shu), 0 0 60px var(--shu-hondo); }
+.m2 .telon::before { top: 0; } .m2 .telon::after { bottom: 0; }
+.m2 .telon .lema-telon { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center; }
+.m2 .telon .lema-telon b { display: block; font-family: var(--pincel); font-weight: 400; font-size: 210px; line-height: 1; color: var(--shu-neon); text-shadow: var(--neon); }
+.m2 .telon .lema-telon small { display: block; margin-top: 26px; font-size: 22px; font-weight: 700; letter-spacing: .4em; text-transform: uppercase; color: var(--hai); }
+.m2 .telon.pasa { animation: telon 1.25s both; }
+.m2 .telon.pasa .lema-telon b { animation: prende .5s steps(1, end) .3s both; }
+.m2 .telon.pasa .lema-telon small { animation: aparece .3s ease .42s both; }
+@keyframes telon {
+  0% { transform: translateY(102%); animation-timing-function: cubic-bezier(.7, 0, .25, 1); }
+  36% { transform: translateY(0); }
+  60% { transform: translateY(0); animation-timing-function: cubic-bezier(.6, 0, .3, 1); }
+  100% { transform: translateY(-102%); }
+}
+
+/* =====================================================================================================
+   03 · Sello de objetivo (avisos)
+   ===================================================================================================== */
+.m3 .av { position: absolute; top: 172px; left: 50%; width: 470px; margin-left: -235px; display: flex; align-items: center; gap: 18px; padding: 12px 24px 14px 14px;
+  background: rgba(21, 22, 31, .97); border-radius: 8px; outline: 1.5px solid var(--a); outline-offset: -6px; overflow: hidden;
+  box-shadow: inset 0 0 0 1px var(--filo), 0 0 22px color-mix(in srgb, var(--a) 45%, transparent), 0 10px 26px rgba(0, 0, 0, .45); opacity: 0; }
+.m3 .av-sello { position: relative; flex: none; width: 64px; height: 64px; }
+.m3 .av-sello b { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 8px; background: rgba(12, 13, 19, .95); font-family: var(--pincel); font-weight: 400; font-size: 40px; color: var(--a);
+  box-shadow: 0 0 0 1.5px var(--a), 0 0 14px color-mix(in srgb, var(--a) 55%, transparent), inset 0 0 10px color-mix(in srgb, var(--a) 25%, transparent); text-shadow: 0 0 10px var(--a); }
+/* La onda: un aro pintado una vez que crece y se apaga */
+.m3 .onda { position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 12px; box-shadow: 0 0 0 2px var(--a), 0 0 14px var(--a); opacity: 0; }
+.m3 .av-txt { display: flex; flex-direction: column; min-width: 0; }
+.m3 .av-txt b { font-family: var(--dela); font-weight: 400; font-size: 28px; line-height: 1.3; color: var(--ct); }
+.m3 .av-txt span { font-size: 18px; font-weight: 700; color: var(--gris-claro); }
+.m3 .av-tiempo { position: absolute; left: 14px; right: 14px; bottom: 4px; height: 3px; border-radius: 2px; background: var(--a); transform-origin: 0 50%; opacity: .8; }
+.m3 .av.entra { animation: aviso-entra .45s var(--curva) both; }
+.m3 .av.entra .av-sello b { animation: estampa .42s var(--golpe) .12s both; }
+.m3 .av.entra .onda { animation: onda .7s cubic-bezier(.2, .7, .3, 1) .3s both; }
+.m3 .av.entra .av-txt { animation: desde-lado .4s var(--curva) .22s both; --desde: -14px; }
+.m3 .av.entra .av-tiempo { animation: vacia var(--dur, 2s) linear .5s both; }
+.m3 .av.sale { opacity: 1; animation: aviso-sale .35s var(--curva-salida) both; }
+@keyframes aviso-entra { from { opacity: 0; transform: translateY(-16px) scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes aviso-sale { from { opacity: 1; } to { opacity: 0; transform: translateY(-12px) scale(.98); } }
+@keyframes onda { from { opacity: .9; transform: scale(.9); } to { opacity: 0; transform: scale(2.3); } }
+@keyframes vacia { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+/* =====================================================================================================
+   04 · Naipes del postdraft
+   ===================================================================================================== */
+.m4 .cab { top: 32px; width: 700px; height: 128px; display: flex; align-items: center; gap: 22px; }
+.m4 .cab.az { left: 48px; padding: 0 40px 0 34px; }
+.m4 .cab.ro { left: 1172px; padding: 0 34px 0 40px; flex-direction: row-reverse; }
+.m4 .cab .tubo { top: 14px; bottom: 14px; } .m4 .cab.az .tubo { left: 12px; } .m4 .cab.ro .tubo { right: 12px; }
+.m4 .cab .escudo { width: 92px; height: 92px; font-size: 56px; }
+.m4 .cab .equipo { display: flex; flex-direction: column; flex: 1; }
+.m4 .cab.ro .equipo { text-align: right; }
+.m4 .cab .equipo b { font-family: var(--dela); font-weight: 400; font-size: 52px; line-height: 1.3; }
+.m4 .cab .equipo span { font-size: 21px; font-weight: 500; color: var(--ct); }
+.m4 .marc { position: absolute; top: 34px; left: 748px; width: 424px; text-align: center; }
+.m4 .marc small { display: block; font-size: 18px; font-weight: 700; letter-spacing: .18em; color: var(--hai); }
+.m4 .marc b { font-family: var(--dela); font-weight: 400; font-size: 58px; line-height: 1.1; }
+.m4 .marc b i { font-style: normal; color: var(--shu-neon); text-shadow: var(--neon-suave); margin: 0 10px; font-size: 44px; }
+.m4 .picks { position: absolute; top: 200px; width: 620px; display: flex; flex-direction: column; gap: 8px; }
+.m4 .picks.az { left: 48px; } .m4 .picks.ro { left: 1252px; }
+.m4 .slot { position: relative; height: 132px; border-radius: 8px; box-shadow: inset 0 0 0 1px var(--filo);
+  background: linear-gradient(90deg, rgba(21, 22, 31, .98) 0%, rgba(21, 22, 31, .9) 58%, color-mix(in srgb, var(--c) 22%, #15161F) 100%); }
+.m4 .picks.ro .slot { background: linear-gradient(270deg, rgba(21, 22, 31, .98) 0%, rgba(21, 22, 31, .9) 58%, color-mix(in srgb, var(--c) 22%, #15161F) 100%); }
+.m4 .slot .tubo { top: 12px; bottom: 12px; } .m4 .picks.az .tubo { left: 10px; } .m4 .picks.ro .tubo { right: 10px; }
+/* La mini carta: dos caras, el reverso de noche con 極 y el anverso con el color de la familia */
+.m4 .carta { position: absolute; top: 10px; width: 88px; height: 112px; perspective: 600px; }
+.m4 .picks.az .carta { left: 24px; } .m4 .picks.ro .carta { right: 24px; }
+.m4 .carta-in { position: absolute; inset: 0; transform-style: preserve-3d; }
+.m4 .cara { position: absolute; inset: 0; border-radius: 8px; backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden; }
+.m4 .cara.frente { background: linear-gradient(160deg, color-mix(in srgb, var(--c) 60%, #15161F) 0%, #15161F 90%); box-shadow: 0 0 0 2px var(--c), 0 0 14px color-mix(in srgb, var(--c) 45%, transparent), 0 6px 16px rgba(0, 0, 0, .6); }
+.m4 .cara.frente b { position: absolute; left: 0; right: 0; bottom: 6px; text-align: center; font-family: var(--dela); font-weight: 400; font-size: 46px; line-height: 1; color: rgba(231, 223, 210, .9); }
+.m4 .cara.frente i { position: absolute; left: 5px; top: 5px; min-width: 22px; padding: 2px 5px 1px; border-radius: 5px; background: var(--shu); color: var(--washi); font-style: normal; font-family: var(--dela); font-size: 13px; text-align: center; }
+.m4 .cara.dorso { transform: rotateY(180deg); display: grid; place-items: center; background: var(--noche); box-shadow: inset 0 0 0 1px var(--filo), 0 0 0 1.5px var(--shu-claro), 0 6px 16px rgba(0, 0, 0, .6);
+  font-family: var(--pincel); font-size: 46px; color: var(--shu-neon); text-shadow: var(--neon-suave); }
+.m4 .tx { position: absolute; top: 9px; width: 360px; display: flex; flex-direction: column; }
+.m4 .picks.az .tx { left: 126px; } .m4 .picks.ro .tx { right: 126px; text-align: right; }
+.m4 .tx .rol { font-size: 15px; font-weight: 700; letter-spacing: .14em; color: var(--hai); }
+.m4 .tx .rol b { color: var(--washi); font-size: 18px; letter-spacing: 0; margin: 0 6px; }
+.m4 .tx .camp { font-family: var(--dela); font-size: 34px; line-height: 1.2; }
+.m4 .tx .con { font-size: 17px; color: var(--gris-claro); white-space: nowrap; }
+.m4 .tx .con b { color: var(--washi); }
+.m4 .tx .gen { font-size: 16px; color: var(--hai); white-space: nowrap; }
+.m4 .estreno { display: inline-block; padding: 1px 12px 2px; background: rgba(12, 13, 19, .9); color: var(--shu-neon); font-family: var(--dela); font-size: 14px; letter-spacing: .14em;
+  border-radius: 6px; box-shadow: var(--tubo); text-shadow: var(--neon-suave); }
+.m4 .fan { position: absolute; top: 50%; margin-top: -38px; width: 112px; padding: 9px 4px 8px; text-align: center; background: rgba(12, 13, 19, .88); border-radius: 6px;
+  box-shadow: inset 0 0 0 1px var(--filo), inset 0 2px 0 var(--shu); }
+.m4 .picks.az .fan { right: 14px; } .m4 .picks.ro .fan { left: 14px; }
+.m4 .fan b { display: block; font-family: var(--dela); font-weight: 400; font-size: 32px; line-height: 1.1; }
+.m4 .fan span { font-size: 11px; font-weight: 700; letter-spacing: .08em; color: var(--hai); }
+.m4 .versus { position: absolute; left: 692px; top: 188px; width: 536px; height: 692px; display: flex; flex-direction: column; gap: 12px; }
+.m4 .v-arte { position: relative; height: 356px; flex: none; }
+.m4 .v-clan { position: absolute; top: 0; bottom: 0; width: 262px; border-radius: 8px; overflow: hidden; box-shadow: inset 0 0 0 1px var(--filo);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c) 40%, #15161F) 0%, #15161F 88%); }
+.m4 .v-clan.az { left: 0; } .m4 .v-clan.ro { right: 0; }
+.m4 .v-clan::before { content: ''; position: absolute; top: 10px; left: 14px; right: 14px; height: 4px; border-radius: 2px; background: var(--c); box-shadow: 0 0 8px var(--c), 0 0 20px var(--c); }
+.m4 .v-clan .kv { position: absolute; top: 48px; left: 0; right: 0; text-align: center; white-space: nowrap; font-family: var(--pincel); font-size: 112px; line-height: 1; color: var(--ct); opacity: .32; }
+.m4 .v-clan .wr { position: absolute; bottom: 14px; display: flex; flex-direction: column; line-height: 1; }
+.m4 .v-clan.az .wr { left: 20px; } .m4 .v-clan.ro .wr { right: 20px; text-align: right; }
+.m4 .v-clan .wr b { font-family: var(--dela); font-weight: 400; font-size: 74px; }
+.m4 .v-clan .wr b small { font-size: 32px; margin-left: 3px; }
+.m4 .v-clan .wr span { margin-top: 8px; font-size: 18px; color: var(--gris-claro); }
+.m4 .v-arte .sello-neon { position: absolute; z-index: 3; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px; font-size: 40px; }
+.m4 .v-datos { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 4px 24px; background: rgba(21, 22, 31, .94); border-radius: 8px; box-shadow: inset 0 0 0 1px var(--filo); }
+.m4 .dvs { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 14px; padding: 8px 0; }
+.m4 .dvs + .dvs { border-top: 1px solid var(--filo); }
+.m4 .dvs b { font-family: var(--dela); font-weight: 400; font-size: 24px; color: var(--hai); }
+.m4 .dvs b:last-child { text-align: right; }
+.m4 .dvs b.gana { color: var(--washi); }
+.m4 .dvs span { font-size: 15px; font-weight: 500; color: var(--hai); }
+/* La animación: las cartas se voltean en cascada (dos a la vez, una por lado), luego los números; en medio, las familias */
+.m4.anda .carta-in { animation: voltea .6s var(--curva) both; animation-delay: calc(.15s + var(--i) * .1s); }
+@keyframes voltea { from { transform: rotateY(180deg) scale(.9); } 60% { transform: rotateY(-8deg) scale(1.04); } to { transform: none; } }
+.m4.anda .tx .con, .m4.anda .tx .gen { animation: sube .4s var(--curva) both; animation-delay: calc(.45s + var(--i) * .1s); }
+.m4.anda .tx .gen { animation-delay: calc(.52s + var(--i) * .1s); }
+.m4.anda .fan { animation: fan-sale .45s var(--golpe) both; animation-delay: calc(.6s + var(--i) * .1s); }
+@keyframes fan-sale { from { opacity: 0; transform: scale(.7); } }
+.m4.anda .v-clan { animation: desde-lado .6s var(--curva) .3s both; }
+.m4.anda .v-clan.az { --desde: -60px; } .m4.anda .v-clan.ro { --desde: 60px; }
+.m4.anda .v-clan .wr { animation: sube .45s var(--curva) .75s both; }
+.m4.anda .v-arte .sello-neon { animation: estampa .45s var(--golpe) 1s both; }
+.m4.anda .dvs { animation: sube .4s var(--curva) both; animation-delay: calc(1.05s + var(--i) * .08s); }
+
+/* =====================================================================================================
+   05 · Racha a pincel (primera sangre y multikills)
+   ===================================================================================================== */
+.m5 .racha { position: absolute; top: 196px; left: 50%; width: 700px; margin-left: -350px; opacity: 0; }
+.m5 .racha-in { position: relative; display: flex; align-items: center; gap: 26px; height: 132px; padding: 0 34px 0 22px; background: rgba(21, 22, 31, .97); border-radius: 8px;
+  box-shadow: inset 0 0 0 1px var(--filo), 0 0 26px rgba(224, 48, 58, .35), 0 12px 30px rgba(0, 0, 0, .5); overflow: hidden; }
+.m5 .racha-in::before { content: ''; position: absolute; inset: 0; opacity: .18; background: linear-gradient(90deg, var(--c) 0%, transparent 60%); }
+.m5 .racha-tubo { position: absolute; left: 18px; right: 18px; bottom: 0; height: 4px; border-radius: 2px; background: var(--c); box-shadow: 0 0 8px var(--c), 0 0 22px var(--c); }
+.m5 .racha-kanji { position: relative; flex: none; width: 112px; height: 112px; display: grid; place-items: center; border-radius: 8px; background: rgba(12, 13, 19, .95);
+  font-family: var(--pincel); font-size: 84px; line-height: 1; color: var(--shu-neon); text-shadow: var(--neon); box-shadow: var(--tubo); }
+/* El halo extra del pentakill: la misma capa, solo cambia su opacidad */
+.m5 .racha-kanji::after { content: ''; position: absolute; inset: -6px; border-radius: 12px; box-shadow: 0 0 0 2px var(--shu-claro), 0 0 34px var(--shu); opacity: 0; }
+.m5 .racha-txt { position: relative; display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.m5 .racha-txt small { font-size: 17px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--shu-neon); text-shadow: var(--neon-suave); }
+.m5 .racha-txt b { font-family: var(--dela); font-weight: 400; font-size: 54px; line-height: 1.2; }
+.m5 .racha-txt span { font-size: 18px; color: var(--gris-claro); }
+.m5 .racha-txt span em { font-style: normal; color: var(--ct); font-weight: 700; }
+.m5 .muescas { position: relative; display: flex; gap: 8px; flex: none; }
+.m5 .muescas i { width: 16px; height: 40px; border-radius: 4px; background: #262735; box-shadow: inset 0 0 0 1px var(--filo); }
+.m5 .muescas i.llena { background: var(--shu-claro); box-shadow: 0 0 10px var(--shu); }
+.m5 .racha.entra { opacity: 1; animation: racha-entra .34s cubic-bezier(.2, .9, .25, 1.15) both; }
+.m5 .racha.entra .racha-in { animation: temblor .24s linear .42s both; }
+.m5 .racha.entra .racha-kanji { animation: golpe-kanji .45s var(--golpe) .1s both; }
+.m5 .racha.entra .racha-tubo { animation: tubo-abre .45s var(--curva) .08s both; }
+.m5 .racha.entra .racha-txt { animation: desde-lado .4s var(--curva) .32s both; --desde: 22px; }
+.m5 .racha.entra .muescas i.llena { animation: muesca .35s var(--golpe) both; animation-delay: calc(.55s + var(--i) * .08s); }
+.m5 .racha.entra.penta .racha-kanji::after { animation: latido-penta .9s ease-in-out .6s 2 both; }
+.m5 .racha.sale { opacity: 1; animation: aviso-sale .32s var(--curva-salida) both; }
+@keyframes racha-entra { from { opacity: 0; transform: translateY(-14px) scale(.94); } to { opacity: 1; transform: none; } }
+@keyframes golpe-kanji { from { opacity: 0; transform: scale(2.4) rotate(-8deg); } 55% { opacity: 1; } to { opacity: 1; transform: none; } }
+@keyframes temblor { 0%, 100% { transform: none; } 20% { transform: translateX(-7px); } 45% { transform: translateX(6px); } 70% { transform: translateX(-3px); } }
+@keyframes tubo-abre { from { transform: scaleX(0); } }
+@keyframes muesca { from { opacity: 0; transform: scale(1.6); } }
+@keyframes latido-penta { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+
+/* =====================================================================================================
+   06 · Veredicto y MVP (pantalla final)
+   ===================================================================================================== */
+.m6 .cabeza-f { position: absolute; top: 32px; left: 48px; right: 48px; height: 128px; display: grid; grid-template-columns: 1fr 424px 1fr; }
+.m6 .fclan { position: relative; display: flex; align-items: center; gap: 22px; background: rgba(21, 22, 31, .94); border-radius: 8px; overflow: hidden; box-shadow: inset 0 0 0 1px var(--filo), 0 14px 34px rgba(0, 0, 0, .45); }
+.m6 .fclan.az { padding: 0 40px 0 34px; }
+.m6 .fclan.ro { padding: 0 34px 0 40px; flex-direction: row-reverse; }
+.m6 .fclan .tubo { top: 14px; bottom: 14px; } .m6 .fclan.az .tubo { left: 12px; } .m6 .fclan.ro .tubo { right: 12px; }
+.m6 .fclan .escudo { width: 92px; height: 92px; font-size: 56px; }
+.m6 .fclan .quien { display: flex; flex-direction: column; flex: 1; }
+.m6 .fclan.ro .quien { text-align: right; }
+.m6 .fclan .quien b { font-family: var(--dela); font-weight: 400; font-size: 48px; line-height: 1.3; }
+.m6 .fclan .quien span { font-size: 19px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--hai); }
+.m6 .fclan .quien span.victoria { color: var(--shu-neon); text-shadow: var(--neon-suave); }
+.m6 .fclan .kills { font-family: var(--dela); font-weight: 400; font-size: 76px; line-height: 1; }
+/* El halo de la que gana y el velo de la que pierde: capas pintadas una vez que solo cambian de opacidad */
+.m6 .fclan .halo { position: absolute; inset: 0; border-radius: 8px; box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--c) 80%, transparent), inset 0 0 30px color-mix(in srgb, var(--c) 30%, transparent); opacity: 1; pointer-events: none; }
+.m6 .fclan .velo { position: absolute; inset: 0; background: rgba(12, 13, 19, .5); opacity: 1; pointer-events: none; }
+.m6 .fcentro { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.m6 .fcentro small { font-size: 17px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--hai); }
+.m6 .fcentro b { font-family: var(--dela); font-weight: 400; font-size: 54px; line-height: 1.15; }
+.m6 .filas { position: absolute; top: 196px; left: 48px; right: 48px; display: flex; flex-direction: column; gap: 6px; }
+.m6 .fila { display: grid; grid-template-columns: 1fr 100px 1fr; height: 100px; }
+.m6 .rol { display: grid; place-items: center; font-size: 14px; font-weight: 700; letter-spacing: .14em; color: var(--hai); }
+.m6 .jug { position: relative; display: flex; align-items: center; gap: 16px; height: 100%; padding: 0 26px; border-radius: 8px; overflow: hidden; background: var(--placa); box-shadow: inset 0 0 0 1px var(--filo); }
+.m6 .jug.ro { flex-direction: row-reverse; text-align: right; }
+.m6 .jug::after { content: ''; position: absolute; top: 14px; bottom: 14px; width: 3px; border-radius: 2px; background: var(--c); box-shadow: 0 0 8px var(--c); }
+.m6 .jug.az::after { left: 9px; } .m6 .jug.ro::after { right: 9px; }
+.m6 .jug .ret { flex: none; width: 66px; height: 66px; border-radius: 6px; display: grid; place-items: center; font-family: var(--dela); font-size: 30px; color: rgba(231, 223, 210, .85);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--c) 45%, #15161F), #15161F); box-shadow: 0 0 0 1px var(--filo); }
+.m6 .jug .qn { display: flex; flex-direction: column; flex: 1; line-height: 1.3; }
+.m6 .jug .qn b { font-family: var(--dela); font-weight: 400; font-size: 24px; }
+.m6 .jug .qn small { font-size: 16px; color: var(--hai); }
+.m6 .jug .kda { font-family: var(--dela); font-size: 27px; white-space: nowrap; }
+.m6 .jug .kda i { font-style: normal; color: var(--hai); font-size: 20px; margin: 0 3px; }
+.m6 .jug .pts { width: 84px; text-align: center; font-size: 23px; font-weight: 700; color: var(--washi); }
+.m6 .jug .marca-mvp { position: absolute; inset: 0; border-radius: 8px; box-shadow: inset 0 0 0 1.5px var(--shu-claro), inset 0 0 22px rgba(224, 48, 58, .35); opacity: 0; pointer-events: none; }
+.m6 .jug.mvp .marca-mvp { opacity: 1; }
+.m6 .pie-f { position: absolute; top: 746px; left: 48px; right: 48px; height: 228px; display: grid; grid-template-columns: 1fr 600px 1fr; gap: 20px; }
+.m6 .feq { position: relative; display: flex; flex-wrap: wrap; align-content: center; gap: 14px 34px; padding: 20px 34px; background: rgba(21, 22, 31, .94); border-radius: 8px; box-shadow: inset 0 0 0 1px var(--filo); }
+.m6 .feq.ro { justify-content: flex-end; text-align: right; }
+.m6 .feq .tubo { top: 18px; bottom: 18px; } .m6 .feq.az .tubo { left: 12px; } .m6 .feq.ro .tubo { right: 12px; }
+.m6 .feq div { display: flex; flex-direction: column; }
+.m6 .feq b { font-family: var(--dela); font-weight: 400; font-size: 40px; line-height: 1.15; }
+.m6 .feq span { font-size: 15px; color: var(--hai); }
+.m6 .mvp-placa { position: relative; display: flex; align-items: flex-end; border-radius: 8px; overflow: hidden;
+  background: linear-gradient(90deg, rgba(12, 13, 19, .96) 0%, rgba(12, 13, 19, .8) 50%, color-mix(in srgb, var(--ca) 35%, #15161F) 100%);
+  box-shadow: inset 0 0 0 1.5px var(--shu-claro), 0 0 26px rgba(224, 48, 58, .4); }
+.m6 .mvp-placa .kmvp { position: absolute; right: 180px; top: 10px; font-family: var(--pincel); font-size: 170px; line-height: 1; color: var(--cta); opacity: .14; }
+.m6 .mvp-texto { position: relative; display: flex; flex-direction: column; padding: 0 26px 22px; }
+.m6 .mvp-texto .sello-neon { align-self: flex-start; margin-bottom: 10px; padding: 6px 14px; font-family: var(--dela); font-size: 20px; letter-spacing: .14em; }
+.m6 .mvp-texto > b { font-family: var(--dela); font-weight: 400; font-size: 50px; line-height: 1.2; }
+.m6 .mvp-texto small { font-size: 19px; color: var(--gris-claro); }
+.m6 .mvp-datos { display: flex; align-items: baseline; gap: 18px; margin-top: 10px; font-size: 18px; color: var(--gris-claro); white-space: nowrap; }
+.m6 .mvp-datos b { font-family: var(--dela); font-weight: 400; font-size: 26px; color: var(--washi); }
+.m6 .mvp-carta { position: absolute; top: 14px; right: 26px; width: 142px; height: 199px; border-radius: 8px; overflow: hidden;
+  background: linear-gradient(165deg, color-mix(in srgb, var(--ca) 70%, #15161F) 0%, #15161F 85%);
+  box-shadow: 0 0 0 2px var(--ca), 0 0 16px color-mix(in srgb, var(--ca) 50%, transparent), 0 12px 26px rgba(0, 0, 0, .6); }
+.m6 .mvp-carta b { position: absolute; left: 0; right: 0; top: 34px; text-align: center; font-family: var(--pincel); font-weight: 400; font-size: 86px; line-height: 1; color: rgba(231, 223, 210, .85); }
+.m6 .mvp-carta span { position: absolute; left: 0; right: 0; bottom: 12px; text-align: center; font-family: var(--dela); font-size: 17px; }
+.m6 .mvp-carta i { position: absolute; left: 7px; top: 7px; padding: 2px 6px 1px; border-radius: 5px; background: var(--shu); font-style: normal; font-family: var(--dela); font-size: 13px; }
+/* La animación, por orden: familias, veredicto, filas, totales y MVP */
+.m6.anda .fclan { animation: baja .45s var(--curva) both; }
+.m6.anda .fclan.ro { animation-delay: .06s; }
+.m6.anda .fcentro { animation: aparece .4s ease .15s both; }
+.m6.anda .fila .jug { animation: desde-lado .45s var(--curva) both; animation-delay: calc(.3s + var(--i) * .07s); }
+.m6.anda .fila .jug.ro { --desde: 48px; animation-delay: calc(.34s + var(--i) * .07s); }
+.m6.anda .fila .rol { animation: aparece .3s ease both; animation-delay: calc(.4s + var(--i) * .07s); }
+.m6.anda .victoria { animation: prende .7s steps(1, end) .75s both; }
+.m6.anda .fclan .halo { animation: aparece .5s ease .85s both; }
+.m6.anda .fclan .velo { animation: aparece .6s ease .8s both; }
+.m6.anda .feq { animation: sube .45s var(--curva) .9s both; }
+.m6.anda .mvp-placa { animation: mvp-sube .55s var(--curva) 1.1s both; }
+.m6.anda .mvp-texto .sello-neon { animation: estampa .4s var(--golpe) 1.45s both; }
+.m6.anda .mvp-texto > b, .m6.anda .mvp-texto small, .m6.anda .mvp-datos { animation: sube .4s var(--curva) 1.5s both; }
+.m6.anda .mvp-datos { animation-delay: 1.6s; }
+.m6.anda .mvp-carta { animation: carta-cae .6s var(--golpe) 1.55s both; }
+.m6.anda .jug.mvp .marca-mvp { animation: prende .6s steps(1, end) 1.35s both; }
+@keyframes mvp-sube { from { opacity: 0; transform: translateY(46px); } }
+@keyframes carta-cae { from { opacity: 0; transform: translateY(-40px) rotate(-10deg); } to { opacity: 1; transform: rotate(3deg); } }
+.m6 .mvp-carta { transform: rotate(3deg); }
+
+/* =====================================================================================================
+   07 · REPLAY rebobinado
+   ===================================================================================================== */
+.m7 .rp { position: absolute; left: 24px; top: 24px; display: flex; align-items: center; gap: 14px; padding: 12px 22px 14px 18px; border-radius: 8px; border: 1px solid var(--filo);
+  background: linear-gradient(180deg, rgba(21, 22, 31, .96), rgba(12, 13, 19, .96)); box-shadow: 0 0 0 2px rgba(0, 0, 0, .6), 0 18px 50px rgba(0, 0, 0, .55); overflow: hidden; }
+/* El tubo de dentro: una capa con su halo pintado una vez; parpadea con opacity (hoy se anima outline-color) */
+.m7 .rp-tubo { position: absolute; inset: 6px; border-radius: 5px; box-shadow: 0 0 0 2px var(--shu-claro), 0 0 18px rgba(224, 48, 58, .6), inset 0 0 18px rgba(224, 48, 58, .28); pointer-events: none; }
+.m7 .rp-sello { position: relative; font-family: var(--pincel); font-size: 58px; line-height: 1; color: var(--shu-neon); text-shadow: 0 0 6px var(--shu-claro), 0 0 18px var(--shu), 0 0 40px var(--shu); }
+.m7 .rp-texto { position: relative; display: flex; flex-direction: column; }
+.m7 .rp-palabra { display: flex; font-family: var(--dela); font-weight: 400; font-size: 44px; line-height: 1.1; letter-spacing: .03em; color: #fff; text-shadow: 0 2px 0 rgba(0, 0, 0, .5); }
+.m7 .rp-palabra i { display: inline-block; font-style: normal; }
+.m7 .rp-pie { margin-top: 2px; font-weight: 700; font-size: 10.5px; letter-spacing: .22em; text-transform: uppercase; color: var(--shu-neon); text-shadow: 0 0 10px var(--shu); }
+.m7 .rp-flechas { position: relative; display: flex; gap: 3px; margin-left: 6px; }
+.m7 .rp-flechas i { width: 0; height: 0; border-style: solid; border-width: 11px 16px 11px 0; border-color: transparent var(--shu-neon) transparent transparent; opacity: .2; }
+.m7 .rp-cinta { position: absolute; left: 14px; right: 14px; bottom: 3px; height: 2px; border-radius: 1px; background: var(--shu-claro); transform-origin: 0 50%; transform: scaleX(0); opacity: .9; }
+.m7 .video { position: absolute; inset: 0; background:
+    radial-gradient(ellipse 50% 40% at 62% 56%, rgba(57, 198, 240, .08), transparent 70%),
+    radial-gradient(ellipse 30% 30% at 40% 60%, rgba(238, 123, 43, .08), transparent 70%),
+    radial-gradient(ellipse 80% 70% at 50% 50%, #12131C 0%, var(--noche) 80%); }
+.m7.anda .rp { animation: baja .5s cubic-bezier(.2, .9, .25, 1.15) both; }
+.m7.anda .rp-tubo { animation: prende 1s steps(1, end) .25s both; }
+.m7.anda .rp-sello { animation: estampa .45s var(--golpe) .15s both, zumbido 4s ease-in-out 1.4s infinite; }
+.m7.anda .rp-palabra i { animation: desde-lado .32s var(--curva) both; --desde: 20px; animation-delay: calc(.22s + var(--j) * .05s); }
+.m7.anda .rp-pie { animation: aparece .35s ease .6s both; }
+.m7.anda .rp-flechas i { animation: flecha 1.05s linear infinite; animation-delay: calc(.7s + var(--j) * .17s); }
+.m7.anda .rp-cinta { animation: cinta 6s linear .8s infinite; }
+@keyframes flecha { 0% { opacity: .2; } 18% { opacity: 1; } 55%, 100% { opacity: .2; } }
+@keyframes cinta { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+.foto .lienzo *, .foto .lienzo *::before, .foto .lienzo *::after { animation-duration: 0s !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; }
+.foto .m3 .av-tiempo { transform: scaleX(.6); animation: none !important; }
+.foto .m7 .rp-cinta { transform: scaleX(.45); animation: none !important; }
+.foto .indice { position: static; }
+@media (prefers-reduced-motion: reduce) {
+  .lienzo *, .lienzo *::before, .lienzo *::after { animation-duration: .01s !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; }
+}
+</style>
+</head>
+<body>
+<div class="pagina">
+
+<header class="cabeza">
+  <span class="kanji" aria-hidden="true">極道</span>
+  <div>
+    <h1>Animaciones nuevas para el directo</h1>
+    <p>Siete propuestas para el overlay de OBS, cada una con su muestra en vivo. <b>Cada marco es el lienzo de 1920×1080 a escala</b>, con las medidas de verdad del overlay. Pulsa <b>Repetir</b> para volver a verla y <b>Lupa</b> para acercarte a lo pequeño. Elige las que quieras y se hacen en serio en los archivos que se indican.</p>
+  </div>
+</header>
+
+<section class="reglas" aria-label="Reglas de las muestras">
+  <div class="regla"><b>Solo transform y opacity</b>Nada de animar layout, blur, box-shadow ni backdrop-filter. Los halos de neón se pintan una vez y como mucho cambian su opacidad.</div>
+  <div class="regla"><b>Pensadas para la GTX 960M</b>Pocas piezas moviéndose a la vez (la cifra va en cada ficha) y nada a pantalla completa salvo el telón de la 02.</div>
+  <div class="regla"><b>Estilo Gokudō</b>Noche, placas con filo, bermellón con neón y el color de cada familia en su tubo. Sin filos de oro ni cortes en diagonal.
+    <span class="familias">
+      <span style="--c:#39C6F0"><i></i>Ryūjin</span><span style="--c:#EE7B2B"><i></i>Byakko</span><span style="--c:#2E6B45"><i></i>Tengu</span>
+      <span style="--c:#A9722F"><i></i>Tsuki</span><span style="--c:#5FA341"><i></i>Yasha</span><span style="--c:#C1272D"><i></i>Akuma</span><span style="--c:#EBD28A"><i></i>Shinigami (único oro)</span>
+    </span>
+  </div>
+</section>
+
+<nav class="indice" aria-label="Propuestas">
+  <a href="#p1"><b>01</b>Tubo que prende</a>
+  <a href="#p2"><b>02</b>Telón de noche</a>
+  <a href="#p3"><b>03</b>Sello de objetivo</a>
+  <a href="#p4"><b>04</b>Naipes del postdraft</a>
+  <a href="#p5"><b>05</b>Racha a pincel</a>
+  <a href="#p6"><b>06</b>Veredicto y MVP</a>
+  <a href="#p7"><b>07</b>REPLAY rebobinado</a>
+  <button class="boton" type="button" id="todas"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2v3.2h-3.2"/></svg>Repetir todas</button>
+</nav>
+
+<!-- ======================================================================= 01 -->
+<article class="propuesta" id="p1">
+  <div class="titulo-prop"><span class="num">01</span><h2>Tubo que prende</h2><span class="kanji-prop" aria-hidden="true">灯</span></div>
+  <div class="marco" data-muestra="m1">
+    <span class="etiqueta-marco">OVERLAY · DRAFT</span>
+    <div class="lienzo m1" style="--ca:#EE7B2B;--cta:#EE7B2B;--cr:#39C6F0;--ctr:#39C6F0">
+      <div class="noche"></div>
+      <header class="placa cab az"><i class="tubo"></i><span class="kf">白虎</span><span class="escudo">虎</span><div class="equipo"><span class="nombre">Byakko</span><span class="lema">Los tigres blancos</span></div></header>
+      <div class="marc"><small>Fase de liga</small><b>Jornada 4</b></div>
+      <header class="placa cab ro"><i class="tubo"></i><span class="kf">竜神</span><span class="escudo">竜</span><div class="equipo"><span class="nombre">Ryūjin</span><span class="lema">El dios dragón del mar</span></div></header>
+      <div class="picks az">
+        <div class="slot az" style="--i:0"><i class="tubo"></i><span class="kanji-slot">虎</span><div class="tx"><span class="rol">TOP<b>KINGKAI</b></span><span class="camp">K'Sante</span></div></div>
+        <div class="slot az" style="--i:1"><i class="tubo"></i><span class="kanji-slot">虎</span><div class="tx"><span class="rol">JUNGLA<b>MITSU</b></span><span class="camp">Qiyana</span></div></div>
+        <div class="slot az" style="--i:2"><i class="tubo"></i><span class="kanji-slot">虎</span><div class="tx"><span class="rol">MEDIO<b>FREDDY</b></span><span class="camp">Viktor</span></div></div>
+        <div class="slot az" style="--i:3"><i class="tubo"></i><span class="kanji-slot">虎</span><div class="tx"><span class="rol">ADC<b>D4DT0R</b></span><span class="camp">Kalista</span></div></div>
+        <div class="slot az" style="--i:4"><i class="tubo"></i><span class="kanji-slot">虎</span><div class="tx"><span class="rol">SUPPORT<b>SERGI</b></span><span class="camp">Rell</span></div></div>
+      </div>
+      <div class="picks ro">
+        <div class="slot ro" style="--i:0"><i class="tubo"></i><span class="kanji-slot">竜</span><div class="tx"><span class="rol"><b>GAATSU</b>TOP</span><span class="camp">Aatrox</span></div></div>
+        <div class="slot ro" style="--i:1"><i class="tubo"></i><span class="kanji-slot">竜</span><div class="tx"><span class="rol"><b>SOLET</b>JUNGLA</span><span class="camp">Skarner</span></div></div>
+        <div class="slot ro" style="--i:2"><i class="tubo"></i><span class="kanji-slot">竜</span><div class="tx"><span class="rol"><b>MOONFALL</b>MEDIO</span><span class="camp">Azir</span></div></div>
+        <div class="slot ro" style="--i:3"><i class="tubo"></i><span class="kanji-slot">竜</span><div class="tx"><span class="rol"><b>SEUS</b>ADC</span><span class="camp">Kai'Sa</span></div></div>
+        <div class="slot ro" style="--i:4"><i class="tubo"></i><span class="kanji-slot">竜</span><div class="tx"><span class="rol"><b>DARKMIEL</b>SUPPORT</span><span class="camp">Pyke</span></div></div>
+      </div>
+      <div class="centro"><div class="k">極道</div><small>LIGA DE FAMILIAS</small></div>
+      <div class="bans az"><span class="ban az" style="--i:0">✕</span><span class="ban az" style="--i:1">✕</span><span class="ban az" style="--i:2">✕</span><span class="ban az" style="--i:3"></span><span class="ban az" style="--i:4"></span><span class="sello-neon" style="--i:5">禁</span></div>
+      <div class="bans ro"><span class="ban ro" style="--i:0">✕</span><span class="ban ro" style="--i:1">✕</span><span class="ban ro" style="--i:2"></span><span class="ban ro" style="--i:3"></span><span class="ban ro" style="--i:4"></span><span class="sello-neon" style="--i:5">禁</span></div>
+      <div class="franja"><span class="sello-neon">極</span>Jornada 4 de la liguilla</div>
+    </div>
+  </div>
+  <div class="controles"><button class="boton" type="button" data-repetir>Repetir</button><button class="boton suave" type="button" data-lupa="960,0" aria-pressed="false">Lupa ×2</button><span class="pista">Se ve una vez, al entrar en la vista del draft.</span></div>
+  <div class="ficha">
+    <div>
+      <p class="frase">Al abrir el draft, las placas de las familias bajan, su tubo de neón arranca con dos fallos (como un letrero que se enciende) y los picks entran en cascada desde cada lado; al final, los bans.</p>
+      <dl class="datos-prop">
+        <dt>Dónde</dt><dd><b>Overlay · vista draft</b> (<code>#lienzo</code>: <code>.placa</code>, <code>.slot</code>, <code>.ban</code>)</dd>
+        <dt>Dura</dt><dd><b>1,4 s</b>, una vez, al entrar en la vista</dd>
+        <dt>Cuándo</dt><dd>Al pasar a «draft» desde el panel o al activarse la escena (no al recargar la página)</dd>
+      </dl>
+    </div>
+    <div class="coste">
+      <h3>Coste en OBS</h3>
+      <div class="anima"><span class="si">translate</span><span class="si">scale</span><span class="si">opacity</span><span>máx. 6 piezas a la vez</span></div>
+      <div class="medidor"><span>GPU</span><span class="barras" data-n="1"><i></i><i></i><i></i></span><small><b>Bajo.</b> Piezas pequeñas y escalonadas (70 ms entre picks). El halo de cada tubo se pinta una vez: el parpadeo es solo su opacidad.</small></div>
+      <div class="medidor"><span>x264</span><span class="barras" data-n="1"><i></i><i></i><i></i></span><small><b>Bajo.</b> Movimiento corto en los laterales; el centro está quieto.</small></div>
+      <p class="hacer">Para hacerla: <code>overlay.css</code> (keyframes y retrasos) y <code>overlay.js</code> (clase <code>.entra</code> al pasar a draft y <code>--i</code> en cada hueco). <span class="trabajo poco">Poco</span></p>
+    </div>
+  </div>
+</article>
+
+<!-- ======================================================================= 02 -->
+<article class="propuesta" id="p2">
+  <div class="titulo-prop"><span class="num">02</span><h2>Telón de noche</h2><span class="kanji-prop" aria-hidden="true">幕</span></div>
+  <div class="marco" data-muestra="m2">
+    <span class="etiqueta-marco">OVERLAY · CAMBIO DE VISTA</span>
+    <div class="lienzo m2" style="--ca:#A9722F;--cta:#D19A52;--cr:#39C6F0;--ctr:#39C6F0">
+      <div class="noche"></div>
+      <!-- Draft -->
+      <div class="vista draft ve">
+        <header class="placa cab az"><i class="tubo"></i><span class="escudo">月</span><b>Tsuki</b></header>
+        <div class="marc"><small>FASE DE LIGA</small><b>Jornada 4</b></div>
+        <header class="placa cab ro"><i class="tubo"></i><span class="escudo">竜</span><b>Ryūjin</b></header>
+        <div class="picks az"><div class="az">K'Sante</div><div class="az">Qiyana</div><div class="az">Viktor</div><div class="az">Kalista</div><div class="az">Rell</div></div>
+        <div class="picks ro"><div class="ro">Aatrox</div><div class="ro">Skarner</div><div class="ro">Azir</div><div class="ro">Kai'Sa</div><div class="ro">Pyke</div></div>
+        <div class="centro-draft">極道</div>
+        <span class="nombre-vista">Draft</span>
+      </div>
+      <!-- Postdraft -->
+      <div class="vista post">
+        <header class="placa cab az"><i class="tubo"></i><span class="escudo">月</span><b>Tsuki</b></header>
+        <div class="marc"><small>FASE DE LIGA</small><b>Jornada 4</b></div>
+        <header class="placa cab ro"><i class="tubo"></i><span class="escudo">竜</span><b>Ryūjin</b></header>
+        <div class="picks az"><div class="az"><span>K'Sante<small>KINGKAI · 3 partidas con él</small></span><em>41</em></div><div class="az"><span>Qiyana<small>MITSU · first pick</small></span><em>36</em></div><div class="az"><span>Viktor<small>FREDDY · 5 partidas con él</small></span><em>52</em></div><div class="az"><span>Kalista<small>D4DT0R · 2 partidas</small></span><em>29</em></div><div class="az"><span>Rell<small>SERGI · 4 partidas</small></span><em>33</em></div></div>
+        <div class="picks ro"><div class="ro"><em>38</em><span>Aatrox<small>GAATSU · 6 partidas con él</small></span></div><div class="ro"><em>44</em><span>Skarner<small>SOLET · first pick</small></span></div><div class="ro"><em>47</em><span>Azir<small>MOONFALL · 3 partidas</small></span></div><div class="ro"><em>40</em><span>Kai'Sa<small>SEUS · 7 partidas</small></span></div><div class="ro"><em>31</em><span>Pyke<small>DARKMIEL · 2 partidas</small></span></div></div>
+        <div class="vs"><div class="clan az"><i>月</i><b>58%</b><span>7 V · 5 D</span></div><div class="clan ro"><i>竜</i><b>64%</b><span>9 V · 5 D</span></div><span class="sello-neon">対</span></div>
+        <span class="nombre-vista">Postdraft</span>
+      </div>
+      <!-- Partida -->
+      <div class="vista partida">
+        <div class="noche juego"><span class="marca-agua">aquí va el juego</span></div>
+        <div class="arriba">
+          <div class="mc">
+            <div class="mc-lado az"><div class="mc-placa"><i class="tubo"></i><span class="escudo">月</span><span class="mc-nombre">Tsuki<small>月</small></span><b class="mc-k">0</b></div><div class="mc-datos"><span>ORO</span>≈2,5k</div></div>
+            <div class="mc-centro"><div class="mc-reloj">00:12</div><div class="mc-dif">≈0</div></div>
+            <div class="mc-lado ro"><div class="mc-placa"><i class="tubo"></i><span class="escudo">竜</span><span class="mc-nombre">Ryūjin<small>竜神</small></span><b class="mc-k">0</b></div><div class="mc-datos">≈2,5k<span style="margin:0 0 0 4px">ORO</span></div></div>
+          </div>
+        </div>
+        <span class="nombre-vista">Partida</span>
+      </div>
+      <div class="telon"><div class="lema-telon"><b>極道</b><small>Tsuki contra Ryūjin · Jornada 4</small></div></div>
+    </div>
+  </div>
+  <div class="controles"><button class="boton" type="button" data-repetir>Repetir</button><span class="pista">Draft → postdraft → partida, con un telón en cada cambio.</span></div>
+  <div class="ficha">
+    <div>
+      <p class="frase">Entre una vista y otra sube un telón de noche lisa con el tubo bermellón en el filo y 極道 en neón. El cambio de vista ocurre debajo, sin que se vea, y el telón sigue hacia arriba dejando ya la vista nueva. Sustituye al fundido de 0,5 s de ahora.</p>
+      <dl class="datos-prop">
+        <dt>Dónde</dt><dd><b>Overlay · cambio de vista</b>: draft → postdraft → partida → final (en REPLAY no, que tiene su stinger)</dd>
+        <dt>Dura</dt><dd><b>1,25 s</b>: sube en 0,45 s, se queda 0,3 s y sale en 0,5 s</dd>
+        <dt>Ojo</dt><dd>Al pasar a la partida tapa el juego 0,3 s: hace de stinger sin vídeo. Si molesta, ese paso puede quedarse en fundido.</dd>
+      </dl>
+    </div>
+    <div class="coste">
+      <h3>Coste en OBS</h3>
+      <div class="anima"><span class="si">translateY</span><span class="si">opacity</span><span>1 capa grande</span></div>
+      <div class="medidor"><span>GPU</span><span class="barras" data-n="1"><i></i><i></i><i></i></span><small><b>Bajo.</b> Es una sola capa opaca que se traslada; la vista de debajo cambia de golpe, sin fundido doble.</small></div>
+      <div class="medidor"><span>x264</span><span class="barras" data-n="2"><i></i><i></i><i></i></span><small><b>Medio.</b> Un segundo de pantalla entera en movimiento pide más bits. Al ser noche lisa se comprime muy bien y a 6000 kbps aguanta; si se viera algún bloque, el telón puede ser de 2/3 de alto.</small></div>
+      <p class="hacer">Para hacerla: <code>index.html</code> (un <code>div.telon</code>), <code>overlay.css</code> y <code>overlay.js</code> (en el cambio de vista, lanzar el telón y poner <code>data-vista</code> 0,5 s después; no lanzarlo al cargar ni con <code>?vista</code> fija). <span class="trabajo medio">Medio</span></p>
+    </div>
+  </div>
+</article>
+
+<!-- ======================================================================= 03 -->
+<article class="propuesta" id="p3">
+  <div class="titulo-prop"><span class="num">03</span><h2>Sello de objetivo</h2><span class="kanji-prop" aria-hidden="true">印</span></div>
+  <div class="marco" data-muestra="m3">
+    <span class="etiqueta-marco">INGAME · AVISOS</span>
+    <div class="lienzo m3" style="--ca:#EE7B2B;--cta:#EE7B2B;--cr:#39C6F0;--ctr:#39C6F0">
+      <div class="noche juego"><span class="marca-agua">aquí va el juego</span></div>
+      <div class="arriba">
+        <div class="mc">
+          <div class="mc-lado az"><div class="mc-placa"><i class="tubo"></i><span class="escudo">虎</span><span class="mc-nombre">Byakko<small>白虎</small></span><b class="mc-k">7</b></div><div class="mc-datos"><span>TORRES</span>3<span style="margin-left:14px">ORO</span>≈24,1k</div></div>
+          <div class="mc-centro"><div class="mc-reloj">18:42</div><div class="mc-dif">▲ 1,3k</div></div>
+          <div class="mc-lado ro"><div class="mc-placa"><i class="tubo"></i><span class="escudo">竜</span><span class="mc-nombre">Ryūjin<small>竜神</small></span><b class="mc-k">5</b></div><div class="mc-datos">≈22,8k<span style="margin:0 4px 0 4px">ORO</span><span style="margin-left:14px">TORRES</span>2</div></div>
+        </div>
+        <div class="mc-tiempos"><div><i>龍</i><span><small>DRAGÓN</small><b>04:10</b></span></div><div><i>使</i><span><small>HERALDO</small><b>—</b></span></div><div><i>蛇</i><span><small>BARÓN</small><b>01:18</b></span></div></div>
+        <div class="av"><span class="av-sello"><i class="onda"></i><b>龍</b></span><div class="av-txt"><b>Byakko</b><span>se lleva el dragón infernal</span></div><i class="av-tiempo"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="controles"><button class="boton" type="button" data-repetir>Repetir</button><button class="boton suave" type="button" data-lupa="960,0" aria-pressed="false">Lupa ×2</button><span class="pista">Pasan cuatro avisos: dragón, heraldo, Barón y torre (aquí 2 s cada uno; en el directo, lo de siempre).</span></div>
+  <div class="ficha">
+    <div>
+      <p class="frase">El aviso baja como ahora, pero delante lleva el kanji del objetivo (龍 dragón, 使 heraldo, 蛇 Barón, 塔 torre), que se estampa con una onda del color del objetivo. Debajo, una raya fina se va vaciando con el tiempo que le queda al aviso.</p>
+      <dl class="datos-prop">
+        <dt>Dónde</dt><dd><b>Ingame · <code>.aviso</code></b> del marcador estilo A (debajo de los temporizadores)</dd>
+        <dt>Dura</dt><dd>Entrada <b>0,6 s</b>; visible lo que dura hoy; salida <b>0,35 s</b></dd>
+        <dt>Color</dt><dd>El del objetivo (el del dragón que sea, morado en Barón y heraldo, piedra en las torres); el nombre, con el color de su familia</dd>
+      </dl>
+    </div>
+    <div class="coste">
+      <h3>Coste en OBS</h3>
+      <div class="anima"><span class="si">translate</span><span class="si">scale</span><span class="si">scaleX</span><span class="si">opacity</span><span>4 piezas</span></div>
+      <div class="medidor"><span>GPU</span><span class="barras" data-n="1"><i></i><i></i><i></i></span><small><b>Muy bajo.</b> La onda es un aro pintado una vez que crece con scale y se apaga; la raya del tiempo es un scaleX.</small></div>
+      <div class="medidor"><span>x264</span><span class="barras" data-n="1"><i></i><i></i><i></i></span><small><b>Muy bajo.</b> Caja de 470 px arriba en el centro.</small></div>
+      <p class="hacer">Para hacerla: <code>ingame/index.html</code> (un <code>span.aviso-sello</code> en <code>.aviso</code>), <code>ingame.js</code> (el kanji en <code>pintarAviso</code>: ya están en <code>OBJETIVO</code>, faltan torre e inhibidor), <code>ingame.css</code> y <code>estilo-a.css</code>. <span class="trabajo poco">Poco</span></p>
+    </div>
+  </div>
+</article>
+
+<!-- ======================================================================= 04 -->
+<article class="propuesta" id="p4">
+  <div class="titulo-prop"><span class="num">04</span><h2>Naipes del postdraft</h2><span class="kanji-prop" aria-hidden="true">札</span></div>
+  <div class="marco" data-muestra="m4">
+    <span class="etiqueta-marco">OVERLAY · POSTDRAFT</span>
+    <div class="lienzo m4" style="--ca:#5FA341;--cta:#78BF58;--cr:#C1272D;--ctr:#E5484E">
+      <div class="noche"></div>
+      <header class="placa cab az"><i class="tubo"></i><span class="escudo">夜</span><div class="equipo"><b>Yasha</b><span>Los demonios guardianes</span></div></header>
+      <div class="marc"><small>Jornada 4 · BO3</small><b>1<i>–</i>0</b></div>
+      <header class="placa cab ro"><i class="tubo"></i><span class="escudo">魔</span><div class="equipo"><b>Akuma</b><span>Los demonios rojos</span></div></header>
+      <div class="picks az">
+        <div class="slot az" style="--i:0"><i class="tubo"></i><div class="carta"><div class="carta-in"><div class="cara frente"><i>S</i><b>O</b></div><div class="cara dorso">極</div></div></div><div class="tx"><span class="rol">TOP<b>ONIBI</b></span><span class="camp">Ornn</span><span class="con"><b>4</b> partidas con él · <b>75 %</b></span><span class="gen">KDA 3,1 · 2 MVP en la liga</span></div><div class="fan"><b>41</b><span>FANTASY</span></div></div>
+        <div class="slot az" style="--i:1"><i class="tubo"></i><div class="carta"><div class="carta-in"><div class="cara frente"><i>A</i><b>R</b></div><div class="cara dorso">極</div></div></div><div class="tx"><span class="rol">JUNGLA<b>RAIDEN</b></span><span class="camp">Vi</span><span class="con"><span class="estreno">FIRST PICK</span></span><span class="gen">KDA 4,0 · 1 MVP en la liga</span></div><div class="fan"><b>36</b><span>FANTASY</span></div></div>
+        <div class="slot az" style="--i:2"><i class="tubo"></i><div class="carta"><div class="carta-in"><div class="cara frente"><i>S</i><b>S</b></div><div class="cara dorso">極</div></div></div><div class="tx"><span class="rol">MEDIO<b>SHURA</b></span><span class="camp">Syndra</span><span class="con"><b>6</b> partidas con ella · <b>67 %</b></span><span class="gen">KDA 5,2 · 3 MVP en la liga</span></div><div class="fan"><b>52</b><span>FANTASY</span></div></div>
+        <div class="slot az" style="--i:3"><i class="tubo"></i><div class="carta"><div class="carta-in"><div class="cara frente"><i>B</i><b>K</b></div><div class="cara dorso">極</div></div></div><div class="tx"><span class="rol">ADC<b>KUMO</b></span><span class="camp">Jinx</span><span class="con"><b>3</b> partidas con ella · <b>33 %</b></span><span class="gen">KDA 2,7</span></div><div class="fan"><b>29</b><span>FANTASY</span></div></div>
+        <div class="slot az" style="--i:4"><i class="tubo"></i><div class="carta"><div class="carta-in"><div class="cara frente"><i>A</i><b>T</b></div><div class="cara dorso">極</div></div></div><div class="tx"><span class="rol">SUPPORT<b>TETSU</b></span><span class="camp">Nautilus</span><span class="con"><b>5</b> partidas con él · <b>60 %</b></span><span class="gen">KDA 3,8 · 1 MVP en la liga</span></div><div class="fan"><b>33</b><span>FANTASY</span></div></div>
+      </div>
+      <div class="picks ro">
+        <div class="slot ro" style="--i:0"><i class="tubo"></i><div class="carta"><div class="carta-in"><div class="cara frente"><i>A</i><b>G</b></div><div class="cara dorso">極</div></div></div><div class="tx"><span class="rol"><b>GORO</b>TOP</span><span class="camp">Renekton</span><span class="con"><b>5</b> partidas con él · <b>80 %</b></span><span class="gen">KDA 2,9 · 2 MVP en la liga</span></div><div class="fan"><b>38</b><span>FANTASY</span></div></div>
+        <div class="slot ro" style="--i:1"><i class="tubo"></i><div class="carta"><div class="carta-in"><div class="cara frente"><i>S</i><b>H</b></div><div class="cara dorso">極</div></div></div><div class="tx"><span class="rol"><b>HIBANA</b>JUNGLA</span><span class="camp">Lee Sin</span><span class="con"><b>7</b> partidas con él · <b>71 %</b></span><span class="gen">KDA 4,4 · 3 MVP en la liga</span></div><div class="fan"><b>47</b><span>FANTASY</span></div></div>
+        <div class="slot ro" style="--i:2"><i class="tubo"></i><div class="carta"><div class="carta-in"><div class="cara frente"><i>A</i><b>Z</b></div><div class="cara dorso">極</div></div></div><div class="tx"><span class="rol"><b>ZETSU</b>MEDIO</span><span class="camp">Ahri</span><span class="con"><span class="estreno">FIRST PICK</span></span><span class="gen">KDA 3,6</span></div><div class="fan"><b>40</b><span>FANTASY</span></div></div>
+        <div class="slot ro" style="--i:3"><i class="tubo"></i><div class="carta"><div class="carta-in"><div class="cara frente"><i>S</i><b>B</b></div><div class="cara dorso">極</div></div></div><div class="tx"><span class="rol"><b>BENIKO</b>ADC</span><span class="camp">Ezreal</span><span class="con"><b>8</b> partidas con él · <b>63 %</b></span><span class="gen">KDA 4,9 · 2 MVP en la liga</span></div><div class="fan"><b>44</b><span>FANTASY</span></div></div>
+        <div class="slot ro" style="--i:4"><i class="tubo"></i><div class="carta"><div class="carta-in"><div class="cara frente"><i>B</i><b>R</b></div><div class="cara dorso">極</div></div></div><div class="tx"><span class="rol"><b>RYUZO</b>SUPPORT</span><span class="camp">Thresh</span><span class="con"><b>4</b> partidas con él · <b>50 %</b></span><span class="gen">KDA 3,0</span></div><div class="fan"><b>31</b><span>FANTASY</span></div></div>
+      </div>
+      <section class="versus">
+        <div class="v-arte">
+          <div class="v-clan az"><span class="kv">夜叉</span><div class="wr"><b>58<small>%</small></b><span>7 V · 5 D en la liga</span></div></div>
+          <div class="v-clan ro"><span class="kv">悪魔</span><div class="wr"><b>64<small>%</small></b><span>9 V · 5 D en la liga</span></div></div>
+          <span class="sello-neon">対</span>
+        </div>
+        <div class="v-datos">
+          <div class="dvs" style="--i:0"><b>14:20</b><span>Primera torre</span><b class="gana">12:05</b></div>
+          <div class="dvs" style="--i:1"><b class="gana">2,4</b><span>Dragones por partida</span><b>1,9</b></div>
+          <div class="dvs" style="--i:2"><b class="gana">31:40</b><span>Duración media</span><b>33:12</b></div>
+          <div class="dvs" style="--i:3"><b>48 %</b><span>Primera sangre</span><b class="gana">57 %</b></div>
+        </div>
+      </section>
+    </div>
+  </div>
+  <div class="controles"><button class="boton" type="button" data-repetir>Repetir</button><button class="boton suave" type="button" data-lupa="380,420" aria-pressed="false">Lupa ×2</button><span class="pista">Se ve al pasar del draft al postdraft.</span></div>
+  <div class="ficha">
+    <div>
+      <p class="frase">Al cerrar el draft, las mini cartas de los diez se dan la vuelta en cascada (del reverso con 極 a la carta), salen los números de cada jugador y los puntos del fantasy, y en el centro las dos familias entran desde su lado hasta que se estampa 対.</p>
+      <dl class="datos-prop">
+        <dt>Dónde</dt><dd><b>Overlay · vista postdraft</b> (<code>.slot .mini-carta</code>, <code>.fantasy-slot</code>, <code>.versus</code>)</dd>
+        <dt>Dura</dt><dd><b>1,9 s</b>, una vez</dd>
+        <dt>De paso</dt><dd>Quita la transición de hoy, que ensancha los picks animando <code>width</code>, <code>left</code>, <code>height</code> y <code>gap</code> (recalcula el layout en cada fotograma durante 0,6 s). Con esta, el postdraft sale ya con sus medidas y solo se mueve lo de dentro.</dd>
+      </dl>
+    </div>
+    <div class="coste">
+      <h3>Coste en OBS</h3>
+      <div class="anima"><span class="si">rotateY</span><span class="si">translate</span><span class="si">scale</span><span class="si">opacity</span><span>máx. 4 cartas girando</span></div>
+      <div class="medidor"><span>GPU</span><span class="barras" data-n="2"><i></i><i></i><i></i></span><small><b>Bajo-medio.</b> El giro con perspectiva sigue siendo transform, pero cada carta es una capa 3D: van dos a la vez (una por lado) y 0,1 s entre filas. Aun así, sale más barato que la transición de layout de hoy.</small></div>
+      <div class="medidor"><span>x264</span><span class="barras" data-n="1"><i></i><i></i><i></i></span><small><b>Bajo.</b> Piezas pequeñas repartidas; el fondo y las placas no se mueven.</small></div>
+      <p class="hacer">Para hacerla: <code>overlay.css</code> (quitar las transiciones de medidas de <code>.picks</code> y <code>.slot</code>; keyframes del volteo y de los números) y <code>overlay.js</code> (el reverso de la mini carta y <code>--i</code>). Quizá <code>/carta.css</code> para el reverso. <span class="trabajo medio">Medio</span></p>
+    </div>
+  </div>
+</article>
+
+<!-- ======================================================================= 05 -->
+<article class="propuesta" id="p5">
+  <div class="titulo-prop"><span class="num">05</span><h2>Racha a pincel</h2><span class="kanji-prop" aria-hidden="true">血</span></div>
+  <div class="marco" data-muestra="m5">
+    <span class="etiqueta-marco">INGAME · PRIMERA SANGRE Y MULTIKILL</span>
+    <div class="lienzo m5" style="--ca:#A9722F;--cta:#D19A52;--cr:#C1272D;--ctr:#E5484E">
+      <div class="noche juego"><span class="marca-agua">aquí va el juego</span></div>
+      <div class="arriba">
+        <div class="mc">
+          <div class="mc-lado az"><div class="mc-placa"><i class="tubo"></i><span class="escudo">月</span><span class="mc-nombre">Tsuki<small>月</small></span><b class="mc-k">9</b></div><div class="mc-datos"><span>ORO</span>≈27,0k</div></div>
+          <div class="mc-centro"><div class="mc-reloj">21:05</div><div class="mc-dif">▲ 2,1k</div></div>
+          <div class="mc-lado ro"><div class="mc-placa"><i class="tubo"></i><span class="escudo">魔</span><span class="mc-nombre">Akuma<small>悪魔</small></span><b class="mc-k">6</b></div><div class="mc-datos">≈24,9k<span style="margin:0 0 0 4px">ORO</span></div></div>
+        </div>
+        <div class="racha"><div class="racha-in"><i class="racha-tubo"></i><span class="racha-kanji">血</span><div class="racha-txt"><small>Primera sangre</small><b>MITSU</b><span><em>Tsuki</em> · Qiyana</span></div><span class="muescas"></span></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="controles"><button class="boton" type="button" data-repetir>Repetir</button><button class="boton suave" type="button" data-lupa="960,0" aria-pressed="false">Lupa ×2</button><span class="pista">Primera sangre, triple kill y pentakill, uno detrás de otro.</span></div>
+  <div class="ficha">
+    <div>
+      <p class="frase">La primera sangre y los multikills dejan de ser un aviso más y tienen su rótulo: el kanji (血 primera sangre, 三 triple, 四 quadra, 五 penta) cae como un sello con un pequeño temblor, el nombre del jugador entra a su lado y se encienden las muescas de la racha. En el pentakill, el sello late dos veces.</p>
+      <dl class="datos-prop">
+        <dt>Dónde</dt><dd><b>Ingame · caja nueva <code>.racha</code></b> en el sitio de los avisos, para los tipos <code>primera</code> y <code>multi</code> (misma cola)</dd>
+        <dt>Dura</dt><dd><b>2,6 s</b>: entrada 0,5 · visible 1,8 · salida 0,3</dd>
+        <dt>Color</dt><dd>El sello en bermellón (es el momento de la partida); el tubo y el nombre de la familia, en el color de la familia</dd>
+      </dl>
+    </div>
+    <div class="coste">
+      <h3>Coste en OBS</h3>
+      <div class="anima"><span class="si">translate</span><span class="si">scale</span><span class="si">rotate</span><span class="si">opacity</span><span>máx. 4 piezas</span></div>
+      <div class="medidor"><span>GPU</span><span class="barras" data-n="1"><i></i><i></i><i></i></span><small><b>Bajo.</b> Una caja de 700 px; el temblor mueve la caja entera (una capa). El latido del penta es la opacidad de un aro ya pintado.</small></div>
+      <div class="medidor"><span>x264</span><span class="barras" data-n="1"><i></i><i></i><i></i></span><small><b>Bajo.</b> El temblor dura 0,24 s y son 7 px.</small></div>
+      <p class="hacer">Para hacerla: <code>ingame/index.html</code> (la caja <code>.racha</code>), <code>ingame.js</code> (que <code>primera</code> y <code>multi</code> pinten esa caja en <code>pintarAviso</code>/<code>cajaDe</code>), <code>ingame.css</code> y <code>estilo-a.css</code>. <span class="trabajo medio">Medio</span></p>
+    </div>
+  </div>
+</article>
+
+<!-- ======================================================================= 06 -->
+<article class="propuesta" id="p6">
+  <div class="titulo-prop"><span class="num">06</span><h2>Veredicto y MVP</h2><span class="kanji-prop" aria-hidden="true">勝</span></div>
+  <div class="marco" data-muestra="m6">
+    <span class="etiqueta-marco">OVERLAY · PANTALLA FINAL</span>
+    <div class="lienzo m6" style="--ca:#2E6B45;--cta:#5FA876;--cr:#5FA341;--ctr:#78BF58">
+      <div class="noche"></div>
+      <header class="cabeza-f">
+        <div class="fclan az"><i class="tubo"></i><span class="escudo">天</span><div class="quien"><b>Tengu</b><span class="victoria">Victoria</span></div><b class="kills">21</b><i class="halo"></i></div>
+        <div class="fcentro"><small>Final de la partida</small><b>31:47</b><small>Jornada 4 · partida 1</small></div>
+        <div class="fclan ro"><i class="tubo"></i><span class="escudo">夜</span><div class="quien"><b>Yasha</b><span>Derrota</span></div><b class="kills">12</b><i class="velo"></i></div>
+      </header>
+      <div class="filas">
+        <div class="fila" style="--i:0"><div class="jug az"><span class="ret">G</span><div class="qn"><b>HAYATE</b><small>Gnar</small></div><span class="kda">3<i>/</i>2<i>/</i>7</span><span class="pts">24</span></div><span class="rol">TOP</span><div class="jug ro"><span class="ret">O</span><div class="qn"><b>ONIBI</b><small>Ornn</small></div><span class="kda">1<i>/</i>4<i>/</i>5</span><span class="pts">12</span></div></div>
+        <div class="fila" style="--i:1"><div class="jug az mvp"><span class="ret">L</span><div class="qn"><b>KUROBANE</b><small>Lee Sin</small></div><span class="kda">8<i>/</i>1<i>/</i>12</span><span class="pts">41</span><i class="marca-mvp"></i></div><span class="rol">JUNGLA</span><div class="jug ro"><span class="ret">V</span><div class="qn"><b>RAIDEN</b><small>Vi</small></div><span class="kda">4<i>/</i>5<i>/</i>4</span><span class="pts">18</span></div></div>
+        <div class="fila" style="--i:2"><div class="jug az"><span class="ret">A</span><div class="qn"><b>YAMABUSHI</b><small>Ahri</small></div><span class="kda">5<i>/</i>3<i>/</i>9</span><span class="pts">30</span></div><span class="rol">MEDIO</span><div class="jug ro"><span class="ret">S</span><div class="qn"><b>SHURA</b><small>Syndra</small></div><span class="kda">4<i>/</i>4<i>/</i>3</span><span class="pts">19</span></div></div>
+        <div class="fila" style="--i:3"><div class="jug az"><span class="ret">E</span><div class="qn"><b>TOBI</b><small>Ezreal</small></div><span class="kda">4<i>/</i>3<i>/</i>8</span><span class="pts">27</span></div><span class="rol">ADC</span><div class="jug ro"><span class="ret">J</span><div class="qn"><b>KUMO</b><small>Jinx</small></div><span class="kda">2<i>/</i>5<i>/</i>4</span><span class="pts">11</span></div></div>
+        <div class="fila" style="--i:4"><div class="jug az"><span class="ret">T</span><div class="qn"><b>KAGURA</b><small>Thresh</small></div><span class="kda">1<i>/</i>3<i>/</i>15</span><span class="pts">22</span></div><span class="rol">SUPPORT</span><div class="jug ro"><span class="ret">N</span><div class="qn"><b>TETSU</b><small>Nautilus</small></div><span class="kda">1<i>/</i>3<i>/</i>8</span><span class="pts">14</span></div></div>
+      </div>
+      <footer class="pie-f">
+        <div class="feq az"><i class="tubo"></i><div><b>9</b><span>Torres</span></div><div><b>3</b><span>Dragones</span></div><div><b>1</b><span>Barón</span></div><div><b>62,4k</b><span>Oro</span></div></div>
+        <div class="mvp-placa"><span class="kmvp">天狗</span><div class="mvp-texto"><span class="sello-neon">MVP</span><b>KUROBANE</b><small>Tengu · Lee Sin</small><span class="mvp-datos"><b>8/1/12</b><span>24.300 de daño</span><span>41 puntos fantasy</span></span></div><div class="mvp-carta"><i>S</i><b>天</b><span>KUROBANE</span></div></div>
+        <div class="feq ro"><i class="tubo"></i><div><b>3</b><span>Torres</span></div><div><b>1</b><span>Dragones</span></div><div><b>0</b><span>Barón</span></div><div><b>54,1k</b><span>Oro</span></div></div>
+      </footer>
+    </div>
+  </div>
+  <div class="controles"><button class="boton" type="button" data-repetir>Repetir</button><button class="boton suave" type="button" data-lupa="960,860" aria-pressed="false">Lupa ×2</button><span class="pista">Se ve al pasar a la pantalla final.</span></div>
+  <div class="ficha">
+    <div>
+      <p class="frase">La pantalla final se monta en orden, como un veredicto: bajan las dos familias, la palabra VICTORIA prende como un tubo, la que pierde se apaga, las filas entran desde cada lado y al final sube la placa del MVP, se estampa su sello y cae su carta.</p>
+      <dl class="datos-prop">
+        <dt>Dónde</dt><dd><b>Overlay · vista final</b> (<code>#final</code>: <code>.final-clan</code>, <code>.final-fila</code>, <code>.final-pie</code>, <code>.final-mvp</code>)</dd>
+        <dt>Dura</dt><dd><b>2,3 s</b>, una vez</dd>
+        <dt>Detalle</dt><dd>El halo de la que gana y el velo de la que pierde son capas aparte que solo cambian de opacidad (hoy el halo va en el <code>box-shadow</code> de la placa)</dd>
+      </dl>
+    </div>
+    <div class="coste">
+      <h3>Coste en OBS</h3>
+      <div class="anima"><span class="si">translate</span><span class="si">rotate</span><span class="si">scale</span><span class="si">opacity</span><span>máx. 5 piezas</span></div>
+      <div class="medidor"><span>GPU</span><span class="barras" data-n="2"><i></i><i></i><i></i></span><small><b>Bajo-medio.</b> Las filas son anchas (900 px), pero entran escalonadas: nunca más de cuatro a la vez. Las demás piezas son pequeñas.</small></div>
+      <div class="medidor"><span>x264</span><span class="barras" data-n="1"><i></i><i></i><i></i></span><small><b>Bajo.</b> Desplazamientos cortos (48 px) sobre fondo quieto.</small></div>
+      <p class="hacer">Para hacerla: <code>overlay.css</code> (keyframes y retrasos de <code>#final</code>) y <code>overlay.js</code> (clase <code>.entra</code> al pasar a «final», <code>--i</code> en las filas y las capas de halo y velo). <span class="trabajo medio">Medio</span></p>
+    </div>
+  </div>
+</article>
+
+<!-- ======================================================================= 07 -->
+<article class="propuesta" id="p7">
+  <div class="titulo-prop"><span class="num">07</span><h2>REPLAY rebobinado</h2><span class="kanji-prop" aria-hidden="true">再</span></div>
+  <div class="marco" data-muestra="m7" data-lupa-inicial="2.6" data-foco="230,70">
+    <span class="etiqueta-marco">OVERLAY · REPLAY</span>
+    <div class="lienzo m7">
+      <div class="video"><div class="noche" style="background:none"><span class="marca-agua">aquí va la repetición</span></div></div>
+      <div class="rp">
+        <i class="rp-tubo"></i>
+        <span class="rp-sello">再</span>
+        <div class="rp-texto"><b class="rp-palabra"><i style="--j:5">R</i><i style="--j:4">E</i><i style="--j:3">P</i><i style="--j:2">L</i><i style="--j:1">A</i><i style="--j:0">Y</i></b><small class="rp-pie">Gokudō · repetición</small></div>
+        <span class="rp-flechas"><i style="--j:2"></i><i style="--j:1"></i><i style="--j:0"></i></span>
+        <i class="rp-cinta"></i>
+      </div>
+    </div>
+  </div>
+  <div class="controles"><button class="boton" type="button" data-repetir>Repetir</button><button class="boton suave" type="button" data-lupa="300,90" aria-pressed="true">Lupa ×2,6</button><span class="pista">Empieza con lupa porque el cartel es pequeño; quítala para verlo a su tamaño en el lienzo.</span></div>
+  <div class="ficha">
+    <div>
+      <p class="frase">El cartel baja como ahora, pero las letras de REPLAY entran al revés (de la Y a la R, como una cinta que rebobina), tres flechas laten hacia atrás y una raya fina corre por debajo mientras dura la repetición.</p>
+      <dl class="datos-prop">
+        <dt>Dónde</dt><dd><b>Overlay · vista replay</b> (<code>.replay-cartel</code>)</dd>
+        <dt>Dura</dt><dd>Entrada <b>0,9 s</b>; las flechas y la raya, en bucle mientras se ve</dd>
+        <dt>De paso</dt><dd>El tubo se enciende con la opacidad de una capa propia, en lugar de animar <code>outline-color</code> como ahora (eso repinta el cartel en cada fotograma del parpadeo)</dd>
+      </dl>
+    </div>
+    <div class="coste">
+      <h3>Coste en OBS</h3>
+      <div class="anima"><span class="si">translate</span><span class="si">scale</span><span class="si">scaleX</span><span class="si">opacity</span><span>cartel de 450 px</span></div>
+      <div class="medidor"><span>GPU</span><span class="barras" data-n="1"><i></i><i></i><i></i></span><small><b>Muy bajo.</b> Seis letras escalonadas al entrar; en bucle solo cambian tres opacidades y un scaleX.</small></div>
+      <div class="medidor"><span>x264</span><span class="barras" data-n="1"><i></i><i></i><i></i></span><small><b>Muy bajo.</b> Una esquina de la pantalla.</small></div>
+      <p class="hacer">Para hacerla: <code>replay.css</code>, <code>replay.js</code> (partir REPLAY en letras) e <code>index.html</code> (las flechas, la raya y la capa del tubo). <span class="trabajo poco">Poco</span></p>
+    </div>
+  </div>
+</article>
+
+<section class="deuda">
+  <h2>Lo que ya hay y conviene aligerar</h2>
+  <p>Al leer el overlay salen unas cuantas animaciones de hoy que no cumplen la regla de transform y opacity. Ninguna es grave, pero son las que más pesan en la 960M:</p>
+  <ul>
+    <li><code>overlay.css</code>: el paso al postdraft anima <code>width</code>, <code>left</code>, <code>gap</code> y <code>height</code> de los picks (layout en cada fotograma). La 04 lo sustituye.</li>
+    <li><code>overlay.css</code>: el hueco activo del draft (<code>.slot.activo</code>, <code>.ban.activo</code>) y el temporizador urgente laten animando <code>box-shadow</code> y <code>background</code>, en bucle. Se puede hacer igual con una capa de halo que cambie de opacidad.</li>
+    <li><code>overlay.css</code>: el pick nuevo se descubre con <code>clip-path</code> (repinta el splash 0,7 s). Aceptable, pero un velo que se desplaza con translate saldría más barato.</li>
+    <li><code>replay.css</code> y <code>alertas.css</code>: el encendido anima <code>outline-color</code> y <code>box-shadow</code> (1 s). La 07 lo cambia en el REPLAY; en las alertas se haría igual.</li>
+  </ul>
+</section>
+
+<p class="pie">Gokudō · propuestas de animación para el overlay del directo · muestras hechas solo con CSS y un poco de JavaScript, sin archivos externos salvo las fuentes de Google Fonts.</p>
+</div>
+
+<script>
+// Cada muestra: el lienzo de 1920×1080 se encoge para caber en su marco (y la lupa lo acerca a un punto).
+// «Repetir» quita la clase que anima, fuerza un reflujo y la vuelve a poner. Las muestras con varios pasos
+// (cambio de vista, avisos y rachas) los encadenan con temporizadores, que se cancelan al repetir.
+(function () {
+  const marcos = [...document.querySelectorAll('.marco')];
+  const estado = new Map();   // marco -> { zoom, foco, timers }
+
+  function encajar(marco) {
+    const e = estado.get(marco);
+    const lienzo = marco.querySelector('.lienzo');
+    const ancho = marco.clientWidth, alto = marco.clientHeight;
+    const k = ancho / 1920;
+    const s = k * e.zoom;
+    // Acercar con el foco en el centro del marco, sin salirse del lienzo
+    let tx = e.zoom > 1 ? ancho / 2 - s * e.foco[0] : 0, ty = e.zoom > 1 ? alto / 2 - s * e.foco[1] : 0;
+    tx = Math.min(0, Math.max(ancho - 1920 * s, tx));
+    ty = Math.min(0, Math.max(alto - 1080 * s, ty));
+    lienzo.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
+  }
+
+  const limpiar = e => { e.timers.forEach(clearTimeout); e.timers = []; };
+  const despues = (e, ms, fn) => e.timers.push(setTimeout(fn, ms));
+  const reiniciar = (el, clase) => { el.classList.remove(clase); void el.offsetWidth; el.classList.add(clase); };
+
+  // ----- 02: draft → postdraft → partida, con el telón en cada cambio
+  function m2(marco, e) {
+    const vistas = [...marco.querySelectorAll('.vista')];
+    const telon = marco.querySelector('.telon');
+    const ver = i => vistas.forEach((v, n) => v.classList.toggle('ve', n === i));
+    ver(0); telon.classList.remove('pasa');
+    const cambio = (t, i) => {
+      despues(e, t, () => reiniciar(telon, 'pasa'));
+      despues(e, t + 560, () => ver(i));   // bajo el telón: en el 36-60 % de 1,25 s
+    };
+    cambio(900, 1);
+    cambio(3300, 2);
+  }
+
+  // ----- 03: cuatro avisos de objetivos
+  const AVISOS = [
+    { k: '龍', a: '#E0592A', quien: 'Byakko', que: 'se lleva el dragón infernal', lado: 'az' },
+    { k: '使', a: '#8F7AE8', quien: 'Ryūjin', que: 'se lleva el Heraldo', lado: 'ro' },
+    { k: '蛇', a: '#9B59D0', quien: 'Byakko', que: 'mata al Barón Nashor', lado: 'az' },
+    { k: '塔', a: '#B5AC9C', quien: 'Ryūjin', que: 'derriba la torre exterior de bot', lado: 'ro' },
+  ];
+  function m3(marco, e) {
+    const av = marco.querySelector('.av');
+    const VISIBLE = 2000, SALIDA = 350, HUECO = 250;
+    av.classList.remove('entra', 'sale');
+    AVISOS.forEach((a, n) => {
+      const t0 = 250 + n * (VISIBLE + SALIDA + HUECO);
+      despues(e, t0, () => {
+        av.className = `av ${a.lado}`;
+        av.style.setProperty('--a', a.a);
+        av.style.setProperty('--dur', `${(VISIBLE - 500) / 1000}s`);
+        av.querySelector('.av-sello b').textContent = a.k;
+        av.querySelector('.av-txt b').textContent = a.quien;
+        av.querySelector('.av-txt span').textContent = a.que;
+        reiniciar(av, 'entra');
+      });
+      despues(e, t0 + VISIBLE, () => { av.classList.remove('entra'); av.classList.add('sale'); });
+    });
+  }
+
+  // ----- 05: primera sangre, triple kill y pentakill
+  const RACHAS = [
+    { k: '血', titulo: 'Primera sangre', jugador: 'MITSU', familia: 'Tsuki', camp: 'Qiyana', lado: 'az', n: 0 },
+    { k: '三', titulo: 'Triple kill', jugador: 'HIBANA', familia: 'Akuma', camp: 'Lee Sin', lado: 'ro', n: 3 },
+    { k: '五', titulo: '¡Pentakill!', jugador: 'D4DT0R', familia: 'Tsuki', camp: 'Kalista', lado: 'az', n: 5 },
+  ];
+  function m5(marco, e) {
+    const r = marco.querySelector('.racha');
+    const VISIBLE = 2300, SALIDA = 320, HUECO = 300;
+    r.classList.remove('entra', 'sale', 'penta');
+    RACHAS.forEach((x, n) => {
+      const t0 = 250 + n * (VISIBLE + SALIDA + HUECO);
+      despues(e, t0, () => {
+        r.className = `racha ${x.lado}${x.n === 5 ? ' penta' : ''}`;
+        r.querySelector('.racha-kanji').textContent = x.k;
+        r.querySelector('.racha-txt small').textContent = x.titulo;
+        r.querySelector('.racha-txt b').textContent = x.jugador;
+        r.querySelector('.racha-txt span').innerHTML = `<em>${x.familia}</em> · ${x.camp}`;
+        const muescas = r.querySelector('.muescas');
+        muescas.innerHTML = x.n ? Array.from({ length: 5 }, (_, i) => `<i class="${i < x.n ? 'llena' : ''}" style="--i:${i}"></i>`).join('') : '';
+        reiniciar(r, 'entra');
+      });
+      despues(e, t0 + VISIBLE, () => { r.classList.remove('entra'); r.classList.add('sale'); });
+    });
+  }
+
+  const PASOS = { m2, m3, m5 };
+
+  function animar(marco) {
+    const e = estado.get(marco);
+    limpiar(e);
+    const lienzo = marco.querySelector('.lienzo');
+    const id = marco.dataset.muestra;
+    if (PASOS[id]) PASOS[id](marco, e);
+    else reiniciar(lienzo, 'anda');
+    e.vista = true;
+  }
+
+  marcos.forEach(marco => {
+    const lupa = marco.parentElement.querySelector('[data-lupa]');
+    const foco = (lupa?.dataset.lupa || '960,540').split(',').map(Number);
+    const zoomInicial = Number(marco.dataset.lupaInicial) || 1;
+    estado.set(marco, { zoom: zoomInicial, foco, timers: [], vista: false });
+    encajar(marco);
+    new ResizeObserver(() => encajar(marco)).observe(marco);
+
+    const art = marco.closest('.propuesta');
+    art.querySelector('[data-repetir]').addEventListener('click', () => animar(marco));
+    if (lupa) lupa.addEventListener('click', () => {
+      const e = estado.get(marco);
+      const acercado = e.zoom > 1;
+      e.zoom = acercado ? 1 : (zoomInicial > 1 ? zoomInicial : 2);
+      lupa.setAttribute('aria-pressed', String(!acercado));
+      encajar(marco);
+    });
+  });
+
+  // Cada muestra arranca sola la primera vez que se ve entera
+  const vigia = new IntersectionObserver(entradas => {
+    for (const en of entradas) {
+      if (!en.isIntersecting) continue;
+      const marco = en.target;
+      if (!estado.get(marco).vista) animar(marco);
+      vigia.unobserve(marco);
+    }
+  }, { threshold: .6 });
+  marcos.forEach(m => vigia.observe(m));
+
+  document.getElementById('todas').addEventListener('click', () => marcos.forEach(animar));
+
+  // ?foto: todas las muestras quietas en su fotograma final (para sacar la captura de la hoja)
+  if (new URLSearchParams(location.search).has('foto')) {
+    vigia.disconnect();
+    document.documentElement.classList.add('foto');
+    marcos.forEach(marco => {
+      const e = estado.get(marco); e.vista = true; e.zoom = 1; encajar(marco);
+      const lienzo = marco.querySelector('.lienzo');
+      if (marco.dataset.muestra === 'm3') { const av = lienzo.querySelector('.av'); av.className = 'av az entra'; av.style.setProperty('--a', '#E0592A'); }
+      else if (marco.dataset.muestra === 'm5') {
+        const r = lienzo.querySelector('.racha'); r.className = 'racha ro entra';
+        r.querySelector('.racha-kanji').textContent = '三'; r.querySelector('.racha-txt small').textContent = 'Triple kill';
+        r.querySelector('.racha-txt b').textContent = 'HIBANA'; r.querySelector('.racha-txt span').innerHTML = '<em>Akuma</em> · Lee Sin';
+        r.querySelector('.muescas').innerHTML = [0, 1, 2, 3, 4].map(i => `<i class="${i < 3 ? 'llena' : ''}" style="--i:${i}"></i>`).join('');
+      }
+      else if (marco.dataset.muestra !== 'm2') lienzo.classList.add('anda');
+    });
+    document.querySelectorAll('[data-lupa]').forEach(b => b.setAttribute('aria-pressed', 'false'));
+  }
+})();
+</script>
+</body>
+</html>
