@@ -77,11 +77,10 @@ body.transparente .fondo { display: none; }
 @keyframes urgencia { 50% { opacity: 1; } }
 
 /* ---------- Picks ---------- */
-.picks { position: absolute; top: 200px; width: 540px; display: flex; flex-direction: column; gap: 12px;
-  transition: width .6s cubic-bezier(.3, .7, .2, 1), left .6s cubic-bezier(.3, .7, .2, 1), gap .6s; }
+.picks { position: absolute; top: 200px; width: 540px; display: flex; flex-direction: column; gap: 12px; }
 .picks.azul { left: 48px; --color-lado: var(--azul-lado); }
 .picks.rojo { left: 1332px; --color-lado: var(--rojo-lado); }
-.slot { position: relative; height: 124px; background: var(--sumi-alzado); isolation: isolate; transition: height .6s cubic-bezier(.3, .7, .2, 1);
+.slot { position: relative; height: 124px; background: var(--sumi-alzado); isolation: isolate;
   box-shadow: inset 0 0 0 1px var(--sumi-linea); }
 /* Lo de dentro va recortado en su propia caja (antes lo recortaba el hueco con overflow: hidden): así el halo del turno
    puede salir por fuera del hueco */
@@ -99,7 +98,7 @@ body.transparente .fondo { display: none; }
 .slot .barra { position: absolute; top: 12px; bottom: 12px; width: 4px; border-radius: 2px; background: var(--color-lado); box-shadow: 0 0 8px var(--color-lado), 0 0 18px var(--color-lado); }
 .picks.azul .barra { left: 10px; }
 .picks.rojo .barra { right: 10px; }
-.slot .textos { position: absolute; top: 18px; display: flex; flex-direction: column; transition: top .6s, left .6s, right .6s; }
+.slot .textos { position: absolute; top: 18px; display: flex; flex-direction: column; }
 .picks.azul .textos { left: 36px; }
 .picks.rojo .textos { right: 36px; text-align: right; }
 .slot .linea-rol { display: flex; gap: 10px; font-size: 19px; }
@@ -216,8 +215,9 @@ body.guia .camara .medidas { display: grid; place-items: center; position: absol
 }
 
 /* ---------- Postdraft: el draft cerrado, con las estadísticas ----------
-   Los picks se ensanchan hacia el centro: a la carta del jugador, su campeón y lo que lleva con él («FIRST PICK» si
-   es la primera vez), sus números de la liga y sus puntos del fantasy. En el centro, las dos familias frente a frente */
+   Los picks salen ya ensanchados hacia el centro (sin animar sus medidas: la entrada son los «Naipes», más abajo):
+   a la carta del jugador, su campeón y lo que lleva con él («FIRST PICK» si es la primera vez), sus números de la liga
+   y sus puntos del fantasy. En el centro, las dos familias frente a frente */
 .slot .mini-carta, .slot .con-campeon, .slot .general, .slot .fantasy-slot { opacity: 0; transition: opacity .35s; }
 .slot .con-campeon, .slot .general { max-height: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .slot .mini-carta { position: absolute; top: 10px; width: 88px; height: 112px; }
@@ -246,7 +246,7 @@ body[data-vista="postdraft"] .picks { width: 620px; gap: 8px; }
 body[data-vista="postdraft"] .picks.rojo { left: 1252px; }
 body[data-vista="postdraft"] .slot { height: 132px; }
 body[data-vista="postdraft"] .slot .mini-carta, body[data-vista="postdraft"] .slot .con-campeon,
-body[data-vista="postdraft"] .slot .general, body[data-vista="postdraft"] .slot .fantasy-slot { opacity: 1; transition-delay: .4s; }
+body[data-vista="postdraft"] .slot .general, body[data-vista="postdraft"] .slot .fantasy-slot { opacity: 1; transition: none; }
 body[data-vista="postdraft"] .slot .con-campeon, body[data-vista="postdraft"] .slot .general { max-height: 30px; }
 body[data-vista="postdraft"] .slot .textos { top: 9px; width: 360px; }
 body[data-vista="postdraft"] .picks.azul .textos { left: 36px; }
@@ -265,7 +265,7 @@ body[data-vista="postdraft"] .slot.activo::before { content: none; }
 body[data-vista="postdraft"] .kakemono, body[data-vista="postdraft"] .camaras { opacity: 0; }
 .versus { position: absolute; left: 72px; top: -12px; width: 536px; height: 692px; display: flex; flex-direction: column; gap: 12px;
   opacity: 0; visibility: hidden; transition: opacity .4s, visibility 0s .4s; }
-body[data-vista="postdraft"] .versus { opacity: 1; visibility: visible; transition: opacity .5s .35s, visibility 0s; }
+body[data-vista="postdraft"] .versus { opacity: 1; visibility: visible; transition: visibility 0s; }
 .versus-arte { position: relative; flex: none; height: 356px; }
 .versus-arte .clan { position: absolute; top: 0; bottom: 0; width: 262px; margin: 0; overflow: hidden; background: var(--sumi-alzado);
   box-shadow: inset 0 0 0 1px var(--sumi-linea); }
@@ -294,9 +294,61 @@ body[data-vista="postdraft"] .versus { opacity: 1; visibility: visible; transiti
 .dato-vs.iconos img { width: 36px; height: 36px; margin: 0 2px; vertical-align: middle; border-radius: 6px; }
 .versus-datos .sin-datos { margin: auto; max-width: 16em; text-align: center; color: var(--hai); font-size: 21px; line-height: 1.4; }
 
+/* ---------- Postdraft · «Naipes del postdraft» (propuesta 04, unos 1,9 s) ----------
+   Al entrar en el postdraft (overlay.js pone #lienzo.naipes: no al cargar la página ni con cada estado) las mini cartas
+   de los diez se dan la vuelta en cascada, del reverso con 極 a la carta (dos a la vez, una por lado, 0,1 s entre
+   filas); luego salen los números de cada jugador y sus puntos del fantasy, y en el centro las dos familias entran
+   desde su lado hasta que se estampa 対 y suben los datos. El postdraft sale ya con sus medidas: solo se mueve lo de
+   dentro, con transform y opacity. Con .espera, todo aguarda quieto en su primer fotograma mientras llegan las
+   estadísticas. --retraso-entrada (si alguien la pone, p. ej. un telón que tapa el principio) retrasa toda la entrada.
+   El reverso y la perspectiva solo existen mientras dura: después, la carta vuelve a ser una capa plana */
+.picks .slot:nth-child(2), .versus-datos > :nth-child(2) { --fila: 1; }
+.picks .slot:nth-child(3), .versus-datos > :nth-child(3) { --fila: 2; }
+.picks .slot:nth-child(4), .versus-datos > :nth-child(4) { --fila: 3; }
+.picks .slot:nth-child(5), .versus-datos > :nth-child(5) { --fila: 4; }
+.versus-datos > :nth-child(6) { --fila: 5; }
+.versus-datos > :nth-child(7) { --fila: 6; }
+.versus-datos > :nth-child(n + 8) { --fila: 7; }
+.mini-carta .naipe { position: absolute; inset: 0; }
+.mini-carta .dorso { display: none; }
+#lienzo.naipes .mini-carta { perspective: 600px; }
+#lienzo.naipes .mini-carta .naipe { transform-style: preserve-3d; animation: naipe-voltea .6s var(--entra-curva) both;
+  animation-delay: calc(var(--retraso-entrada, 0s) + .15s + var(--fila, 0) * .1s); }
+#lienzo.naipes .mini-carta .icono-carta { -webkit-backface-visibility: hidden; backface-visibility: hidden; }
+#lienzo.naipes .mini-carta .dorso { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 8px; transform: rotateY(180deg);
+  -webkit-backface-visibility: hidden; backface-visibility: hidden; background: var(--noche);
+  box-shadow: inset 0 0 0 1px var(--sumi-linea), 0 0 0 1.5px var(--shu-claro), 0 6px 16px rgba(0, 0, 0, .6);
+  font-family: var(--pincel); font-size: 46px; line-height: 1; color: var(--shu-neon); text-shadow: var(--neon-suave); }
+#lienzo.naipes .slot .con-campeon, #lienzo.naipes .slot .general { animation: entra-sube .4s var(--entra-curva) both;
+  animation-delay: calc(var(--retraso-entrada, 0s) + .45s + var(--fila, 0) * .1s); }
+#lienzo.naipes .slot .general { animation-delay: calc(var(--retraso-entrada, 0s) + .52s + var(--fila, 0) * .1s); }
+#lienzo.naipes .slot .fantasy-slot { animation: naipe-fantasy .45s var(--entra-golpe) both;
+  animation-delay: calc(var(--retraso-entrada, 0s) + .6s + var(--fila, 0) * .1s); }
+#lienzo.naipes .versus-arte .clan { --desde: -60px; animation: entra-lado .6s var(--entra-curva) both; animation-delay: calc(var(--retraso-entrada, 0s) + .3s); }
+#lienzo.naipes .versus-arte .clan.rojo { --desde: 60px; }
+#lienzo.naipes .versus-arte figcaption { animation: entra-sube .45s var(--entra-curva) both; animation-delay: calc(var(--retraso-entrada, 0s) + .75s); }
+#lienzo.naipes .versus-arte .vs { animation: entra-estampa .45s var(--entra-golpe) both; animation-delay: calc(var(--retraso-entrada, 0s) + 1s); }
+#lienzo.naipes .versus-datos > * { animation: entra-sube .4s var(--entra-curva) both;
+  animation-delay: calc(var(--retraso-entrada, 0s) + 1.05s + var(--fila, 0) * .08s); }
+#lienzo.naipes.espera :is(.mini-carta .naipe, .slot .con-campeon, .slot .general, .slot .fantasy-slot, .versus-arte .clan, .versus-arte figcaption,
+  .versus-arte .vs, .versus-datos > *) { animation-play-state: paused; }
+@keyframes naipe-voltea { from { transform: rotateY(180deg) scale(.9); } 60% { transform: rotateY(-8deg) scale(1.04); } to { transform: none; } }
+/* La caja del fantasy va centrada con translateY(-50%): el golpe lo conserva */
+@keyframes naipe-fantasy { from { opacity: 0; transform: translateY(-50%) scale(.7); } to { opacity: 1; transform: translateY(-50%); } }
+
+/* Las curvas y los pasos que comparten las entradas del postdraft y de la pantalla final */
+#lienzo, #final { --entra-curva: cubic-bezier(.2, .8, .2, 1); --entra-golpe: cubic-bezier(.2, .9, .3, 1.35); }
+@keyframes entra-sube { from { opacity: 0; transform: translateY(18px); } }
+@keyframes entra-baja { from { opacity: 0; transform: translateY(-26px); } }
+@keyframes entra-aparece { from { opacity: 0; } }
+@keyframes entra-lado { from { opacity: 0; transform: translateX(var(--desde, -48px)); } }
+@keyframes entra-estampa { from { opacity: 0; transform: scale(1.9); } 60% { opacity: 1; } to { opacity: 1; transform: none; } }
+/* Un tubo de neón que prende: parpadea dos veces y se queda encendido */
+@keyframes entra-prende { 0% { opacity: 0; } 14% { opacity: 1; } 24% { opacity: .12; } 38% { opacity: 1; } 46% { opacity: .3; } 60%, 100% { opacity: 1; } }
+
 /* ---------- Pantalla final ---------- */
 .final-cabeza { position: absolute; top: 32px; left: 48px; right: 48px; height: 128px; display: grid; grid-template-columns: 1fr 424px 1fr; }
-.final-clan { position: relative; display: flex; align-items: center; gap: 22px; background: rgba(21, 22, 31, .94); overflow: hidden;
+.final-clan { position: relative; display: flex; align-items: center; gap: 22px; background: rgba(21, 22, 31, .94);
   box-shadow: inset 0 0 0 1px var(--sumi-linea), 0 14px 34px rgba(0, 0, 0, .45); }
 .final-clan.azul { padding: 0 40px 0 34px; --color-lado: var(--azul-lado); }
 .final-clan.rojo { padding: 0 34px 0 40px; --color-lado: var(--rojo-lado); }
@@ -304,16 +356,12 @@ body[data-vista="postdraft"] .versus { opacity: 1; visibility: visible; transiti
   box-shadow: 0 0 8px var(--color-lado), 0 0 22px var(--color-lado); }
 .final-clan.azul::before { left: 12px; }
 .final-clan.rojo::before { right: 12px; }
-.final-clan.gana { box-shadow: inset 0 0 0 1px var(--sumi-linea), 0 0 0 1px color-mix(in srgb, var(--color-lado) 60%, transparent), 0 0 30px color-mix(in srgb, var(--color-lado) 35%, transparent); }
 .final-clan .logo { width: 100px; height: 96px; object-fit: contain; flex: none; }
 .final-clan .quien { display: flex; flex-direction: column; flex: 1; min-width: 0; }
 .final-clan.rojo .quien { text-align: right; }
 .final-clan .nombre { font-family: var(--dela); font-size: 48px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .final-clan .resultado { font-size: 19px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--hai); min-height: 1.3em; }
 .final-clan.gana .resultado { color: var(--shu-neon); text-shadow: var(--neon-suave); }
-.final-clan.pierde .nombre, .final-clan.pierde .asesinatos { color: #8D8A99; }
-.final-clan.pierde .logo { opacity: .55; }
-.final-clan.pierde::before { opacity: .4; }
 .final-clan .asesinatos { font-family: var(--dela); font-size: 76px; line-height: 1; font-variant-numeric: tabular-nums; }
 .final-centro { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 .final-centro .arriba, .final-centro .abajo { font-size: 17px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--hai); line-height: 1.5; }
@@ -343,7 +391,6 @@ body[data-vista="postdraft"] .versus { opacity: 1; visibility: visible; transiti
 .final-jugador::after { content: ''; position: absolute; top: 14px; bottom: 14px; width: 3px; border-radius: 2px; background: var(--color-lado); box-shadow: 0 0 8px var(--color-lado); }
 .final-jugador.azul::after { left: 9px; }
 .final-jugador.rojo::after { right: 9px; }
-.final-jugador.mvp { box-shadow: inset 0 0 0 1.5px var(--shu-claro), 0 0 18px rgba(224, 48, 58, .45); }
 .final-jugador .retrato { position: relative; flex: none; width: 66px; height: 66px; background: var(--sumi); border-radius: 6px; }
 .final-jugador .retrato img { display: block; width: 100%; height: 100%; border-radius: 6px; }
 .final-jugador .retrato i { position: absolute; right: -6px; bottom: -5px; min-width: 22px; padding: 0 4px; font-style: normal; font-size: 13px; font-weight: 700;
@@ -414,6 +461,45 @@ body[data-vista="postdraft"] .versus { opacity: 1; visibility: visible; transiti
 .final-mvp.vacio::before { display: none; }
 .final-mvp.vacio img { width: 150px; height: 150px; object-fit: contain; }
 .final-mvp.vacio span { font-family: var(--pincel); font-size: 40px; color: var(--shu-neon); text-shadow: var(--neon); }
+
+/* ---------- Pantalla final · «Veredicto y MVP» (propuesta 06, unos 2,3 s) ----------
+   El halo de la familia que gana y el velo de la que pierde son capas aparte (::after), pintadas una vez: así la
+   entrada solo cambia su opacidad. El velo es lo que apaga a la que pierde (nombre, cifra, escudo y tubo) */
+.final-clan::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; }
+.final-clan.gana::after { opacity: 1; box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-lado) 60%, transparent), 0 0 30px color-mix(in srgb, var(--color-lado) 35%, transparent); }
+.final-clan.pierde::after { opacity: 1; background: rgba(12, 13, 19, .5); }
+/* La marca del MVP en su fila: el tubo bermellón por dentro, en una capa (overlay.js la pone en la fila del MVP) */
+.final-jugador > .marca-mvp { position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  box-shadow: inset 0 0 0 1.5px var(--shu-claro), inset 0 0 22px rgba(224, 48, 58, .35); }
+.mvp-carta { transform: rotate(3deg); }
+.final-fila:nth-child(2) { --fila: 1; } .final-fila:nth-child(3) { --fila: 2; } .final-fila:nth-child(4) { --fila: 3; } .final-fila:nth-child(5) { --fila: 4; }
+/* La entrada, al pasar a la pantalla final (overlay.js pone #final.veredicto; no al cargar ni con cada estado), en
+   orden: bajan las familias, entran las filas desde cada lado, VICTORIA prende como un tubo y la que pierde se apaga,
+   suben los totales y al final la placa del MVP, con su sello estampado, sus datos y su carta, que cae. Como el
+   postdraft: .espera la deja quieta en su primer fotograma y --retraso-entrada la retrasa entera */
+#final.veredicto .final-clan { animation: entra-baja .45s var(--entra-curva) both; animation-delay: var(--retraso-entrada, 0s); }
+#final.veredicto .final-clan.rojo { animation-delay: calc(var(--retraso-entrada, 0s) + .06s); }
+#final.veredicto .final-centro { animation: entra-aparece .4s ease both; animation-delay: calc(var(--retraso-entrada, 0s) + .15s); }
+#final.veredicto .final-columnas { animation: entra-aparece .3s ease both; animation-delay: calc(var(--retraso-entrada, 0s) + .3s); }
+#final.veredicto .final-jugador { --desde: -48px; animation: entra-lado .45s var(--entra-curva) both;
+  animation-delay: calc(var(--retraso-entrada, 0s) + .3s + var(--fila, 0) * .07s); }
+#final.veredicto .final-jugador.rojo { --desde: 48px; animation-delay: calc(var(--retraso-entrada, 0s) + .34s + var(--fila, 0) * .07s); }
+#final.veredicto .final-rol { animation: entra-aparece .3s ease both; animation-delay: calc(var(--retraso-entrada, 0s) + .4s + var(--fila, 0) * .07s); }
+#final.veredicto .final-clan.gana .resultado { animation: entra-prende .7s steps(1, end) both; animation-delay: calc(var(--retraso-entrada, 0s) + .75s); }
+#final.veredicto .final-clan.gana::after { animation: entra-aparece .5s ease both; animation-delay: calc(var(--retraso-entrada, 0s) + .85s); }
+#final.veredicto .final-clan.pierde::after { animation: entra-aparece .6s ease both; animation-delay: calc(var(--retraso-entrada, 0s) + .8s); }
+#final.veredicto .final-equipo { animation: entra-sube .45s var(--entra-curva) both; animation-delay: calc(var(--retraso-entrada, 0s) + .9s); }
+#final.veredicto .final-mvp { animation: mvp-sube .55s var(--entra-curva) both; animation-delay: calc(var(--retraso-entrada, 0s) + 1.1s); }
+#final.veredicto .final-jugador > .marca-mvp { animation: entra-prende .6s steps(1, end) both; animation-delay: calc(var(--retraso-entrada, 0s) + 1.35s); }
+#final.veredicto .mvp-texto .hanko { animation: entra-estampa .4s var(--entra-golpe) both; animation-delay: calc(var(--retraso-entrada, 0s) + 1.45s); }
+#final.veredicto .mvp-texto > b, #final.veredicto .mvp-texto small { animation: entra-sube .4s var(--entra-curva) both; animation-delay: calc(var(--retraso-entrada, 0s) + 1.5s); }
+#final.veredicto .mvp-datos { animation: entra-sube .4s var(--entra-curva) both; animation-delay: calc(var(--retraso-entrada, 0s) + 1.6s); }
+#final.veredicto .mvp-carta { animation: mvp-carta-cae .6s var(--entra-golpe) both; animation-delay: calc(var(--retraso-entrada, 0s) + 1.55s); }
+#final.veredicto.espera :is(.final-clan, .final-centro, .final-columnas, .final-jugador, .final-rol, .final-clan .resultado, .final-equipo, .final-mvp,
+  .marca-mvp, .mvp-texto .hanko, .mvp-texto > b, .mvp-texto small, .mvp-datos, .mvp-carta) { animation-play-state: paused; }
+#final.veredicto.espera .final-clan::after { animation-play-state: paused; }
+@keyframes mvp-sube { from { opacity: 0; transform: translateY(46px); } }
+@keyframes mvp-carta-cae { from { opacity: 0; transform: translateY(-40px) rotate(-10deg); } to { opacity: 1; transform: rotate(3deg); } }
 
 /* ---------- Código de directo ----------
    En el draft y el postdraft ocupa la franja de abajo (la tarjeta del último pick lo tapa mientras sale); en la
