@@ -5,11 +5,14 @@
 <title>Overlay REPLAY · Gokudō</title>
 <!-- Fuente de navegador de OBS (escena Repeticion), fondo transparente. El realizador la enciende justo antes del
      stinger de entrada y la apaga al salir; OBS la reinicia al encenderla, así que la animación sale cada vez.
-     Es el mismo cartel que la vista REPLAY de la web (public/overlay/replay.css de tenka-ichi, estilo Gokudō):
-     rótulo de neón compacto en la esquina, con 再 a pincel, REPLAY en Dela Gothic One y el sol en neón.
+     Es el mismo cartel que la vista REPLAY de la web (public/overlay/replay.css y replay.js de tenka-ichi, 13/11):
+     animación «REPLAY rebobinado». El cartel baja, 再 entra con un golpe, las letras de REPLAY entran de la Y a la R
+     (como una cinta que rebobina), el tubo de neón se enciende con parpadeo, tres flechas laten hacia atrás y una raya
+     cruza por abajo cada 6 s. Mide lo mismo que antes: unos 418×93 px en (24, 24).
      En la repetición solo se ve este cartel: el marcador no (Pacopepe, 08/11).
      ?retraso=0.80 espera esos segundos antes de entrar: lo que tarda el stinger de entrada en destapar la esquina del
-     cartel (la barrida sale hacia la derecha y deja libre esa esquina a los 0,75 s; herramientas/barrida). -->
+     cartel (la barrida sale hacia la derecha y deja libre esa esquina a los 0,75 s; herramientas/barrida).
+     Solo se animan transform y opacity. -->
 <style>
   /* Fuentes de Gokudō que vienen con el realizador (obs/fuentes, recortadas a lo que se usa; licencia OFL):
      no hace falta internet ni tenerlas instaladas */
@@ -25,41 +28,73 @@
   }
   html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
   body { font-synthesis: none; }
-  .cartel { position: absolute; left: 24px; top: 24px; display: grid; grid-template-columns: auto auto auto; align-items: center; gap: 12px;
-    padding: 12px 14px 12px 18px; border-radius: 8px; border: 1px solid var(--sumi-linea);
+
+  .cartel { position: absolute; left: 24px; top: 24px; display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px 12px 18px; border-radius: 8px; border: 1px solid var(--sumi-linea); overflow: hidden;
     background: linear-gradient(180deg, rgba(21, 22, 31, .96), rgba(12, 13, 19, .96));
-    outline: 2px solid var(--shu-claro); outline-offset: -7px;
-    box-shadow: 0 0 0 2px rgba(0, 0, 0, .6), 0 18px 50px rgba(0, 0, 0, .55), 0 0 26px rgba(224, 48, 58, .5), inset 0 0 22px rgba(224, 48, 58, .22);
-    animation: bajar .5s cubic-bezier(.2, .9, .25, 1.15) var(--retraso) both,
-      encender 1s steps(1, end) calc(var(--retraso) + .25s) both; }
-  .sello { font-family: var(--pincel); font-size: 58px; line-height: 1; color: var(--shu-neon);
-    text-shadow: 0 0 6px var(--shu-claro), 0 0 18px var(--shu), 0 0 40px var(--shu); }
-  .texto { display: flex; flex-direction: column; }
-  .palabra { font-family: var(--dela); font-weight: 400; font-size: 44px; line-height: 1.1; letter-spacing: .03em; color: #fff;
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, .6), 0 18px 50px rgba(0, 0, 0, .55);
+    animation: bajar .5s cubic-bezier(.2, .9, .25, 1.15) var(--retraso) both; }
+  /* El tubo de dentro: una capa con su halo pintado una vez; se enciende con opacity */
+  .tubo { position: absolute; inset: 6px; border-radius: 5px; pointer-events: none;
+    box-shadow: 0 0 0 2px var(--shu-claro), 0 0 18px rgba(224, 48, 58, .6), inset 0 0 18px rgba(224, 48, 58, .28);
+    animation: prende 1s steps(1, end) calc(var(--retraso) + .25s) both; }
+  .sello { position: relative; font-family: var(--pincel); font-size: 58px; line-height: 1; color: var(--shu-neon);
+    text-shadow: 0 0 6px var(--shu-claro), 0 0 18px var(--shu), 0 0 40px var(--shu);
+    animation: estampa .45s cubic-bezier(.2, .9, .3, 1.35) calc(var(--retraso) + .15s) both,
+      zumbido 4s ease-in-out calc(var(--retraso) + 1.4s) infinite; }
+  .texto { position: relative; display: flex; flex-direction: column; }
+  .palabra { display: flex; font-family: var(--dela); font-weight: 400; font-size: 44px; line-height: 1.1; letter-spacing: .03em; color: #fff;
     text-shadow: 0 2px 0 rgba(0, 0, 0, .5); }
+  /* El script parte REPLAY en una <i> por letra, con --j de 5 (la R) a 0 (la Y) */
+  .palabra i { display: inline-block; font-style: normal;
+    animation: rebobina .32s cubic-bezier(.2, .8, .2, 1) calc(var(--retraso) + .22s + var(--j, 0) * .05s) both; }
   .pie { margin-top: 2px; font-family: var(--gothic); font-weight: 700; font-size: 10.5px; letter-spacing: .22em; text-transform: uppercase;
-    color: var(--shu-neon); text-shadow: 0 0 10px var(--shu); }
-  /* El PNG del sol en neón lleva mucho margen para el halo: se agranda y se le come ese margen */
-  .sol { width: 92px; height: 92px; margin: -18px -18px -18px -14px; object-fit: contain; }
-  .sello, .sol { animation: zumbido 4s ease-in-out calc(var(--retraso) + 1.4s) infinite; }
+    color: var(--shu-neon); text-shadow: 0 0 10px var(--shu);
+    animation: aparece .35s ease calc(var(--retraso) + .6s) both; }
+  /* Tres flechas hacia atrás (triángulos con borde, sin imagen); laten de derecha a izquierda */
+  .flechas { position: relative; display: flex; gap: 3px; margin-left: 4px; }
+  .flechas i { width: 0; height: 0; border-style: solid; border-width: 11px 16px 11px 0;
+    border-color: transparent var(--shu-neon) transparent transparent; opacity: .2;
+    animation: flecha 1.05s linear calc(var(--retraso) + .7s + var(--j, 0) * .17s) infinite; }
+  /* La raya de la cinta: corre por debajo, entre el tubo y el filo */
+  .cinta { position: absolute; left: 14px; right: 14px; bottom: 3px; height: 2px; border-radius: 1px; background: var(--shu-claro);
+    transform-origin: 0 50%; transform: scaleX(0); opacity: .9;
+    animation: cinta 6s linear calc(var(--retraso) + .8s) infinite; }
+
   @keyframes bajar { from { opacity: 0; transform: translateY(-40px); } to { opacity: 1; transform: none; } }
   /* Un tubo que arranca: falla un par de veces y se queda encendido */
-  @keyframes encender {
-    0% { outline-color: transparent; } 12% { outline-color: var(--shu-claro); } 22% { outline-color: transparent; }
-    36% { outline-color: var(--shu-claro); } 44% { outline-color: transparent; } 58%, 100% { outline-color: var(--shu-claro); }
-  }
-  @keyframes zumbido { 0%, 100%, 48%, 52% { opacity: 1; } 50% { opacity: .8; } }
+  @keyframes prende { 0% { opacity: 0; } 14% { opacity: 1; } 24% { opacity: .12; } 38% { opacity: 1; } 46% { opacity: .3; } 60%, 100% { opacity: 1; } }
+  @keyframes estampa { from { opacity: 0; transform: scale(1.9); } 60% { opacity: 1; } to { opacity: 1; transform: none; } }
+  /* Cada letra llega desde la derecha: como entran de la Y a la R, la palabra se rebobina */
+  @keyframes rebobina { from { opacity: 0; transform: translateX(20px); } }
+  @keyframes aparece { from { opacity: 0; } }
+  @keyframes flecha { 0% { opacity: .2; } 18% { opacity: 1; } 55%, 100% { opacity: .2; } }
+  @keyframes cinta { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  @keyframes zumbido { 0%, 100%, 47%, 53% { opacity: 1; } 50% { opacity: .78; } }
 </style>
 </head>
 <body>
   <div class="cartel">
+    <i class="tubo"></i>
     <span class="sello" aria-hidden="true">再</span>
     <div class="texto"><b class="palabra">REPLAY</b><small class="pie">Gokudō · repetición</small></div>
-    <img class="sol" src="gokudo-neon.png" alt="">
+    <span class="flechas"><i style="--j:2"></i><i style="--j:1"></i><i style="--j:0"></i></span>
+    <i class="cinta"></i>
   </div>
   <script>
     const r = Number(new URLSearchParams(location.search).get('retraso'));
     if (location.search.includes('retraso') && Number.isFinite(r) && r >= 0) document.documentElement.style.setProperty('--retraso', `${r}s`);
+    // REPLAY en una <i> por letra, con --j de 5 (la R) a 0 (la Y): entran de la Y a la R, como una cinta que rebobina
+    const palabra = document.querySelector('.palabra');
+    const letras = [...palabra.textContent.trim()];
+    palabra.setAttribute('aria-label', letras.join(''));
+    palabra.replaceChildren(...letras.map((l, k) => {
+      const i = document.createElement('i');
+      i.textContent = l;
+      i.style.setProperty('--j', letras.length - 1 - k);
+      i.setAttribute('aria-hidden', 'true');
+      return i;
+    }));
   </script>
 </body>
 </html>
