@@ -522,3 +522,61 @@ body[data-vista="partida"] .codigo-directo .hanko, body[data-vista="final"] .cod
 body[data-vista="partida"] .codigo-texto small, body[data-vista="final"] .codigo-texto small { font-size: 16px; }
 body[data-vista="partida"] .codigo-texto b, body[data-vista="final"] .codigo-texto b { font-size: 38px; }
 body[data-vista="partida"] .codigo-cuenta, body[data-vista="final"] .codigo-cuenta { font-size: 19px; }
+
+/* =====================================================================================================
+   Entrada del draft: «Tubo que prende» (docs/capturas/gokudo/propuestas-animaciones, 01). Unos 1,4 s
+   overlay.js pone .entra en #lienzo al pasar a la vista draft (no al cargar la página) y la quita al acabar; cada
+   hueco lleva su --i. Bajan las placas de las familias, su tubo de neón arranca con dos fallos, los picks entran en
+   cascada desde cada lado (70 ms entre uno y otro) y al final crecen los bans. Solo transform y opacity: el halo de
+   cada tubo se pinta una vez y el parpadeo es su opacidad
+   ===================================================================================================== */
+#lienzo.entra .placa { animation: draft-baja .5s cubic-bezier(.2, .8, .2, 1) both; }
+#lienzo.entra .placa.rojo { animation-delay: .08s; }
+#lienzo.entra .placa::before { animation: tubo-prende .75s steps(1, end) .32s both; }
+#lienzo.entra .placa.rojo::before { animation-delay: .4s; }
+#lienzo.entra .placa .kanji-fondo { animation: draft-kanji 1s cubic-bezier(.2, .8, .2, 1) .3s both; }
+#lienzo.entra .placa.rojo .kanji-fondo { --desde: -30px; }
+#lienzo.entra .marcador { animation: draft-sube .5s cubic-bezier(.2, .8, .2, 1) .2s both; }
+#lienzo.entra .slot { animation: draft-lado .55s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(.35s + var(--i, 0) * .07s); }
+#lienzo.entra .picks.rojo .slot { --desde: 48px; }
+#lienzo.entra .slot .barra { animation: tubo-prende .6s steps(1, end) both; animation-delay: calc(.55s + var(--i, 0) * .07s); }
+#lienzo.entra .ban, #lienzo.entra .bans .hanko { animation: draft-crece .35s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(.95s + var(--i, 0) * .04s); }
+#lienzo.entra .kakemono { animation: draft-aparece .7s ease .6s both; }
+#lienzo.entra .franja { animation: draft-sube .45s cubic-bezier(.2, .8, .2, 1) 1.05s both; }
+@keyframes draft-baja { from { opacity: 0; transform: translateY(-26px); } }
+@keyframes draft-sube { from { opacity: 0; transform: translateY(18px); } }
+@keyframes draft-aparece { from { opacity: 0; } }
+@keyframes draft-lado { from { opacity: 0; transform: translateX(var(--desde, -48px)); } }
+@keyframes draft-crece { from { opacity: 0; transform: scale(.82); } }
+/* El kanji de la familia ya va centrado con translateY(-50%): la animación lo conserva */
+@keyframes draft-kanji { from { opacity: 0; transform: translate(var(--desde, 30px), -50%); } to { opacity: .14; transform: translateY(-50%); } }
+/* Un tubo que arranca: falla un par de veces y se queda encendido */
+@keyframes tubo-prende { 0% { opacity: 0; } 14% { opacity: 1; } 24% { opacity: .12; } 38% { opacity: 1; } 46% { opacity: .3; } 60%, 100% { opacity: 1; } }
+
+/* =====================================================================================================
+   Cambio de vista: «Telón de noche» (docs/capturas/gokudo/propuestas-animaciones, 02). 1,25 s
+   Entre el draft, el postdraft, la partida y la pantalla final sube una capa de noche lisa con el tubo bermellón en
+   los filos y 極道 en neón, se queda 0,3 s tapándolo todo (overlay.js cambia data-vista debajo) y sigue hacia arriba.
+   Mientras pasa, body.con-telon quita el fundido de las vistas: la de debajo cambia de golpe. No sale al cargar, con
+   ?vista= fija ni al entrar o salir de REPLAY. Solo se mueve con transform; fuera de su paso no se pinta
+   ===================================================================================================== */
+.telon { position: absolute; z-index: 40; top: 0; left: 0; width: 1920px; height: 1080px; background: var(--noche);
+  transform: translateY(102%); visibility: hidden; pointer-events: none; }
+.telon::before, .telon::after { content: ''; position: absolute; left: 0; right: 0; height: 4px; background: var(--shu-claro);
+  box-shadow: 0 0 8px #FF3B46, 0 0 26px var(--shu), 0 0 60px var(--shu-hondo); }
+.telon::before { top: 0; }
+.telon::after { bottom: 0; }
+.lema-telon { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center; }
+.lema-telon b { display: block; font-family: var(--pincel); font-weight: 400; font-size: 210px; line-height: 1; color: var(--shu-neon); text-shadow: var(--neon); }
+.lema-telon small { display: block; margin-top: 26px; font-size: 22px; font-weight: 700; letter-spacing: .4em; text-transform: uppercase; color: var(--hai); }
+.telon.pasa { visibility: visible; will-change: transform; animation: telon-pasa 1.25s both; }
+.telon.pasa .lema-telon b { animation: tubo-prende .5s steps(1, end) .3s both; }
+.telon.pasa .lema-telon small { animation: telon-aparece .3s ease .42s both; }
+@keyframes telon-pasa {
+  0% { transform: translateY(102%); animation-timing-function: cubic-bezier(.7, 0, .25, 1); }
+  36% { transform: translateY(0); }
+  60% { transform: translateY(0); animation-timing-function: cubic-bezier(.6, 0, .3, 1); }
+  100% { transform: translateY(-102%); }
+}
+@keyframes telon-aparece { from { opacity: 0; } }
+body.con-telon #lienzo, body.con-telon #final, body.con-telon .vista-partida, body.con-telon #replay { transition: none !important; }
