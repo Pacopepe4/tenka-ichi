@@ -38,6 +38,22 @@ export function copiar(desde, hasta, rel = '') {
   }
 }
 
+// Quita de «carpeta» lo que no está en «modelo» (lo que la versión nueva ya no trae), menos lo de este PC. Se hace
+// al final, cuando la copia ya ha ido bien: así un corte a medias nunca deja la instalación sin archivos (13/11: en
+// el PC 2, dentro de OneDrive, vaciar primero y copiar después la dejó rota).
+export function quitarSobrantes(carpeta, modelo, rel = '') {
+  for (const n of readdirSync(carpeta)) {
+    const r = rel ? `${rel}/${n}` : n;
+    if (preservado(r)) continue;
+    const ruta = join(carpeta, n);
+    const enModelo = join(modelo, n);
+    if (!existsSync(enModelo)) {
+      if (tienePreservado(r) && statSync(ruta).isDirectory()) quitarSobrantes(ruta, join(modelo, '__no_existe__'), r);
+      else rmSync(ruta, { recursive: true, force: true });
+    } else if (statSync(ruta).isDirectory() && statSync(enModelo).isDirectory()) quitarSobrantes(ruta, enModelo, r);
+  }
+}
+
 // Borra todo lo de la carpeta menos lo que es de este PC (y las carpetas que lo contienen)
 export function vaciar(carpeta, rel = '') {
   for (const n of readdirSync(carpeta)) {
@@ -89,28 +105,31 @@ export async function aplicar({ carpeta, papel, esperar, modo = 'actualizar', no
   const anterior = join(act, 'anterior');
   const respaldo = join(act, 'respaldo');
   try {
+    // Primero se guarda lo de ahora, luego se copia la otra versión ENCIMA (archivo a archivo, sin vaciar antes) y solo
+    // al final se quita lo que esa versión ya no trae: un corte en cualquier momento deja todos los archivos en su sitio
     if (modo === 'actualizar') {
       if (!existsSync(nueva)) throw new Error('no está la versión nueva');
       rmSync(anterior, { recursive: true, force: true });
       copiar(carpeta, anterior);
       log('versión de ahora guardada en .actualizacion/anterior');
-      vaciar(carpeta);
       copiar(nueva, carpeta);
+      log('versión nueva copiada encima');
+      quitarSobrantes(carpeta, nueva);
     } else {
       if (!existsSync(anterior)) throw new Error('no hay versión anterior');
       rmSync(respaldo, { recursive: true, force: true });
       copiar(carpeta, respaldo);
-      vaciar(carpeta);
       copiar(anterior, carpeta);
+      quitarSobrantes(carpeta, anterior);
       rmSync(anterior, { recursive: true, force: true });
     }
     log('archivos puestos');
   } catch (e) {
-    // Se deja como estaba
+    // Se deja como estaba: lo guardado se copia otra vez encima (tampoco se vacía nada)
     resultado.error = `no se han podido poner los archivos: ${e.message}`;
     log(resultado.error);
     const deVuelta = modo === 'actualizar' ? anterior : respaldo;
-    try { if (existsSync(deVuelta)) { vaciar(carpeta); copiar(deVuelta, carpeta); log('puesto otra vez lo de antes'); } } catch (e2) { log(`tampoco se ha podido volver: ${e2.message}`); }
+    try { if (existsSync(deVuelta)) { copiar(deVuelta, carpeta); quitarSobrantes(carpeta, deVuelta); log('puesto otra vez lo de antes'); } } catch (e2) { log(`tampoco se ha podido volver: ${e2.message}`); }
   }
   rmSync(nueva, { recursive: true, force: true });
   rmSync(join(act, 'nueva.zip'), { force: true });
@@ -120,6 +139,7 @@ export async function aplicar({ carpeta, papel, esperar, modo = 'actualizar', no
 
   // El instalador sin preguntar: LoL, OBS, ffmpeg, accesos directos… con lo guardado en este PC
   if (!resultado.error && instalar) {
+    log('pasando el instalador (LoL, OBS, accesos)...');
     try {
       const salida = execFileSync(node, [join(carpeta, 'instalar', 'instalar.js'), papel, '--actualizar'], { cwd: carpeta, encoding: 'utf8', windowsHide: true, timeout: 900000 });
       for (const l of salida.split(/\r?\n/)) {

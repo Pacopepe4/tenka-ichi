@@ -76,6 +76,8 @@ export function instalar({ papel, clave, ruta, emision = '', twitch = '', rutaLo
   if (!clave || clave.length < 4) throw new Error('La contraseña tiene que tener al menos 4 caracteres');
   const hechos = [];
   const avisos = [];
+  // Dentro de OneDrive la sincronización puede bloquear archivos a mitad de una actualización (13/11, PC 2)
+  if (/[\\/]onedrive/i.test(RAIZ)) avisos.push(`El realizador está dentro de OneDrive (${RAIZ}): mejor instalarlo fuera, por ejemplo en C:\\Realizador, para que las actualizaciones no se queden a medias`);
 
   // 1. opciones.local.json
   const actuales = existsSync(rutaLocal) ? JSON.parse(readFileSync(rutaLocal, 'utf8').replace(/^\uFEFF/, '')) : {};
