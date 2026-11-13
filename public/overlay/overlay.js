@@ -282,16 +282,58 @@ async function pedirPrevia(e) {
     if (estado) pintarFinal(estado);
   } catch { /* se vuelve a pedir con el siguiente estado */ }
   pidiendo = false;
+  soltarEntrada();
 }
+
+// ---------- Entradas del postdraft y de la pantalla final ----------
+// «Naipes del postdraft» y «Veredicto y MVP» (propuestas 04 y 06 de docs/capturas/gokudo/propuestas-animaciones/):
+// saltan al entrar en la vista, no con cada estado ni al cargar la página. #lienzo.naipes y #final.veredicto llevan
+// las animaciones (overlay.css). Se mira body[data-vista], la cambie quien la cambie. Si las estadísticas (/api/previa)
+// están en camino, la entrada espera quieta en su primer fotograma (.espera) a que lleguen, para que las cartas no se
+// den la vuelta vacías; como mucho, ESPERA_PREVIA ms. Al acabar se quita la clase: lo que se repinte después ya no anima
+const ENTRADAS = { postdraft: ['#lienzo', 'naipes'], final: ['#final', 'veredicto'] };
+const ESPERA_PREVIA = 1000;
+let entrada = null, vistaEntrada = document.body.dataset.vista;
+function lanzarEntrada(vista) {
+  pararEntrada();
+  if (!ENTRADAS[vista] || document.body.classList.contains('cargando')) return;
+  const [selector, clase] = ENTRADAS[vista];
+  entrada = { el: $(selector), clase, espera: null };
+  entrada.el.classList.add(clase, 'espera');
+  if (pidiendo) entrada.espera = setTimeout(soltarEntrada, ESPERA_PREVIA);
+  else soltarEntrada();
+}
+function soltarEntrada() {
+  const en = entrada;
+  if (!en || !en.el.classList.contains('espera')) return;
+  clearTimeout(en.espera);
+  en.el.classList.remove('espera');
+  const animaciones = en.el.getAnimations({ subtree: true }).filter(a => /^(entra|naipe|mvp)-/.test(a.animationName));
+  Promise.allSettled(animaciones.map(a => a.finished)).then(() => { if (entrada === en) pararEntrada(); });
+}
+function pararEntrada() {
+  if (!entrada) return;
+  clearTimeout(entrada.espera);
+  entrada.el.classList.remove(entrada.clase, 'espera');
+  entrada = null;
+}
+new MutationObserver(() => {
+  const vista = document.body.dataset.vista;
+  if (vista === vistaEntrada) return;
+  vistaEntrada = vista;
+  lanzarEntrada(vista);
+}).observe(document.body, { attributes: true, attributeFilter: ['data-vista'] });
 
 // La carta del jugador en el postdraft: la carta entera no se ve a ese tamaño (el dibujo queda oscuro bajo su velo y los
 // textos no caben), así que va su icono (public/cartas/mini/, scripts/hacer-mini-cartas.mjs) con la tier en una esquina
-// y el filo del color de la tier. Sin icono, el dibujo grande
+// y el filo del color de la tier. Sin icono, el dibujo grande. Va en un naipe con su reverso (極), que solo se ve en la
+// entrada del postdraft, cuando las cartas se dan la vuelta
 const TIER_CSS = t => (t === 'S+' ? 'SP' : String(t || '').replace(/[^A-Z]/gi, ''));
 function miniCartaHTML(c) {
   const k = c.tipo === 'legacy' ? 'LEGACY' : TIER_CSS(c.tier);
-  return `<div class="icono-carta" style="--color-tier: var(--tier-${k}, var(--hai))">
-    <img src="${escapar(c.mini || c.arte || '')}" alt=""><span class="tier-icono">${escapar(c.tipo === 'legacy' ? 'L' : c.tier)}</span></div>`;
+  return `<div class="naipe"><div class="icono-carta" style="--color-tier: var(--tier-${k}, var(--hai))">
+    <img src="${escapar(c.mini || c.arte || '')}" alt=""><span class="tier-icono">${escapar(c.tipo === 'legacy' ? 'L' : c.tier)}</span></div>
+    <div class="dorso" aria-hidden="true">極</div></div>`;
 }
 
 function pintarPostdraft() {
@@ -430,7 +472,8 @@ function pintarFinal(e) {
       const barra = dano == null ? '' : `<span class="dano-final${delRival != null && dano > delRival ? ' mejor' : ''}" style="--parte: ${relleno.toFixed(1)}%"><i></i><b>${miles(dano)}</b></span>`;
       caja.classList.toggle('mvp', esMvp);
       caja.style.backgroundImage = j?.campeon ? `url(${splash(j.campeon)})` : '';
-      caja.innerHTML = (lado === 'azul' ? `${quien}${cols.join('')}` : `${[...cols].reverse().join('')}${quien}`) + barra;
+      caja.innerHTML = (lado === 'azul' ? `${quien}${cols.join('')}` : `${[...cols].reverse().join('')}${quien}`) + barra
+        + (esMvp ? '<i class="marca-mvp"></i>' : '');
     }
   });
 
