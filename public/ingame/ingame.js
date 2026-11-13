@@ -5,11 +5,12 @@
 // enfrentamiento del panel (lado azul a la izquierda).
 // El aspecto es el estilo A de Gokudō («Placas», estilo-a.css, acotado a data-estilo="a" en <body>). Pacopepe se quedó con
 // él el 08/11 y la B se borró.
-import { cargarClanes, conectarDirecto, logo, icono, splash, definitiva, estadoDefinitiva, camaraPartida, ESCALA_LINEAS } from '/comun.js';
+import { cargarClanes, cargarCampeones, conectarDirecto, logo, icono, splash, definitiva, estadoDefinitiva, camaraPartida, ESCALA_LINEAS } from '/comun.js';
 import { cartaHTML } from '/carta.js';
 
 const $ = s => document.querySelector(s);
-const clanes = await cargarClanes();
+// Los campeones, solo para el nombre en el rótulo de la racha: si no cargan, se queda el id del campeón
+const [clanes, campeones] = await Promise.all([cargarClanes(), cargarCampeones().catch(() => ({ nombre: id => id || '' }))]);
 const params = new URLSearchParams(location.search);
 // ?guia=1 (o la vista previa del panel): los huecos de las cámaras salen rayados y con su medida, para colocarlas en OBS
 if (params.has('guia')) document.body.classList.add('guia');
@@ -23,9 +24,13 @@ const OBJETIVO = {
   larvas: { nombre: 'Larvas', kanji: '虫' },
   heraldo: { nombre: 'Heraldo', kanji: '使' },
   baron: { nombre: 'Barón', kanji: '蛇' },
+  // Estos dos no tienen temporizador: son el sello de su aviso (el inhibidor, 破 como en su módulo de caído)
+  torre: { nombre: 'Torre', kanji: '塔' },
+  inhibidor: { nombre: 'Inhibidor', kanji: '破' },
 };
 const ROL = { TOP: 'Top', JUNGLA: 'Jungla', MEDIO: 'Medio', ADC: 'ADC', SUPPORT: 'Support' };
-const DURACION_AVISO = 5000, DURACION_PELEA = 6500;
+// La racha (primera sangre y multikills) dura 2,6 s: 0,5 de entrada, 1,8 visible y 0,3 de salida
+const DURACION_AVISO = 5000, DURACION_PELEA = 6500, DURACION_RACHA = 2300;
 // Lo que tardan en salir las piezas (la animación de salida de ingame.css) y lo que dura el cambio de una cifra
 const SALIDA_MS = 420, CIFRA_MS = 550;
 
@@ -209,11 +214,21 @@ function pintarPartida() {
 }
 
 // ?demo=aviso,pelea en la dirección encola avisos de muestra al llegar la partida, para colocar el overlay en OBS
-// (o sacar capturas) sin esperar a que pase algo de verdad
+// (o sacar capturas) sin esperar a que pase algo de verdad. aviso es el dragón; objetivos, los cinco sellos (dragón,
+// heraldo, Barón, torre e inhibidor); primera, multi (triple) y penta, las rachas
 function encolarDemo() {
   const pedidos = (params.get('demo') || '').split(',').filter(Boolean);
+  const nombre = (i, lado) => partida?.lineas?.[i]?.[lado]?.nombre;
   if (pedidos.includes('aviso')) colaAvisos.push({ id: 'demo-aviso', tipo: 'dragon', lado: 'azul', dragon: 'infernal', t: 0 });
-  if (pedidos.includes('multi')) colaAvisos.push({ id: 'demo-multi', tipo: 'multi', lado: 'rojo', racha: 3, jugador: partida?.lineas?.[2]?.rojo?.nombre, t: 0 });
+  if (pedidos.includes('objetivos')) {
+    colaAvisos.push({ id: 'demo-dragon', tipo: 'dragon', lado: 'azul', dragon: 'infernal', t: 0 },
+      { id: 'demo-heraldo', tipo: 'heraldo', lado: 'rojo', t: 0 }, { id: 'demo-baron', tipo: 'baron', lado: 'azul', t: 0 },
+      { id: 'demo-torre', tipo: 'torre', lado: 'rojo', nivel: 'exterior', carril: 'bot', t: 0 },
+      { id: 'demo-inhibidor', tipo: 'inhibidor', lado: 'azul', carril: 'de medio', t: 0 });
+  }
+  if (pedidos.includes('primera')) colaAvisos.push({ id: 'demo-primera', tipo: 'primera', lado: 'azul', jugador: nombre(1, 'azul'), t: 0 });
+  if (pedidos.includes('multi')) colaAvisos.push({ id: 'demo-multi', tipo: 'multi', lado: 'rojo', racha: 3, jugador: nombre(2, 'rojo'), t: 0 });
+  if (pedidos.includes('penta')) colaAvisos.push({ id: 'demo-penta', tipo: 'multi', lado: 'azul', racha: 5, jugador: nombre(3, 'azul'), t: 0 });
   if (pedidos.includes('pelea')) {
     colaAvisos.push({ id: 'demo-pelea', tipo: 'pelea', lado: 'azul', t: 0, marcador: { azul: 3, rojo: 1 },
       destacado: { nombre: partida?.lineas?.[3]?.azul?.nombre, lado: 'azul', asesinatos: 2 } });
@@ -274,8 +289,9 @@ function pintarModulos() {
 }
 
 // ---------- avisos: objetivos, torres, primera sangre, multikills, aces y resumen de pelea ----------
-// Salen con el logo del clan; el color de la raya dice qué ha sido. Van en cola, de uno en uno: el resumen de
-// pelea usa su propia caja (los dos logos y el marcador de la pelea), pero espera su turno como los demás
+// Los objetivos salen con su kanji como sello y los demás con el logo del clan; el color dice qué ha sido. Van en cola,
+// de uno en uno: el resumen de pelea (los dos logos y el marcador de la pelea) y la racha (primera sangre y
+// multikills) usan su propia caja, pero esperan su turno como los demás
 const colaAvisos = [];
 let avisoActual = null, temporizadorAviso = null;
 const dragonDe = t => `dragón ${DRAGON[t] || ''}`.trim();
@@ -284,7 +300,6 @@ const jugadorDe = (lado, nombre) => {
   const i = (partida?.lineas || []).findIndex(l => l[lado]?.nombre === nombre);
   return (i >= 0 && estado?.equipos?.[lado]?.jugadores?.[i]) || nombre || '';
 };
-const MULTI = { 3: 'triple kill', 4: 'quadra kill', 5: 'pentakill' };
 const TEXTO_AVISO = {
   dragon: a => [`${a.robado ? 'roba' : 'se lleva'} el ${dragonDe(a.dragon)}`, COLOR_DRAGON[a.dragon] || COLOR_DRAGON.dragon],
   baron: a => [a.robado ? 'roba el Barón Nashor' : 'mata al Barón Nashor', '#9B59D0'],
@@ -293,22 +308,56 @@ const TEXTO_AVISO = {
   atakhan: () => ['derrota a Atakhan', '#BE2A2F'],
   torre: a => [a.nivel === 'del nexo' ? 'derriba una torre del nexo' : `derriba la torre ${a.nivel || ''} ${a.carril ? `de ${a.carril}` : ''}`.replace(/\s+/g, ' ').trim(), '#B5AC9C'],
   inhibidor: a => [`rompe el inhibidor ${a.carril || ''}`.trim(), 'var(--shu)'],
-  primera: a => [`primera sangre para ${jugadorDe(a.lado, a.jugador)}`, 'var(--shu)'],
-  multi: a => [a.racha >= 5 ? `¡pentakill de ${jugadorDe(a.lado, a.jugador)}!` : `${MULTI[a.racha] || 'multikill'} de ${jugadorDe(a.lado, a.jugador)}`, '#E8B04A'],
   ace: () => ['hace un ace', 'var(--shu)'],
 };
-const cajaDe = a => $(a.tipo === 'pelea' ? '.pelea' : '.aviso');
+// La primera sangre y los multikills van en su propia caja, la racha (en la misma cola). Va acotada a .arriba porque
+// .racha es también la clase del retrato en racha del línea por línea
+const esRacha = a => a?.tipo === 'primera' || a?.tipo === 'multi';
+const cajaDe = a => $(a.tipo === 'pelea' ? '.pelea' : esRacha(a) ? '.arriba > .racha' : '.aviso');
+const duracionDe = a => (a?.tipo === 'pelea' ? DURACION_PELEA : esRacha(a) ? DURACION_RACHA : DURACION_AVISO);
+// Sello de objetivo: los objetivos (los de OBJETIVO) llevan su kanji delante, en el color del objetivo, en lugar del
+// logo; los demás (Atakhan, ace) se quedan con el logo. La raya de abajo se vacía en lo que dura el aviso, menos el
+// medio segundo de la entrada
 function pintarAviso(a) {
   if (a.tipo === 'pelea') return pintarPelea(a);
+  if (esRacha(a)) return pintarRacha(a);
   const [frase, color] = (TEXTO_AVISO[a.tipo] || (() => ['', 'var(--shu)']))(a);
   const caja = $('.aviso');
-  caja.style.setProperty('--aviso', color);
+  variable(caja, '--aviso', color);
+  variable(caja, '--dur-aviso', `${(DURACION_AVISO - 500) / 1000}s`);
   const c = clanDe(a.lado);
-  caja.style.setProperty('--clan', c.color);
-  const img = caja.querySelector('.aviso-logo');
-  if (img.getAttribute('src') !== logo(c.id)) img.src = logo(c.id);
-  caja.querySelector('.aviso-quien').textContent = nombreClan(a.lado);
-  caja.querySelector('.aviso-que').textContent = frase;
+  variable(caja, '--clan', c.color);
+  variable(caja, '--clan-texto', c.texto);
+  const kanji = OBJETIVO[a.tipo]?.kanji || '';
+  const sello = caja.querySelector('.aviso-sello'), img = caja.querySelector('.aviso-logo');
+  if (sello.hidden !== !kanji) sello.hidden = !kanji;
+  if (img.hidden !== Boolean(kanji)) img.hidden = Boolean(kanji);
+  texto(sello.querySelector('b'), kanji);
+  src(img, logo(c.id));
+  texto(caja.querySelector('.aviso-quien'), nombreClan(a.lado));
+  texto(caja.querySelector('.aviso-que'), frase);
+  // Si el aviso que se ve vuelve a contar (las larvas), la raya empieza otra vez con el tiempo nuevo
+  for (const an of caja.querySelector('.aviso-tiempo').getAnimations()) an.currentTime = 0;
+}
+// Racha a pincel: 血 la primera sangre; 三, 四 y 五 los multikills, con una muesca por asesinato. En el penta, el sello late
+const RACHA = { 0: ['血', 'Primera sangre'], 3: ['三', 'Triple kill'], 4: ['四', 'Quadra kill'], 5: ['五', '¡Pentakill!'] };
+function pintarRacha(a) {
+  const caja = $('.arriba > .racha');
+  const n = a.tipo === 'multi' ? Math.min(5, Math.max(3, Number(a.racha) || 3)) : 0;
+  const [kanji, titulo] = RACHA[n];
+  clase(caja, n === 5 ? 'racha penta' : 'racha');
+  const c = clanDe(a.lado);
+  variable(caja, '--clan', c.color);
+  variable(caja, '--clan-texto', c.texto);
+  texto(caja.querySelector('.racha-kanji'), kanji);
+  texto(caja.querySelector('.racha-titulo'), titulo);
+  texto(caja.querySelector('.racha-jugador'), jugadorDe(a.lado, a.jugador));
+  texto(caja.querySelector('.racha-clan'), nombreClan(a.lado));
+  const j = (partida?.lineas || []).map(l => l[a.lado]).find(x => x && x.nombre === a.jugador);
+  texto(caja.querySelector('.racha-campeon'), j?.campeon ? campeones.nombre(j.campeon) : '');
+  const muescas = caja.querySelector('.muescas');
+  if (muescas.hidden !== !n) muescas.hidden = !n;
+  [...muescas.children].forEach((m, i) => clase(m, i < n ? 'llena' : ''));
 }
 function pintarPelea(a) {
   const caja = $('.pelea');
@@ -328,7 +377,7 @@ function programarSalida() {
   temporizadorAviso = setTimeout(() => {
     aparecer(cajaDe(avisoActual), false);
     temporizadorAviso = setTimeout(() => { avisoActual = null; siguienteAviso(); }, SALIDA_MS + 80);
-  }, avisoActual?.tipo === 'pelea' ? DURACION_PELEA : DURACION_AVISO);
+  }, duracionDe(avisoActual));
 }
 function siguienteAviso() {
   if (avisoActual || !colaAvisos.length) return;

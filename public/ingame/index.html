@@ -74,8 +74,20 @@
   <div class="modulos azul"></div>
   <div class="modulos rojo"></div>
 
-  <!-- Aviso de objetivo, torre, primera sangre, multikill o ace -->
-  <div class="aviso" hidden><img class="aviso-logo" alt=""><div class="aviso-texto"><b class="aviso-quien"></b><span class="aviso-que"></span></div></div>
+  <!-- Aviso de objetivo, torre, inhibidor o ace. Los objetivos llevan delante su kanji como sello (se estampa con una
+       onda del color del objetivo) en vez del logo; la raya de abajo se vacía con el tiempo que le queda al aviso -->
+  <div class="aviso" hidden><img class="aviso-logo" alt=""><span class="aviso-sello" hidden><i class="onda"></i><b></b></span><div class="aviso-texto"><b class="aviso-quien"></b><span class="aviso-que"></span></div><i class="aviso-tiempo"></i></div>
+
+  <!-- Racha a pincel: primera sangre y multikills, con su rótulo. El kanji (血, 三, 四, 五) cae como un sello, entra el
+       nombre y se encienden las muescas de la racha. Va en la misma cola que los avisos -->
+  <div class="racha" hidden>
+    <div class="racha-in">
+      <i class="racha-tubo"></i>
+      <span class="racha-kanji"></span>
+      <div class="racha-txt"><small class="racha-titulo"></small><b class="racha-jugador"></b><span><em class="racha-clan"></em><span class="racha-campeon"></span></span></div>
+      <span class="muescas"><i style="--i:0"></i><i style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i></span>
+    </div>
+  </div>
 
   <!-- Resumen de pelea: el marcador de la pelea por clan y, si lo hay, quien hizo dos asesinatos o más -->
   <div class="pelea" hidden>
