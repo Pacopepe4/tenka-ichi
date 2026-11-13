@@ -1,9 +1,12 @@
 /* REPLAY con el estilo Gokudō: la vista que lo quita todo y deja solo el cartel, arriba a la izquierda, sobre el vídeo
-   de la repetición. Es un rótulo de neón del callejón, como las alertas de Kick (public/alertas/): placa de noche con
-   filo fino, el tubo bermellón que se enciende con parpadeo, 再 a pincel con halo, REPLAY en Dela Gothic One y el sol
-   en neón. Sale desde el panel («Replay») o, como fuente propia de OBS en la escena de repetición, con
-   /overlay/?vista=replay (?retraso=1.3 espera esos segundos antes de entrar: lo que tarda en abrirse el stinger).
-   Solo se animan transform, opacity y outline. */
+   de la repetición. Es un rótulo de neón del callejón: placa de noche con filo fino, el tubo bermellón que se enciende
+   con parpadeo, 再 a pincel con halo y REPLAY en Dela Gothic One. Sale desde el panel («Replay») o, como fuente propia
+   de OBS en la escena de repetición, con /overlay/?vista=replay (?retraso=1.3 espera esos segundos antes de entrar: lo
+   que tarda en abrirse el stinger).
+   Animación «REPLAY rebobinado» (la 07 de docs/capturas/gokudo/propuestas-animaciones): el cartel baja, las letras de
+   REPLAY entran al revés (de la Y a la R, como una cinta que rebobina), tres flechas laten hacia atrás y una raya fina
+   corre por debajo mientras dura la repetición. Entrada de 0,9 s; las flechas y la raya, en bucle.
+   Solo se animan transform y opacity: el tubo es una capa con su halo pintado una vez que parpadea con opacity. */
 #replay { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; pointer-events: none;
   opacity: 0; visibility: hidden; transition: opacity .3s ease, visibility 0s .3s; }
 body[data-vista="replay"] #replay { opacity: 1; visibility: visible; transition: opacity .01s, visibility 0s; }
@@ -13,33 +16,54 @@ body[data-vista="replay"] .codigo-directo { display: none; }
 
 /* En las repeticiones solo queda este cartel: el marcador de la partida se quita (Pacopepe, 08/11). Va compacto y pegado
    a la esquina, porque así «está bien de grande»: mide unos 416×93 px y acaba hacia x 440. Si algún día conviviera con
-   el marcador, tampoco lo taparía (la placa azul empieza hacia x 465 con el estilo B y x 491 con el A) */
-.replay-cartel { position: absolute; left: 24px; top: 24px; display: grid; grid-template-columns: auto auto auto; align-items: center; gap: 12px;
-  padding: 12px 14px 12px 18px; border-radius: 8px; border: 1px solid var(--sumi-linea);
+   el marcador, tampoco lo taparía (la placa azul empieza hacia x 465 con el estilo B y x 491 con el A).
+   Las flechas ocupan el sitio que tenía el sol en neón, así que mide lo mismo que antes */
+.replay-cartel { position: absolute; left: 24px; top: 24px; display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px 12px 18px; border-radius: 8px; border: 1px solid var(--sumi-linea); overflow: hidden;
   background: linear-gradient(180deg, rgba(21, 22, 31, .96), rgba(12, 13, 19, .96));
-  outline: 2px solid var(--shu-claro); outline-offset: -7px;
-  box-shadow: 0 0 0 2px rgba(0, 0, 0, .6), 0 18px 50px rgba(0, 0, 0, .55), 0 0 26px rgba(224, 48, 58, .5), inset 0 0 22px rgba(224, 48, 58, .22); }
-.replay-sello { font-family: var(--pincel); font-size: 58px; line-height: 1; color: var(--shu-neon); text-shadow: 0 0 6px var(--shu-claro), 0 0 18px var(--shu), 0 0 40px var(--shu); }
-.replay-texto { display: flex; flex-direction: column; }
-.replay-palabra { font-family: var(--dela); font-weight: 400; font-size: 44px; line-height: 1.1; letter-spacing: .03em; color: #fff;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, .6), 0 18px 50px rgba(0, 0, 0, .55); }
+/* El tubo de dentro: una capa con su halo pintado una vez; se enciende con opacity (antes se animaba outline-color,
+   que repinta el cartel en cada fotograma del parpadeo) */
+.replay-tubo { position: absolute; inset: 6px; border-radius: 5px; pointer-events: none;
+  box-shadow: 0 0 0 2px var(--shu-claro), 0 0 18px rgba(224, 48, 58, .6), inset 0 0 18px rgba(224, 48, 58, .28); }
+.replay-sello { position: relative; font-family: var(--pincel); font-size: 58px; line-height: 1; color: var(--shu-neon);
+  text-shadow: 0 0 6px var(--shu-claro), 0 0 18px var(--shu), 0 0 40px var(--shu); }
+.replay-texto { position: relative; display: flex; flex-direction: column; }
+.replay-palabra { display: flex; font-family: var(--dela); font-weight: 400; font-size: 44px; line-height: 1.1; letter-spacing: .03em; color: #fff;
   text-shadow: 0 2px 0 rgba(0, 0, 0, .5); }
+/* replay.js parte REPLAY en una <i> por letra, con --j de 5 (la R) a 0 (la Y) */
+.replay-palabra i { display: inline-block; font-style: normal; }
 .replay-pie { margin-top: 2px; font-family: var(--gothic); font-weight: 700; font-size: 10.5px; letter-spacing: .22em; text-transform: uppercase;
   color: var(--shu-neon); text-shadow: 0 0 10px var(--shu); }
-/* El PNG del sol en neón lleva mucho margen para el halo: se agranda y se le come ese margen */
-.replay-sol { width: 92px; height: 92px; margin: -18px -18px -18px -14px; object-fit: contain; }
+/* Tres flechas hacia atrás (triángulos con borde, sin imagen); laten de derecha a izquierda */
+.replay-flechas { position: relative; display: flex; gap: 3px; margin-left: 4px; }
+.replay-flechas i { width: 0; height: 0; border-style: solid; border-width: 11px 16px 11px 0;
+  border-color: transparent var(--shu-neon) transparent transparent; opacity: .2; }
+/* La raya de la cinta: corre por debajo, entre el tubo y el filo */
+.replay-cinta { position: absolute; left: 14px; right: 14px; bottom: 3px; height: 2px; border-radius: 1px; background: var(--shu-claro);
+  transform-origin: 0 50%; transform: scaleX(0); opacity: .9; }
 
 /* Hasta que entra, no se ve nada (así no parpadea el cartel entero antes de empezar la animación) */
 .replay-cartel:not(.entra) { opacity: 0; }
-.replay-cartel.entra { animation: replay-bajar .5s cubic-bezier(.2, .9, .25, 1.15) var(--retraso, 0s) both,
-  replay-encender 1s steps(1, end) calc(var(--retraso, 0s) + .25s) both; }
-.replay-cartel.entra .replay-sello, .replay-cartel.entra .replay-sol { animation: replay-zumbido 4s ease-in-out calc(var(--retraso, 0s) + 1.4s) infinite; }
+.replay-cartel.entra { animation: replay-bajar .5s cubic-bezier(.2, .9, .25, 1.15) var(--retraso, 0s) both; }
+.replay-cartel.entra .replay-tubo { animation: replay-prende 1s steps(1, end) calc(var(--retraso, 0s) + .25s) both; }
+.replay-cartel.entra .replay-sello { animation: replay-estampa .45s cubic-bezier(.2, .9, .3, 1.35) calc(var(--retraso, 0s) + .15s) both,
+  replay-zumbido 4s ease-in-out calc(var(--retraso, 0s) + 1.4s) infinite; }
+.replay-cartel.entra .replay-palabra i { animation: replay-rebobina .32s cubic-bezier(.2, .8, .2, 1) calc(var(--retraso, 0s) + .22s + var(--j, 0) * .05s) both; }
+.replay-cartel.entra .replay-pie { animation: replay-aparece .35s ease calc(var(--retraso, 0s) + .6s) both; }
+.replay-cartel.entra .replay-flechas i { animation: replay-flecha 1.05s linear calc(var(--retraso, 0s) + .7s + var(--j, 0) * .17s) infinite; }
+.replay-cartel.entra .replay-cinta { animation: replay-cinta 6s linear calc(var(--retraso, 0s) + .8s) infinite; }
+
 @keyframes replay-bajar { from { opacity: 0; transform: translateY(-40px); } to { opacity: 1; transform: none; } }
 /* Un tubo que arranca: falla un par de veces y se queda encendido */
-@keyframes replay-encender {
-  0% { outline-color: transparent; } 12% { outline-color: var(--shu-claro); } 22% { outline-color: transparent; }
-  36% { outline-color: var(--shu-claro); } 44% { outline-color: transparent; } 58%, 100% { outline-color: var(--shu-claro); }
-}
-@keyframes replay-zumbido { 0%, 100%, 48%, 52% { opacity: 1; } 50% { opacity: .8; } }
+@keyframes replay-prende { 0% { opacity: 0; } 14% { opacity: 1; } 24% { opacity: .12; } 38% { opacity: 1; } 46% { opacity: .3; } 60%, 100% { opacity: 1; } }
+@keyframes replay-estampa { from { opacity: 0; transform: scale(1.9); } 60% { opacity: 1; } to { opacity: 1; transform: none; } }
+/* Cada letra llega desde la derecha: como entran de la Y a la R, la palabra se rebobina */
+@keyframes replay-rebobina { from { opacity: 0; transform: translateX(20px); } }
+@keyframes replay-aparece { from { opacity: 0; } }
+@keyframes replay-flecha { 0% { opacity: .2; } 18% { opacity: 1; } 55%, 100% { opacity: .2; } }
+@keyframes replay-cinta { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes replay-zumbido { 0%, 100%, 47%, 53% { opacity: 1; } 50% { opacity: .78; } }
 @media (prefers-reduced-motion: reduce) {
-  .replay-cartel.entra, .replay-cartel.entra * { animation-duration: .01s !important; animation-delay: 0s !important; }
+  .replay-cartel.entra, .replay-cartel.entra * { animation-duration: .01s !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; }
 }
