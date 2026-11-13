@@ -70,6 +70,16 @@ export class Actualizador extends EventEmitter {
     Object.assign(this, { papel, o, raiz, ocupado, salir, bajar, registrar, abrirZip, cadaMinutos });
     this.act = join(raiz, CARPETA_ACT);
     this.estado = { ...versionInstalada(raiz), nueva: null, fase: 'nada', error: null, anterior: existsSync(join(this.act, 'anterior')), resultado: this.leerResultado() };
+    // Una versión bajada que no se llegó a aplicar (13/11: el lanzador no pudo pasar el aplicador): se dice en el
+    // panel y se limpia, para que el botón vuelva a funcionar desde cero
+    const bajada = versionInstalada(join(this.act, 'nueva'));
+    if (bajada.version && bajada.version !== this.estado.version && !existsSync(join(this.act, 'pendiente.json'))) {
+      this.estado.resultado = {
+        ok: false, modo: 'actualizar', hora: new Date().toISOString(), version: this.estado.version, avisos: [],
+        error: `la versión ${bajada.version} se bajó pero no se llegó a aplicar (mira partidas/arranque-${papel}.log). Pulsa Actualizar otra vez; si vuelve a pasar, cierra el realizador y ábrelo con el acceso del escritorio antes de actualizar`,
+      };
+      try { rmSync(join(this.act, 'nueva'), { recursive: true, force: true }); rmSync(join(this.act, 'nueva.zip'), { force: true }); } catch { /* se queda */ }
+    }
   }
 
   leerResultado() {
