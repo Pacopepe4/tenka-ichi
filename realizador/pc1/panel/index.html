@@ -202,6 +202,7 @@
         <button class="repetir" id="repetir" disabled>⟲ Repetir la última jugada</button>
         <div><h2>Estado</h2><div class="luces" id="luces"></div></div>
         <div class="sub">OBS está en la bandeja, junto al reloj: un clic en su icono si hace falta tocar algo a mano.</div>
+        <button id="capturaJuego" title="Guarda la imagen del LoL a tamaño completo, sin overlay, para cuadrar el marco del minimapa">Captura para el marco del minimapa</button>
       </section>
     </div>
     <div class="directo">
@@ -625,6 +626,13 @@
   };
   $('repetir').onclick = () => mandar('/repetir', {});
   $('abrirObs').onclick = () => mandar('/obs', {});
+  $('capturaJuego').onclick = async () => {
+    try {
+      const d = await (await fetch('/captura-juego', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).json();
+      if (!d.ok) aviso(d.error || 'No se pudo');
+      else aviso(`Guardada en ${d.ruta}: pásasela al hilo del realizador`);
+    } catch { aviso('No se pudo hablar con el realizador'); }
+  };
 
   // ---------- App: versión, actualizar, volver atrás y cerrar ----------
   let actualizando = false;

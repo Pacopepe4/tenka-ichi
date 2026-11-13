@@ -198,7 +198,8 @@ export function crearColeccion({ escenas, fuenteRepeticion, fuenteResumen = 'Res
     escena(escenas.juego, conAlertas([[juego], ...(fMinimapa ? [[fMinimapa]] : []), [marcador]])),
     // En la repetición solo el cartel REPLAY: el marcador se quita (Pacopepe, 08/11)
     // (ni siquiera las alertas: solo el clip y el cartel)
-    escena(escenas.repeticion, [[clip], [rRepeticion, recursos ? { x: 0, y: 0, w: ANCHO, h: ALTO, oculto: true } : { x: 220, y: 80 }]]),
+    // El marco del minimapa también: el clip limpio del LoL lleva el minimapa en el mismo sitio (14/11: se quitaba)
+    escena(escenas.repeticion, [[clip], ...(fMinimapa ? [[fMinimapa]] : []), [rRepeticion, recursos ? { x: 0, y: 0, w: ANCHO, h: ALTO, oculto: true } : { x: 220, y: 80 }]]),
     escena(escenas.casters, conAlertas([[fondo], [camara], [rCasters, { x: ANCHO / 2, y: 980 }]])),
     escena(escenas.pausa, conAlertas([[fondo], [rPausa, { x: ANCHO / 2, y: ALTO / 2 }]])),
     escena(escenas.draft || 'Draft', conAlertas([[fondo], ...camarasDraft.map((c, i) => [c, { ...huecos[i], oculto: true }]), [marcador]])),

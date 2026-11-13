@@ -115,6 +115,14 @@ export class Cerebro {
     return j;
   }
 
+  adelantar(j, segundos) {
+    const inicio = Math.max(0, j.primerT - segundos);
+    if (inicio >= j.inicio) return;
+    const antes = j.inicio;
+    j.inicio = inicio;
+    if (j.focos[0] && j.focos[0].t === antes) j.focos[0] = { ...j.focos[0], t: inicio };
+  }
+
   sumar(j, e) {
     j.eventos.push({ id: e.id, nombre: e.nombre, t: e.t, asesino: e.asesino?.campeon || null, victima: e.victima?.campeon || null });
     j.ultimoT = Math.max(j.ultimoT, e.t);
@@ -136,6 +144,9 @@ export class Cerebro {
     this.sumar(j, e);
     j.muertes++;
     if (j.tipo === 'muerte' && (j.muertes >= 2 || Object.keys(j.campeones).length >= 3)) j.tipo = 'pelea';
+    // Una pelea empieza bastante antes de su primera muerte (se pegan antes de matar): con 2 minutos de margen se
+    // llega antes (reglas.anticipacionPelea, 12 s) y el primer plano empieza también ahí (14/11: llegaba justo)
+    if (j.tipo === 'pelea') this.adelantar(j, this.r.anticipacionPelea ?? this.r.anticipacion);
     // Si cae el campeón al que seguimos, la cámara pasa al implicado vivo que más ha participado
     const actual = j.focos.at(-1)?.quien;
     if (actual && e.victima && actual.campeon === e.victima.campeon) {
@@ -253,9 +264,22 @@ export class Cerebro {
   // objetivo si en los siguientes segundos no pasa nada más). «conocidoHasta»: hasta qué segundo se sabe lo
   // que pasa; un zoom in no se decide sin haber visto la calma que viene después.
   planificar(desde, conocidoHasta = Infinity) {
-    const base = this.planificarSinZoom(desde).map(p => ({ ...p, zoom: p.tipo === 'general' ? 'general' : 'abierto' }));
+    const base = this.planificarSinZoom(desde).map(p => ({ ...p, zoom: p.tipo === 'general' ? 'general' : this.zoomJugada(p.jugada) }));
     return juntar(this.ponerCerca(base, conocidoHasta))
       .map(p => ({ ...p, id: `p${Math.round(p.inicio * 10)}-${p.jugada || 'g'}${p.zoom === 'cerca' ? 'c' : ''}`, inicio: red(p.inicio), fin: p.fin === null ? null : red(p.fin) }));
+  }
+
+  // Zoom de seguir según cuánta gente hay en la jugada (14/11: «si participan muchos tiende a ampliarse la zona de
+  // acción; si participan pocos, a reducirse»): reglas.zoomPelea { muchos: 6, pocos: 2 }. Con muchos, el más abierto
+  // (general, sin soltar al seguido); con pocos, cerca; si no, el de siempre.
+  zoomJugada(id) {
+    const zp = this.r.zoomPelea;
+    const j = id ? this.jugadas.find(x => x.id === id) : null;
+    if (!j || !zp || zp.activo === false) return 'abierto';
+    const n = Object.keys(j.campeones).length;
+    if (n >= (zp.muchos ?? 6)) return 'general';
+    if (n > 0 && n <= (zp.pocos ?? 2) && j.tipo !== 'objetivo') return 'cerca';
+    return 'abierto';
   }
 
   // Momentos de zoom in: una muerte o un objetivo hecho por un campeón, que se está emitiendo, y tras el que

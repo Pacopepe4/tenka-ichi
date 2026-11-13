@@ -5,6 +5,7 @@
 //  - Si deja de oír al PC 1, pasa a modo degradado: suelta la cámara y no hace nada más hasta que vuelva.
 // Arranque: npm run rele
 import http from 'node:http';
+import { spawn } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { cargarOpciones } from '../comun/opciones.js';
 import { pedirJSON, leerCuerpo, responder } from '../comun/http.js';
@@ -186,6 +187,24 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
     });
     registrar(`[obs] repetición de ${jugada} a mano desde el panel${ultimaLimpia ? ' (clip limpio del LoL)' : ' (clip de OBS)'}`);
   }
+  // Captura del juego a tamaño completo (sin overlay ni marco) para cuadrar el marco del minimapa (14/11): se guarda en
+  // partidas/captura-juego-<hora>.png y se abre la carpeta con el archivo marcado para pasarlo
+  async function capturaJuego() {
+    if (!obs?.listo) throw new Error('OBS no está conectado');
+    const r = await obs.pedir('GetSourceScreenshot', { sourceName: 'Juego LoL', imageFormat: 'png', imageWidth: 1920, imageHeight: 1080 });
+    const datos = Buffer.from(String(r.imageData || '').replace(/^data:image\/\w+;base64,/, ''), 'base64');
+    if (datos.length < 1000) throw new Error('OBS no ha dado la imagen del juego: ¿está el LoL abierto en partida?');
+    const carpeta = join(o.registro?.raiz || RAIZ, o.registro?.carpeta || 'partidas');
+    mkdirSync(carpeta, { recursive: true });
+    const ruta = join(carpeta, `captura-juego-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.png`);
+    writeFileSync(ruta, datos);
+    registrar(`[obs] captura del juego para el marco del minimapa: ${ruta}`);
+    if (process.platform === 'win32') {
+      try { spawn('explorer.exe', [`/select,${ruta}`], { detached: true, stdio: 'ignore' }).unref(); } catch { /* sin explorador */ }
+    }
+    return { ruta };
+  }
+
   // Imagen de lo que sale (si no hay cámara virtual): pequeña y como mucho unas pocas por segundo
   let ultimaCaptura = { hora: 0, img: null };
   async function capturaObs() {
@@ -823,6 +842,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
           repetir: () => repetirUltima(),
           obs: () => botonObs(),
           captura: () => capturaObs(),
+          capturaJuego: () => capturaJuego(),
         });
       }
       servidor.listen(puerto, '0.0.0.0');
