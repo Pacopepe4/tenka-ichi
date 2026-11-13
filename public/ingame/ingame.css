@@ -15,6 +15,7 @@ body { font-family: var(--gothic); color: var(--washi); font-variant-numeric: ta
   --t-rapido: .22s; --t-medio: .45s; --t-lento: .7s;
   --curva: cubic-bezier(.2, .8, .2, 1);          /* entradas: arranca rápido y frena suave */
   --curva-salida: cubic-bezier(.5, 0, .75, 0);   /* salidas: se va acelerando */
+  --golpe: cubic-bezier(.2, .9, .3, 1.35);       /* sellos que se estampan: se pasa un poco y vuelve */
   /* Gokudō: el oro #EBD28A (obs-gokudo.css) queda para Shinigami; las cifras de oro van en washi */
   --tinta: rgba(12, 13, 19, .92);
 }
@@ -100,14 +101,55 @@ body.oculto .sello::before, body.oculto .retrato::before { animation-play-state:
 .modulos.rojo .modulo { --desde: 14px; }
 
 /* ---------- Avisos y resumen de pelea (debajo de los temporizadores) ---------- */
-.aviso { position: absolute; top: 172px; left: 50%; display: flex; align-items: center; gap: 14px; width: 420px;
+/* Sello de objetivo: el aviso baja (0,45 s), el kanji se estampa (0,12 → 0,54 s), la onda crece y se apaga, el texto
+   entra de lado y la raya del tiempo se vacía desde el medio segundo hasta que se va (salida de 0,35 s). La onda es un
+   aro pintado una vez que solo cambia de escala y opacidad; la raya, un scaleX */
+.aviso { position: absolute; top: 172px; left: 50%; display: flex; align-items: center; gap: 18px; width: 470px; overflow: hidden;
   transform: translateX(-50%); animation: avisoEntra var(--t-medio) var(--curva) both; }
-.aviso.sale { animation: avisoSale var(--t-medio) var(--curva-salida) both; }
+.aviso.sale { animation: avisoSale .35s var(--curva-salida) both; }
 .aviso-logo { width: 52px; height: 50px; object-fit: contain; flex: none; }
-.aviso .aviso-texto { display: flex; flex-direction: column; min-width: 0; }
+.aviso-sello { position: relative; flex: none; width: 64px; height: 64px; }
+.aviso-sello b { position: absolute; inset: 0; display: grid; place-items: center; animation: estampa .42s var(--golpe) .12s both; }
+.aviso-sello .onda { position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px; opacity: 0;
+  animation: onda .7s cubic-bezier(.2, .7, .3, 1) .3s both; }
+.aviso .aviso-texto { display: flex; flex-direction: column; min-width: 0; animation: desdeLado .4s var(--curva) .22s both; --desde: -14px; }
 .aviso-quien { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.aviso-tiempo { position: absolute; left: 14px; right: 14px; bottom: 4px; height: 3px; transform-origin: 0 50%;
+  animation: vacia var(--dur-aviso, 4.5s) linear .5s both; }
 @keyframes avisoEntra { from { opacity: 0; transform: translate(-50%, -16px) scale(.96); } }
 @keyframes avisoSale { to { opacity: 0; transform: translate(-50%, -12px) scale(.98); } }
+@keyframes estampa { from { opacity: 0; transform: scale(1.9); } 60% { opacity: 1; } to { opacity: 1; transform: none; } }
+@keyframes onda { from { opacity: .9; transform: scale(.9); } to { opacity: 0; transform: scale(2.3); } }
+@keyframes vacia { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+@keyframes desdeLado { from { opacity: 0; transform: translateX(var(--desde, -48px)); } }
+
+/* Racha a pincel (primera sangre y multikills), 2,6 s: la caja baja (0,34 s), el kanji cae girado como un sello
+   (0,1 → 0,55 s) y la caja tiembla al recibirlo (7 px, 0,24 s, una sola capa); entra el nombre y se encienden las
+   muescas en cascada. En el penta, el aro del sello (pintado una vez) late dos veces en opacidad. Sale en 0,3 s.
+   Acotada a .arriba: .racha es también la clase del retrato en racha del línea por línea */
+.arriba > .racha { position: absolute; top: 196px; left: 50%; width: 700px; margin-left: -350px;
+  animation: rachaEntra .34s cubic-bezier(.2, .9, .25, 1.15) both; }
+.arriba > .racha.sale { animation: rachaSale .3s var(--curva-salida) both; }
+.racha-in { position: relative; display: flex; align-items: center; gap: 26px; height: 132px; padding: 0 34px 0 22px; overflow: hidden;
+  animation: temblor .24s linear .42s both; }
+.racha-in::before { content: ''; position: absolute; inset: 0; pointer-events: none; }
+.racha-tubo { position: absolute; left: 18px; right: 18px; bottom: 0; height: 4px; animation: tuboAbre .45s var(--curva) .08s both; }
+.racha-kanji { position: relative; flex: none; width: 112px; height: 112px; display: grid; place-items: center; animation: golpeKanji .45s var(--golpe) .1s both; }
+.racha-kanji::after { content: ''; position: absolute; inset: -6px; opacity: 0; }
+.arriba > .racha.penta .racha-kanji::after { animation: latidoPenta .9s ease-in-out .6s 2 both; }
+.racha-txt { position: relative; display: flex; flex-direction: column; flex: 1; min-width: 0; animation: desdeLado .4s var(--curva) .32s both; --desde: 22px; }
+.racha-jugador, .racha-txt > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.racha-campeon:not(:empty)::before { content: ' · '; }
+.muescas { position: relative; display: flex; gap: 8px; flex: none; }
+.muescas i { width: 16px; height: 40px; }
+.muescas i.llena { animation: muesca .35s var(--golpe) both; animation-delay: calc(.55s + var(--i) * .08s); }
+@keyframes rachaEntra { from { opacity: 0; transform: translateY(-14px) scale(.94); } }
+@keyframes rachaSale { to { opacity: 0; transform: translateY(-12px) scale(.98); } }
+@keyframes golpeKanji { from { opacity: 0; transform: scale(2.4) rotate(-8deg); } 55% { opacity: 1; } to { opacity: 1; transform: none; } }
+@keyframes temblor { 0%, 100% { transform: none; } 20% { transform: translateX(-7px); } 45% { transform: translateX(6px); } 70% { transform: translateX(-3px); } }
+@keyframes tuboAbre { from { transform: scaleX(0); } }
+@keyframes muesca { from { opacity: 0; transform: scale(1.6); } }
+@keyframes latidoPenta { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
 .pelea { position: absolute; top: 172px; left: 50%; display: flex; flex-direction: column; align-items: center; width: 460px;
   transform: translateX(-50%); animation: avisoEntra var(--t-medio) var(--curva) both; }
 .pelea.sale { animation: avisoSale var(--t-medio) var(--curva-salida) both; }

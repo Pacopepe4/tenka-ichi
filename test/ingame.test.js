@@ -358,3 +358,29 @@ test('la gráfica de oro sale en el mismo hueco que el línea por línea, y solo
   assert.ok(html.includes('viewBox="0 0 1560 344"') && css.includes('.grafica-svg { display: block; width: 1560px; height: 344px; }'));
   assert.ok(!html.includes('estilo-b.css'), 'la B ya no se carga');
 });
+
+test('sello de objetivo y racha a pincel: kanji de cada objetivo, su propia caja y solo transform y opacity', () => {
+  const css = leerRepo('public/ingame/ingame.css'), estilo = leerRepo('public/ingame/estilo-a.css');
+  const html = leerRepo('public/ingame/index.html'), js = leerRepo('public/ingame/ingame.js');
+  // Los kanji de los objetivos, con los de torre e inhibidor
+  for (const [tipo, kanji] of [['dragon', '龍'], ['heraldo', '使'], ['baron', '蛇'], ['torre', '塔'], ['inhibidor', '破']]) {
+    assert.ok(js.includes(`${tipo}: { nombre: `) && js.includes(`kanji: '${kanji}'`), `OBJETIVO tiene ${tipo} (${kanji})`);
+  }
+  assert.ok(html.includes('<span class="aviso-sello" hidden><i class="onda"></i><b></b></span>') && html.includes('<i class="aviso-tiempo"></i>'));
+  // La racha va en la misma cola, con su caja: primera sangre y multikills (y su duración de 2,3 s más la salida)
+  assert.match(js, /const esRacha = a => a\?\.tipo === 'primera' \|\| a\?\.tipo === 'multi';/);
+  assert.match(js, /esRacha\(a\) \? '\.arriba > \.racha'/);
+  assert.match(js, /DURACION_RACHA = 2300/);
+  assert.ok(html.includes('<div class="racha" hidden>'));
+  // .racha es también el retrato en racha del línea por línea: la caja nueva va siempre acotada a .arriba
+  assert.ok(!/(^|\n)\.racha[ .{]/.test(css), 'ninguna regla suelta de .racha en ingame.css');
+  assert.match(css, /\n\.arriba > \.racha \{ position: absolute; top: 196px;/);
+  // Las animaciones nuevas solo mueven transform y opacity
+  for (const nombre of ['estampa', 'onda', 'vacia', 'desdeLado', 'rachaEntra', 'rachaSale', 'golpeKanji', 'temblor', 'tuboAbre', 'muesca', 'latidoPenta']) {
+    const k = css.match(new RegExp(`@keyframes ${nombre} \\{(.*)\\}\\r?\\n`))?.[1];
+    assert.ok(k, `existe @keyframes ${nombre}`);
+    const props = [...k.matchAll(/([a-z-]+):/g)].map(m => m[1]);
+    assert.ok(props.length && props.every(p => p === 'transform' || p === 'opacity'), `${nombre} anima solo transform y opacity: ${props}`);
+  }
+  assert.ok(!/(transition|animation)[^;]*/.test(estilo.slice(estilo.indexOf('.aviso-sello'), estilo.indexOf('.pelea {'))), 'el aspecto no anima nada');
+});

@@ -64,11 +64,32 @@
 [data-estilo="a"] .modulo.punto b { color: var(--shu-neon); text-shadow: var(--neon-suave); }
 
 /* ---------- Avisos y resumen de pelea ---------- */
-[data-estilo="a"] .aviso { padding: 11px 22px 11px 14px; background: rgba(21, 22, 31, .97); border-radius: 8px;
+[data-estilo="a"] .aviso { padding: 12px 24px 14px 14px; background: rgba(21, 22, 31, .97); border-radius: 8px;
   outline: 1.5px solid var(--aviso, var(--shu-claro)); outline-offset: -6px;
   box-shadow: var(--filo-fino), 0 0 22px color-mix(in srgb, var(--aviso, var(--shu)) 45%, transparent), 0 10px 26px rgba(0, 0, 0, .45); }
-[data-estilo="a"] .aviso-quien { font-family: var(--dela); font-size: 28px; line-height: 1.3; }
+/* El sello del objetivo: placa de noche con el kanji a pincel y el tubo en el color del objetivo; la onda, su aro */
+[data-estilo="a"] .aviso-sello b { border-radius: 8px; background: rgba(12, 13, 19, .95); font-family: var(--pincel); font-weight: 400; font-size: 40px; line-height: 1;
+  color: var(--aviso, var(--shu-neon)); text-shadow: 0 0 10px var(--aviso, var(--shu));
+  box-shadow: 0 0 0 1.5px var(--aviso, var(--shu-claro)), 0 0 14px color-mix(in srgb, var(--aviso, var(--shu)) 55%, transparent), inset 0 0 10px color-mix(in srgb, var(--aviso, var(--shu)) 25%, transparent); }
+[data-estilo="a"] .aviso-sello .onda { border-radius: 12px; box-shadow: 0 0 0 2px var(--aviso, var(--shu-claro)), 0 0 14px var(--aviso, var(--shu)); }
+[data-estilo="a"] .aviso-tiempo { border-radius: 2px; background: var(--aviso, var(--shu-claro)); opacity: .8; }
+[data-estilo="a"] .aviso-quien { font-family: var(--dela); font-size: 28px; line-height: 1.3; color: var(--clan-texto, var(--washi)); }
 [data-estilo="a"] .aviso-que { font-size: 18px; font-weight: 700; color: #CFC9D6; }
+/* La racha: placa de noche con el color de la familia que se apaga hacia la derecha y su tubo abajo; el sello, en
+   bermellón con halo (es el momento de la partida) */
+[data-estilo="a"] .racha-in { background: rgba(21, 22, 31, .97); border-radius: 8px;
+  box-shadow: var(--filo-fino), 0 0 26px rgba(224, 48, 58, .35), 0 12px 30px rgba(0, 0, 0, .5); }
+[data-estilo="a"] .racha-in::before { opacity: .18; background: linear-gradient(90deg, var(--clan, var(--shu)) 0%, transparent 60%); }
+[data-estilo="a"] .racha-tubo { border-radius: 2px; background: var(--clan, var(--shu-claro)); box-shadow: 0 0 8px var(--clan, var(--shu)), 0 0 22px var(--clan, var(--shu)); }
+[data-estilo="a"] .racha-kanji { border-radius: 8px; background: rgba(12, 13, 19, .95); font-family: var(--pincel); font-weight: 400; font-size: 84px; line-height: 1;
+  color: var(--shu-neon); text-shadow: var(--neon); box-shadow: var(--tubo); }
+[data-estilo="a"] .racha-kanji::after { border-radius: 12px; box-shadow: 0 0 0 2px var(--shu-claro), 0 0 34px var(--shu); }
+[data-estilo="a"] .racha-titulo { font-size: 17px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--shu-neon); text-shadow: var(--neon-suave); }
+[data-estilo="a"] .racha-jugador { font-family: var(--dela); font-weight: 400; font-size: 54px; line-height: 1.2; }
+[data-estilo="a"] .racha-txt > span { font-size: 18px; color: #CFC9D6; }
+[data-estilo="a"] .racha-clan { font-style: normal; font-weight: 700; color: var(--clan-texto, var(--washi)); }
+[data-estilo="a"] .muescas i { border-radius: 4px; background: #262735; box-shadow: inset 0 0 0 1px var(--sumi-linea); }
+[data-estilo="a"] .muescas i.llena { background: var(--shu-claro); box-shadow: 0 0 10px var(--shu); }
 [data-estilo="a"] .pelea { padding: 10px 20px 12px; gap: 2px; background: rgba(21, 22, 31, .97); border-radius: 8px;
   outline: 1.5px solid var(--shu-claro); outline-offset: -6px; box-shadow: var(--filo-fino), 0 0 22px rgba(224, 48, 58, .45), 0 10px 26px rgba(0, 0, 0, .45); }
 [data-estilo="a"] .pelea-titulo { font-size: 12px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--shu-neon); text-shadow: var(--neon-suave); }
