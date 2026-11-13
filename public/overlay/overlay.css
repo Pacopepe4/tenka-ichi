@@ -239,7 +239,8 @@ body.guia .camara .medidas { display: grid; place-items: center; position: absol
 .picks.azul .fantasy-slot { right: 14px; }
 .picks.rojo .fantasy-slot { left: 14px; }
 .slot .fantasy-slot[hidden] { display: none; }
-.slot .fantasy-slot b { display: block; font-family: var(--dela); font-size: 32px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+/* 29 px y un pelín más juntas: «169,5» en Dela a 32 px no cabía en los 112 px de la caja (13/11) */
+.slot .fantasy-slot b { display: block; font-family: var(--dela); font-size: 29px; letter-spacing: -.02em; line-height: 1.1; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .slot .fantasy-slot span { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--hai); white-space: nowrap; }
 
 body[data-vista="postdraft"] .picks { width: 620px; gap: 8px; }
