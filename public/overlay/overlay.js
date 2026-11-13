@@ -44,14 +44,15 @@ const ANIMA_RECIEN = ['revelar', 'revelar-rojo', 'barrer', 'barrer-rojo'];
 for (const lado of ['azul', 'rojo']) {
   // Cada pick: el splash, el rol, el jugador y el campeón; en el postdraft, además, su carta, lo que lleva con ese
   // campeón, sus números de la liga y sus puntos del fantasy
+  // --i: el orden de cada hueco en la entrada del draft (la cascada de picks y de bans, en overlay.css)
   $(`.picks.${lado}`).innerHTML = ROLES.map((_, i) =>
-    `<div class="slot" data-i="${i}"><div class="recorte"><div class="arte"></div><div class="velo"></div><div class="trazo"></div><div class="barra"></div>
+    `<div class="slot" data-i="${i}" style="--i:${i}"><div class="recorte"><div class="arte"></div><div class="velo"></div><div class="trazo"></div><div class="barra"></div>
       <div class="mini-carta"></div>
       <div class="textos"><div class="linea-rol"><span class="rol"></span><span class="jugador"></span></div><div class="campeon"></div>
         <div class="con-campeon"></div><div class="general"></div></div>
       <div class="fantasy-slot"><b></b><span>puntos fantasy</span></div></div></div>`).join('');
-  $(`.bans.${lado}`).innerHTML = Array.from({ length: 5 }, (_, i) => `<div class="ban" data-i="${i}"><div class="recorte"></div></div>`).join('')
-    + '<span class="hanko" title="Bans">禁</span>';
+  $(`.bans.${lado}`).innerHTML = Array.from({ length: 5 }, (_, i) => `<div class="ban" data-i="${i}" style="--i:${i}"><div class="recorte"></div></div>`).join('')
+    + '<span class="hanko" title="Bans" style="--i:5">禁</span>';
 }
 
 let estado = null, ultimoAviso = 0, temporizadorTarjeta = null, primeraVez = true, ultimoTurno = null, firmaCamaras = '';
@@ -122,6 +123,8 @@ function pintar(e) {
 
   const cfg = e.config;
   texto($('.reposo .jornada'), cfg.fase === 'Fase de liga' ? `${cfg.jornada} de la liguilla` : cfg.jornada);
+  // El pie del telón del cambio de vista: quién juega y la jornada
+  texto($('.lema-telon small'), `${['azul', 'rojo'].map(l => nombreEquipo(clanes.clan(e.equipos[l].clan), l)).join(' contra ')} · ${cfg.jornada}`);
   const fl = $('.fearless');
   fl.hidden = !(cfg.formato === 'bo3f' && e.fearless.length);
   html(fl.querySelector('.iconos'), e.fearless.map(c => `<img src="${icono(c)}" alt="">`).join(''));
@@ -134,20 +137,117 @@ function pintar(e) {
 }
 
 // ---------- qué se enseña ----------
-// El marcador de la partida es otra página (/ingame/): se carga la primera vez que hace falta y se queda cargada
-let vistaActual = null;
+// vistaPedida es la última que ha mandado el estado; vistaActual, la que está en pantalla (data-vista). Son distintas
+// solo mientras sube el telón, hasta que tapa
+let vistaActual = null, vistaPedida = null;
 function pintarVista(e) {
   const vista = vistaFija || e.vistaOverlay || 'draft';
-  if (vista === vistaActual) return;
-  vistaActual = vista;
+  if (vista === vistaPedida) return;
+  const anterior = vistaPedida;
+  vistaPedida = vista;
+  // El marcador se empieza a cargar ya, para que esté listo cuando se vaya el telón
+  if (vista === 'partida') cargarMarcador();
+  if (!conTelon(anterior, vista) || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    pararTelon();
+    aplicarVista(vista);
+    return;
+  }
+  const t = performance.now() - telonDesde;
+  if (t < TELON.tapa) return;   // el telón ya sube: al tapar pondrá la última vista pedida
+  if (t < TELON.sale) { aplicarVista(vista, false); return; }   // ya lo tapa todo: se cambia debajo
+  lanzarTelon();
+}
+
+// El marcador de la partida es otra página (/ingame/): se carga la primera vez que hace falta y se queda cargada
+function cargarMarcador() {
   const marco = $('.vista-partida');
+  if (marco.getAttribute('src')) return;
   // Al marcador le llega de la dirección del overlay ?guia=1, que raya los huecos de sus cámaras
   const consulta = ['guia'].filter(k => params.has(k)).map(k => `${k}=${encodeURIComponent(params.get(k))}`).join('&');
-  if (vista === 'partida' && !marco.getAttribute('src')) marco.src = `/ingame/${consulta ? `?${consulta}` : ''}`;
+  marco.src = `/ingame/${consulta ? `?${consulta}` : ''}`;
+}
+
+// Pone la vista en pantalla y lo que depende de ella. destapar: si la vista nueva ya se ve (sin telón); con telón,
+// lo que va al destaparse lo lanza el propio telón al irse
+function aplicarVista(vista, destapar = true) {
+  if (vista === vistaActual) return;
+  const anterior = vistaActual;
+  vistaActual = vista;
   document.body.dataset.vista = vista;
+  if (vista !== 'draft') quitarEntrada();
   // En el postdraft y en la pantalla final no hay cámaras: el fondo va entero
   firmaCamaras = '';
+  if (estado) { pintarCamaras(estado); pedirPrevia(estado); }
+  if (destapar && anterior) alDestapar(vista);
 }
+
+// Lo que pasa cuando la vista nueva queda a la vista: al pasar al draft, entra (no al cargar la página)
+function alDestapar(vista) {
+  if (vista === 'draft') entradaDraft();
+}
+
+// ---------- Cambio de vista: «Telón de noche» ----------
+// Entre el draft, el postdraft, la partida y la pantalla final sube un telón de noche lisa con el tubo bermellón en
+// el filo y 極道 en neón (1,25 s: sube en 0,45 s, se queda 0,3 s y sale en 0,5 s). data-vista cambia debajo cuando
+// el telón ya lo tapa todo, sin fundido (body.con-telon quita la transición de las vistas), y el telón sigue hacia
+// arriba dejando la vista nueva. Sustituye al fundido de 0,5 s
+const VISTAS_TELON = ['draft', 'postdraft', 'partida', 'final'];
+// Milisegundos desde que arranca: tapa del 36 % al 60 % de 1,25 s, empieza a irse y acaba
+const TELON = { tapa: 560, sale: 750, acaba: 1300 };
+let telonDesde = -Infinity, temporizadoresTelon = [];
+
+// No sale al cargar (no había vista), con ?vista= fija ni al entrar o salir de REPLAY, que tiene su propio stinger
+function conTelon(anterior, nueva) {
+  if (vistaFija || !anterior || anterior === nueva) return false;
+  return VISTAS_TELON.includes(anterior) && VISTAS_TELON.includes(nueva);
+}
+
+function lanzarTelon() {
+  temporizadoresTelon.forEach(clearTimeout);
+  telonDesde = performance.now();
+  document.body.classList.add('con-telon');
+  relanzar($('.telon'), 'pasa', ['telon-pasa', 'tubo-prende', 'telon-aparece']);
+  temporizadoresTelon = [
+    setTimeout(() => aplicarVista(vistaPedida, false), TELON.tapa),
+    setTimeout(() => alDestapar(vistaActual), TELON.sale),
+    setTimeout(pararTelon, TELON.acaba),
+  ];
+}
+
+function pararTelon() {
+  temporizadoresTelon.forEach(clearTimeout);
+  temporizadoresTelon = [];
+  telonDesde = -Infinity;
+  $('.telon').classList.remove('pasa');
+  document.body.classList.remove('con-telon');
+}
+
+// ---------- Entrada del draft: «Tubo que prende» ----------
+// Al pasar a la vista draft (con el telón, cuando se va), bajan las placas de las familias, su tubo de neón arranca
+// con dos fallos y los picks entran en cascada desde cada lado; al final, los bans (1,4 s, en overlay.css). La clase
+// se quita al acabar, para que no quede nada animado encima de lo que pinta el estado
+const ANIMA_ENTRADA = ['draft-baja', 'draft-sube', 'draft-aparece', 'draft-lado', 'draft-crece', 'draft-kanji', 'tubo-prende'];
+const DURACION_ENTRADA = 1600;
+let temporizadorEntrada = null;
+function entradaDraft() {
+  relanzar($('#lienzo'), 'entra', ANIMA_ENTRADA);
+  clearTimeout(temporizadorEntrada);
+  temporizadorEntrada = setTimeout(quitarEntrada, DURACION_ENTRADA);
+}
+
+function quitarEntrada() {
+  clearTimeout(temporizadorEntrada);
+  $('#lienzo').classList.remove('entra');
+}
+
+// En OBS, al activarse la escena del draft (la fuente vuelve a verse después de haber estado oculta), el draft entra
+// otra vez. Al cargar la página OBS también avisa de que se ve: si antes no se había ocultado, no cuenta
+let fuenteOculta = false;
+window.addEventListener('obsSourceVisibleChanged', ev => {
+  if (!ev.detail?.visible) { fuenteOculta = true; return; }
+  if (fuenteOculta && vistaActual === 'draft') entradaDraft();
+  fuenteOculta = false;
+});
 
 // En Bo1: jornada y fase. En Bo3: ronda, marcador de la serie y número de partida.
 function pintarMarcador(e) {
