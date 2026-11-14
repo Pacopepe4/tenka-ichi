@@ -319,7 +319,7 @@
   const $ = id => document.getElementById(id);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const reloj = t => t === null || t === undefined ? '--:--' : `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
-  const NOMBRES = { explorador: 'LoL', liveEvents: 'LiveEvents', puente: 'Servidor', rele: 'PC 2', pc1: 'PC 1', obs: 'OBS', tenka: 'Gokudō', ia: 'IA' };
+  const NOMBRES = { explorador: 'LoL', pantalla: 'Pantalla', puente: 'Servidor', rele: 'PC 2', pc1: 'PC 1', obs: 'OBS', tenka: 'Gokudō', ia: 'IA' };
   const TIPOS = { pelea: 'Pelea', objetivo: 'Objetivo', muerte: 'Muerte', estructura: 'Estructura' };
   const ESTADOS = { pendientes: 'pendiente', guion: 'en guion', 'en-curso': 'en antena', emitidos: 'emitida', descartadas: 'descartada' };
   let f = null;

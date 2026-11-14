@@ -156,13 +156,19 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
         else avisos.push(`Twitch: ${r.motivo}`);
       } catch (e) { avisos.push(`Twitch: ${e.message}. Kick se emite igual`); }
     }
-    // ffmpeg para grabar solo el LoL (repeticiones sin el marcador): se baja la versión fija y se comprueba su huella
-    if (args[0] === 'pc2' && cargarOpciones().clips?.activo !== false) {
+    // ffmpeg: en el PC 2 para grabar solo el LoL (repeticiones sin el marcador); en el PC 1 para el lector de pantalla
+    // (dragones, larvas, heraldo y enfriamientos). Se baja la versión fija y se comprueba su huella
+    const para = args[0] === 'pc2' ? (cargarOpciones().clips?.activo !== false ? 'las repeticiones' : null)
+      : args[0] === 'pc1' ? (cargarOpciones().pantalla?.activo !== false ? 'el lector de pantalla' : null) : null;
+    if (para) {
       try {
-        console.log('Preparando ffmpeg para las repeticiones (la primera vez baja unos 115 MB)...');
+        console.log(`Preparando ffmpeg para ${para} (la primera vez baja unos 115 MB)...`);
         const r = await instalarFfmpeg();
-        hechos.push(r.ya ? 'ffmpeg para las repeticiones: ya estaba' : `ffmpeg ${FFMPEG.version} instalado para las repeticiones (clips solo del LoL)`);
-      } catch (e) { avisos.push(`ffmpeg: ${e.message}. Las repeticiones usarán el clip de OBS, con el marcador dentro`); }
+        hechos.push(r.ya ? `ffmpeg para ${para}: ya estaba` : `ffmpeg ${FFMPEG.version} instalado para ${para}`);
+      } catch (e) {
+        avisos.push(args[0] === 'pc2' ? `ffmpeg: ${e.message}. Las repeticiones usarán el clip de OBS, con el marcador dentro`
+          : `ffmpeg: ${e.message}. Sin lector de pantalla: no saldrán dragones, larvas ni enfriamientos en la web`);
+      }
     }
     console.log('');
     for (const h of hechos) console.log(`  OK  ${h}`);

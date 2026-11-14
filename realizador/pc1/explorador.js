@@ -7,7 +7,7 @@
 import { EventEmitter } from 'node:events';
 import net from 'node:net';
 import { pedirJSON } from '../comun/http.js';
-import { HistorialCs } from './adelanto.js';
+import { HistorialCs, SeguidorMisiones } from './adelanto.js';
 
 // Equipos tal como los da el cliente
 const EQUIPOS = { ORDER: 'azul', CHAOS: 'rojo' };
@@ -45,6 +45,7 @@ export class Explorador extends EventEmitter {
     this.vistos = new Set();
     // Para el «adelanto» de la web: cuándo cambia el CS de cada jugador y los objetivos vistos (pc1/adelanto.js)
     this.cs = new HistorialCs();
+    this.misiones = new SeguidorMisiones();
     this.objetivos = [];
     // Ritmo del reloj de partida: 1 en directo; en una repetición acelerada, su velocidad (la pone el modo grabada)
     this.velocidad = 1;
@@ -93,6 +94,7 @@ export class Explorador extends EventEmitter {
       this.siguienteId = 0;
       this.vistos.clear();
       this.cs.limpiar();
+      this.misiones.limpiar();
       this.objetivos = [];
       // Plantilla nueva en cada partida, aunque se entre con la partida empezada
       this.jugadores = [];
@@ -108,6 +110,7 @@ export class Explorador extends EventEmitter {
     if (Array.isArray(lista) && lista.length) {
       if (!this.jugadores.length || this.tiempo.t < 5) this.ponerJugadores(lista);
       if (this.cs.apuntar(this.tiempo.t, lista)) this.emit('cs');
+      for (const m of this.misiones.apuntar(this.tiempo.t, lista)) this.emit('mision', m);
     }
 
     const datos = await pedirJSON(`${this.url}/liveclientdata/eventdata?eventID=${this.siguienteId}`, { tiempoMs: 2000 });
@@ -214,7 +217,7 @@ export class Explorador extends EventEmitter {
     const clave = `${e.nombre}@${Math.round(e.t / 3)}`;
     if (e.nombre !== 'ChampionKill' && this.vistos.has(clave)) return;
     this.vistos.add(clave);
-    if (/^(DragonKill|HeraldKill|BaronKill)$/.test(e.nombre)) this.objetivos.push(e);
+    if (/^(DragonKill|HeraldKill|BaronKill|HordeKill|AtakhanKill)$/.test(e.nombre)) this.objetivos.push(e);
     this.emit('evento', e);
   }
 

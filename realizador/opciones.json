@@ -3,6 +3,7 @@
   "hudAntena": { "MinimapScale": 0.78 },
   "clips": { "activo": true, "monitor": 0, "fps": 60, "bitrate": 15000, "guardarSegundos": 120, "clipSegundos": 60 },
 
+  "pantalla": { "activo": true, "fps": 2 },
   "explorador": {
     "liveClientData": "https://127.0.0.1:2999",
     "liveEventsPuerto": 34243,
@@ -163,7 +164,7 @@
     "segundosBufer": 60,
     "codificador": "auto",
     "emision": { "servidor": "rtmps://fa723fc1b171.global-contribute.live-video.net/" },
-    "minimapa": { "x": 1640, "y": 804, "lado": 250 },
+    "minimapa": { "lado": 270, "margen": 0 },
     "vista": "camara",
     "bitrateEmision": 6000,
     "overlay": ""

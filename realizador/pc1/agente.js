@@ -1,6 +1,7 @@
 // Agente del PC 1: explorador + cerebro + ejecutor + panel de supervisión.
 // Arranque: npm run agente   (npm run agente -- --perfil-minimo pone el perfil ligero del juego y lo quita al cerrar)
 import { join } from 'node:path';
+import { existsSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { cargarOpciones, RAIZ } from '../comun/opciones.js';
 import { Buzon } from '../comun/buzon.js';
@@ -17,6 +18,8 @@ import { aplicarPerfil, restaurarPerfil, rutaConfig } from '../instalar/configur
 import { condiciones } from '../comun/condiciones.js';
 import { Ia } from './ia.js';
 import { Actualizador, registroEnArchivo } from '../comun/app.js';
+import { LectorPantalla, leerFotograma, SeguidorMarcador, SeguidorHechizos } from './pantalla.js';
+import { carpetaFfmpeg } from '../instalar/ffmpeg.js';
 
 // «explorador» permite cambiar de dónde salen los sucesos (el modo grabada pone el suyo)
 // «ia»: para las pruebas (un Ia con cliente de mentira). Sin él, se crea si ia.activo está encendido.
@@ -33,7 +36,8 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
   }
 
   let panel = null;
-  const conexiones = { explorador: false, liveEvents: false, rele: false, obs: null, tenka: null };
+  // LiveEvents ya no sale en el panel (Riot la quitó en el parche 14.1): en su lugar, la luz del lector de pantalla
+  const conexiones = { explorador: false, pantalla: null, rele: false, obs: null, tenka: null };
   const avisos = [];
   const registro = [];
   const avisar = texto => {
@@ -151,18 +155,71 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
   }
 
   explorador.on('conexion', v => { if (conexiones.explorador !== v) { conexiones.explorador = v; panel?.emitir(); } });
-  explorador.on('liveEvents', v => { conexiones.liveEvents = v; panel?.emitir(); });
+  // Lector de pantalla (pc1/pantalla.js, 14/11): mira la ventana del LoL de este PC (detrás de otras vale; minimizada
+  // no) y saca lo que la Live Client no da al espectador: quién coge dragón, heraldo y larvas (el número del marcador
+  // de arriba cambia) y cuándo están en enfriamiento los hechizos y la definitiva de cada uno (marcos de los lados)
+  const lectura = { lector: null, marcador: new SeguidorMarcador(), hechizos: new SeguidorHechizos(), cambios: false };
+  const SUCESO_PANTALLA = { dragon: 'DragonKill', heraldo: 'HeraldKill', larvas: 'HordeKill' };
+  // La luz solo sale durante la partida (fuera de ella no hay nada que leer)
+  if (o.pantalla?.activo && process.platform === 'win32') {
+    const exe = join(carpetaFfmpeg(), 'ffmpeg.exe');
+    lectura.lector = new LectorPantalla({ ffmpeg: existsSync(exe) ? exe : 'ffmpeg', fps: o.pantalla.fps || 2, ventana: o.pantalla.ventana });
+    lectura.lector.on('estado', v => {
+      if (conexiones.pantalla === v || !explorador.enPartida) return;
+      conexiones.pantalla = v;
+      if (!v && explorador.enPartida) avisar(`Lector de pantalla: ${lectura.lector.error || 'sin imagen'}. ¿Está el LoL minimizado?`);
+      panel?.emitir();
+    });
+    lectura.lector.on('foto', f => {
+      if (!explorador.enPartida) return;
+      const t = explorador.ahora();
+      if (t === null) return;
+      let l;
+      try { l = leerFotograma(f.px, f.ancho, f.alto); } catch { return; }
+      // Solo con el marcador a la vista (en la pantalla de carga o con la interfaz quitada no se lee nada)
+      if (l.contadores.filter(c => c.huella).length < 6) return;
+      for (const s of lectura.marcador.apuntar(t, l.contadores)) {
+        const nombre = SUCESO_PANTALLA[s.tipo];
+        if (!nombre) continue;
+        // La pantalla no dice quién lo mata: para la cámara, el jungla de ese equipo (el que castiga)
+        const jungla = explorador.jugadores.find(j => j.equipo === s.equipo && (j.castigo || j.posicion === 'JUNGLE')) || null;
+        explorador.emitirEvento({
+          id: `pantalla-${s.tipo}-${s.equipo}-${Math.round(s.t * 10)}`, fuente: 'pantalla', nombre, t: s.t,
+          asesino: jungla, victima: null, ayudas: [], implicados: [jungla].filter(Boolean), detalle: { equipo: s.equipo },
+        });
+      }
+      if (lectura.hechizos.apuntar(t, l.marcos)) lectura.cambios = true;
+    });
+  }
+  // Tramos de enfriamiento de cada jugador, con su nombre (los marcos van en el orden de la Live Client por equipo)
+  const hechizosAdelanto = () => {
+    if (!lectura.lector) return null;
+    const r = [];
+    for (const equipo of ['azul', 'rojo']) {
+      explorador.jugadores.filter(j => j.equipo === equipo).slice(0, 5)
+        .forEach((j, k) => r.push({ nombre: j.jugador, equipo, ...lectura.hechizos.de(equipo, k) }));
+    }
+    return r;
+  };
+  explorador.on('mision', m => { ejecutor.buzon?.apuntar('explorador', 'mision', m); log(`Misión de rol: ${m.nombre} (${m.campeon || '?'}), ${m.detalle}`); mandarAdelanto(); });
   explorador.on('jugadores', lista => { cerebro.jugadores = lista; ejecutor.hayCambios(); });
 
   // «Adelanto» para la web: saltos de CS y objetivos, cada 5 s y en cuanto hay un objetivo nuevo. Siempre todo lo
   // de la partida (la web lo trata como idempotente). Solo con la conexión del panel y en partida.
   const mandarAdelanto = () => {
     if (!tenka?.listo || !explorador.enPartida || o.tenkaIchi?.adelanto === false) return;
-    tenka.accion('adelanto', construirAdelanto({ t: explorador.ahora(), historial: explorador.cs, eventos: explorador.objetivos })).catch(() => {});
+    lectura.cambios = false;
+    tenka.accion('adelanto', construirAdelanto({
+      t: explorador.ahora(), historial: explorador.cs, eventos: explorador.objetivos,
+      hechizos: hechizosAdelanto(), misiones: explorador.misiones.hechas,
+    })).catch(() => {});
   };
   const temporizadorAdelanto = setInterval(mandarAdelanto, 5000);
   temporizadorAdelanto.unref?.();
-  explorador.on('evento', e => { if (/^(DragonKill|HeraldKill|BaronKill)$/.test(e.nombre)) mandarAdelanto(); });
+  explorador.on('evento', e => { if (/^(DragonKill|HeraldKill|BaronKill|HordeKill|AtakhanKill)$/.test(e.nombre)) mandarAdelanto(); });
+  // Un hechizo que entra o sale de enfriamiento sale en la web sin esperar a la vuelta de 5 s (como mucho uno por segundo)
+  const temporizadorHechizos = setInterval(() => { if (lectura.cambios) mandarAdelanto(); }, 1000);
+  temporizadorHechizos.unref?.();
   explorador.on('partida', info => {
     partida = { ...info, id: info.inicio.replace(/[:.]/g, '-') };
     cerebro = new Cerebro(o.reglas);
@@ -171,6 +228,9 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
     const buzon = new Buzon(join(o.registro.raiz || RAIZ, o.registro.carpeta), partida.id);
     ejecutor.reiniciar(cerebro, buzon, partida.id);
     ejecutor.apuntar('realizador', 'partida nueva', info);
+    lectura.marcador.limpiar();
+    lectura.hechizos.limpiar();
+    if (lectura.lector) { conexiones.pantalla = false; lectura.lector.arrancar(); }
     log(`Partida encontrada (${info.modo || 'modo desconocido'}). Registro en ${buzon.carpeta}`);
   });
   explorador.on('fin', info => {
@@ -179,6 +239,8 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
     ejecutor.hayCambios();
     ejecutor.apuntar('realizador', 'fin de la partida', { ...info, t: ejecutor.tFin });
     cerebro.finPartida = ejecutor.tFin;
+    lectura.lector?.parar();
+    if (lectura.lector) conexiones.pantalla = null;
     const c = cerebro;
     const tFin = ejecutor.tFin;
     // Resumen escrito y, en la misma llamada, las jugadas destacadas para el resumen en vídeo (sin IA, todas las
@@ -297,6 +359,8 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
       sala?.cerrar();
       obs?.cerrar();
       clearInterval(temporizadorAdelanto);
+      clearInterval(temporizadorHechizos);
+      lectura.lector?.parar();
       clearInterval(temporizadorSala);
       tenka?.cerrar();
       panel.parar();

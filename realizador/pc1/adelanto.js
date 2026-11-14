@@ -18,7 +18,7 @@ export function tipoDragon(texto) {
   return DRAGONES.find(([re]) => re.test(t))?.[1] || null;
 }
 
-const TIPOS = { DragonKill: 'dragon', HeraldKill: 'heraldo', BaronKill: 'baron' };
+const TIPOS = { DragonKill: 'dragon', HeraldKill: 'heraldo', BaronKill: 'baron', HordeKill: 'larvas', AtakhanKill: 'atakhan' };
 const LADOS = { order: 'azul', chaos: 'rojo', azul: 'azul', rojo: 'rojo', blue: 'azul', red: 'rojo' };
 
 // Suceso del explorador → objetivo para la web (o null si no es uno de los que interesan)
@@ -54,7 +54,49 @@ export class HistorialCs {
   jugadores() { return [...this.porJugador.values()].map(h => ({ nombre: h.nombre, equipo: h.equipo, cs: h.cs.map(p => [...p]) })); }
 }
 
-export function construirAdelanto({ t, historial, eventos = [] }) {
+// Misiones de rol (14/11), de la lista de jugadores de la Live Client (el espectador sí las ve):
+//  - jungla: el Castigo cambia de nombre (SummonerSmite → SummonerSmiteAvatar…, el mejorado)
+//  - top: el Teleport cambia de nombre (el mejorado)
+//  - botas de nivel 3 (las de la misión de mid; 3170-3179)
+// Solo cuenta un cambio después de la primera lectura: si se entra con la partida empezada, lo que ya estaba no sale.
+const CRUDO = s => String(s?.rawDisplayName || s?.displayName || '');
+const BOTAS_3 = id => id >= 3170 && id <= 3179;
+export class SeguidorMisiones {
+  constructor() { this.limpiar(); }
+  limpiar() { this.porJugador = new Map(); this.hechas = []; }
+  apuntar(t, lista) {
+    const nuevas = [];
+    if (!Number.isFinite(t) || !Array.isArray(lista)) return nuevas;
+    for (const j of lista) {
+      const nombre = j.riotIdGameName || (j.riotId || '').split('#')[0] || j.summonerName;
+      if (!nombre) continue;
+      const hechizos = [CRUDO(j.summonerSpells?.summonerSpellOne), CRUDO(j.summonerSpells?.summonerSpellTwo)];
+      const botas = (j.items || []).map(i => Number(i.itemID)).filter(BOTAS_3);
+      let p = this.porJugador.get(nombre);
+      if (!p) { this.porJugador.set(nombre, { hechizos, botas: botas.length > 0, hechas: new Set() }); continue; }
+      const equipo = LADOS[String(j.team || '').toLowerCase()] || null;
+      const apuntar = (mision, detalle) => {
+        if (p.hechas.has(mision)) return;
+        p.hechas.add(mision);
+        const m = { mision, nombre, campeon: j.championName || null, equipo, t: Math.round(t * 10) / 10, detalle };
+        nuevas.push(m); this.hechas.push(m);
+      };
+      for (let k = 0; k < 2; k++) {
+        const antes = p.hechizos[k], ahora = hechizos[k];
+        if (!antes || !ahora || antes === ahora) continue;
+        if (/SummonerSmite(_|$)/.test(antes) && /Smite/.test(ahora)) apuntar('jungla', 'castigo mejorado');
+        else if (/Teleport/.test(antes) && /Teleport/.test(ahora)) apuntar('top', 'teleport mejorado');
+      }
+      if (botas.length && !p.botas) apuntar('botas', 'botas de nivel 3');
+      p.hechizos = hechizos; p.botas = p.botas || botas.length > 0;
+    }
+    return nuevas;
+  }
+}
+
+// hechizos: [{ nombre, equipo, d, f, r }] con tramos [desde, hasta|null] de enfriamiento (pc1/pantalla.js);
+// misiones: las de SeguidorMisiones
+export function construirAdelanto({ t, historial, eventos = [], hechizos = null, misiones = null }) {
   const vistos = new Set();
   const objetivos = [];
   for (const e of eventos) {
@@ -63,5 +105,8 @@ export function construirAdelanto({ t, historial, eventos = [] }) {
     vistos.add(o.id);
     objetivos.push(o);
   }
-  return { t: Math.round((t ?? 0) * 10) / 10, jugadores: historial.jugadores(), objetivos };
+  const a = { t: Math.round((t ?? 0) * 10) / 10, jugadores: historial.jugadores(), objetivos };
+  if (hechizos) a.hechizos = hechizos;
+  if (misiones) a.misiones = misiones;
+  return a;
 }

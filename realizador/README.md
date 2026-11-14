@@ -112,7 +112,11 @@ Tus colecciones y perfiles de siempre no se tocan (siguen en los menús de OBS),
 
 **Todo lo de OBS viene en la descarga:** las transiciones y el cartel REPLAY (`obs/`), sus fuentes (`obs/fuentes`: Dela Gothic One, Yuji Boku y Zen Kaku Gothic New, recortadas a lo que se usa, licencia OFL), que `configurar-obs` instala para el usuario sin pedir permisos para que los rótulos de Casters y Pausa salgan con la letra de Gokudō, el overlay de la web (`/overlay/`) y las **alertas de Kick** (`/alertas/`, encima de todo en todas las escenas; `obs.alertas` en `opciones.json` para otra dirección o `""` para quitarlas).
 
-**Marco del minimapa:** `obs/minimapa.html` (diseño del hilo de overlays, en Gokudō) va en la escena `Juego`, encima del juego y debajo del overlay, y solo pinta por fuera del mapa. Por defecto el hueco es de 280 px, abajo a la derecha; para ajustarlo al minimapa del PC 2, `obs.minimapa` en `opciones.json` (`lado` o `ancho`/`alto`, `x`, `y`, `margen`, `grosor`, `rotulo: 0` para quitar la pestaña y `guia: 1` para calibrar) y volver a configurar OBS.
+**Lector de pantalla (PC 1, 14/11):** sin LiveEvents, el espectador no recibe objetivos ni enfriamientos. El PC 1 mira la ventana de su LoL con ffmpeg (`gfxcapture`, la captura de ventanas de Windows 10, como OBS), 2 fotos por segundo. La ventana puede estar **detrás de otras, pero no minimizada**. Del marcador de arriba saca quién coge dragón, heraldo y larvas: el número de ese equipo cambia, y hacen falta dos fotos iguales para darlo por bueno. De los marcos de los lados saca cuándo están en enfriamiento la D, la F y la R de cada uno: salen oscurecidas y con la aguja blanca del reloj. Todo va a la web por el «adelanto» (`hechizos`, objetivos `larvas`) y los objetivos van también a la cámara. Las posiciones están medidas con la interfaz del LoL a escala 0, contando desde los bordes de la ventana y desde el centro; la imagen se escala a 768 de alto. Opciones en `pantalla` (`activo`, `fps`); el instalador del PC 1 pone ffmpeg. En el panel, la luz «Pantalla» (solo durante la partida) dice si llegan fotos.
+
+**Misiones de rol:** la Live Client del espectador sí las da: el Castigo y el Teleport cambian de nombre al mejorarse, y las botas de nivel 3 (ID 3170-3179) aparecen en los objetos. Van en el «adelanto» (`misiones`).
+
+**Marco del minimapa:** `obs/minimapa.html` (diseño del hilo de overlays, en Gokudō) va en la escena `Juego`, encima del juego y debajo del overlay, y solo pinta por fuera del mapa. Por defecto el hueco es de 280 px, abajo a la derecha; en `opciones.json` va a 270 px pegado a la esquina (`margen: 0`, medido el 14/11 en la emisión con el minimapa al 26). Para ajustarlo al minimapa del PC 2, `obs.minimapa` en `opciones.json` (`lado` o `ancho`/`alto`, `x`, `y`, `margen`, `grosor`, `rotulo: 0` para quitar la pestaña y `guia: 1` para calibrar) y volver a configurar OBS.
 
 **Audio de las repeticiones:** el perfil `Realizador` va en salida avanzada con tres pistas: la 1 es la emisión (juego y micro), la 2 solo el juego y la 3 juego y micro. El búfer de repetición graba la 2 y la 3, así que al repetir un clip suena el juego sin los casters (la 3 queda para el resumen). La escena `Repeticion` solo lleva el clip y el cartel REPLAY.
 
@@ -201,7 +205,8 @@ Esto está hecho según la documentación y otros proyectos, pero hay que verlo 
 - [ ] La Replay API funciona en un espectador en vivo (no solo en repeticiones) y `playback.length` crece con la partida.
 - [ ] Seguir a un jugador: `selectionName` con el nombre del jugador (`rele.seleccionarPor: "jugador"`) o con el del campeón (`"campeon"`).
 - [ ] El ángulo de la cámara al seguir (`rele.desplazamientoCamara`) y si `cameraMode: "top"` sirve de plano general.
-- [ ] LiveEvents sigue funcionando (hay quien dice que Riot la quitó en el parche 14.1). Sin ella no hay dragones ni Barón: el panel muestra el punto de LiveEvents en rojo.
+- [x] LiveEvents ya no existe (Riot la quitó en el parche 14.1). La sustituye el lector de pantalla del PC 1 (abajo).
+- [ ] Barón y Atakhan en el lector de pantalla: comprobar con una partida de más de 20 minutos qué contador usan.
 - [ ] El explorador sigue leyendo datos con la ventana minimizada.
 - [ ] El perfil mínimo: los nombres de las claves de `perfilMinimo` y que con `PersistedSettings.json` en solo lectura se aplica y se restaura bien.
 - [ ] Zoom: que `fieldOfView` y la distancia de `selectionOffset` cambian la vista como se espera, y ajustar los tres niveles de `rele.zoom`.
@@ -213,7 +218,8 @@ Esto está hecho según la documentación y otros proyectos, pero hay que verlo 
 opciones.json              margen, puertos, reglas, OBS, Gokudō y perfil mínimo
 comun/                     opciones, peticiones HTTP y buzón de la partida
 pc1/agente.js              arranque del PC 1
-pc1/explorador.js          Live Client Data + LiveEvents → sucesos
+pc1/explorador.js          Live Client Data + LiveEvents → sucesos (y misiones de rol)
+pc1/pantalla.js            lector de pantalla: dragones, heraldo, larvas y enfriamientos de D/F/R
 pc1/cerebro.js             sucesos → jugadas → guion de planos y acciones (sin red: se prueba solo)
 pc1/ejecutor.js            guion al relé, acciones en OBS y Gokudō, jugadas al buzón
 pc1/panel.js, pc1/panel/   panel de supervisión
