@@ -1,7 +1,7 @@
 // Sección «Realizador automático» del panel: se une a la sala del realizador (/realizador) con la huella de la
 // contraseña del panel (la misma que ponen sus instaladores), pinta lo que manda su PC 1 (foto, cada segundo) y le manda tomar el control u órdenes de cámara.
 import { vistaResumen } from './resumen.js';
-import { vistaFases, ordenFase, preguntaCierre, BOTONES as BOTONES_FASE } from './fases.js';
+import { vistaFases, ordenFase, preguntaFase, problemaHora, horaValida, BOTONES as BOTONES_FASE } from './fases.js';
 const $ = s => document.querySelector(s);
 const esc = t => String(t ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
 const reloj = t => (t === null || t === undefined ? '--:--' : `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`);
@@ -136,7 +136,7 @@ function pintarFases(f) {
   bloque.hidden = !v.visible;
   bloque.dataset.fase = v.actual || '';
   bloque.dataset.manual = v.manual ? 'si' : '';
-  $('#realizadorFaseActual').textContent = v.actual ? `En antena: ${v.titulo}` : v.botones ? v.titulo : v.texto;
+  $('#realizadorFaseActual').textContent = v.actual ? `${v.enAntena}: ${v.titulo}` : v.botones ? v.titulo : v.texto;
   $('#realizadorFaseDetalle').textContent = v.detalle ? ` · ${v.detalle}` : '';
   $('#realizadorFaseModo').textContent = v.modo;
   $('#realizadorFaseModo').hidden = !v.modo;
@@ -149,7 +149,7 @@ function pintarFases(f) {
   if (v.hora && v.hora !== horaPuesta && document.activeElement !== hora) { hora.value = v.hora; horaPuesta = v.hora; }
   const espera = $('#realizadorFaseEspera');
   espera.textContent = v.esperaTexto;
-  espera.disabled = !v.espera || !ordenFase('espera', { hora: hora.value });
+  espera.disabled = !v.espera || !horaValida(hora.value);
   const aviso = $('#realizadorFaseAviso');
   aviso.hidden = !v.aviso;
   aviso.dataset.etiqueta = v.aviso?.etiqueta || 'Fase';
@@ -186,13 +186,14 @@ $('#realizadorEmitir').onclick = () => {
 $('#realizadorFaseHora').addEventListener('input', () => pintarFases(foto));
 $('#realizadorFaseEspera').onclick = () => {
   const m = ordenFase('espera', { hora: $('#realizadorFaseHora').value, jornada: $('#realizadorFaseJornada').value });
-  if (!m) return alertar('Escribe la hora de empezar (HH:MM)');
+  if (!m) return alertar(problemaHora($('#realizadorFaseHora').value) || 'Escribe la hora de empezar (HH:MM)');
   mandar(m);
 };
 $('#realizadorFaseBotones').onclick = e => {
   const b = e.target.closest('button[data-fase]');
   if (!b || b.disabled) return;
-  if (b.dataset.fase === 'cierre' && !window.confirm(preguntaCierre(foto?.fase?.actual ?? null))) return;
+  const pregunta = preguntaFase(b.dataset.fase, foto?.fase?.actual ?? null);
+  if (pregunta && !window.confirm(pregunta)) return;
   mandar(ordenFase(b.dataset.fase));
 };
 $('#realizadorResumenLanzar').onclick = () => mandar({ tipo: 'panelResumen', accion: 'lanzar' });

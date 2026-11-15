@@ -43,8 +43,21 @@ export function hastaDesdeHora(hora, ahora = Date.now()) {
   if (h > 23 || min > 59) return null;
   const d = new Date(ahora);
   d.setHours(h, min, 0, 0);
-  if (d.getTime() <= ahora) d.setDate(d.getDate() + 1);
+  if (d.getTime() <= ahora) {
+    // Pasada hace poco (menos de 6 h: «19:00» escrito a las 19:00:20) no vale: dejaría una cuenta de casi 24 h en antena
+    if (ahora - d.getTime() < 6 * 3600 * 1000) return null;
+    d.setDate(d.getDate() + 1);
+  }
   return d.getTime();
+}
+export function horaValida(hora) {
+  const m = /^\s*(\d{1,2})[:.h](\d{2})\s*$/.exec(String(hora ?? ''));
+  return Boolean(m) && Number(m[1]) <= 23 && Number(m[2]) <= 59;
+}
+// Por qué no vale una hora (para avisar al pulsar), o null si vale
+export function problemaHora(hora, ahora = Date.now()) {
+  if (!horaValida(hora)) return 'Escribe la hora de empezar (HH:MM)';
+  return hastaDesdeHora(hora, ahora) === null ? 'Esa hora ya ha pasado: pon una hora que aún no haya llegado' : null;
 }
 
 // El mensaje de cada botón. La espera necesita una hora buena; sin ella, null (no se manda nada)
@@ -74,11 +87,17 @@ export function vistaFases(foto, ahora = Date.now()) {
   // Sin foto del PC 1 no se sabe nada: el bloque no sale (el resto del apartado ya dice que espera al PC 1)
   if (!foto) return { visible: false, botones: false, ...NADA, ...VACIA };
   const f = foto.fase;
-  // Un PC 1 de antes de las fases no manda el campo (o lo manda a null)
-  if (!f || typeof f !== 'object') {
+  // Un PC 1 de antes de las fases no manda el campo; null quiere decir que falta el PC 2 (o su OBS)
+  if (!Object.hasOwn(foto, 'fase')) {
     return { visible: true, botones: false, ...NADA, ...VACIA, titulo: 'Sin fases',
       texto: 'Este realizador no lleva las fases del directo: actualízalo desde la guía' };
   }
+  if (!f || typeof f !== 'object') {
+    return { visible: true, botones: false, ...NADA, ...VACIA, titulo: 'Sin PC 2',
+      texto: 'Esperando al PC 2 (o a su OBS) para saber la fase del directo' };
+  }
+  // Sin «Empezar directo» las escenas cambian en OBS, pero no se emite
+  const sinEmitir = foto.emision?.fase === 'apagada';
   const actual = Object.hasOwn(FASES, f.actual) ? f.actual : null;
   const desconocida = f.actual !== null && f.actual !== undefined && !actual;
   const manual = Boolean(f.manual);
@@ -97,11 +116,12 @@ export function vistaFases(foto, ahora = Date.now()) {
 
   const v = {
     visible: true, botones: !desconocida, ...NADA, actual, manual, titulo, detalle,
-    texto: actual ? `En antena: ${titulo}${detalle ? ` · ${detalle}` : ''}` : titulo,
+    enAntena: sinEmitir ? 'En OBS (sin emitir)' : 'En antena',
+    texto: actual ? `${sinEmitir ? 'En OBS (sin emitir)' : 'En antena'}: ${titulo}${detalle ? ` · ${detalle}` : ''}` : titulo,
     modo: manual ? 'A mano' : 'Automático',
     escena: typeof f.escena === 'string' && f.escena ? `Escena de OBS: ${f.escena}` : '',
     // La pastilla de la barra: «Espera ● 12:34»; sin cuenta, «a mano» o «auto»
-    aviso: actual ? { etiqueta: titulo, texto: faltan !== null ? cuenta(faltan) : manual ? 'a mano' : 'auto' } : null,
+    aviso: actual ? { etiqueta: 'Fase', texto: `${titulo} · ${faltan !== null ? cuenta(faltan) : manual ? 'a mano' : 'auto'}` } : null,
     esperaTexto: actual === 'espera' ? 'Cambiar hora' : 'Poner la espera',
     hora: actual === 'espera' ? horaDe(hasta) : '',
   };
@@ -113,9 +133,22 @@ export function vistaFases(foto, ahora = Date.now()) {
   v.cierre = actual !== 'cierre';
   v.auto = manual;
   v.espera = ESPERA.has(actual);
+  // Con el resumen en vídeo saliendo, lo que se pida espera a que acabe: mejor cancelarlo antes en «Resumen final»
+  if (actual === 'resumen') {
+    v.intro = v.pausa = v.postpartida = v.casters = v.espera = false;
+    v.detalle = `${v.detalle ? `${v.detalle} · ` : ''}para cambiar de fase, cancela antes el resumen`;
+  }
   return v;
 }
 
 // La pregunta antes de pasar al cierre: más seria si el draft o la partida están en antena
 export const preguntaCierre = actual => (['draft', 'partida', 'repeticion'].includes(actual)
   ? `¿Pasar al cierre del directo con ${FASES[actual].con} en antena?` : '¿Pasar al cierre del directo?');
+// La pregunta antes de cada botón (null: sin pregunta). En plena partida, cualquier fase tapa el juego en antena
+export function preguntaFase(fase, actual) {
+  if (fase === 'cierre') return preguntaCierre(actual);
+  if (['partida', 'repeticion'].includes(actual) && ['intro', 'pausa', 'postpartida', 'casters'].includes(fase)) {
+    return `¿Poner ${FASES[fase].con} con la partida en antena? El juego deja de verse hasta que pulses «Automático».`;
+  }
+  return null;
+}

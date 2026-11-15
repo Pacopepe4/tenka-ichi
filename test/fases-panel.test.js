@@ -2,7 +2,7 @@
 // manda al PC 1 con la hora de la espera
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { vistaFases, ordenFase, hastaDesdeHora, horaDe, cuenta, preguntaCierre, BOTONES } from '../public/panel/fases.js';
+import { vistaFases, ordenFase, hastaDesdeHora, horaDe, cuenta, preguntaCierre, preguntaFase, problemaHora, BOTONES } from '../public/panel/fases.js';
 
 const foto = fase => ({ tipo: 'foto', fase });
 const botones = v => Object.fromEntries([...BOTONES, 'espera'].map(b => [b, v[b]]));
@@ -11,7 +11,7 @@ const AHORA = new Date(2026, 10, 15, 20, 0, 0, 0).getTime();
 
 test('sin foto del PC 1 el bloque no sale; con un PC 1 viejo, sin el campo fase o a null, lo dice y no hay botones', () => {
   assert.equal(vistaFases(null).visible, false);
-  for (const viejo of [vistaFases({ tipo: 'foto', tAntena: 300 }), vistaFases(foto(null))]) {
+  for (const viejo of [vistaFases({ tipo: 'foto', tAntena: 300 })]) {
     assert.equal(viejo.visible, true);
     assert.equal(viejo.botones, false);
     assert.match(viejo.texto, /no lleva las fases del directo: actualízalo/);
@@ -43,7 +43,7 @@ test('la espera sin `faltan` saca la cuenta de su hora, y de más de una hora sa
   const hasta = new Date(2026, 10, 15, 21, 2, 5).getTime();
   const v = vistaFases(foto({ actual: 'espera', manual: true, hasta, faltan: null, siguiente: 'intro', escena: 'Espera' }), AHORA);
   assert.equal(v.texto, 'En antena: Espera · la intro en 1:02:05 (a las 21:02)');
-  assert.deepEqual(v.aviso, { etiqueta: 'Espera', texto: '1:02:05' });
+  assert.deepEqual(v.aviso, { etiqueta: 'Fase', texto: 'Espera · 1:02:05' });
   assert.equal(v.hora, '21:02');
   assert.equal(v.esperaTexto, 'Cambiar hora');
 });
@@ -60,7 +60,7 @@ test('qué botones van en cada fase', () => {
     ['repeticion', false, [false, true, true, true, true, false, false]],
     ['postpartida', false, [false, true, false, true, true, false, false]],
     ['casters', true, [true, true, true, false, true, true, true]],
-    ['resumen', false, [false, true, true, true, true, false, false]],
+    ['resumen', false, [false, false, false, false, true, false, false]],  // con el resumen saliendo, solo el cierre (cancelar antes el resumen)
     ['cierre', true, [true, true, false, true, false, true, true]],
     [null, false, [true, true, false, true, true, false, true]],
   ];
@@ -77,16 +77,20 @@ test('qué botones van en cada fase', () => {
 });
 
 test('la pastilla de la barra: la fase con su cuenta, «a mano» o «auto»; fuera de antena, ninguna', () => {
-  assert.deepEqual(vistaFases(foto({ actual: 'postpartida', faltan: 21, siguiente: 'casters' }), AHORA).aviso, { etiqueta: 'Postpartida', texto: '0:21' });
-  assert.deepEqual(vistaFases(foto({ actual: 'pausa', manual: true }), AHORA).aviso, { etiqueta: 'Pausa', texto: 'a mano' });
-  assert.deepEqual(vistaFases(foto({ actual: 'partida' }), AHORA).aviso, { etiqueta: 'Partida', texto: 'auto' });
+  assert.deepEqual(vistaFases(foto({ actual: 'postpartida', faltan: 21, siguiente: 'casters' }), AHORA).aviso, { etiqueta: 'Fase', texto: 'Postpartida · 0:21' });
+  assert.deepEqual(vistaFases(foto({ actual: 'pausa', manual: true }), AHORA).aviso, { etiqueta: 'Fase', texto: 'Pausa · a mano' });
+  assert.deepEqual(vistaFases(foto({ actual: 'partida' }), AHORA).aviso, { etiqueta: 'Fase', texto: 'Partida · auto' });
   assert.equal(vistaFases(foto({ actual: null }), AHORA).aviso, null);
 });
 
 test('la hora de la espera: de hoy si aún no ha llegado, de mañana si ya pasó', () => {
   assert.equal(hastaDesdeHora('21:30', AHORA), new Date(2026, 10, 15, 21, 30).getTime());
   assert.equal(hastaDesdeHora('9:05', AHORA), new Date(2026, 10, 16, 9, 5).getTime());
-  assert.equal(hastaDesdeHora('20:00', AHORA), new Date(2026, 10, 16, 20, 0).getTime(), 'justo ahora cuenta como pasada');
+  assert.equal(hastaDesdeHora('20:00', AHORA), null, 'justo ahora (o pasada hace menos de 6 h) no vale: nada de cuentas de 24 h');
+  assert.equal(hastaDesdeHora('19:59', AHORA), null);
+  assert.equal(problemaHora('19:59', AHORA), 'Esa hora ya ha pasado: pon una hora que aún no haya llegado');
+  assert.equal(problemaHora('2x:00', AHORA), 'Escribe la hora de empezar (HH:MM)');
+  assert.equal(problemaHora('21:00', AHORA), null);
   assert.equal(hastaDesdeHora('20.15', AHORA), new Date(2026, 10, 15, 20, 15).getTime());
   for (const mal of ['', null, undefined, '25:00', '12:60', 'mañana', '1230', '12:3']) assert.equal(hastaDesdeHora(mal, AHORA), null, String(mal));
   assert.equal(horaDe(new Date(2026, 10, 15, 7, 4).getTime()), '07:04');
@@ -110,4 +114,18 @@ test('cuenta atrás y la pregunta del cierre', () => {
   assert.equal(cuenta(3600), '1:00:00');
   assert.match(preguntaCierre('partida'), /con la partida en antena/);
   assert.equal(preguntaCierre('casters'), '¿Pasar al cierre del directo?');
+});
+
+test('revisión 15/11: PC 2 ausente, sin emitir, resumen en antena y preguntas en plena partida', () => {
+  const sinPc2 = vistaFases(foto(null), AHORA);
+  assert.equal(sinPc2.botones, false);
+  assert.match(sinPc2.texto, /Esperando al PC 2/);
+  const apagada = vistaFases({ ...foto({ actual: 'espera', hasta: AHORA + 60000, siguiente: 'intro' }), emision: { fase: 'apagada' } }, AHORA);
+  assert.ok(apagada.texto.startsWith("En OBS (sin emitir): Espera"), apagada.texto);
+  const resumen = vistaFases(foto({ actual: 'resumen', siguiente: 'casters' }), AHORA);
+  assert.equal(resumen.pausa || resumen.casters || resumen.intro || resumen.postpartida, false);
+  assert.match(resumen.detalle, /cancela antes el resumen/);
+  assert.match(preguntaFase('pausa', 'partida'), /con la partida en antena/);
+  assert.equal(preguntaFase('pausa', 'casters'), null);
+  assert.equal(preguntaFase('cierre', 'casters'), '¿Pasar al cierre del directo?');
 });
