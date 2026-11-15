@@ -9,7 +9,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { puntuar, participacion } from './puntuacion.js';
 
-import { adelantoDe, csRepartido, sucesosAdelantados, enfriamientosEn } from './adelanto.js';
+import { adelantoDe, csRepartido, sucesosAdelantados, enfriamientosEn, kdaEn } from './adelanto.js';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 let precios = {};            // id de objeto → oro total (Data Dragon)
@@ -530,6 +530,9 @@ export function resumen() {
   // que llegan al momento: se queda la cifra mayor de las dos, y el total de cada clan es la suma de sus jugadores
   for (const j of [...jugadores.azul, ...jugadores.rojo]) {
     j.k = Math.max(j.k, j.killsVistas || 0); j.d = Math.max(j.d, j.muertesVistas || 0); j.a = Math.max(j.a, j.asistenciasVistas || 0);
+    // Y el del PC 1 del realizador, que lo ve todo aunque el PC 2 salte tramos en una repetición (server/adelanto.js)
+    const delPc1 = conAdelanto ? kdaEn(j.nombre, bruto.tiempo) : undefined;
+    if (delPc1) { j.k = Math.max(j.k, delPc1.k); j.d = Math.max(j.d, delPc1.d); j.a = Math.max(j.a, delPc1.a); }
     delete j.killsVistas; delete j.muertesVistas; delete j.asistenciasVistas;
   }
   for (const lado of ['azul', 'rojo']) eq[lado].kills = jugadores[lado].reduce((s, j) => s + j.k, 0);

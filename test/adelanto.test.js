@@ -109,3 +109,20 @@ test('las larvas del PC 1 cuentan para su familia y el marcador enseña los enfr
   assert.deepEqual(p.lineas[0].azul.enfriamientos.d, { quedan: 290 });
   assert.equal(p.lineas[1].azul.enfriamientos, null, 'quien no tiene datos de hechizos, sin enfriamientos');
 });
+
+test('el KDA viene del PC 1 en el segundo de la emisión: lo que el PC 2 se salta en una repetición no se pierde', () => {
+  const kda = [[0, 0, 0, 0], [300, 1, 0, 0], [480, 2, 1, 3], [700, 4, 1, 3]];
+  recibirAdelanto({ ...delPc1(800), jugadores: delPc1(800).jugadores.map(j => (j.nombre === 'A1' ? { ...j, kda } : j)) });
+  // La emisión va por los 500 s y el cliente del PC 2, por haber saltado, solo cuenta 1 asesinato
+  let p = recibir({ juego: { gameTime: 500 }, jugadores: jugadores({ A1: 30 }).map(j => (j.riotIdGameName === 'A1' ? { ...j, scores: { ...j.scores, kills: 1 } } : j)),
+    eventos: [{ EventID: 0, EventName: 'GameStart', EventTime: 0 }] });
+  const a1 = p.lineas[0].azul;
+  assert.deepEqual([a1.k, a1.d, a1.a], [2, 1, 3], 'lo del PC 1 a los 480 s');
+  assert.equal(p.azul.kills, 2, 'y el total de la familia');
+  // Aún no ha llegado a los 700 s: no se adelanta nada
+  p = paquete(650, { A1: 30 });
+  assert.equal(p.lineas[0].azul.k, 2);
+  // Si el cliente va por delante del PC 1, manda el cliente
+  p = recibir({ juego: { gameTime: 660 }, jugadores: jugadores({ A1: 30 }).map(j => (j.riotIdGameName === 'A1' ? { ...j, scores: { ...j.scores, kills: 5 } } : j)), eventos: [] });
+  assert.equal(p.lineas[0].azul.k, 5);
+});

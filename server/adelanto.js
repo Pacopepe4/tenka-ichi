@@ -2,7 +2,8 @@
 // después; el marcador sale del puente del PC 2. El PC 1 manda aquí (acción «adelanto», por /ws con la contraseña) lo
 // que sabe antes que nadie:
 //   { t: gameTime del PC 1,
-//     jugadores: [{ nombre, equipo: 'ORDER'|'CHAOS', cs: [[gameTime, creepScore], …] }],   cada vez que cambia el CS
+//     jugadores: [{ nombre, equipo: 'ORDER'|'CHAOS', cs: [[gameTime, creepScore], …],      cada vez que cambia el CS
+//                   kda: [[gameTime, k, d, a], …] }],                                          cada vez que cambia el KDA
 //     objetivos: [{ id, tipo: 'dragon'|'heraldo'|'baron'|'larvas', dragon?, lado: 'azul'|'rojo', t }],
 //     hechizos: [{ nombre, equipo, d: [[desde, hasta|null], …], f: […], r: […] }] }   (desde el 14/11, leídos de la pantalla)
 // Con eso:
@@ -21,7 +22,7 @@ const TIPOS = new Set(['dragon', 'heraldo', 'baron', 'larvas']);
 const DRAGONES = new Set(['infernal', 'oceano', 'montana', 'nube', 'hextech', 'quimtech', 'ancestral']);
 
 const normalizar = s => String(s || '').toLowerCase().split('#')[0].replace(/[\s_.-]/g, '');
-const vacio = () => ({ recibido: 0, t: 0, cs: new Map(), objetivos: new Map(), hechizos: new Map() });
+const vacio = () => ({ recibido: 0, t: 0, cs: new Map(), kda: new Map(), objetivos: new Map(), hechizos: new Map() });
 let adelanto = vacio();
 
 export function olvidarAdelanto() { adelanto = vacio(); }
@@ -43,6 +44,11 @@ export function recibirAdelanto(d, ahora = Date.now()) {
     const limpios = [];
     for (const p of pasos) if (!limpios.length || p[1] > limpios.at(-1)[1]) limpios.push(p);
     adelanto.cs.set(nombre, limpios);
+    // KDA (15/11): en una repetición con saltos el cliente del PC 2 no cuenta lo saltado; el PC 1 lo ve todo
+    if (Array.isArray(j.kda)) {
+      adelanto.kda.set(nombre, j.kda.map(p => (Array.isArray(p) ? p.slice(0, 4).map(Number) : []))
+        .filter(p => p.length === 4 && p.every(v => Number.isFinite(v) && v >= 0)).sort((a, b) => a[0] - b[0]).slice(-400));
+    }
   }
   for (const o of (Array.isArray(d.objetivos) ? d.objetivos : []).slice(0, 80)) {
     const ot = Number(o?.t);
@@ -61,6 +67,12 @@ export function recibirAdelanto(d, ahora = Date.now()) {
 // Los enfriamientos de un hechizo: tramos [desde, hasta] ordenados (hasta null: aún no ha vuelto, según el PC 1)
 const tramos = lista => (Array.isArray(lista) ? lista : []).map(p => [Number(p?.[0]), p?.[1] == null ? null : Number(p[1])])
   .filter(([a, b]) => Number.isFinite(a) && a >= 0 && (b === null || (Number.isFinite(b) && b > a))).sort((x, y) => x[0] - y[0]).slice(-200);
+
+// El KDA de un jugador en el segundo t de la emisión, según el PC 1 (undefined si no hay datos o aún no ha pasado nada)
+export function kdaEn(nombre, t) {
+  const p = adelanto.kda.get(normalizar(nombre))?.findLast(([pt]) => pt <= t);
+  return p ? { k: p[1], d: p[2], a: p[3] } : undefined;
+}
 
 // Cómo están la D, la F y la R de un jugador en el segundo t de la emisión: null si están listos; si no, { quedan }
 // con los segundos que faltan (null si aún no se sabe cuándo vuelven). Sin datos de ese jugador, undefined
