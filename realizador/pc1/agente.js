@@ -18,7 +18,7 @@ import { aplicarPerfil, restaurarPerfil, rutaConfig } from '../instalar/configur
 import { condiciones } from '../comun/condiciones.js';
 import { Ia } from './ia.js';
 import { Actualizador, registroEnArchivo } from '../comun/app.js';
-import { LectorPantalla, leerFotograma, SeguidorMarcador, SeguidorHechizos } from './pantalla.js';
+import { LectorPantalla, leerFotograma, SeguidorMarcador, SeguidorHechizos, sucesoDeContador } from './pantalla.js';
 import { carpetaFfmpeg } from '../instalar/ffmpeg.js';
 
 // «explorador» permite cambiar de dónde salen los sucesos (el modo grabada pone el suyo)
@@ -156,10 +156,11 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
 
   explorador.on('conexion', v => { if (conexiones.explorador !== v) { conexiones.explorador = v; panel?.emitir(); } });
   // Lector de pantalla (pc1/pantalla.js, 14/11): mira la ventana del LoL de este PC (detrás de otras vale; minimizada
-  // no) y saca lo que la Live Client no da al espectador: quién coge dragón, heraldo y larvas (el número del marcador
+  // no) y saca lo que la Live Client no da al espectador: quién coge dragón, larvas, heraldo y Barón (el número del marcador
   // de arriba cambia) y cuándo están en enfriamiento los hechizos y la definitiva de cada uno (marcos de los lados)
-  const lectura = { lector: null, marcador: new SeguidorMarcador(), hechizos: new SeguidorHechizos(), cambios: false };
-  const SUCESO_PANTALLA = { dragon: 'DragonKill', heraldo: 'HeraldKill', larvas: 'HordeKill' };
+  // Larvas: son 3 y salen una sola vez por partida; más de 3 sería una mala lectura
+  const LARVAS = 3;
+  const lectura = { lector: null, marcador: new SeguidorMarcador(), hechizos: new SeguidorHechizos(), cambios: false, larvas: 0 };
   // La luz solo sale durante la partida (fuera de ella no hay nada que leer)
   if (o.pantalla?.activo && process.platform === 'win32') {
     const exe = join(carpetaFfmpeg(), 'ffmpeg.exe');
@@ -179,8 +180,9 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
       // Solo con el marcador a la vista (en la pantalla de carga o con la interfaz quitada no se lee nada)
       if (l.contadores.filter(c => c.huella).length < 6) return;
       for (const s of lectura.marcador.apuntar(t, l.contadores)) {
-        const nombre = SUCESO_PANTALLA[s.tipo];
+        const nombre = sucesoDeContador(s.tipo, s.t);
         if (!nombre) continue;
+        if (nombre === 'HordeKill' && ++lectura.larvas > LARVAS) continue;
         // La pantalla no dice quién lo mata: para la cámara, el jungla de ese equipo (el que castiga)
         const jungla = explorador.jugadores.find(j => j.equipo === s.equipo && (j.castigo || j.posicion === 'JUNGLE')) || null;
         explorador.emitirEvento({
@@ -216,7 +218,7 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
   };
   const temporizadorAdelanto = setInterval(mandarAdelanto, 5000);
   temporizadorAdelanto.unref?.();
-  explorador.on('evento', e => { if (/^(DragonKill|HeraldKill|BaronKill|HordeKill|AtakhanKill)$/.test(e.nombre)) mandarAdelanto(); });
+  explorador.on('evento', e => { if (/^(DragonKill|HeraldKill|BaronKill|HordeKill)$/.test(e.nombre)) mandarAdelanto(); });
   // Un hechizo que entra o sale de enfriamiento sale en la web sin esperar a la vuelta de 5 s (como mucho uno por segundo)
   const temporizadorHechizos = setInterval(() => { if (lectura.cambios) mandarAdelanto(); }, 1000);
   temporizadorHechizos.unref?.();
@@ -229,6 +231,7 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
     ejecutor.reiniciar(cerebro, buzon, partida.id);
     ejecutor.apuntar('realizador', 'partida nueva', info);
     lectura.marcador.limpiar();
+    lectura.larvas = 0;
     lectura.hechizos.limpiar();
     if (lectura.lector) { conexiones.pantalla = false; lectura.lector.arrancar(); }
     log(`Partida encontrada (${info.modo || 'modo desconocido'}). Registro en ${buzon.carpeta}`);

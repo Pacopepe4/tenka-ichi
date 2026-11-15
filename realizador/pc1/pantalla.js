@@ -229,9 +229,9 @@ export function argumentosCaptura({ ventana = 'League of Legends.exe', fps = 2 }
 
 // Arranca y vigila ffmpeg; emite 'foto' ({ ancho, alto, px }) y 'estado' (true/false: si llegan fotos)
 export class LectorPantalla extends EventEmitter {
-  constructor({ ffmpeg = 'ffmpeg', ventana, fps = 2, reintentoSegundos = 10 } = {}, lanzar = spawn) {
+  constructor({ ffmpeg = 'ffmpeg', ventana, fps = 2, reintentoSegundos = 10, sinFotoSegundos = 10 } = {}, lanzar = spawn) {
     super();
-    Object.assign(this, { ffmpeg, ventana, fps, reintentoMs: reintentoSegundos * 1000, lanzar });
+    Object.assign(this, { ffmpeg, ventana, fps, reintentoMs: reintentoSegundos * 1000, sinFotoMs: sinFotoSegundos * 1000, lanzar });
     this.proceso = null;
     this.activo = false;
     this.ultimaFoto = 0;
@@ -241,6 +241,18 @@ export class LectorPantalla extends EventEmitter {
     if (this.activo) return;
     this.activo = true;
     this.lanzarFfmpeg();
+    // Con la ventana minimizada, ffmpeg no se cierra: se queda esperando sin dar fotos. Si pasa un rato sin ninguna,
+    // se avisa y se vuelve a lanzar (la captura vuelve en cuanto la ventana se restaura)
+    clearInterval(this.vigia);
+    this.vigia = setInterval(() => {
+      if (!this.proceso || Date.now() - Math.max(this.ultimaFoto, this.lanzado || 0) < this.sinFotoMs) return;
+      this.error = 'no llega imagen del LoL (¿minimizado?)';
+      this.emit('estado', false);
+      const p = this.proceso; this.proceso = null;
+      try { p.kill(); } catch { /* ya cerrado */ }
+      this.reintentar();
+    }, Math.min(2000, this.sinFotoMs));
+    this.vigia.unref?.();
   }
   lanzarFfmpeg() {
     if (!this.activo || this.proceso) return;
@@ -251,6 +263,7 @@ export class LectorPantalla extends EventEmitter {
       p = this.lanzar(this.ffmpeg, argumentosCaptura({ ventana: this.ventana, fps: this.fps }), { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
     } catch (e) { this.error = e.message; this.reintentar(); return; }
     this.proceso = p;
+    this.lanzado = Date.now();
     p.stdout.on('data', d => {
       for (const f of cortador.meter(d)) {
         if (!this.ultimaFoto || this.error) this.emit('estado', true);
@@ -261,7 +274,9 @@ export class LectorPantalla extends EventEmitter {
     p.stderr?.on('data', d => { errores = (errores + d).slice(-500); });
     p.on('error', e => { errores = e.message; });
     p.on('close', () => {
-      if (this.proceso === p) this.proceso = null;
+      // Si ya no es el proceso en curso (lo han parado o lo ha cerrado el vigía), aquí no hay nada que hacer
+      if (this.proceso !== p) return;
+      this.proceso = null;
       if (!this.activo) return;
       // Sin ventana del LoL (o minimizada) ffmpeg no arranca: se vuelve a probar
       this.error = errores.trim().split('\n').at(-1) || 'la captura se ha cerrado';
@@ -277,9 +292,22 @@ export class LectorPantalla extends EventEmitter {
   parar() {
     this.activo = false;
     clearTimeout(this.temporizador);
+    clearInterval(this.vigia);
     const p = this.proceso; this.proceso = null;
     try { p?.kill(); } catch { /* ya cerrado */ }
   }
   // ¿Llegan fotos? (para la luz del panel)
   vivo(ms = 5000) { return this.activo && Date.now() - this.ultimaFoto < ms; }
+}
+
+// Qué suceso es cada contador del marcador. Ya no hay Atakhan: los objetivos del vacío son larvas, heraldo y Barón.
+// El contador del ojo con cuernos sube con el heraldo (comprobado el 14/11). El Barón no tiene contador propio a la
+// vista (partida de prueba de 19 min): si ese contador sube cuando el heraldo ya se ha ido (19:45, y el Barón sale a
+// las 20:00), se cuenta como Barón. Pendiente de confirmar con una partida larga.
+export const SE_VA_EL_HERALDO = 19 * 60 + 45;
+export function sucesoDeContador(tipo, t) {
+  if (tipo === 'dragon') return 'DragonKill';
+  if (tipo === 'larvas') return 'HordeKill';
+  if (tipo === 'heraldo') return t >= SE_VA_EL_HERALDO ? 'BaronKill' : 'HeraldKill';
+  return null; // torres: ya llegan por la Live Client
 }

@@ -18,7 +18,7 @@ export function tipoDragon(texto) {
   return DRAGONES.find(([re]) => re.test(t))?.[1] || null;
 }
 
-const TIPOS = { DragonKill: 'dragon', HeraldKill: 'heraldo', BaronKill: 'baron', HordeKill: 'larvas', AtakhanKill: 'atakhan' };
+const TIPOS = { DragonKill: 'dragon', HeraldKill: 'heraldo', BaronKill: 'baron', HordeKill: 'larvas' };
 const LADOS = { order: 'azul', chaos: 'rojo', azul: 'azul', rojo: 'rojo', blue: 'azul', red: 'rojo' };
 
 // Suceso del explorador → objetivo para la web (o null si no es uno de los que interesan)

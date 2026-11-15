@@ -213,11 +213,12 @@ export class Explorador extends EventEmitter {
   }
 
   emitirEvento(e) {
-    // El mismo objetivo puede llegar por las dos fuentes: cuenta una vez
-    const clave = `${e.nombre}@${Math.round(e.t / 3)}`;
+    // El mismo objetivo puede llegar por las dos fuentes: cuenta una vez. Las larvas solo las da la pantalla y mueren
+    // una a una, a veces en el mismo segundo: cada una cuenta (su id ya es único)
+    const clave = e.nombre === 'HordeKill' ? e.id : `${e.nombre}@${Math.round(e.t / 3)}`;
     if (e.nombre !== 'ChampionKill' && this.vistos.has(clave)) return;
     this.vistos.add(clave);
-    if (/^(DragonKill|HeraldKill|BaronKill|HordeKill|AtakhanKill)$/.test(e.nombre)) this.objetivos.push(e);
+    if (/^(DragonKill|HeraldKill|BaronKill|HordeKill)$/.test(e.nombre)) this.objetivos.push(e);
     this.emit('evento', e);
   }
 
