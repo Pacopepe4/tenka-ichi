@@ -128,7 +128,7 @@ function pintarEmision(f) {
 
 // Fases del directo (las lleva el PC 1): la que está en antena, en grande, con lo que falta para la siguiente, y los
 // botones para forzar otra o volver al automático. Lo que toca en cada fase, en fases.js
-const ID_FASE = { intro: 'Intro', pausa: 'Pausa', postpartida: 'Postpartida', casters: 'Casters', cierre: 'Cierre', auto: 'Auto' };
+const ID_FASE = { intro: 'Intro', traileres: 'Traileres', saltar: 'Saltar', pausa: 'Pausa', postpartida: 'Postpartida', casters: 'Casters', cierre: 'Cierre', auto: 'Auto' };
 let horaPuesta = null;
 function pintarFases(f) {
   const v = vistaFases(f);

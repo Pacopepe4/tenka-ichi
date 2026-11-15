@@ -5,7 +5,8 @@ import assert from 'node:assert/strict';
 import { vistaFases, ordenFase, hastaDesdeHora, horaDe, cuenta, preguntaCierre, preguntaFase, problemaHora, BOTONES } from '../public/panel/fases.js';
 
 const foto = fase => ({ tipo: 'foto', fase });
-const botones = v => Object.fromEntries([...BOTONES, 'espera'].map(b => [b, v[b]]));
+// Los botones de la primera tanda (los tráilers y «Saltar», aparte)
+const botones = v => Object.fromEntries(['intro', 'pausa', 'postpartida', 'casters', 'cierre', 'auto', 'espera'].map(b => [b, v[b]]));
 // Hoy a las 20:00 (hora local), para que las cuentas no dependan del día
 const AHORA = new Date(2026, 10, 15, 20, 0, 0, 0).getTime();
 
@@ -67,7 +68,7 @@ test('qué botones van en cada fase', () => {
   for (const [actual, manual, esperado] of casos) {
     const v = vistaFases(foto({ actual, manual, hasta: null, faltan: null, siguiente: null, escena: null }), AHORA);
     assert.equal(v.botones, true, String(actual));
-    assert.deepEqual(botones(v), Object.fromEntries([...BOTONES, 'espera'].map((b, i) => [b, esperado[i]])), String(actual));
+    assert.deepEqual(botones(v), Object.fromEntries(['intro', 'pausa', 'postpartida', 'casters', 'cierre', 'auto', 'espera'].map((b, i) => [b, esperado[i]])), String(actual));
   }
   // Una fase que el panel no conoce: se dice y no hay botones
   const rara = vistaFases(foto({ actual: 'otra', manual: false }), AHORA);
@@ -128,4 +129,18 @@ test('revisión 15/11: PC 2 ausente, sin emitir, resumen en antena y preguntas e
   assert.match(preguntaFase('pausa', 'partida'), /con la partida en antena/);
   assert.equal(preguntaFase('pausa', 'casters'), null);
   assert.equal(preguntaFase('cierre', 'casters'), '¿Pasar al cierre del directo?');
+});
+
+test('tráilers y saltar: Tráilers donde la intro o tras ella; Saltar solo con algo que dura un tiempo fijo', () => {
+  const v = actual => vistaFases(foto({ actual }), AHORA);
+  assert.equal(v('espera').traileres, true);
+  assert.equal(v('intro').traileres, true);
+  assert.equal(v('traileres').traileres, false);
+  assert.equal(v('partida').traileres, false);
+  for (const a of ['intro', 'traileres', 'postpartida']) assert.equal(v(a).saltar, true, a);
+  for (const a of ['espera', 'draft', 'partida', 'casters', 'pausa']) assert.equal(v(a).saltar, false, a);
+  assert.equal(v('traileres').titulo, 'Tráilers');
+  assert.deepEqual(ordenFase('traileres'), { tipo: 'panelFase', fase: 'traileres' });
+  assert.deepEqual(ordenFase('saltar'), { tipo: 'panelFase', fase: 'saltar' });
+  assert.ok(BOTONES.includes('traileres') && BOTONES.includes('saltar'));
 });
