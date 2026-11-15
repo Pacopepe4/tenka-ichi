@@ -495,6 +495,10 @@ async function accion(nombre, d = {}) {
       const r = await torneo.pegarDrafts(d.texto);
       return { ok: r.hechos.length > 0 || !r.errores.length, error: r.errores.join(' · ') || null, ...r };
     }
+    case 'torneoPegarCodigos': {
+      const r = await torneo.pegarCodigos(d.texto);
+      return { ok: r.hechos.length > 0 || !r.errores.length, error: r.errores.join(' · ') || null, ...r };
+    }
     case 'torneoOlvidar':
       return { ok: true, torneo: await torneo.olvidar(d.id) };
     // Jornada del fantasy: su clasificación y, al terminarla, los sobres de los tres primeros

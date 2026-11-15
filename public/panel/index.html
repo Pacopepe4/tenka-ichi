@@ -239,12 +239,19 @@
     <section id="torneo" data-fases="preparar resultado liga">
       <h2>Códigos de torneo</h2>
       <p class="pista" id="modoTorneo">Entra con la contraseña del panel para ver los códigos.</p>
-      <p class="ayuda">Un código por partido. «Enviar a los capitanes» abre un hilo privado en #tickets con los Oyabun de las dos familias y les deja el código: nunca sale en abierto. Con clave de torneo de Riot, la partida jugada con el código queda registrada sola en el fantasy al acabar (el MVP se pone después en «Resultado» y se vuelve a guardar).</p>
+      <p class="ayuda">Un código por partido. «Enviar a los chats de las familias»: SrDirector deja el código y el draft de cada lado en el chat del canal de voz privado de cada familia, que solo ven los suyos. Nunca sale en abierto. Con clave de torneo de Riot, la partida jugada con el código queda registrada sola en el fantasy al acabar (el MVP se pone después en «Resultado» y se vuelve a guardar).</p>
       <div class="fila">
         <label>Día <select id="torneoDia" aria-label="Día de los partidos"></select></label>
         <button type="button" class="secundario" id="torneoRefrescar">Actualizar</button>
+        <button type="button" id="torneoEnviarDia">Enviar todos los de este día</button>
       </div>
       <div class="lista-torneo" id="listaTorneo"></div>
+      <details class="plegable">
+        <summary>Pegar los códigos de Toornament</summary>
+        <p class="ayuda">Los códigos de torneo salen de Toornament (torneo «Gokudō · Temporada 1»: en cada partido, menú ⋮ → «Códigos de torneo»). Una línea por partido: el id (J1-1…) y el código. Mandan sobre la sala y el código de Riot.</p>
+        <textarea id="pegarCodigos" rows="6" placeholder="J1-1 EUW05124-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></textarea>
+        <div class="fila"><button type="button" id="guardarCodigos">Guardar los códigos</button></div>
+      </details>
       <details class="plegable">
         <summary>Pegar los drafts de golpe</summary>
         <p class="ayuda">Los drafts se crean en DraftCore como siempre. Aquí va una línea por partido: el id (J1-1…), el enlace del lado azul, el del rojo y el de espectador. Cada capitán recibe solo el de su lado.</p>

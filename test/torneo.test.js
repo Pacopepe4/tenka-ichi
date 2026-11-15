@@ -285,3 +285,51 @@ test('los cambios de horario se guardan y se pueden quitar', async () => {
   await t.cambiarHorario('J1-3', {});
   assert.equal(t.estado().partidos.find(p => p.id === 'J1-3').cambiado, false);
 });
+
+test('códigos de Toornament: se pegan de golpe, mandan sobre la sala y se entregan como código de torneo', async () => {
+  const dc = discordFalso({ miembros: [] });
+  const { t } = montar({ conRiot: false, discord: dc });
+  await t.guardarDrafts('J1-2', { azul: 'https://lol.draftcore.net/A2', rojo: 'https://lol.draftcore.net/R2' });
+  await t.generar('J1-3');   // tenía sala
+  const r = await t.pegarCodigos([
+    'J1-2 EUW05124-3235db14-5b33-405a-ba4d-009f5f3dc672',
+    'J1-3 EUW05124-b8ec0f0a-0624-4198-8805-d4d6dd1e3690',
+    'J1-1 esto-no',
+    'J9-9 EUW05124-00000000-0000-0000-0000-000000000000',
+  ].join('\n'));
+  assert.deepEqual(r.hechos, ['J1-2', 'J1-3']);
+  assert.equal(r.errores.length, 2);
+  assert.deepEqual(t.ver('J1-3'), { modo: 'externo', codigo: 'EUW05124-b8ec0f0a-0624-4198-8805-d4d6dd1e3690', sala: null, drafts: null });
+  assert.equal(t.ver('J1-2').drafts.azul, 'https://lol.draftcore.net/A2');   // los drafts se quedan
+  assert.equal(t.estado().partidos.find(p => p.id === 'J1-2').modoCodigo, 'externo');
+  assert.equal(JSON.stringify(t.estado()).includes('EUW05124'), false);
+  // «Generar» no lo pisa
+  assert.equal((await t.generar('J1-2')).codigo, 'EUW05124-3235db14-5b33-405a-ba4d-009f5f3dc672');
+  await t.entregar('J1-2');
+  const msg = dc.llamadas.find(l => l.ruta === '/channels/hilo-1/messages').cuerpo.embeds[0].description;
+  assert.match(msg, /Código de torneo:\*\*\n```\nEUW05124-3235db14/);
+  assert.doesNotMatch(msg, /Sala personalizada/);
+  assert.equal((await t.resultado('J1-2')).ok, false);
+});
+
+test('entrega por los chats privados de las familias: cada una recibe el código y solo su draft, con su rol nombrado', async () => {
+  const dc = discordFalso({ fallaMiembros: true });
+  dc.d.chatFamilia = c => `chat-${c}`;
+  const { t } = montar({ conRiot: false, discord: dc });
+  await t.guardarDrafts('J1-1', { azul: 'https://lol.draftcore.net/AZUL1', rojo: 'https://lol.draftcore.net/ROJO1', espectador: 'https://lol.draftcore.net/ESPE1' });
+  await t.pegarCodigos('J1-1 EUW05124-11111111-2222-3333-4444-555555555555');
+  const r = await t.entregar('J1-1');
+  assert.equal(r.ok, true);
+  assert.equal(r.chats, 2);
+  assert.equal(r.aviso, null);
+  assert.equal(dc.llamadas.some(l => l.ruta.endsWith('/threads') || l.ruta.includes('/members')), false);
+  const azul = dc.llamadas.find(l => l.ruta === '/channels/chat-KEMONO/messages').cuerpo;
+  const rojo = dc.llamadas.find(l => l.ruta === '/channels/chat-BUSHI/messages').cuerpo;
+  assert.equal(azul.content, '<@&rol-KEMONO>');
+  assert.deepEqual(azul.allowed_mentions, { parse: [], roles: ['rol-KEMONO'] });
+  assert.match(azul.embeds[0].description, /EUW05124-11111111/);
+  assert.match(azul.embeds[0].description, /AZUL1/);
+  assert.doesNotMatch(azul.embeds[0].description, /ROJO1|ESPE1/);
+  assert.match(rojo.embeds[0].description, /ROJO1/);
+  assert.doesNotMatch(rojo.embeds[0].description, /AZUL1|ESPE1/);
+});

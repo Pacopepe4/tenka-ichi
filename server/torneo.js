@@ -254,6 +254,35 @@ export function crearTorneo({
     return { hechos, errores, torneo: estado() };
   }
 
+  // ---- códigos de fuera (Toornament) ----
+  // Lo pidió Pacopepe el 15/11/2026 («rellénalas automáticas en el panel»): los códigos de torneo los da Toornament
+  // (torneo privado «Gokudō · Temporada 1», un código por partido). Si un partido tiene uno, se usa ese en lugar de
+  // la sala o del código de Riot propio. El resultado lo apunta Toornament: aquí no se puede leer con match-v5.
+  const codigoExterno = v => {
+    const t = String(v || '').trim();
+    if (!/^[A-Z]{2,4}\d{0,2}[0-9A-Za-z]*-[0-9A-Za-z-]{8,80}$/.test(t)) throw new Error(`Eso no parece un código de torneo de LoL: ${t.slice(0, 40)}`);
+    return t;
+  };
+  function ponerCodigoExterno(id, codigo) {
+    partido(id);
+    const limpio = codigoExterno(codigo);
+    const d = cargar();
+    const antes = d.partidos[id] || {};
+    if (antes.codigo === limpio) return;
+    d.partidos[id] = { modo: 'externo', codigo: limpio, creado: ahora().toISOString(), entregado: null, hilos: antes.hilos || {},
+      ...(antes.drafts && { drafts: antes.drafts }), partidaRiot: null, ganador: null };
+  }
+  // Una línea por partido: «J1-1 EUW0…»
+  async function pegarCodigos(texto) {
+    const hechos = [], errores = [];
+    for (const linea of String(texto || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean)) {
+      const [id, codigo] = linea.split(/[\s|;,]+/);
+      try { ponerCodigoExterno(id, codigo); hechos.push(id); } catch (e) { errores.push(`${id}: ${e.message}`); }
+    }
+    if (hechos.length) await guardar();
+    return { hechos, errores, torneo: estado() };
+  }
+
   // ---- entregar por Discord ----
   // Un hilo privado por familia y partido, con su capitán: el código es el mismo para los dos, pero el enlace del draft
   // de un lado no lo tiene que ver el otro
@@ -290,7 +319,7 @@ export function crearTorneo({
       embeds: [{
         color: 0xBE2A2F,
         title: `🎟️ ${p.ronda} · ${p.nombre}`,
-        description: `${cuando}. Jugáis en ${ladoTexto}.\n\n${como}${draft}\n\nCapitán: pásales el código **por privado** a tus cuatro, nunca en un canal abierto. Si algo falla, escribe aquí y te ayuda el staff.`,
+        description: `${cuando}. Jugáis en ${ladoTexto}.\n\n${como}${draft}\n\nNo lo saquéis de este chat: el código y el draft no se publican en abierto. Si algo falla, escribid aquí y os ayuda el staff.`,
         footer: { text: '極道 · Gokudō' },
       }],
       allowed_mentions: { parse: [], users: menciones },
@@ -305,6 +334,16 @@ export function crearTorneo({
     const caps = {};
     for (const lado of ['azul', 'rojo']) {
       const familia = p[lado];
+      // El chat de su canal de voz privado, que solo ve esa familia (lo pidió Pacopepe el 15/11: «que SrDirector se lo
+      // ponga por los chats de cada equipo»). Se nombra al rol de la familia; si no hay canal, va a un hilo privado
+      const chat = discord.chatFamilia?.(familia);
+      if (chat) {
+        const rol = discord.rolFamilia(familia);
+        const m = mensaje(p, c, lado, []);
+        await discord.pedir('POST', `/channels/${chat}/messages`, { ...m, content: rol ? `<@&${rol}>` : undefined, allowed_mentions: { parse: [], roles: rol ? [rol] : [] } });
+        caps[lado] = { ids: ['chat'], de: 'chat' };
+        continue;
+      }
       caps[lado] = await capitanesDe(familia);
       let hilo = c.hilos[lado];
       if (!hilo) {
@@ -320,7 +359,8 @@ export function crearTorneo({
     await guardar();
     const sin = ['azul', 'rojo'].filter(l => !caps[l].ids.length).map(l => clan(p[l]).nombre);
     const error = caps.azul.error || caps.rojo.error;
-    return { ok: true, capitanes: caps.azul.ids.length + caps.rojo.ids.length, sinCapitan: sin, drafts: Boolean(c.drafts?.azul && c.drafts?.rojo),
+    const enChats = ['azul', 'rojo'].filter(l => caps[l].de === 'chat').length;
+    return { ok: true, chats: enChats, capitanes: caps.azul.ids.filter(x => x !== 'chat').length + caps.rojo.ids.filter(x => x !== 'chat').length, sinCapitan: sin, drafts: Boolean(c.drafts?.azul && c.drafts?.rojo),
       aviso: sin.length ? `Sin capitán en Discord: ${sin.join(' y ')}${error ? ` (${error})` : ''}. El staff los puede meter en su hilo nombrándolos.` : null };
   }
 
@@ -347,6 +387,7 @@ export function crearTorneo({
     if (!r) return { ok: false, error: 'Sin clave de Riot con la Tournament API no se puede leer la partida: apunta las estadísticas a mano.' };
     const p = partido(id);
     const c = cargar().partidos[id];
+    if (c?.modo === 'externo') return { ok: false, error: 'Este código es de Toornament: el resultado lo apunta Toornament y las estadísticas se guardan en el panel como siempre' };
     if (!c?.codigo || c.modo === 'sala') return { ok: false, error: 'Este partido no tiene código de torneo de Riot' };
     let matchId = c.partidaRiot;
     if (!matchId) {
@@ -425,5 +466,5 @@ export function crearTorneo({
     return estado();
   }
 
-  return { modo, estado, ver, generar, guardarDrafts, pegarDrafts, entregar, resultado, aviso, cambiarHorario, olvidar, firma };
+  return { modo, estado, ver, generar, guardarDrafts, pegarDrafts, pegarCodigos, entregar, resultado, aviso, cambiarHorario, olvidar, firma };
 }

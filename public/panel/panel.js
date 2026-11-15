@@ -1077,13 +1077,14 @@ function pintarTorneo(t = torneo) {
       </div>
       <div class="fila">
         ${p.tiene ? '<button type="button" class="secundario t-ver">Ver el código</button>' : '<button type="button" class="t-generar">Generar el código</button>'}
-        <button type="button" class="t-entregar" ${t.discord ? '' : 'disabled'}>${p.entregado ? 'Enviar otra vez' : 'Enviar a los capitanes'}</button>
-        ${t.modo !== 'sala' && p.tiene ? `<button type="button" class="secundario t-resultado">${p.registrado ? 'Registrar otra vez' : 'Leer la partida de Riot'}</button>` : ''}
+        <button type="button" class="t-entregar" ${t.discord ? '' : 'disabled'}>${p.entregado ? 'Enviar otra vez' : 'Enviar a los chats de las familias'}</button>
+        ${t.modo !== 'sala' && p.tiene && p.modoCodigo !== 'externo' ? `<button type="button" class="secundario t-resultado">${p.registrado ? 'Registrar otra vez' : 'Leer la partida de Riot'}</button>` : ''}
         ${p.tiene ? '<button type="button" class="secundario t-otro">Otro código</button>' : ''}
         ${p.drafts.espectador ? '<button type="button" class="secundario t-usar">Poner su draft en el panel</button>' : ''}
       </div>
       <p class="estado t-estado ${p.registrado ? 'ok' : ''}">${[
         p.drafts.azul && p.drafts.rojo ? 'Drafts listos.' : 'Sin drafts (pégalos abajo).',
+        p.modoCodigo === 'externo' ? 'Código de Toornament.' : '',
         p.entregado ? `Enviado el ${new Date(p.entregado).toLocaleString('es-ES', { timeZone: 'Europe/Madrid', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}.` : p.tiene ? 'Sin enviar.' : 'Sin código.',
         p.registrado ? `Registrada en el fantasy (${escapar(p.partidaFantasy)}).` : p.partidaRiot ? `Partida de Riot ${escapar(p.partidaRiot)}.` : '',
       ].filter(Boolean).join(' ')}</p></div>`).join('') : '<p class="ayuda">No hay partidos ese día (¿está sorteado el calendario?).</p>';
@@ -1093,8 +1094,16 @@ async function actualizarTorneo() {
   if (r.sinConexion) return setTimeout(actualizarTorneo, 1500);
   if (r.ok) pintarTorneo(r.torneo);
 }
-const textoCodigo = c => [!c.codigo ? 'Sin código.' : c.modo === 'sala' ? `Sala «${c.sala}», contraseña ${c.codigo}.` : `Código ${c.codigo}${c.modo === 'stub' ? ' (de prueba)' : ''}.`,
+const textoCodigo = c => [!c.codigo ? 'Sin código.' : c.modo === 'externo' ? `Código de Toornament ${c.codigo}.` : c.modo === 'sala' ? `Sala «${c.sala}», contraseña ${c.codigo}.` : `Código ${c.codigo}${c.modo === 'stub' ? ' (de prueba)' : ''}.`,
   c.drafts ? `Drafts: azul ${c.drafts.azul || '—'} · rojo ${c.drafts.rojo || '—'} · espectador ${c.drafts.espectador || '—'}` : ''].filter(Boolean).join(' ');
+$('#guardarCodigos').onclick = async () => {
+  const r = await enviar('torneoPegarCodigos', { texto: $('#pegarCodigos').value });
+  const est = $('#estadoTorneo');
+  if (r.torneo) pintarTorneo(r.torneo);
+  est.className = `estado ${r.errores?.length ? 'mal' : 'ok'}`;
+  est.textContent = `${r.hechos?.length || 0} partidos con código de Toornament.${r.errores?.length ? ` No valen: ${r.errores.join(' · ')}` : ''}`;
+  if (r.hechos?.length && !r.errores?.length) $('#pegarCodigos').value = '';
+};
 $('#guardarPegados').onclick = async () => {
   const r = await enviar('torneoPegarDrafts', { texto: $('#pegarDrafts').value });
   const est = $('#estadoTorneo');
@@ -1105,6 +1114,21 @@ $('#guardarPegados').onclick = async () => {
 };
 $('#torneoDia').onchange = e => { diaTorneo = e.target.value; pintarTorneo(); };
 $('#torneoRefrescar').onclick = actualizarTorneo;
+const textoEnvio = r => (r.chats ? `SrDirector lo ha dejado en ${r.chats === 2 ? 'los chats privados de las dos familias' : '1 chat privado'}` : `Enviado a ${r.capitanes} ${r.capitanes === 1 ? 'capitán' : 'capitanes'}`)
+  + (r.aviso && !r.chats ? `. ${r.aviso}` : '');
+// Todos los partidos del día de una vez (cada uno con su código o su sala y el draft de cada lado)
+$('#torneoEnviarDia').onclick = async () => {
+  const del = (torneo?.partidos || []).filter(p => p.fecha === diaTorneo);
+  if (!del.length) return aviso('No hay partidos ese día');
+  if (!confirm(`¿Mandar a los chats de las familias los ${del.length} partidos del ${fechaTorneo(diaTorneo)}? A los que ya se mandaron les llega otra vez.`)) return;
+  const est = $('#estadoTorneo'), hechos = [], fallos = [];
+  for (const p of del) {
+    const r = await enviar('torneoEntregar', { id: p.id });
+    if (r.ok) { hechos.push(`${p.azulNombre}–${p.rojoNombre}`); if (r.torneo) pintarTorneo(r.torneo); } else fallos.push(`${p.azulNombre}–${p.rojoNombre}: ${r.error}`);
+  }
+  est.className = `estado ${fallos.length ? 'mal' : 'ok'}`;
+  est.textContent = `Enviados: ${hechos.join(', ') || 'ninguno'}.${fallos.length ? ` Fallaron: ${fallos.join(' · ')}` : ''}`;
+};
 $('#listaTorneo').addEventListener('click', async e => {
   const b = e.target.closest('button');
   const caja = b?.closest('.partido-torneo');
@@ -1125,7 +1149,7 @@ $('#listaTorneo').addEventListener('click', async e => {
     if (r.ok) { pintarTorneo(r.torneo); return caja.isConnected ? null : $(`.partido-torneo[data-id="${CSS.escape(id)}"] .t-estado`).replaceChildren(textoCodigo(r.codigo)); }
   } else if (b.classList.contains('t-entregar')) {
     r = await enviar('torneoEntregar', { id });
-    if (r.ok) { pintarTorneo(r.torneo); aviso(`Enviado a ${r.capitanes} ${r.capitanes === 1 ? 'capitán' : 'capitanes'}${r.aviso ? `. ${r.aviso}` : ''}`); return; }
+    if (r.ok) { pintarTorneo(r.torneo); aviso(textoEnvio(r)); return; }
   } else if (b.classList.contains('t-resultado')) {
     r = await enviar('torneoResultado', { id, otraVez: b.textContent.includes('otra vez') });
     if (r.ok) { $('#listaTorneo').dispatchEvent(new CustomEvent('torneo-riot', { detail: r })); pintarTorneo(r.torneo); actualizarGacha(); aviso(r.registrado ? `Registrada en el fantasy: gana ${clanes.clan(r.ganador).nombre}` : 'Leída la partida de Riot'); return; }

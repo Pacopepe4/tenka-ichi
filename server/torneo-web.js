@@ -42,6 +42,8 @@ function discordDeGokudo({ token = process.env.DISCORD_BOT_TOKEN, urlApi = proce
   return {
     pedir, guild, canal: ids['canal:tickets'], rolJefes: ids['rol:jefes'],
     rolFamilia: c => ids[`familia:${familiaDe(c)}`] || null,
+    // El chat del canal de voz privado de la familia (solo lo ven los suyos)
+    chatFamilia: c => ids[`canal:familia:${familiaDe(c)}:voz-privado`] || null,
     // Opcional: { "KEMONO": ["id de Discord", …] } si el capitán no es el Oyabun (o el bot no puede leer los miembros)
     capitanes: c => [].concat(leerJson('data-proyecto/capitanes.json', {})[c] || []),
   };
