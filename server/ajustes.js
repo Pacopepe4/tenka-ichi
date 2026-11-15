@@ -31,6 +31,19 @@ export async function cargarAjustes() {
 
 export const ajuste = clave => ajustes[clave] ?? null;
 
+// Lo que pone ahora una clave en la hoja (o en el archivo), sin tocar lo que hay en memoria. Hace falta cuando otra
+// instancia de la web puede haberla cambiado: mientras Render despliega, la versión vieja y la nueva están vivas a la
+// vez y cada una solo leyó los ajustes al arrancar. Si no se puede leer, null
+export async function releerAjuste(clave) {
+  try {
+    if (hojaActiva()) {
+      const fila = (await leer(PESTANA)).slice(1).find(f => f[0] === clave);
+      return fila ? fila[1] ?? '' : null;
+    }
+    return JSON.parse(await readFile(ARCHIVO, 'utf8'))[clave] ?? null;
+  } catch { return null; }
+}
+
 async function volcar() {
   if (hojaActiva()) {
     await asegurarPestana(PESTANA, CABECERA);

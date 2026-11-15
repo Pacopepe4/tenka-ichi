@@ -3,7 +3,7 @@
 // Un código vale un rato, una vez por persona y, si se quiere, para un número máximo de personas. Solo hay uno a la
 // vez; se guarda en los ajustes para que no se pierda si la web se reinicia, y los canjes, en el registro del gachapon.
 import crypto from 'node:crypto';
-import { ajuste, guardarAjustes } from './ajustes.js';
+import { ajuste, guardarAjustes, releerAjuste } from './ajustes.js';
 import { darSobresDeCodigo, usosDeCodigo, canjeoCodigo } from './gacha.js';
 
 const CLAVE = 'codigo_directo';
@@ -63,10 +63,27 @@ function demasiadosFallos(id) {
   return recientes.length >= INTENTOS;
 }
 
+// El código que hay ahora en la hoja (o en el archivo), por si lo ha creado otra instancia de la web
+async function codigoGuardado() {
+  try { return JSON.parse(await releerAjuste(CLAVE) || 'null'); } catch { return null; }
+}
+
 export async function canjearCodigo(u, texto) {
   if (demasiadosFallos(u.id)) throw new Error('Demasiados intentos: espera unos minutos antes de probar otro código');
-  const c = leer(), escrito = limpiar(texto);
+  let c = leer();
+  const escrito = limpiar(texto);
   if (!escrito) throw new Error('Escribe el código que sale en el directo');
+  // Si no es el que esta instancia tiene en memoria, antes de decir que no vale se mira el de la hoja. Pasó en el directo
+  // del 15/11/2026: hubo despliegues en pleno directo y, mientras Render tenía las dos versiones vivas, el panel y el
+  // overlay seguían en la vieja (por websocket) y creaban ahí el código, pero los canjes entraban por la nueva, que no
+  // lo conocía: todos salían «no vale». Si el de la hoja es más nuevo, pasa a ser el de esta instancia
+  if (!c || escrito !== c.texto) {
+    const guardado = await codigoGuardado();
+    if (guardado?.texto === escrito) {
+      if (!c || guardado.caduca > c.caduca) await guardar(guardado);
+      c = guardado;
+    }
+  }
   if (!c || escrito !== c.texto) {
     fallos.set(u.id, [...(fallos.get(u.id) || []), Date.now()]);
     throw new Error('Ese código no vale: revisa que esté bien escrito');
