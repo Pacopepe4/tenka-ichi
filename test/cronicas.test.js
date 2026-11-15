@@ -12,6 +12,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import WebSocket from 'ws';
 import { crearDiscordFalso } from '../scripts/discord-webhook-falso.js';
+import { fechaDeHoja } from '../server/sheets.js';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CLAVE = 'clave-de-prueba', CLAVE_CR = 'clave-del-realizador';
@@ -157,6 +158,18 @@ test('si Discord falla, la crónica se guarda igual, sale en la portada y el pan
   assert.equal((await portada()).enfrentamientos[2].titulo, 'Sin Discord');
 });
 
+test('con discord: false la crónica se guarda y sale en la portada, pero no se publica en #resultados', async () => {
+  const antes = discord.estado.mensajes.length;
+  const r = await cronica({ azul: 'Tsuki', rojo: 'Yasha', titulo: 'Solo en la web', texto: 'Sin aviso.', discord: false });
+  assert.equal(r.estado, 202);
+  assert.equal(await hasta(async () => (await portada()).enfrentamientos[0].titulo === 'Solo en la web'), true);
+  await esperar(200);
+  assert.equal(discord.estado.mensajes.length, antes, 'nada en Discord');
+  const p = await estadoPanel();
+  assert.equal(p.ultima.publicada, false);
+  assert.match(p.ultima.error, /solo en la web/);
+});
+
 test('sin webhook de #resultados va al de siempre; sin ninguno, solo a la portada; sin CRONICAS_CLAVE no se aceptan', async () => {
   await pararWeb();
   await arrancarWeb({ DISCORD_WEBHOOK_RESULTADOS: '' });
@@ -176,4 +189,18 @@ test('sin webhook de #resultados va al de siempre; sin ninguno, solo a la portad
   await pararWeb();
   await arrancarWeb({ CRONICAS_CLAVE: '' });
   assert.equal((await cronica({ texto: 'x' })).estado, 503);
+});
+
+// La hoja de Google devolvió la fecha de las partidas de la jornada 1 como número de serie (46341): la portada ponía mal
+// el día y las crónicas no encajaban con su partida (15/11/2026)
+test('las fechas que devuelve la hoja (número de serie o 15/11/2026) vuelven a como se escribieron', () => {
+  assert.equal(fechaDeHoja('46341'), '2026-11-15');
+  assert.equal(fechaDeHoja(46341), '2026-11-15');
+  assert.equal(fechaDeHoja('46341.8', true), '2026-11-15T19:12:00.000Z');
+  assert.equal(fechaDeHoja('15/11/2026'), '2026-11-15');
+  assert.equal(fechaDeHoja('15/11/2026 19:15:41', true), '2026-11-15T19:15:41.000Z');
+  assert.equal(fechaDeHoja('2026-11-15'), '2026-11-15', 'lo que ya está bien no se toca');
+  assert.equal(fechaDeHoja('2026-11-15T19:15:41.107Z', true), '2026-11-15T19:15:41.107Z');
+  assert.equal(fechaDeHoja('12'), '12', 'un número pequeño no es una fecha');
+  assert.equal(fechaDeHoja(''), '');
 });

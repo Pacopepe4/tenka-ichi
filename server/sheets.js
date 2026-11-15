@@ -113,6 +113,22 @@ export async function asegurarPestana(pestana, cabecera) {
   pestanasVistas.add(pestana);
 }
 
+// Google Sheets convierte las fechas que se le escriben («2026-11-15», o una fecha con hora) y al leerlas puede
+// devolver su número de serie (46341, días desde el 30/12/1899, con la hora en los decimales) o «15/11/2026». Esto lo
+// devuelve como se escribió: «2026-11-15» o, con conHora, la fecha y hora ISO. Lo que ya está bien no se toca
+export function fechaDeHoja(v, conHora = false) {
+  const t = String(v ?? '').trim();
+  let d = null;
+  if (/^\d+(\.\d+)?$/.test(t) && Number(t) > 20000) d = new Date(Date.UTC(1899, 11, 30) + Math.round(Number(t) * 86400000));
+  else if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(t)) {
+    const [dia, mes, anio] = t.split(/[/ ]/).map(Number);
+    const hora = /(\d{1,2}):(\d{2})(?::(\d{2}))?/.exec(t);
+    d = new Date(Date.UTC(anio, mes - 1, dia, hora ? Number(hora[1]) : 0, hora ? Number(hora[2]) : 0, hora?.[3] ? Number(hora[3]) : 0));
+  }
+  if (!d || Number.isNaN(d.getTime())) return t;
+  return conHora ? d.toISOString() : d.toISOString().slice(0, 10);
+}
+
 export async function leer(pestana) {
   const r = await peticion({ url: `${base()}/values/${rango(pestana, 'A:Z')}` });
   return r.data.values || [];

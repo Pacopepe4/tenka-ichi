@@ -9,7 +9,7 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { archivoDatos } from './datos.js';
-import { hojaActiva, asegurarPestana, leer, anadir } from './sheets.js';
+import { hojaActiva, asegurarPestana, leer, anadir, fechaDeHoja } from './sheets.js';
 
 const CRON = { pestana: 'Cronicas', archivo: archivoDatos('cronicas.json'), cabecera: ['Fecha', 'Azul', 'Rojo', 'Titulo', 'Texto', 'Resumen', 'Discord'] };
 export const MAXIMO_TEXTO = 20000;
@@ -21,7 +21,7 @@ export const claveRealizador = () => process.env.CRONICAS_CLAVE || '';
 
 // En la hoja, un texto que empiece por = + - @ se tomaría por una fórmula
 const celda = s => (/^[=+\-@]/.test(String(s ?? '')) ? `'${s}` : String(s ?? ''));
-const deFila = f => ({ fecha: f[0], azul: f[1], rojo: f[2], titulo: f[3] || '', texto: f[4] || '', resumen: f[5] || '', discord: f[6] || '' });
+const deFila = f => ({ fecha: fechaDeHoja(f[0], true), azul: f[1], rojo: f[2], titulo: f[3] || '', texto: f[4] || '', resumen: f[5] || '', discord: f[6] || '' });
 const aFila = c => [c.fecha, c.azul, c.rojo, c.titulo, c.texto, c.resumen, c.discord];
 
 export async function cargarCronicas() {
@@ -54,11 +54,13 @@ const enCola = fn => { const p = cola.then(fn); cola = p.catch(() => {}); return
 export async function publicarCronica({ azul, rojo, titulo, texto, resumen }, publicar) {
   const c = { fecha: new Date().toISOString(), azul, rojo, titulo, texto, resumen, discord: '' };
   let error = null;
-  try { await publicar(); c.discord = 'publicada'; }
+  if (!publicar) c.discord = 'solo en la web';   // se pidió sin #resultados
+  else try { await publicar(); c.discord = 'publicada'; }
   catch (e) { error = e.message; c.discord = `no: ${e.message}`; }
   // «La última» se apunta a la vez que se cuenta la crónica (antes de guardarla), para que el panel nunca vea la
   // crónica nueva con la información de la anterior
-  estado.ultima = { fecha: c.fecha, partida: `${azul} contra ${rojo}`, publicada: !error, error };
+  estado.ultima = { fecha: c.fecha, partida: `${azul} contra ${rojo}`, publicada: Boolean(publicar) && !error,
+    error: publicar ? error : 'se cargó solo en la web, sin #resultados' };
   await enCola(async () => {
     cronicas.push(c);
     if (hojaActiva()) {

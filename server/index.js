@@ -743,7 +743,8 @@ const idDeFamilia = t => CLANES.find(c => c.id === String(t || '').toUpperCase()
 const nombreFamilia = id => CLANES.find(c => c.id === id)?.nombre || id;
 
 // POST /api/cronicas/partida, con Authorization: Bearer CRONICAS_CLAVE.
-// Cuerpo: { texto, resumen, titulo?, azul?, rojo? }. Sin las familias, es la última partida guardada.
+// Cuerpo: { texto, resumen, titulo?, azul?, rojo?, discord? }. Sin las familias, es la última partida guardada. Con
+// discord: false se guarda y sale en la portada, pero no se publica en #resultados
 async function recibirCronica(req, res) {
   const clave = claveRealizador();
   if (!clave) return json(res, { ok: false, error: 'Falta CRONICAS_CLAVE en Render' }, 503);
@@ -763,7 +764,7 @@ async function recibirCronica(req, res) {
   const enfrentamiento = `${nombreFamilia(p.clanAzul)} contra ${nombreFamilia(p.clanRojo)}: gana ${nombreFamilia(ganador)}`;
   const web = origen(req), familia = CLANES.find(c => c.id === ganador);
   // Se contesta enseguida; se guarda y se publica en #resultados después
-  publicarCronica({ azul: p.clanAzul, rojo: p.clanRojo, titulo, texto, resumen }, () => cronicaEnDiscord({
+  publicarCronica({ azul: p.clanAzul, rojo: p.clanRojo, titulo, texto, resumen }, d.discord === false ? null : () => cronicaEnDiscord({
     enfrentamiento, titulo, texto, resumen, jornada: p.jornada || '', color: familia?.color, logo: `${web}/logos/${ganador}.png`, enlace: `${web}/#liga`,
   })).catch(e => console.error('Crónicas:', e.message));
   return json(res, { ok: true, partida: { azul: p.clanAzul, rojo: p.clanRojo, ganador, jornada: p.jornada || null } }, 202);

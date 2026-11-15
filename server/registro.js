@@ -6,7 +6,7 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { ROLES } from './clanes.js';
-import { hojaActiva, asegurarPestana, leer, anadir, marcarError } from './sheets.js';
+import { hojaActiva, asegurarPestana, leer, anadir, marcarError, fechaDeHoja } from './sheets.js';
 import { archivoDatos } from './datos.js';
 
 const ARCHIVO = archivoDatos('registro.json');
@@ -36,7 +36,8 @@ function deFilas(filas) {
   const mapa = new Map();
   for (const f of filas) {
     if (f[0] === 'Fecha' || f.length < 15) continue;
-    const [fecha, jornada, fase, serie, partida, clanAzul, clanRojo, clanGanador, lado, tipo, orden, , jugador, , campeon] = f;
+    const [fechaHoja, jornada, fase, serie, partida, clanAzul, clanRojo, clanGanador, lado, tipo, orden, , jugador, , campeon] = f;
+    const fecha = fechaDeHoja(fechaHoja);   // la hoja puede devolverla como número de serie (46341)
     const ganador = clanGanador === 'azul' || clanGanador === 'rojo' ? clanGanador : (clanGanador === clanAzul ? 'azul' : 'rojo');
     const clave = `${fecha}|${serie}|${partida}`;
     if (!mapa.has(clave)) mapa.set(clave, {
