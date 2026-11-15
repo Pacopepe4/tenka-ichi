@@ -114,6 +114,8 @@ export function vistaFases(foto, ahora = Date.now()) {
   else if (sig) detalle = `luego, ${sig}`;
   else if (faltan !== null) detalle = `quedan ${cuenta(faltan)}`;
   if (actual === 'espera' && hasta !== null) detalle = `${detalle || 'empieza'} (a las ${horaDe(hasta)})`;
+  // En los tráilers, el realizador dice por cuál va («2 de 8»)
+  if (actual === 'traileres' && typeof f.detalle === 'string' && f.detalle.trim()) detalle = `${f.detalle.trim().slice(0, 20)}${detalle ? ` · ${detalle}` : ''}`;
 
   const v = {
     visible: true, botones: !desconocida, ...NADA, actual, manual, titulo, detalle,

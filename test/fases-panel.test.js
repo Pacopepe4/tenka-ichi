@@ -144,3 +144,8 @@ test('tráilers y saltar: Tráilers donde la intro o tras ella; Saltar solo con 
   assert.deepEqual(ordenFase('saltar'), { tipo: 'panelFase', fase: 'saltar' });
   assert.ok(BOTONES.includes('traileres') && BOTONES.includes('saltar'));
 });
+
+test('tráilers: el «2 de 8» del realizador va delante de lo que viene', () => {
+  const v = vistaFases(foto({ actual: 'traileres', faltan: 300, siguiente: 'draft', detalle: '2 de 8' }), AHORA);
+  assert.equal(v.detalle, '2 de 8 · el draft en 5:00');
+});
