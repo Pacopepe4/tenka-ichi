@@ -370,6 +370,34 @@ main > section#realizador[data-resumen="arriba"] { order: -2; }
 .realizador-resumen[data-fase="emitiendo"] { border-color: rgba(224, 48, 58, .5); box-shadow: 0 0 24px rgba(224, 48, 58, .12); }
 .realizador-resumen[data-fase="emitiendo"] .estado { color: var(--shu-claro); font-weight: 700; }
 
+/* ---------- Fases del directo del realizador: la que está en antena, en grande, con su cuenta; la espera en oro, el
+   cierre en bermellón y, a mano, el filo en washi. Su pastilla en la barra, con el nombre de la fase delante ---------- */
+#realizadorFaseAviso[hidden], .realizador-fase[hidden], .realizador-fase .fila[hidden], .realizador-fase-modo[hidden] { display: none; }
+#realizadorFaseAviso { font-variant-numeric: tabular-nums; }
+#realizadorFaseAviso::before { background: #6BE08A; box-shadow: 0 0 8px rgba(107, 224, 138, .8); }
+.realizador-fase { margin-top: 14px; padding: 12px 14px 14px; border: 1px solid var(--sumi-linea); border-radius: 8px; background: var(--sumi); }
+.realizador-fase-cabeza { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.realizador-fase h3 { margin: 0; }
+.realizador-fase-modo { padding: 2px 10px; border-radius: 999px; border: 1px solid var(--sumi-linea); color: var(--hai); font-size: 12px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase; }
+.realizador-fase[data-manual="si"] .realizador-fase-modo { color: var(--sumi); background: var(--washi); border-color: var(--washi); }
+.realizador-fase-actual { margin: 8px 0 2px; font-size: 17px; color: var(--hai); font-variant-numeric: tabular-nums; }
+.realizador-fase-actual b { font-family: var(--dela); font-weight: 400; font-size: 26px; line-height: 1.2; color: var(--washi); }
+.realizador-fase[data-fase=""] .realizador-fase-actual b { font-family: var(--gothic); font-weight: 400; font-size: 15px; color: var(--hai); }
+.realizador-fase .pista { margin: 0; }
+.realizador-fase .fila { margin-top: 12px; align-items: flex-end; }
+.realizador-fase .fila label { flex: 0 1 auto; }
+#realizadorFaseJornada { width: 160px; }
+.realizador-fase .realizador-fase-botones { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+.realizador-fase-botones button { min-height: 46px; padding: 9px 6px; }
+@media (max-width: 760px) { .realizador-fase .realizador-fase-botones { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.realizador-fase[data-manual="si"] { border-color: rgba(231, 223, 210, .45); }
+.realizador-fase[data-fase="espera"] { border-color: rgba(235, 210, 138, .5); box-shadow: 0 0 24px rgba(235, 210, 138, .08); }
+.realizador-fase[data-fase="espera"] .realizador-fase-actual span { color: var(--oro); }
+.estados #realizadorFaseAviso[data-etiqueta="Espera"]::before { background: var(--oro); box-shadow: 0 0 8px rgba(235, 210, 138, .8); }
+.realizador-fase[data-fase="cierre"] { border-color: rgba(224, 48, 58, .5); box-shadow: 0 0 24px rgba(224, 48, 58, .12); }
+#realizadorFaseCierre:not(:disabled) { color: var(--shu-claro); }
+
 /* Códigos de torneo */
 .lista-torneo { display: grid; gap: 12px; margin-top: 14px; }
 .partido-torneo { border: 1px solid var(--sumi-linea); border-radius: 8px; padding: 12px 14px; }

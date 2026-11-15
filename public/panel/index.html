@@ -32,6 +32,7 @@
     <a class="pastilla" id="chipPartida" href="#en-partida" data-ir="directo" data-etiqueta="Partida" title="El puente del PC del espectador y la partida">Sin puente</a>
     <a class="pastilla" id="realizadorConexion" href="#realizador" data-ir="directo" data-etiqueta="Realizador" title="El realizador automático (PC 1 y PC 2)">Sin conectar</a>
     <a class="pastilla" id="realizadorResumenAviso" href="#realizador" data-ir="directo" data-etiqueta="Resumen" title="El resumen final de la partida: la cuenta atrás o el montaje en antena" hidden></a>
+    <a class="pastilla" id="realizadorFaseAviso" href="#realizador" data-ir="directo" data-etiqueta="Fase" title="La fase del directo que está en antena y lo que falta para la siguiente" hidden></a>
   </div>
   <!-- La contraseña buena, la que usan panel.js y realizador.js: la pone entrada.js -->
   <input id="clave" type="hidden">
@@ -148,6 +149,29 @@
       <p class="estado" id="realizadorEmision">Directo: esperando al PC 1</p>
       <div class="fila">
         <button id="realizadorEmitir">Empezar directo</button>
+      </div>
+      <!-- Fases del directo (las lleva el PC 1): espera con cuenta atrás, intro, draft, partida, postpartida con el MVP,
+           casters, resumen y cierre, cada una con su escena y su música. Aquí se ve cuál está y se puede forzar otra -->
+      <div class="realizador-fase" id="realizadorFase" hidden>
+        <div class="realizador-fase-cabeza">
+          <h3>Fases del directo</h3>
+          <span class="realizador-fase-modo" id="realizadorFaseModo"></span>
+        </div>
+        <p class="realizador-fase-actual" aria-live="polite"><b id="realizadorFaseActual"></b><span id="realizadorFaseDetalle"></span></p>
+        <p class="pista" id="realizadorFaseEscena"></p>
+        <div class="fila" id="realizadorFaseEsperaFila">
+          <label>Hora de empezar <input type="time" id="realizadorFaseHora" step="60"></label>
+          <label>Jornada (opcional) <input type="text" id="realizadorFaseJornada" maxlength="80" placeholder="Jornada 3"></label>
+          <button type="button" id="realizadorFaseEspera" disabled>Poner la espera</button>
+        </div>
+        <div class="fila realizador-fase-botones" id="realizadorFaseBotones">
+          <button type="button" class="secundario" id="realizadorFaseIntro" data-fase="intro" disabled>Intro</button>
+          <button type="button" class="secundario" id="realizadorFasePausa" data-fase="pausa" disabled>Pausa</button>
+          <button type="button" class="secundario" id="realizadorFasePostpartida" data-fase="postpartida" disabled>Postpartida</button>
+          <button type="button" class="secundario" id="realizadorFaseCasters" data-fase="casters" disabled>Casters</button>
+          <button type="button" class="secundario" id="realizadorFaseCierre" data-fase="cierre" disabled>Cierre</button>
+          <button type="button" id="realizadorFaseAuto" data-fase="auto" disabled>Automático</button>
+        </div>
       </div>
       <!-- Resumen final de la partida (la «replay final»): cuenta atrás de 120 s en Casters y el montaje en la escena Resumen -->
       <div class="realizador-resumen" id="realizadorResumen" hidden>

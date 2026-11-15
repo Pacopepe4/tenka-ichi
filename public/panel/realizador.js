@@ -1,6 +1,7 @@
 // Sección «Realizador automático» del panel: se une a la sala del realizador (/realizador) con la huella de la
 // contraseña del panel (la misma que ponen sus instaladores), pinta lo que manda su PC 1 (foto, cada segundo) y le manda tomar el control u órdenes de cámara.
 import { vistaResumen } from './resumen.js';
+import { vistaFases, ordenFase, preguntaCierre, BOTONES as BOTONES_FASE } from './fases.js';
 const $ = s => document.querySelector(s);
 const esc = t => String(t ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
 const reloj = t => (t === null || t === undefined ? '--:--' : `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`);
@@ -80,6 +81,7 @@ function pintar() {
   $('#realizadorAntena').textContent = reloj(f?.tAntena);
   $('#realizadorMargen').textContent = f?.margenReal === null || f?.margenReal === undefined ? '--' : `${Math.round(f.margenReal)} s`;
   pintarEmision(f);
+  pintarFases(f);
   pintarResumen(f);
   $('#realizadorPlano').textContent = '';
   $('#realizadorPlano').innerHTML = !f ? (presentes.pc1 ? 'Esperando datos del PC 1' : 'Esperando al PC 1')
@@ -124,6 +126,36 @@ function pintarEmision(f) {
   b.classList.toggle('manual', boton.accion === 'terminar');
 }
 
+// Fases del directo (las lleva el PC 1): la que está en antena, en grande, con lo que falta para la siguiente, y los
+// botones para forzar otra o volver al automático. Lo que toca en cada fase, en fases.js
+const ID_FASE = { intro: 'Intro', pausa: 'Pausa', postpartida: 'Postpartida', casters: 'Casters', cierre: 'Cierre', auto: 'Auto' };
+let horaPuesta = null;
+function pintarFases(f) {
+  const v = vistaFases(f);
+  const bloque = $('#realizadorFase');
+  bloque.hidden = !v.visible;
+  bloque.dataset.fase = v.actual || '';
+  bloque.dataset.manual = v.manual ? 'si' : '';
+  $('#realizadorFaseActual').textContent = v.actual ? `En antena: ${v.titulo}` : v.botones ? v.titulo : v.texto;
+  $('#realizadorFaseDetalle').textContent = v.detalle ? ` · ${v.detalle}` : '';
+  $('#realizadorFaseModo').textContent = v.modo;
+  $('#realizadorFaseModo').hidden = !v.modo;
+  $('#realizadorFaseEscena').textContent = v.escena;
+  $('#realizadorFaseEsperaFila').hidden = !v.botones;
+  $('#realizadorFaseBotones').hidden = !v.botones;
+  for (const b of BOTONES_FASE) $(`#realizadorFase${ID_FASE[b]}`).disabled = !v[b];
+  const hora = $('#realizadorFaseHora');
+  // Con la espera en antena, el campo trae su hora (sin pisar lo que se esté escribiendo)
+  if (v.hora && v.hora !== horaPuesta && document.activeElement !== hora) { hora.value = v.hora; horaPuesta = v.hora; }
+  const espera = $('#realizadorFaseEspera');
+  espera.textContent = v.esperaTexto;
+  espera.disabled = !v.espera || !ordenFase('espera', { hora: hora.value });
+  const aviso = $('#realizadorFaseAviso');
+  aviso.hidden = !v.aviso;
+  aviso.dataset.etiqueta = v.aviso?.etiqueta || 'Fase';
+  aviso.textContent = v.aviso?.texto || '';
+}
+
 // Resumen final al acabar la partida: cuenta atrás de 120 s en Casters y luego el montaje en la escena Resumen
 // (lo hace el PC 1). Lo que toca en cada fase, en resumen.js
 function pintarResumen(f) {
@@ -150,6 +182,18 @@ $('#realizadorEmitir').onclick = () => {
   const accion = $('#realizadorEmitir').dataset.accion;
   if (accion === 'terminar' && !window.confirm('¿Terminar la emisión?')) return;
   mandar({ tipo: 'panelEmision', accion, modo: foto?.emision?.modo || 'emitir' });
+};
+$('#realizadorFaseHora').addEventListener('input', () => pintarFases(foto));
+$('#realizadorFaseEspera').onclick = () => {
+  const m = ordenFase('espera', { hora: $('#realizadorFaseHora').value, jornada: $('#realizadorFaseJornada').value });
+  if (!m) return alertar('Escribe la hora de empezar (HH:MM)');
+  mandar(m);
+};
+$('#realizadorFaseBotones').onclick = e => {
+  const b = e.target.closest('button[data-fase]');
+  if (!b || b.disabled) return;
+  if (b.dataset.fase === 'cierre' && !window.confirm(preguntaCierre(foto?.fase?.actual ?? null))) return;
+  mandar(ordenFase(b.dataset.fase));
 };
 $('#realizadorResumenLanzar').onclick = () => mandar({ tipo: 'panelResumen', accion: 'lanzar' });
 $('#realizadorResumenCancelar').onclick = () => {

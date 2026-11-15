@@ -82,10 +82,11 @@ test('una trama mal formada en /ws o /realizador cierra esa conexión, no la web
 
 // Resumen final (la «replay final»): el panel manda panelResumen y llega tal cual al PC 1; la foto del PC 1 con su
 // campo resumen llega tal cual al panel
-test('panelResumen pasa del panel al PC 1 tal cual, y la foto con el resumen, del PC 1 al panel', async () => {
+// Un PC 1 o un panel en la sala del realizador (la de la contraseña del panel), con su cola de mensajes
+async function unirseSala(papel) {
   const { createHash } = await import('node:crypto');
   const sala = createHash('sha256').update(`realizador:${CLAVE}`).digest('hex');
-  const unirse = papel => new Promise((ok, mal) => {
+  return new Promise((ok, mal) => {
     const ws = new WebSocket(`${urlWeb.replace('http', 'ws')}/realizador`);
     const cola = [], esperas = [];
     ws.on('message', m => { const d = JSON.parse(m); const e = esperas.shift(); e ? e(d) : cola.push(d); });
@@ -94,6 +95,10 @@ test('panelResumen pasa del panel al PC 1 tal cual, y la foto con el resumen, de
     ws.on('open', () => { ws.send(JSON.stringify({ tipo: 'unirse', sala, papel })); ok(ws); });
     ws.on('error', mal);
   });
+}
+
+test('panelResumen pasa del panel al PC 1 tal cual, y la foto con el resumen, del PC 1 al panel', async () => {
+  const unirse = unirseSala;
   const pc1 = await unirse('pc1');
   const panel = await unirse('panel');
   try {
@@ -106,5 +111,29 @@ test('panelResumen pasa del panel al PC 1 tal cual, y la foto con el resumen, de
     const foto = { tipo: 'foto', resumen: { fase: 'cuenta', jugadas: 7, segundos: 84, faltan: 72, clipActual: null } };
     pc1.send(JSON.stringify(foto));
     assert.deepEqual(await panel.hasta('foto'), foto);
+  } finally { pc1.close(); panel.close(); }
+});
+
+// Fases del directo: el panel manda panelFase (con la hora de la espera y la jornada) y llega tal cual al PC 1; la foto
+// del PC 1 con su campo fase llega tal cual al panel
+test('panelFase pasa del panel al PC 1 tal cual, y la foto con la fase, del PC 1 al panel', async () => {
+  const pc1 = await unirseSala('pc1');
+  const panel = await unirseSala('panel');
+  try {
+    await pc1.hasta('unido');
+    await panel.hasta('unido');
+    const hasta = Date.now() + 754000;
+    const ordenes = [{ tipo: 'panelFase', fase: 'espera', hasta, jornada: 'Jornada 3' }, { tipo: 'panelFase', fase: 'espera', hasta: hasta + 60000 },
+      ...['intro', 'pausa', 'postpartida', 'casters', 'cierre', 'auto'].map(fase => ({ tipo: 'panelFase', fase }))];
+    for (const orden of ordenes) {
+      panel.send(JSON.stringify(orden));
+      assert.deepEqual(await pc1.siguiente(), orden);
+    }
+    const foto = { tipo: 'foto', fase: { actual: 'espera', manual: true, hasta, faltan: 754, siguiente: 'intro', escena: 'Espera' } };
+    pc1.send(JSON.stringify(foto));
+    assert.deepEqual(await panel.hasta('foto'), foto);
+    // Un realizador viejo manda la foto sin fase (o a null): también pasa tal cual
+    pc1.send(JSON.stringify({ tipo: 'foto', fase: null }));
+    assert.deepEqual(await panel.hasta('foto'), { tipo: 'foto', fase: null });
   } finally { pc1.close(); panel.close(); }
 });
