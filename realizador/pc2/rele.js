@@ -657,6 +657,24 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
     }
   }
 
+  // ¿Las fases no dejan entrar la partida todavía? (pc2/fases.js, contrato con el hilo de optimización: bloqueaPartida)
+  // Con la emisión ya en directo, nunca: en plena partida lo puesto a mano solo tapa. Sin fases, como siempre.
+  function partidaBloqueada() {
+    if (typeof fases?.bloqueaPartida !== 'function' || emision.fase === 'directo') return false;
+    try { return Boolean(fases.bloqueaPartida()); } catch { return false; }
+  }
+  // El botón «Partida» (orden «partida» de las fases) la mete desde el 0:00 aunque no estuviera bloqueada antes
+  // (por ejemplo, con la repetición ya corriendo en la antena). Una vez en directo, no cambia nada.
+  fases?.on?.('meterPartida', ({ porOrden } = {}) => {
+    if (!porOrden || emision.fase === 'directo') return;
+    estado.bloqueadaAntes = false;
+    estado.metida = Date.now();
+    estado.inicio = null;
+    // La antena vuelve ya al 0:00 y espera la previa allí (si saltara al final de la previa, se vería el salto)
+    playback({ paused: true, time: 0 }).then(() => { estado.ultimoSalto = Date.now(); }).catch(() => {});
+    registrar('[antena] botón «Partida»: entra desde el 0:00, con su previa');
+  });
+
   // Segundo de partida al que debería ir la antena
   // La antena enseña lo que el PC 1 veía hace «margen» segundos de reloj: así las pausas y el final de la
   // partida (cuando el reloj del PC 1 se para) salen igual, y no hay que corregir hacia atrás.
@@ -687,9 +705,33 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
 
     // 1. Retraso de la antena (en una partida grabada el reloj lo lleva quien la ve: el relé solo mueve la cámara)
     const ahora = Date.now();
-    const meta = r.controlarReloj === false ? null : objetivoAntena(pb);
-    estado.meta = meta;
-    if (meta === null) {
+    let meta = r.controlarReloj === false ? null : objetivoAntena(pb);
+    // La partida siempre desde el 0:00 (15/11, Pacopepe: «cuando meto partida debe empezar ahí siempre»). Mientras las
+    // fases la bloquean (espera, intro, tráilers o algo a mano antes de que entre), la antena espera en el 0:00 pausada
+    // aunque el PC 1 vaya adelantado. Al soltarse (fin del inicio o el botón «Partida»), la partida arranca desde el
+    // 0:00 con su previa: el retraso puede pasar del margen, nunca bajar de él.
+    if (meta !== null && partidaBloqueada()) {
+      estado.bloqueadaAntes = true;
+      estado.metida = null;
+      estado.ultimoSeguido = null;
+      estado.inicio = null;
+      if ((!pb.paused || pb.time > 1) && ahora - estado.ultimoSalto > 3000 && !pb.seeking) {
+        await playback({ paused: true, time: 0 });
+        estado.ultimoSalto = ahora;
+        registrar('[antena] partida en espera en el 0:00 (las fases aún no la dejan entrar)');
+      }
+      meta = undefined;
+      estado.meta = -1e6;  // para la emisión: aún no hay partida que sacar
+    } else if (meta !== null) {
+      if (estado.bloqueadaAntes) {
+        estado.bloqueadaAntes = false;
+        estado.metida = ahora;
+        registrar('[antena] entra la partida: desde el 0:00, con su previa');
+      }
+      if (estado.metida) meta = Math.min(meta, (ahora - estado.metida) / 1000 - (o.emision?.previaSegundos ?? 10));
+    }
+    if (meta !== undefined) estado.meta = meta;
+    if (meta === null || meta === undefined) {
       // nada
     } else if (meta < 0) {
       if (!pb.paused) { await playback({ paused: true }); registrar('[antena] en pausa hasta tener el margen'); }
@@ -819,7 +861,8 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
   }
 
   // Segundos que faltan para que la partida salga en antena (desde el principio)
-  const faltan = () => (Number.isFinite(estado.meta) && estado.meta < 0 ? -estado.meta : null);
+  // Con la partida bloqueada por las fases (meta −1e6) no hay cuenta que enseñar
+  const faltan = () => (Number.isFinite(estado.meta) && estado.meta < 0 && estado.meta > -1e5 ? -estado.meta : null);
 
   function estadoPublico() {
     const pb = estado.playback;
@@ -880,6 +923,17 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
       }
       if (d.tFin === null) estado.finHora = null;
       estado.tFin = d.tFin;
+    }
+    // Partida nueva en el PC 1 (otro id, o su reloj vuelve atrás): se olvida la anterior. Si no, durante el margen la
+    // antena seguiría con el final de la otra partida (15/11: así salió al aire un momento viejo)
+    // Solo si su reloj vuelve atrás de verdad: el PC 1 puede volver a «encontrar» la misma partida con otro id al acabar
+    // (mismo reloj), y entonces no hay que olvidar nada (la antena tiene que llegar al final)
+    const idNuevo = Boolean(d.partida && estado.partidaPc1 && d.partida !== estado.partidaPc1);
+    if (d.partida) estado.partidaPc1 = d.partida;
+    const atras = Number.isFinite(d.tDirecto) && estado.historial.length ? estado.historial.at(-1).t - d.tDirecto : 0;
+    if (atras > 30 || (idNuevo && atras > 5)) {
+      estado.historial = []; estado.metida = null;
+      registrar(`[antena] ${idNuevo ? 'partida nueva' : 'el reloj ha vuelto atrás'} en el PC 1: se olvida la anterior`);
     }
     if (Number.isFinite(d.tDirecto)) {
       estado.directo = { t: d.tDirecto, hora: Date.now() };

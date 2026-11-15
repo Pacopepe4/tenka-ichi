@@ -291,6 +291,8 @@ export class LectorPantalla extends EventEmitter {
   }
   parar() {
     this.activo = false;
+    // La próxima vez que arranque (otra partida) tiene que volver a avisar en cuanto llegue la primera foto
+    this.ultimaFoto = 0;
     clearTimeout(this.temporizador);
     clearInterval(this.vigia);
     const p = this.proceso; this.proceso = null;

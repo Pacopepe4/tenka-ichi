@@ -215,6 +215,7 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
     tenka.accion('adelanto', construirAdelanto({
       t: explorador.ahora(), historial: explorador.cs, eventos: explorador.objetivos,
       hechizos: hechizosAdelanto(), misiones: explorador.misiones.hechas,
+      peleas: cerebro.peleasParaWeb?.(explorador.conocido?.() ?? explorador.ahora()) ?? null,
     })).catch(() => {});
   };
   const temporizadorAdelanto = setInterval(mandarAdelanto, 5000);

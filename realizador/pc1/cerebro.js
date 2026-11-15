@@ -479,6 +479,16 @@ export class Cerebro {
   // En las peleas por un objetivo del río (dragón, Barón, heraldo, larvas), unos segundos antes de que caiga: visión
   // del azul, del rojo y vuelta a la de los dos. No en todas: hace falta pelea (alguna muerte) y un rato desde la última.
   // Se decide cuando ya se ha visto un poco después del objetivo (el PC 1 va 2 minutos por delante: sobra tiempo).
+  // Peleas para la web (15/11, contrato con el hilo de overlays): [desde, hasta] en segundos de partida, con la
+  // anticipación ya contada en «desde» (cuando la cámara se pone con ella); hasta = null mientras sigue abierta (aún
+  // puede llegar otra muerte dentro de la ventana de pelea). Las 50 últimas. La web esconde las estadísticas en ese rato.
+  peleasParaWeb(conocidoHasta) {
+    const red = x => Math.round(x * 10) / 10;
+    return this.jugadas.filter(j => j.tipo === 'pelea')
+      .map(j => [red(j.inicio), Number.isFinite(conocidoHasta) && conocidoHasta - j.ultimoT <= this.r.ventanaPelea ? null : red(j.fin)])
+      .slice(-50);
+  }
+
   planificarVision(conocidoHasta) {
     const c = this.r.vision;
     const nuevas = [];

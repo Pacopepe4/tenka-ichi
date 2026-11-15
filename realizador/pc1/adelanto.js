@@ -46,12 +46,19 @@ export class HistorialCs {
       const cs = Number(j.scores?.creepScore);
       if (!nombre || !Number.isFinite(cs)) continue;
       let h = this.porJugador.get(nombre);
-      if (!h) { h = { nombre, equipo: j.team || '', cs: [] }; this.porJugador.set(nombre, h); }
+      if (!h) { h = { nombre, equipo: j.team || '', cs: [], kda: [] }; this.porJugador.set(nombre, h); }
       if (h.cs.at(-1)?.[1] !== cs) { h.cs.push([Math.round(t * 10) / 10, cs]); cambio = true; }
+      // KDA (15/11, contrato con el hilo de overlays): [t, k, d, a] cuando cambia cualquiera de los tres. El PC 1 no
+      // salta en la partida; el PC 2 (antena) sí, y en una repetición sus scores pierden lo de los tramos saltados
+      const k = Number(j.scores?.kills), d = Number(j.scores?.deaths), a = Number(j.scores?.assists);
+      if ([k, d, a].every(Number.isFinite)) {
+        const u = h.kda.at(-1);
+        if (!u || u[1] !== k || u[2] !== d || u[3] !== a) { h.kda.push([Math.round(t * 10) / 10, k, d, a]); cambio = true; }
+      }
     }
     return cambio;
   }
-  jugadores() { return [...this.porJugador.values()].map(h => ({ nombre: h.nombre, equipo: h.equipo, cs: h.cs.map(p => [...p]) })); }
+  jugadores() { return [...this.porJugador.values()].map(h => ({ nombre: h.nombre, equipo: h.equipo, cs: h.cs.map(p => [...p]), kda: h.kda.map(p => [...p]) })); }
 }
 
 // Misiones de rol (14/11), de la lista de jugadores de la Live Client (el espectador sí las ve):
@@ -96,7 +103,7 @@ export class SeguidorMisiones {
 
 // hechizos: [{ nombre, equipo, d, f, r }] con tramos [desde, hasta|null] de enfriamiento (pc1/pantalla.js);
 // misiones: las de SeguidorMisiones
-export function construirAdelanto({ t, historial, eventos = [], hechizos = null, misiones = null }) {
+export function construirAdelanto({ t, historial, eventos = [], hechizos = null, misiones = null, peleas = null }) {
   const vistos = new Set();
   const objetivos = [];
   for (const e of eventos) {
@@ -108,5 +115,6 @@ export function construirAdelanto({ t, historial, eventos = [], hechizos = null,
   const a = { t: Math.round((t ?? 0) * 10) / 10, jugadores: historial.jugadores(), objetivos };
   if (hechizos) a.hechizos = hechizos;
   if (misiones) a.misiones = misiones;
+  if (peleas) a.peleas = peleas;
   return a;
 }

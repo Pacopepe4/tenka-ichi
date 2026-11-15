@@ -38,7 +38,8 @@ export const POR_DEFECTO = { introSegundos: 12, postpartidaSegundos: 30, cierreS
 export const FASES = ['espera', 'intro', 'traileres', 'draft', 'pausa', 'partida', 'repeticion', 'postpartida', 'casters', 'resumen', 'cierre'];
 // Las que se pueden pedir desde el panel ('auto' devuelve el control al flujo automático; 'traileres' los pone a mano
 // desde el principio; 'saltar' acaba ya la intro, los tráilers o la postpartida en marcha, como si acabara sola)
-export const ORDENES = ['espera', 'intro', 'traileres', 'pausa', 'postpartida', 'casters', 'cierre', 'auto', 'saltar'];
+// 'partida' («meter partida»): suelta todo lo de antes y la antena arranca ya desde 0:00 (evento 'meterPartida')
+export const ORDENES = ['espera', 'intro', 'traileres', 'pausa', 'postpartida', 'casters', 'cierre', 'auto', 'saltar', 'partida'];
 // La hora de la espera no puede estar más lejos (una hora ya pasada que se pasa a mañana daría casi 24 h de cuenta)
 export const ESPERA_MAXIMA_MS = 12 * 3600 * 1000;
 // Las que pone esto (las demás las ponen la emisión, las repeticiones o el resumen)
@@ -88,6 +89,8 @@ export class Fases extends EventEmitter {
     this.autor = false;      // la próxima vuelta pone la escena (orden, o algo que acaba solo)
     this.vistaEscenaAuto = null;
     this.vistaEmision = null;
+    this.meter = false;      // «meter partida» pedido: la partida entra ya (hasta que esté en antena)
+    this.vistaBloqueo = null;
     this.actual = null;
     this.siguiente = null;
     this.faltan = null;
@@ -127,11 +130,25 @@ export class Fases extends EventEmitter {
     return Boolean(this.mano || this.temporal || (this.hasta && ahora < this.hasta) || (this.pausaHasta && ahora < this.pausaHasta));
   }
 
+  // ¿La partida tiene que esperar en 0:00 antes de entrar en antena? (15/11: «las partidas deben empezar siempre en el
+  // 0.00… cuando meto partida debe empezar ahí siempre»). Solo si alguien ha puesto algo: la espera, la intro o los
+  // tráilers, la pausa tras el resumen o a mano pausa, casters, cierre o espera. Nunca con la partida ya en previa o en
+  // directo, ni tras «meter partida». El relé deja la antena quieta en 0:00 mientras sea true y la arranca con
+  // 'meterPartida' (que sale con la orden y también cuando el bloqueo se acaba solo, al terminar la intro o los tráilers)
+  bloqueaPartida() {
+    if (this.vistaEmision === 'directo' || this.vistaEmision === 'previa' || this.meter) return false;
+    const ahora = this.ahora();
+    if (this.mano && ['pausa', 'casters', 'cierre', 'espera'].includes(this.mano)) return true;
+    if (this.temporal && ['intro', 'traileres'].includes(this.temporal.fase)) return true;
+    return Boolean((this.hasta && ahora < this.hasta) || (this.pausaHasta && ahora < this.pausaHasta));
+  }
+
   publico() {
     // hasta: la hora de la espera o, en la pausa tras el resumen, la de su fin (obs/pausa.html la lee de /estado)
     return {
       actual: this.actual, manual: this.manual, hasta: this.hasta ?? (this.actual === 'pausa' ? this.pausaHasta : null), faltan: this.faltan, siguiente: this.siguiente, escena: this.escena,
       ...(this.actual === 'traileres' ? { detalle: this.detalle } : {}),
+      partidaEsperando: this.bloqueaPartida(),
     };
   }
 
@@ -144,6 +161,20 @@ export class Fases extends EventEmitter {
     if (fase === 'saltar' && !this.temporal) throw new Error('No hay nada que saltar: solo se saltan la intro, los tráilers o la postpartida en marcha');
     if (fase === 'traileres' && !this.duracionTraileres()) throw new Error('No hay tráilers: copia los vídeos en la carpeta de obs.videosDirecto');
     if (typeof jornada === 'string') this.jornada = jornada.trim().slice(0, 80);
+    if (fase === 'partida') {
+      // «Meter partida»: fuera la espera, la intro, los tráilers y lo puesto a mano; la antena arranca desde 0:00
+      this.mano = null;
+      this.temporal = null;
+      this.hasta = null;
+      this.pausaHasta = null;
+      this.cierreFin = null;
+      this.meter = true;
+      this.vistaBloqueo = false;
+      this.autor = true;
+      this.registrar('[fases] meter partida: la antena arranca desde 0:00');
+      this.emit('meterPartida', { porOrden: true });
+      return;
+    }
     if (fase === 'saltar') {
       // Como si acabara sola: la próxima vuelta sigue con la siguiente (la intro del inicio, a los tráilers)
       this.temporal.fin = ahora;
@@ -222,6 +253,8 @@ export class Fases extends EventEmitter {
       this.autor = true;
     }
     this.vistaEmision = e.emision ?? null;
+    // «Meter partida» vale hasta que la partida está en antena
+    if (e.emision === 'directo') this.meter = false;
     // Se acaba el resumen en vídeo (emitiendo → hecho): pausa con cuenta atrás, y a las 0 la intro
     const faseResumen = e.resumen?.fase ?? null;
     if (this.vistaResumen === 'emitiendo' && faseResumen === 'hecho' && this.c.pausaTrasResumenSegundos > 0
@@ -294,7 +327,14 @@ export class Fases extends EventEmitter {
       if (actual === 'casters' && this.mano === 'casters') casters = true;
     }
     if (casters) this.emit('casters');
-    const firma = JSON.stringify([actual, this.manual, this.hasta, this.pausaHasta, siguiente, this.escena]);
+    // El bloqueo de la partida se acaba solo (fin de la intro o de los tráilers, la espera que se quita…): la antena arranca
+    const bloquea = this.bloqueaPartida();
+    if (this.vistaBloqueo === true && !bloquea && e.emision !== 'directo' && e.emision !== 'previa') {
+      this.registrar('[fases] la partida ya puede entrar: la antena arranca desde 0:00');
+      this.emit('meterPartida', { porOrden: false });
+    }
+    this.vistaBloqueo = bloquea;
+    const firma = JSON.stringify([actual, this.manual, this.hasta, this.pausaHasta, siguiente, this.escena, bloquea]);
     if (firma !== this.firma) {
       this.firma = firma;
       this.emit('cambio', { ...this.publico(), anterior });

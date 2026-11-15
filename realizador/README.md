@@ -70,6 +70,8 @@ Otros modos (en `opciones.local.json`): `"puente": { "modo": "red" }` con los do
 
 **Pausa tras el resumen (15/11):** al acabar el resumen en vídeo sale la Pausa con una cuenta atrás de 5 min (`directo.pausaTrasResumenSegundos`, 300; 0 = sin ella). A las 0, la intro (cabecera con la jornada) y luego el draft. Un draft en la web no corta la cuenta; cualquier orden del panel salvo «Automático» la quita. `obs/pausa.html` enseña la cuenta (lee `fase.hasta` de `/estado`).
 
+**La partida siempre desde 0:00 (15/11):** mientras haya puesta una espera, la intro, los tráilers, la pausa tras el resumen o, a mano, pausa, casters, cierre o espera (y la partida aún no haya entrado), `fases.bloqueaPartida()` es true y la antena espera quieta en 0:00 aunque el PC 1 vaya adelantado. Se suelta sola al acabar el inicio (evento `meterPartida`) o con la orden `partida` del panel («meter partida»). En el estado y la foto, `fase.partidaEsperando`. Sin nada puesto, como siempre: la partida entra en cuanto hay margen.
+
 **Vuelta al Juego:** si en plena partida se fuerza una fase y luego se pulsa «Automático» (o la postpartida forzada acaba sola), las fases vuelven a poner Juego.
 
 - **Draft:** si el panel de Gokudō tiene un draft en marcha (DraftCore conectado), el PC 2 pone la escena `Draft` (el overlay del draft con las cámaras en sus huecos). Si se pulsa el botón durante el draft, la emisión empieza ya, con el draft. Al cerrar el draft y salir de su pantalla pasa a `Pausa`, y la partida entra sola como siempre. Entre partidas de una serie: `Postpartida` → `Casters` → `Draft` → `Pausa` → `Juego`.

@@ -78,7 +78,7 @@
   },
 
   "reglas": {
-    "recorridos": { "activo": true, "duracionSegundos": 12, "huecoSegundos": 30, "libreAntesSegundos": 10, "separacionSegundos": 180, "desdeSegundo": 120 },
+    "recorridos": { "activo": true, "duracionSegundos": 12, "huecoSegundos": 45, "libreAntesSegundos": 15, "separacionSegundos": 540, "desdeSegundo": 300 },
     "vision": { "activo": true, "objetivos": ["DragonKill", "BaronKill", "HeraldKill", "HordeKill"], "minimoMuertes": 1, "antesSegundos": 5, "separacionSegundos": 240, "esperaSegundos": 10, "segundosPorEquipo": 2 },
     "anticipacion": 7,
     "anticipacionPelea": 12,
