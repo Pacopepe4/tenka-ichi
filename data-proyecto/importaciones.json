@@ -144,5 +144,18 @@
     "KOKU"
    ]
   }
+ },
+ {
+  "nombre": "2026-11-15 Akuma: SARGENTON top",
+  "dicho": "Pacopepe: el top de Akuma pasa de ser PROMETEO a SARGENTON. La carta BUSHI-TOP conserva su tier",
+  "plantillas": {
+   "BUSHI": [
+    "SARGENTON",
+    null,
+    null,
+    null,
+    null
+   ]
+  }
  }
 ]

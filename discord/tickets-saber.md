@@ -97,7 +97,7 @@ Lo que contó Pacopepe el 11/11/2026 (en la Liga KB algunos juegan con otra cuen
 - **FREDDY**: el medio de Tsuki; en Discord es djfreddyher.
 - **DRAGON**: la chica nueva de Yasha, en el medio. No es Reiko.
 - **PABLO**, **EL 64** y **JEEDA**: jugadores nuevos de Byakko (top, jungla y support).
-- **PROMETEO**: el nuevo top de Akuma.
+- **SARGENTON**: el nuevo top de Akuma (sustituye a Prometeo desde el 15/11/2026).
 - **SRLEEMON**: el midlaner clásico de Bushi, ahora en Akuma.
 - **SRGALLEGO**: de Akuma; en la Liga KB juega como Señor Gallego (era el medio de KB BUSHI).
 - **Tengu** es una familia de jugadores nuevos (JAAVAA, VASKOÑITO, KUCHAUU, DOMENACHE y FROZENRONIN). Su capitán es **DOMENACHE**.
