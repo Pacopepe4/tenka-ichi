@@ -7,6 +7,7 @@
 //  3. Cuando la antena arranca en el segundo 0, salta a la escena de juego: la emisión empieza desde el principio.
 //  4. Cuando la antena llega al final de la partida, pone la escena final (casters) y se queda armada para la
 //     siguiente partida, sin cortar la emisión. «Terminar» la corta.
+//     (En el relé la escena final es la Postpartida: de ahí a Casters lo lleva pc2/fases.js.)
 //  Draft: si el panel de Gokudō tiene un draft en marcha (DraftCore conectado), pone la escena de draft (con
 //  las cámaras); si aún no se emitía, el botón empieza a emitir ya, con el draft. Al acabar el draft y salir de
 //  su pantalla, pasa a la escena de previa hasta que la partida llegue a la antena.
@@ -26,8 +27,11 @@ export const POR_DEFECTO = {
 };
 
 export class Emision extends EventEmitter {
-  constructor({ opciones = {}, escenas = {}, obs = null, registrar = () => {} }) {
+  // retenida(): las fases del directo (pc2/fases.js) llevan la escena (algo a mano, la intro, la postpartida o la
+  // espera con hora): mientras, esto no pone el draft ni la escena del final por su cuenta (la previa y el Juego, sí)
+  constructor({ opciones = {}, escenas = {}, obs = null, registrar = () => {}, retenida = () => false }) {
     super();
+    this.retenida = retenida;
     this.c = { ...POR_DEFECTO, ...opciones };
     this.escenas = { juego: 'Juego', previa: 'Pausa', final: 'Casters', draft: 'Draft', ...escenas };
     this.obs = obs;
@@ -149,6 +153,29 @@ export class Emision extends EventEmitter {
     this.emit('cambio');
   }
 
+  // Empieza a emitir (o grabar) sin tocar la escena: con el draft, o cuando las fases del directo ponen una escena
+  // (espera, intro…) con la emisión armada. OBS acepta la orden aunque luego no consiga conectar (clave o servidor
+  // mal): no se vuelve a pedir en cada vuelta (en la prueba del 09/11 eso colgó OBS), sino pasados «reintentoSegundos»
+  async alAire(motivo = '', ahora = Date.now()) {
+    if (this.fase === 'apagada' || this.salidaActiva || !this.obs?.arrancarSalida || ahora < this.reintentoEn) return false;
+    this.avisarSiNoArranca(ahora);
+    this.reintentoEn = ahora + this.esperaReintento();
+    try {
+      await this.obs.arrancarSalida(this.modo);
+      this.intentoSalida = ahora;
+      await this.leerSalidas(true);
+      this.estabaEnAire = this.salidaActiva;
+      if (this.salidaActiva) { this.error = null; this.reintentoEn = 0; }
+      this.registrar(`[emisión] ${this.modo === 'grabar' ? 'grabando' : 'emitiendo'}${motivo ? ` ${motivo}` : ''}`);
+    } catch (e) {
+      this.error = `OBS no ha podido ${this.modo === 'grabar' ? 'grabar' : 'emitir'}: ${e.message}`;
+      this.reintentoEn = ahora + 10000;
+      this.registrar(`[emisión] ${this.error}`);
+    }
+    this.emit('cambio');
+    return true;
+  }
+
   async escena(nombre) {
     try { await this.obs.escena(nombre); } catch (e) { this.registrar(`[emisión] no se pudo poner la escena ${nombre}: ${e.message}`); }
   }
@@ -192,32 +219,17 @@ export class Emision extends EventEmitter {
 
     if (this.fase === 'armada') {
       // Draft en el panel de Gokudō: su escena (y, si aún no se emitía, se empieza ya, con el draft)
-      if (draft) {
+      const retenida = this.retenida();
+      if (draft && !retenida) {
         if (!this.salidaActiva && this.obs?.arrancarSalida && ahora >= this.reintentoEn) {
-          // OBS acepta la orden aunque luego no consiga conectar (clave o servidor mal): no se vuelve a pedir en
-          // cada vuelta (en la prueba del 09/11 eso colgó OBS), sino pasados «reintentoSegundos»
-          this.avisarSiNoArranca(ahora);
-          this.reintentoEn = ahora + this.esperaReintento();
-          try {
-            if (this.escenaAuto !== 'draft') await this.escena(this.escenas.draft);
-            this.escenaAuto = 'draft';
-            await this.obs.arrancarSalida(this.modo);
-            this.intentoSalida = ahora;
-            await this.leerSalidas(true);
-            this.estabaEnAire = this.salidaActiva;
-            if (this.salidaActiva) { this.error = null; this.reintentoEn = 0; }
-            this.registrar(`[emisión] ${this.modo === 'grabar' ? 'grabando' : 'emitiendo'} con el draft`);
-          } catch (e) {
-            this.error = `OBS no ha podido ${this.modo === 'grabar' ? 'grabar' : 'emitir'}: ${e.message}`;
-            this.reintentoEn = ahora + 10000;
-            this.registrar(`[emisión] ${this.error}`);
-          }
-          this.emit('cambio');
+          if (this.escenaAuto !== 'draft') await this.escena(this.escenas.draft);
+          this.escenaAuto = 'draft';
+          await this.alAire('con el draft', ahora);
         } else if (this.salidaActiva && await this.escenaSola('draft')) {
           this.registrar(`[emisión] draft en marcha: escena ${this.escenas.draft}`);
           this.emit('cambio');
         }
-      } else if (this.escenaAuto === 'draft' && this.salidaActiva) {
+      } else if (this.escenaAuto === 'draft' && this.salidaActiva && !retenida) {
         // Se acabó el draft (y su pantalla): a la previa hasta que llegue la partida
         await this.escenaSola('previa');
         this.registrar(`[emisión] draft terminado: escena ${this.escenas.previa} hasta que empiece la partida`);
@@ -282,7 +294,7 @@ export class Emision extends EventEmitter {
           : !conFinAvisado && this.sinJuegoDesde && ahora - this.sinJuegoDesde > this.c.sinJuegoSegundos * 1000 ? 'el LoL de este PC no contesta'
             : null;
       if (!motivo) return;
-      await this.escena(this.escenas.final);
+      if (!this.retenida()) await this.escena(this.escenas.final);
       this.escenaAuto = 'final';
       this.partidas++;
       this.ultimoFin = new Date().toISOString();

@@ -51,6 +51,12 @@ export function draftDeTenka(e) {
   return null;
 }
 
+// Fases del directo (espera, intro, pausa, postpartida, casters, cierre): pc2/fases.js. Import aparte; los enganches
+// van en líneas sueltas más abajo (buscar «fases»)
+import { Fases, jornadaDeTenka, FUENTES_FASES } from './fases.js';
+// Tráilers del inicio del directo (tras la intro): pc2/traileres.js
+import { Traileres, carpetasVideos, listarVideos, buscarFfprobe, duracionFfprobe, duracionFfmpeg } from './traileres.js';
+
 // Segundo de partida que veía el PC 1 a la hora «hora», con su historial. Entre dos muestras avanza al ritmo
 // del reloj, pero sin pasar de la siguiente (si el reloj se paró, se queda parado). Antes de la primera muestra,
 // hacia atrás al ritmo del reloj (negativo = la partida aún no había empezado). Sin historial, null.
@@ -173,7 +179,8 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
     registrar('[obs] OBS abierto desde el panel');
   }
 
-  const escenasMano = () => [o.obs?.escenaJuego, o.obs?.escenaCasters, o.obs?.escenaPausa, o.obs?.escenaDraft || 'Draft'].filter(Boolean);
+  const escenasMano = () => [o.obs?.escenaJuego, o.obs?.escenaCasters, o.obs?.escenaPausa, o.obs?.escenaDraft || 'Draft',
+    o.obs?.escenaEspera || 'Espera', o.obs?.escenaIntro || 'Intro', o.obs?.escenaPostpartida || 'Postpartida', o.obs?.escenaCierre || 'Cierre'].filter(Boolean);
   async function ponerEscena({ nombre } = {}) {
     if (!obs?.listo) throw new Error('OBS no está conectado');
     if (!escenasMano().includes(nombre)) throw new Error(`No hay una escena «${nombre}»`);
@@ -233,9 +240,29 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
   const carpetaClipsLol = join(o.registro?.raiz || RAIZ, o.registro?.carpeta || 'partidas', 'clips-lol');
 
   // El botón de «Empezar directo»: arranca OBS justo para que la partida salga desde el principio
+  // Al acabar la partida, la escena final es la Postpartida (y de ahí a Casters lo lleva fases); sin postpartida, Casters
+  const conPostpartida = (o.directo?.postpartidaSegundos ?? 30) > 0;
   const emision = new Emision({
-    opciones: o.emision, obs, registrar,
-    escenas: { juego: o.obs?.escenaJuego, previa: o.obs?.escenaPausa, final: o.obs?.escenaCasters, draft: o.obs?.escenaDraft || 'Draft' },
+    opciones: o.emision, obs, registrar, retenida: () => fases.retiene(),
+    escenas: { juego: o.obs?.escenaJuego, previa: o.obs?.escenaPausa, final: conPostpartida ? (o.obs?.escenaPostpartida || 'Postpartida') : o.obs?.escenaCasters, draft: o.obs?.escenaDraft || 'Draft' },
+  });
+  // Tráilers del inicio (pc2/traileres.js): los vídeos de obs.videosDirecto.carpeta, uno detrás de otro en «Trailer directo»
+  const ffprobe = buscarFfprobe(o, RAIZ);
+  const traileres = new Traileres({
+    obs, fuente: o.obs?.fuenteTraileres || 'Trailer directo', registrar,
+    listar: () => listarVideos(carpetasVideos(o, RAIZ)),
+    medir: async ruta => (await duracionFfprobe(ffprobe, ruta)) ?? (await duracionFfmpeg(rutaFfmpeg, ruta)),
+    // Medio segundo de más por vídeo: lo que tarda OBS en abrirlo (así la fase no corta el final del último)
+    alAjustar: (id, s) => fases.ajustarTemporal(id, s > 0 ? s + 0.5 : 0),
+    alCambiar: d => { fases.detalle = d; panel?.emitir(); },
+  });
+  // Fases del directo (pc2/fases.js): decide la fase y sus tiempos; el relé pone la escena que dice (pasoFases)
+  const fases = new Fases({
+    opciones: o.directo, registrar, duracionTraileres: () => (traileres.videos.length ? traileres.duracion() + traileres.videos.length * 0.5 : 0),
+    escenas: {
+      espera: o.obs?.escenaEspera, intro: o.obs?.escenaIntro, traileres: o.obs?.escenaTraileres, draft: o.obs?.escenaDraft, pausa: o.obs?.escenaPausa, partida: o.obs?.escenaJuego,
+      repeticion: o.obs?.escenaRepeticion, postpartida: o.obs?.escenaPostpartida, casters: o.obs?.escenaCasters, resumen: o.obs?.escenaResumen, cierre: o.obs?.escenaCierre,
+    },
   });
 
   // Resumen en vídeo al acabar la partida (pc2/resumen.js): los clips de las jugadas destacadas, seguidos, en la escena
@@ -260,7 +287,16 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
       registrar(`[resumen] clip del final guardado para ${jugadas.join(', ')}`);
     },
   });
-  emision.on('final', () => { resumen.alAcabarEnAntena().catch(e => registrar(`[resumen] ${e.message}`)); });
+  // Al acabar: postpartida y, al entrar en Casters, la cuenta atrás del resumen (el clip del final se guarda ya)
+  emision.on('final', () => { fases.alFinal(); resumen.alAcabarEnAntena({ retener: conPostpartida }).catch(e => registrar(`[resumen] ${e.message}`)); });
+  fases.on('casters', () => resumen.soltar());
+  // Se vuelve a Casters por donde sea (también con «Automático» tras algo a mano): el resumen retenido se suelta
+  // (no hace nada si no lo está). Y al entrar en la espera o la intro se vuelve a mirar la carpeta de los tráilers
+  fases.on('cambio', f => {
+    if (f.actual === 'casters') resumen.soltar();
+    if (obs && (f.actual === 'espera' || f.actual === 'intro')) traileres.preparar().catch(() => {});
+  });
+  fases.on('parar', () => emision.orden({ accion: 'terminar' }).catch(e => registrar(`[emisión] ${e.message}`)));
 
   // Panel de Gokudō (solo para mirar): si hay draft, y cuántas cámaras tiene puestas
   const tenka = otroTenka !== undefined ? otroTenka
@@ -309,6 +345,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
           } catch (e) { registrar(`[obs] clip de ${a.jugada}: ${e.message}`); }
         } else if (a.tipo === 'repeticion') {
           if (estado.manual) { registrar(`[obs] repetición de ${a.jugada}: control manual, se salta`); continue; }
+          if (fases.manual) { registrar(`[obs] repetición de ${a.jugada}: fase ${fases.actual} a mano, se salta`); continue; }
           // Mejor el clip limpio del LoL, empezando justo donde toca; si no hay, el del búfer de OBS como antes
           const limpio = estado.clipsLol.get(a.jugada);
           const clip = limpio || estado.clips.get(a.jugada);
@@ -724,9 +761,59 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
         finEsperado: Number.isFinite(estado.finHora) ? estado.finHora + o.margenSegundos * 1000 : null,
       });
     } catch (e) { registrar(`[emisión] ${e.message}`); }
+    try { await pasoFases(); } catch (e) { registrar(`[fases] ${e.message}`); }
     resumen.actualizar({ draft: Boolean(draftDeTenka(tenka?.estado)), enJuego: emision.fase === 'previa' || emision.fase === 'directo' });
     camaras?.paso().catch(() => {});
   }
+  // ---------- fases del directo (pc2/fases.js) ----------
+  // Pone la escena que dice fases (las suyas, o las pedidas a mano), saca al aire lo que lleva fases con la emisión
+  // armada y tiene al día la dirección de espera.html (hasta y jornada) y cabecera.html (jornada)
+  const recursoFase = n => (existsSync(join(RAIZ, 'obs', n)) ? aUrl(join(RAIZ, 'obs', n)).href : null);
+  const urlsBase = { [FUENTES_FASES.espera]: recursoFase('espera.html'), [FUENTES_FASES.cabecera]: recursoFase('cabecera.html') };
+  let urlsPuestas = {};
+  // Al volver OBS se vuelve a poner la escena de la fase (por si se cortó justo al cambiar, al acabar la intro)
+  if (typeof obs?.on === 'function') obs.on('conexion', v => { if (v) { urlsPuestas = {}; fases.autor = true; } });
+  const jornadaAhora = () => jornadaDeTenka(tenka?.estado) || fases.jornada || '';
+  async function pasoFases() {
+    if (!obs) return;
+    const { escena } = fases.paso({
+      emision: emision.fase, escenaAuto: emision.escenaAuto, meta: estado.meta, draft: Boolean(draftDeTenka(tenka?.estado)),
+      resumen: resumen.publico(), escenaObs: estado.escenaObs,
+    });
+    if (escena && obs.listo) {
+      try { await obs.escena(escena); estado.escenaObs = escena; } catch (e) { registrar(`[fases] no se pudo poner la escena ${escena}: ${e.message}`); }
+    }
+    // Tráilers: al entrar en la fase (o al pedirlos otra vez) empiezan desde el primero; si la fase se corta, se paran
+    const t = fases.temporal;
+    if (fases.actual === 'traileres' && t?.fase === 'traileres') {
+      if (traileres.id !== t.id && obs.listo) traileres.empezar(t.id);
+    } else if (traileres.activo) traileres.parar(`fase ${fases.actual || 'ninguna'}`);
+    // El resumen en vídeo no arranca su cuenta ni sale encima de lo puesto a mano (salvo Casters) ni de una intro, unos
+    // tráilers o una postpartida en marcha: se suelta al volver a Casters
+    if ((fases.mano && fases.mano !== 'casters') || fases.temporal) resumen.retener();
+    if (fases.retiene() && emision.fase !== 'apagada' && !emision.salidaActiva) await emision.alAire(`(${fases.actual || 'fase'})`);
+    if (!obs.listo || !obs.ponerUrl) return;
+    for (const [fuente, base] of Object.entries(urlsBase)) {
+      if (!base) continue;
+      const q = new URLSearchParams();
+      if (fuente === FUENTES_FASES.espera && fases.hasta) q.set('hasta', String(fases.hasta));
+      q.set('jornada', jornadaAhora());
+      const url = `${base}?${q}`;
+      if (urlsPuestas[fuente] === url) continue;
+      urlsPuestas[fuente] = url;
+      await obs.ponerUrl(fuente, url).catch(e => registrar(`[fases] ${fuente}: ${e.message}`));
+    }
+  }
+  // Orden de un panel: { fase: espera | intro | traileres | pausa | postpartida | casters | cierre | auto | saltar, hasta?, jornada? }
+  async function ordenFase(d = {}) {
+    if (!obs) throw new Error('Este PC no lleva OBS');
+    if (d.fase === 'traileres') await traileres.preparar();
+    fases.orden(d);
+    await pasoFases();
+    sala?.enviar({ tipo: 'estado', ...estadoPublico() });
+    panel?.emitir();
+  }
+
   // Segundos que faltan para que la partida salga en antena (desde el principio)
   const faltan = () => (Number.isFinite(estado.meta) && estado.meta < 0 ? -estado.meta : null);
 
@@ -740,6 +827,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
       juego: Boolean(pb), faltan: faltan(), emision: emision.publico(),
       bufer: emision.salidas ? emision.salidas.bufer : null,
       resumen: obs ? resumen.publico() : null,  // sin OBS en este PC no hay resumen en vídeo
+      fase: obs ? fases.publico() : null,       // fases del directo (sin OBS, null)
     };
   }
 
@@ -755,6 +843,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
       draft: draftDeTenka(tenka?.estado),
       condiciones: c.lista, listo: c.listo,
       emision: emision.publico(), faltan: faltan(), resumen: obs ? resumen.publico() : null,
+      fase: obs ? fases.publico() : null, jornada: obs ? jornadaAhora() || null : null,
       tDirecto: tD, tAntena: tA, margenReal: tA !== null && tD !== null ? tD - tA : null, margen: o.margenSegundos,
       modoRele: estado.modo, manual: estado.manual,
       registro: registro.slice(0, 40).map(l => ({ hora: l.hora, quien: 'PC 2', que: l.texto })),
@@ -833,6 +922,10 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
         await resumen.orden(await leerCuerpo(req));
         return responder(res, { ok: true, resumen: resumen.publico() });
       }
+      if (req.method === 'POST' && url.pathname === '/fase') {
+        await ordenFase(await leerCuerpo(req));
+        return responder(res, { ok: true, fase: fases.publico() });
+      }
       responder(res, { ok: false, error: 'No existe' }, 404);
     } catch (e) {
       responder(res, { ok: false, error: e.message }, 500);
@@ -856,6 +949,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
       else if (d.tipo === 'seguir' || d.tipo === 'general') recibirOrden(d);
       else if (d.tipo === 'emision') emision.orden(d).catch(e => registrar(`[emisión] ${e.message}`));
       else if (d.tipo === 'resumen') resumen.orden(d).catch(e => registrar(`[resumen] ${e.message}`));
+      else if (d.tipo === 'fase') ordenFase(d).catch(e => registrar(`[fases] ${e.message}`));
     });
   }
   // La sala la decide el PC 1 y la apunta en la web de Gokudō: aquí se recoge con la contraseña del panel y se entra en
@@ -900,6 +994,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
   // Cada cambio de la emisión sale enseguida hacia el PC 1 (y su página), sin esperar al latido
   emision.on('cambio', () => { sala?.enviar({ tipo: 'estado', ...estadoPublico() }); panel?.emitir(); });
   resumen.on('cambio', () => { sala?.enviar({ tipo: 'estado', ...estadoPublico() }); panel?.emitir(); });
+  fases.on('cambio', () => { sala?.enviar({ tipo: 'estado', ...estadoPublico() }); panel?.emitir(); });
   let panel = null;
 
   rele = {
@@ -907,6 +1002,8 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
     estado,
     emision,
     resumen,
+    traileres,  // los tráilers del inicio (pc2/traileres.js)
+    fases,      // fases del directo: rele.fases.actual, rele.fases.on('cambio' | 'partida', f => …)
     camaras,
     elegirCamaras,
     foto,
@@ -916,6 +1013,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
           puerto: o.panelPc2?.puerto ?? 4601, host: '127.0.0.1', foto,
           emision: d => emision.orden(d),
           resumen: d => resumen.orden(d),
+          fase: d => ordenFase(d),
           camaras: async d => {
             if (d?.leer) { await camaras?.leerDisponibles(); return; }
             elegirCamaras(d?.elegidos);
@@ -946,13 +1044,15 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
         latido = setInterval(() => sala.enviar({ tipo: 'estado', ...estadoPublico() }), 1000);
       }
       vuelta();
+      // Los tráilers del inicio: se miran la carpeta y las duraciones ya (y otra vez al entrar en la espera o la intro)
+      if (obs) traileres.preparar().catch(e => registrar(`[tráilers] ${e.message}`));
       if (cb.activo) bucleBordes();
       grabador?.arrancar();
       if (obs && typeof conObs !== 'object') { vigiaObs = setInterval(() => vigilarObs().catch(() => {}), 15000); setTimeout(() => vigilarObs().catch(() => {}), 8000); }
       return servidor;
     },
     parar() {
-      clearTimeout(temporizador); parado = true; resumen.detener(); clearTimeout(temporizadorBordes); clearInterval(latido); anuncio?.parar(); sala?.cerrar();
+      clearTimeout(temporizador); parado = true; resumen.detener(); traileres.detener(); clearTimeout(temporizadorBordes); clearInterval(latido); anuncio?.parar(); sala?.cerrar();
       if (otroTenka === undefined) tenka?.cerrar();
       if (typeof conObs !== 'object') obs?.cerrar();
       if (otroGrabador === undefined) grabador?.parar();

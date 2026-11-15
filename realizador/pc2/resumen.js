@@ -65,6 +65,7 @@ export class Resumen extends EventEmitter {
     this.clipActual = null;   // número del clip que sale (1, 2…) mientras se emite
     this.finEnAntena = false; // la antena ya llegó al final de esta partida
     this.cuentaPendiente = false;
+    this.retenida = false;    // la cuenta espera a que se entre en Casters (tras la postpartida)
     this.enJuego = false;
     this.vez = 0;             // cada reproducción nueva (o cancelación) deja sin efecto la anterior
     this.despertar = null;
@@ -116,6 +117,7 @@ export class Resumen extends EventEmitter {
     this.pendiente = null;
     this.finEnAntena = false;
     this.cuentaPendiente = false;
+    this.retenida = false;
     this.fase = 'sin';
     this.registrar(`[resumen] lista del PC 1: ${this.lista.length} clip${this.lista.length === 1 ? '' : 's'} (${this.lista.map(x => x.jugada).join(', ') || 'ninguno'})`);
     this.recalcular();
@@ -141,10 +143,12 @@ export class Resumen extends EventEmitter {
     }
   }
 
-  // La emisión ha pasado a Casters porque ha acabado la partida: arranca la cuenta atrás (con los clips que haya)
-  async alAcabarEnAntena() {
+  // La partida ha acabado en antena: arranca la cuenta atrás (con los clips que haya). Con retener, la cuenta espera a
+  // soltar(): el relé la suelta al entrar en Casters tras la postpartida (pc2/fases.js). El clip del final se guarda ya.
+  async alAcabarEnAntena({ retener = false } = {}) {
     this.finEnAntena = true;
     this.cuentaPendiente = true;
+    this.retenida = Boolean(retener);
     if (this.fase === 'preparando' && this.guardarFinal) {
       const faltan = this.clips().filter(x => !x.tramo).map(x => x.item.jugada);
       try { await this.guardarFinal(faltan); } catch (e) { this.registrar(`[resumen] no se pudo guardar el clip del final: ${e.message}`); }
@@ -153,8 +157,28 @@ export class Resumen extends EventEmitter {
     this.intentarCuenta();
   }
 
+  // Hay algo puesto a mano (que no es Casters) o una intro, unos tráilers o una postpartida en marcha: el resumen no
+  // arranca su cuenta ni sale encima. Si ya contaba, la cuenta vuelve a empezar al soltar() (al volver a Casters)
+  retener() {
+    if (this.fase === 'cuenta') {
+      this.cuentaPendiente = true;
+      this.retenida = true;
+      this.cambiar('listo', 'hay otra fase en antena: la cuenta del resumen espera a volver a Casters');
+      return;
+    }
+    if (this.cuentaPendiente && !this.retenida) this.registrar('[resumen] hay otra fase en antena: la cuenta del resumen espera a volver a Casters');
+    this.retenida = true;
+  }
+
+  // Se entra en Casters: arranca la cuenta atrás que esperaba
+  soltar() {
+    if (!this.retenida) return;
+    this.retenida = false;
+    this.intentarCuenta();
+  }
+
   intentarCuenta() {
-    if (!this.cuentaPendiente || this.fase !== 'listo' || this.enJuego) return;
+    if (!this.cuentaPendiente || this.retenida || this.fase !== 'listo' || this.enJuego) return;
     this.cuentaPendiente = false;
     this.hasta = this.ahora() + this.c.esperaSegundos * 1000;
     this.cambiar('cuenta', `cuenta atrás de ${this.c.esperaSegundos} s: luego sale el resumen (${this.publico().jugadas} clips, ${this.publico().segundos} s)`);

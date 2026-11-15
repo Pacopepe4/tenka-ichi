@@ -7,6 +7,7 @@ import { pedirJSON } from '../comun/http.js';
 import { juntar } from './cerebro.js';
 import { cabeceras } from '../comun/puente.js';
 import { segundosAtras } from './obs.js';
+import { ORDENES as ORDENES_FASE } from '../pc2/fases.js';
 
 export class Ejecutor extends EventEmitter {
   // sala: puente por internet (comun/sala.js). Sin sala se habla con el relé por HTTP (misma red o mismo PC).
@@ -83,6 +84,18 @@ export class Ejecutor extends EventEmitter {
     if (!this.releConectado) throw new Error('El PC 2 no está conectado: abre «Realizador PC2» en el PC de emisión');
     await this.mandar('resumen', { accion });
     this.apuntar(quien, `resumen: ${accion}`, {});
+  }
+
+  // Fases del directo (espera, intro, traileres, pausa, postpartida, casters, cierre, auto o saltar): las lleva el PC 2,
+  // que es donde está OBS. «saltar» acaba ya la intro, los tráilers o la postpartida en marcha
+  async fase({ fase, hasta, jornada } = {}, quien = 'persona') {
+    if (!ORDENES_FASE.includes(fase)) throw new Error(`Fase desconocida: ${fase}`);
+    if (!this.releConectado) throw new Error('El PC 2 no está conectado: abre «Realizador PC2» en el PC de emisión');
+    const cuerpo = { fase };
+    if (fase === 'espera' && Number.isFinite(Number(hasta)) && hasta !== null && hasta !== '') cuerpo.hasta = Number(hasta);
+    if (typeof jornada === 'string') cuerpo.jornada = jornada.slice(0, 80);
+    await this.mandar('fase', cuerpo);
+    this.apuntar(quien, `fase: ${fase}`, cuerpo.hasta ? { hasta: new Date(cuerpo.hasta).toISOString() } : {});
   }
 
   // Lista del resumen en vídeo para el PC 2 (va con el guion)

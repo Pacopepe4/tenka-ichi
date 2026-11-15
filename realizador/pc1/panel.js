@@ -11,7 +11,8 @@ const CARPETA = join(dirname(fileURLToPath(import.meta.url)), 'panel');
 
 // app: acciones de la app (comprobar o instalar una versión nueva, volver a la anterior, cerrar el realizador)
 // escena, repetir, captura (PC 2): cambiar la escena de OBS, repetir la última jugada y una imagen de lo que sale
-export function arrancarPanel({ puerto, host, foto, control, orden, emision, resumen, camaras, app, escena, repetir, captura, obs, capturaJuego }) {
+// fase: fases del directo ({ fase: espera | intro | traileres | pausa | postpartida | casters | cierre | auto | saltar, hasta?, jornada? })
+export function arrancarPanel({ puerto, host, foto, control, orden, emision, resumen, fase, camaras, app, escena, repetir, captura, obs, capturaJuego }) {
   const oyentes = new Set();
   let programado = null;
 
@@ -58,6 +59,11 @@ export function arrancarPanel({ puerto, host, foto, control, orden, emision, res
       // Botón del resumen en vídeo: { accion: 'lanzar' | 'cancelar' | 'repetir' }
       if (req.method === 'POST' && url.pathname === '/resumen' && resumen) {
         await resumen(await leerCuerpo(req));
+        emitir();
+        return responder(res, { ok: true });
+      }
+      if (req.method === 'POST' && url.pathname === '/fase' && fase) {
+        await fase(await leerCuerpo(req));
         emitir();
         return responder(res, { ok: true });
       }

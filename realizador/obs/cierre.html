@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Cierre · Gokudō</title>
+<!-- Fuente de navegador de OBS (escena Cierre): la pantalla «FIN DEL DIRECTO · GRACIAS POR ESTAR · NOS VEMOS EN EL PRÓXIMO» del kit de redes de
+     Gokudō (fondos/fin.jpg, lo rehace herramientas/directo/preparar.js) con un detalle sutil: el sol de neón respira
+     y la raya bermellón se enciende con el mismo pulso. Solo se anima opacity. Sin parámetros. -->
+<style>
+  :root { --noche: #0C0D13; --shu: #E0303A; --shu-claro: #FF4C56; }
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: var(--noche); }
+  body { position: relative; background: var(--noche) url('fondos/fin.jpg') 0 0 / 1920px 1080px no-repeat; }
+  /* El sol del fondo está centrado en (960, 315): un halo encima que respira */
+  .respira { position: absolute; left: 650px; top: 5px; width: 620px; height: 620px; border-radius: 50%; pointer-events: none;
+    background: radial-gradient(circle, rgba(255, 76, 86, .5) 0%, rgba(224, 48, 58, .32) 28%, rgba(224, 48, 58, .12) 46%, transparent 66%);
+    mix-blend-mode: screen; opacity: 0; will-change: opacity; animation: respira 5.2s ease-in-out infinite alternate; }
+  /* La raya bermellón del fondo (en 895…1025, 761…765) */
+  .raya { position: absolute; left: 895px; top: 761px; width: 130px; height: 4px; border-radius: 2px; pointer-events: none;
+    box-shadow: 0 0 10px 1px var(--shu-claro), 0 0 26px 3px rgba(224, 48, 58, .55); opacity: 0; will-change: opacity;
+    animation: respira 5.2s ease-in-out infinite alternate; }
+  @keyframes respira { from { opacity: 0; } to { opacity: .55; } }
+</style>
+</head>
+<body>
+  <i class="respira" aria-hidden="true"></i>
+  <i class="raya" aria-hidden="true"></i>
+</body>
+</html>

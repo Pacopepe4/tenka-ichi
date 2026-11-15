@@ -69,6 +69,13 @@
     "esperaSegundos": 120
   },
 
+  "directo": {
+    "introSegundos": 12,
+    "postpartidaSegundos": 30,
+    "cierreSegundos": 0,
+    "pausaTrasResumenSegundos": 300
+  },
+
   "reglas": {
     "recorridos": { "activo": true, "duracionSegundos": 12, "huecoSegundos": 30, "libreAntesSegundos": 10, "separacionSegundos": 180, "desdeSegundo": 120 },
     "vision": { "activo": true, "objetivos": ["DragonKill", "BaronKill", "HeraldKill", "HordeKill"], "minimoMuertes": 1, "antesSegundos": 5, "separacionSegundos": 240, "esperaSegundos": 10, "segundosPorEquipo": 2 },
@@ -160,6 +167,14 @@
     "escenaResumen": "Resumen",
     "fuenteResumen": "Resumen clip",
     "placaResumen": "Overlay RESUMEN",
+    "escenaEspera": "Espera",
+    "escenaIntro": "Intro",
+    "escenaTraileres": "Traileres",
+    "fuenteTraileres": "Trailer directo",
+    "videosDirecto": { "carpeta": "C:\\Gokudo\\videos-directo" },
+    "escenaPostpartida": "Postpartida",
+    "escenaCierre": "Cierre",
+    "volumenMusica": -12,
     "camarasDraft": ["", "", "", ""],
     "repeticion": {
       "transicionEntrada": "Repeticion entrada",

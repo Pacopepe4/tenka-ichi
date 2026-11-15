@@ -279,6 +279,8 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
     const faltan = Number.isFinite(a?.faltan) ? Math.max(0, a.faltan - (Date.now() - a.recibido) / 1000) : null;
     // Resumen en vídeo: su estado lo lleva el PC 2; la cuenta atrás se descuenta desde que llegó
     const resumen = a?.resumen ? { ...a.resumen, faltan: Number.isFinite(a.resumen.faltan) ? Math.max(0, Math.ceil(a.resumen.faltan - (Date.now() - a.recibido) / 1000)) : null } : null;
+    // Fases del directo: también del PC 2 (sin OBS allí, null), con lo que falta descontado desde que llegó
+    const fase = a?.fase ? { ...a.fase, faltan: Number.isFinite(a.fase.faltan) ? Math.max(0, Math.ceil(a.fase.faltan - (Date.now() - a.recibido) / 1000)) : null } : null;
     return {
       papel: 'pc1',
       condiciones: c.lista,
@@ -286,6 +288,7 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
       emision: a?.emision || null,
       faltan,
       resumen,
+      fase,
       conexiones,
       partida,
       jugadores: explorador.jugadores,
@@ -317,6 +320,7 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
     orden: async orden => ejecutor.ordenManual(orden),
     emision: async orden => ejecutor.emision(orden),
     resumen: async ({ accion }) => ejecutor.resumen(accion),
+    fase: async d => ejecutor.fase(d),
     app: async ({ accion }) => {
       if (accion === 'comprobar') return { nueva: await app.comprobar() };
       if (accion === 'actualizar') return app.actualizar();
@@ -335,6 +339,8 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
         else if (d.tipo === 'panelOrden' && d.orden) await ejecutor.ordenManual(d.orden, 'panel de Gokudō');
         else if (d.tipo === 'panelEmision') await ejecutor.emision(d, 'panel de Gokudō');
         else if (d.tipo === 'panelResumen') await ejecutor.resumen(d.accion, 'panel de Gokudō');
+        // panelFase: { fase: espera | intro | traileres | pausa | postpartida | casters | cierre | auto | saltar, hasta?, jornada? } (lo valida el ejecutor)
+        else if (d.tipo === 'panelFase') await ejecutor.fase(d, 'panel de Gokudō');
       } catch (e) { avisar(`Orden del panel de Gokudō: ${e.message}`); }
     });
     fotoSala = setInterval(() => sala.enviar({ tipo: 'foto', ...foto(), registro: registro.slice(0, 15) }), 1000);

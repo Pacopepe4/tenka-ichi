@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Espera · Gokudō</title>
+<!-- Fuente de navegador de OBS (escena Espera): «EMPEZAMOS EN BREVE» con cuenta atrás.
+     Fondo: la pieza «empezamos» del kit de redes de Gokudō sin el subtítulo (fondos/empezamos.jpg, la rehace
+     herramientas/directo/preparar.js), porque la cuenta va justo en ese sitio, debajo de la raya bermellón.
+       ?hasta=<epoch ms>   hora de empezar: cuenta atrás grande (mm:ss, o h:mm:ss si falta más de una hora);
+                           al llegar a 0 pone «¡EMPEZAMOS!». Sin hasta no hay cuenta y sale el subtítulo del kit
+                           («LA FAMILIA SE ESTÁ REUNIENDO»).
+       ?jornada=<texto>    la jornada, en pequeño encima del título (por ejemplo «Jornada 3»).
+       ?estado=<url>       de dónde leer la hora (por defecto http://localhost:4601/estado; estado=no lo apaga).
+     El relé cambia la dirección con los parámetros nuevos, pero además la página pregunta al estado cada 2 s y, si trae
+     fase.hasta, se queda con esa hora: si el panel cambia la hora, se ve sin recargar. Si no contesta, sigue con la suya.
+     Detalle animado: el sol de neón respira (solo opacity, un halo encima del fondo). -->
+<style>
+  @font-face { font-family: 'Dela Gothic One'; src: url('fuentes/DelaGothicOne-Regular.ttf') format('truetype'); font-weight: 400; }
+  @font-face { font-family: 'Zen Kaku Gothic New'; src: url('fuentes/ZenKakuGothicNew-Bold.ttf') format('truetype'); font-weight: 700; }
+  :root {
+    --noche: #0C0D13; --washi: #E7DFD2; --ceniza: #8D8A99; --shu: #E0303A; --shu-claro: #FF4C56; --shu-neon: #FF5A63;
+    --dela: 'Dela Gothic One', 'Zen Kaku Gothic New', sans-serif;
+    --gothic: 'Zen Kaku Gothic New', 'Yu Gothic', 'Segoe UI', sans-serif;
+  }
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: var(--noche); }
+  body { font-synthesis: none; position: relative; background: var(--noche) url('fondos/empezamos.jpg') 0 0 / 1920px 1080px no-repeat; }
+
+  /* El sol del fondo está centrado en (960, 315): un halo encima que respira */
+  .respira { position: absolute; left: 650px; top: 5px; width: 620px; height: 620px; border-radius: 50%; pointer-events: none;
+    background: radial-gradient(circle, rgba(255, 76, 86, .5) 0%, rgba(224, 48, 58, .32) 28%, rgba(224, 48, 58, .12) 46%, transparent 66%);
+    mix-blend-mode: screen; opacity: 0; will-change: opacity; animation: respira 5.2s ease-in-out infinite alternate; }
+  /* La raya bermellón del fondo (en 895…1025, 761…765) se enciende con el mismo pulso */
+  .raya { position: absolute; left: 895px; top: 761px; width: 130px; height: 4px; border-radius: 2px; pointer-events: none;
+    box-shadow: 0 0 10px 1px var(--shu-claro), 0 0 26px 3px rgba(224, 48, 58, .55); opacity: 0; will-change: opacity;
+    animation: respira 5.2s ease-in-out infinite alternate; }
+
+  .jornada { position: absolute; left: 0; right: 0; top: 540px; display: flex; justify-content: center; align-items: center; gap: 22px;
+    font-family: var(--gothic); font-weight: 700; font-size: 22px; letter-spacing: .42em; text-transform: uppercase; color: var(--shu-neon);
+    text-shadow: 0 0 10px rgba(224, 48, 58, .9), 0 0 24px rgba(224, 48, 58, .5); }
+  .jornada::before, .jornada::after { content: ''; width: 36px; height: 2px; background: var(--shu-claro); box-shadow: 0 0 8px var(--shu); }
+  .jornada span { margin-right: -.42em; }   /* el espaciado de la última letra no descentra */
+  .jornada:empty, .jornada[hidden] { display: none; }
+
+  /* El sitio del subtítulo del kit (top 0,74·h, 0,03·h, espaciado .32em, ceniza) */
+  .sub { position: absolute; left: 0; right: 0; top: 799px; text-align: center; font-family: var(--gothic); font-weight: 700; font-size: 32px;
+    letter-spacing: .32em; text-indent: .32em; text-transform: uppercase; color: var(--ceniza); }
+  .cuenta { position: absolute; left: 0; right: 0; top: 792px; display: flex; justify-content: center; align-items: baseline;
+    font-family: var(--dela); font-size: 128px; line-height: 1; color: var(--washi);
+    text-shadow: 0 3px 0 rgba(0, 0, 0, .55), 0 0 22px rgba(224, 48, 58, .38), 0 0 60px rgba(224, 48, 58, .18); }
+  .cuenta i { font-style: normal; display: inline-block; width: .74em; text-align: center; }   /* cifras de ancho fijo: no baila */
+  .cuenta b { font-weight: 400; display: inline-block; width: .36em; text-align: center; color: var(--shu-neon); position: relative; top: -.06em;
+    text-shadow: 0 0 8px var(--shu-claro), 0 0 22px var(--shu), 0 0 46px var(--shu); animation: late 1s steps(1, end) infinite; }
+  .ya { position: absolute; left: 0; right: 0; top: 798px; text-align: center; font-family: var(--dela); font-size: 108px; line-height: 1;
+    color: var(--washi); text-shadow: 0 0 8px var(--shu-claro), 0 0 26px var(--shu), 0 0 70px rgba(224, 48, 58, .7);
+    animation: golpe .55s cubic-bezier(.2, .9, .3, 1.3) both, prende 1.1s steps(1, end) .1s both; }
+  [hidden] { display: none !important; }
+
+  @keyframes respira { from { opacity: 0; } to { opacity: .55; } }
+  @keyframes late { 0% { opacity: 1; } 50% { opacity: .35; } }
+  @keyframes golpe { from { opacity: 0; transform: scale(.8); } to { opacity: 1; transform: none; } }
+  @keyframes prende { 0% { opacity: 1; } 14% { opacity: .35; } 26% { opacity: 1; } 40% { opacity: .55; } 52%, 100% { opacity: 1; } }
+</style>
+</head>
+<body>
+  <i class="respira" aria-hidden="true"></i>
+  <i class="raya" aria-hidden="true"></i>
+  <div class="jornada" id="jornada" hidden></div>
+  <div class="sub" id="sub">LA FAMILIA SE ESTÁ REUNIENDO</div>
+  <div class="cuenta" id="cuenta" hidden aria-live="off"></div>
+  <div class="ya" id="ya" hidden>¡EMPEZAMOS!</div>
+  <script>
+    const q = new URLSearchParams(location.search);
+    const $ = id => document.getElementById(id);
+
+    const jornada = (q.get('jornada') || '').trim().slice(0, 60);
+    if (jornada) { const s = document.createElement('span'); s.textContent = jornada; $('jornada').append(s); $('jornada').hidden = false; }
+
+    // Hora de empezar en ms (si llega en segundos, se pasa a ms); null si no vale
+    const aHora = v => {
+      const n = Number(v);
+      if (v === null || v === '' || !Number.isFinite(n) || n <= 0) return null;
+      return n < 1e11 ? n * 1000 : n;
+    };
+    let hasta = aHora(q.get('hasta'));
+    let pintado = '';
+
+    function texto(ms) {
+      const s = Math.ceil(ms / 1000), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
+      const dos = n => String(n).padStart(2, '0');
+      return h > 0 ? `${h}:${dos(m)}:${dos(r)}` : `${dos(m)}:${dos(r)}`;
+    }
+    function pintar() {
+      const estado = hasta === null ? 'sin' : hasta - Date.now() <= 0 ? 'ya' : texto(hasta - Date.now());
+      if (estado === pintado) return;
+      pintado = estado;
+      $('sub').hidden = estado !== 'sin';
+      $('ya').hidden = estado !== 'ya';
+      $('cuenta').hidden = estado === 'sin' || estado === 'ya';
+      if (!$('cuenta').hidden) {
+        $('cuenta').replaceChildren(...[...estado].map(c => {
+          const e = document.createElement(c === ':' ? 'b' : 'i');
+          e.textContent = c;
+          return e;
+        }));
+      }
+    }
+    pintar();
+    setInterval(pintar, 200);
+
+    // Sondeo del estado del relé: solo cambia la hora si llega fase.hasta válida; si no contesta, no pasa nada
+    const urlEstado = q.get('estado') || 'http://localhost:4601/estado';
+    async function sondear() {
+      const ctl = new AbortController();
+      const t = setTimeout(() => ctl.abort(), 1500);
+      try {
+        const r = await fetch(urlEstado, { cache: 'no-store', signal: ctl.signal });
+        if (!r.ok) return;
+        const e = await r.json();
+        const h = e && e.fase && typeof e.fase === 'object' && 'hasta' in e.fase ? aHora(e.fase.hasta) : null;
+        if (h !== null && h !== hasta) { hasta = h; pintar(); }
+      } catch { /* el relé no contesta: se queda la hora que hay */ }
+      finally { clearTimeout(t); }
+    }
+    if (urlEstado !== 'no') { sondear(); setInterval(sondear, 2000); }
+  </script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Pausa · Gokudō</title>
+<!-- Fuente de navegador de OBS (escena Pausa): la pantalla «PAUSA · NO TE VAYAS, VOLVEMOS ENSEGUIDA» del kit de redes de
+     Gokudō (fondos/pausa.jpg, lo rehace herramientas/directo/preparar.js) con un detalle sutil: el sol de neón respira
+     y la raya bermellón se enciende con el mismo pulso. Solo se anima opacity. Sin parámetros. -->
+<style>
+  :root { --noche: #0C0D13; --shu: #E0303A; --shu-claro: #FF4C56; }
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: var(--noche); }
+  body { position: relative; background: var(--noche) url('fondos/pausa.jpg') 0 0 / 1920px 1080px no-repeat; }
+  /* El sol del fondo está centrado en (960, 315): un halo encima que respira */
+  .respira { position: absolute; left: 650px; top: 5px; width: 620px; height: 620px; border-radius: 50%; pointer-events: none;
+    background: radial-gradient(circle, rgba(255, 76, 86, .5) 0%, rgba(224, 48, 58, .32) 28%, rgba(224, 48, 58, .12) 46%, transparent 66%);
+    mix-blend-mode: screen; opacity: 0; will-change: opacity; animation: respira 5.2s ease-in-out infinite alternate; }
+  /* La raya bermellón del fondo (en 895…1025, 761…765) */
+  .raya { position: absolute; left: 895px; top: 761px; width: 130px; height: 4px; border-radius: 2px; pointer-events: none;
+    box-shadow: 0 0 10px 1px var(--shu-claro), 0 0 26px 3px rgba(224, 48, 58, .55); opacity: 0; will-change: opacity;
+    animation: respira 5.2s ease-in-out infinite alternate; }
+  @keyframes respira { from { opacity: 0; } to { opacity: .55; } }
+
+  /* Pausa tras el resumen (15/11): cuenta atrás hasta la intro, entre el subtítulo del fondo (y 826) y «GOKUDŌ» (y 975).
+     La hora sale de ?hasta=<epoch ms> o del estado del relé (fase.hasta, cada 2 s); sin hora no hay cuenta */
+  @font-face { font-family: 'Dela Gothic One'; src: url('fuentes/DelaGothicOne-Regular.ttf') format('truetype'); font-weight: 400; }
+  .cuenta { position: absolute; left: 0; right: 0; top: 868px; display: flex; justify-content: center; align-items: baseline;
+    font-family: 'Dela Gothic One', sans-serif; font-size: 72px; line-height: 1; color: #E7DFD2;
+    text-shadow: 0 3px 0 rgba(0, 0, 0, .55), 0 0 18px rgba(224, 48, 58, .38), 0 0 44px rgba(224, 48, 58, .18); }
+  .cuenta i { font-style: normal; display: inline-block; width: .74em; text-align: center; }
+  .cuenta b { font-weight: 400; display: inline-block; width: .36em; text-align: center; color: #FF5A63; position: relative; top: -.06em;
+    text-shadow: 0 0 8px var(--shu-claro), 0 0 22px var(--shu); animation: late 1s steps(1, end) infinite; }
+  @keyframes late { 0% { opacity: 1; } 50% { opacity: .35; } }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+  <i class="respira" aria-hidden="true"></i>
+  <i class="raya" aria-hidden="true"></i>
+  <div class="cuenta" id="cuenta" hidden aria-live="off"></div>
+  <script>
+    const q = new URLSearchParams(location.search);
+    const caja = document.getElementById('cuenta');
+    const aHora = v => { const n = Number(v); if (v === null || v === '' || !Number.isFinite(n) || n <= 0) return null; return n < 1e11 ? n * 1000 : n; };
+    let hasta = aHora(q.get('hasta'));
+    let pintado = '';
+    const dos = n => String(n).padStart(2, '0');
+    function pintar() {
+      const falta = hasta === null ? null : hasta - Date.now();
+      const estado = falta === null || falta <= 0 ? '' : (s => `${dos(Math.floor(s / 60))}:${dos(s % 60)}`)(Math.ceil(falta / 1000));
+      if (estado === pintado) return;
+      pintado = estado;
+      caja.hidden = !estado;
+      if (estado) caja.replaceChildren(...[...estado].map(c => { const e = document.createElement(c === ':' ? 'b' : 'i'); e.textContent = c; return e; }));
+    }
+    pintar();
+    setInterval(pintar, 250);
+    // Solo vale la hora del relé si la fase en antena es la pausa: una pausa a mano no lleva cuenta
+    const urlEstado = q.get('estado') || 'http://localhost:4601/estado';
+    async function sondear() {
+      const ctl = new AbortController();
+      const t = setTimeout(() => ctl.abort(), 1500);
+      try {
+        const r = await fetch(urlEstado, { cache: 'no-store', signal: ctl.signal });
+        if (!r.ok) return;
+        const e = await r.json();
+        const f = e && typeof e.fase === 'object' ? e.fase : null;
+        if (!f) return;
+        const h = f.actual === 'pausa' ? aHora(f.hasta) : null;
+        if (h !== hasta) { hasta = h; pintar(); }
+      } catch { /* el relé no contesta: se queda lo que hay */ }
+      finally { clearTimeout(t); }
+    }
+    if (urlEstado !== 'no') { sondear(); setInterval(sondear, 2000); }
+  </script>
+</body>
+</html>

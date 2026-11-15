@@ -164,6 +164,22 @@ export class Obs extends EventEmitter {
     } catch { /* si no da la duración, el clip va desde el principio */ }
   }
 
+  // Vídeo entero desde el principio en una fuente multimedia (los tráilers del inicio del directo, pc2/traileres.js)
+  async ponerVideo(fuente, ruta) {
+    await this.pedir('SetInputSettings', { inputName: fuente, inputSettings: { local_file: ruta, is_local_file: true, looping: false, restart_on_activate: false } });
+    await this.pedir('TriggerMediaInputAction', { inputName: fuente, mediaAction: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_RESTART' });
+  }
+
+  pararVideo(fuente) {
+    return this.pedir('TriggerMediaInputAction', { inputName: fuente, mediaAction: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_STOP' });
+  }
+
+  // { estado: 'OBS_MEDIA_STATE_PLAYING' | …_ENDED…, duracionMs, cursorMs }
+  async estadoVideo(fuente) {
+    const r = await this.pedir('GetMediaInputStatus', { inputName: fuente });
+    return { estado: r.mediaState, duracionMs: r.mediaDuration, cursorMs: r.mediaCursor };
+  }
+
   // Cambia la dirección de una fuente de navegador (la placa del resumen con el minuto de cada clip)
   ponerUrl(fuente, url) {
     return this.pedir('SetInputSettings', { inputName: fuente, inputSettings: { url, is_local_file: false } });

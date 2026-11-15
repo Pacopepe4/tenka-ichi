@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Postpartida · Gokudō</title>
+<!-- Fuente de navegador de OBS (escena Postpartida): fondo de noche que va DEBAJO del overlay de la web
+     (?vista=final&transparente=1), que es el que pinta el resultado. Por eso el centro va limpio y oscuro: el callejón
+     del kit desenfocado (fondos/noche.jpg) con velo, un marco fino, 極道 a los lados y GOKUDŌ abajo, como las pantallas
+     del kit. Detalle: el fondo se mueve muy despacio (transform) y la raya de abajo respira (opacity). Sin parámetros. -->
+<style>
+  @font-face { font-family: 'Dela Gothic One'; src: url('fuentes/DelaGothicOne-Regular.ttf') format('truetype'); font-weight: 400; }
+  @font-face { font-family: 'Yuji Boku'; src: url('fuentes/YujiBoku-Regular.ttf') format('truetype'); font-weight: 400; }
+  :root { --noche: #0C0D13; --washi: #E7DFD2; --ceniza: #8D8A99; --shu: #E0303A; --shu-claro: #FF4C56; --shu-neon: #FF5A63; }
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: var(--noche); }
+  body { font-synthesis: none; position: relative; }
+  .fondo { position: absolute; inset: -40px; background: url('fondos/noche.jpg') center / cover no-repeat;
+    animation: deriva 40s ease-in-out infinite alternate; will-change: transform; }
+  .velo { position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 50% 48%, rgba(12, 13, 19, .72), rgba(12, 13, 19, .95) 78%); }
+  .marco { position: absolute; left: 48px; top: 48px; right: 48px; bottom: 48px; border: 1px solid rgba(231, 223, 210, .16); border-radius: 8px; }
+  .kanji { position: absolute; top: 110px; font-family: 'Yuji Boku', 'Yu Mincho', serif; font-size: 72px; line-height: 1.02;
+    writing-mode: vertical-rl; text-orientation: upright; color: var(--shu); opacity: .7; }
+  .kanji.izq { left: 100px; } .kanji.der { right: 100px; }
+  .firma { position: absolute; left: 0; right: 0; bottom: 84px; text-align: center; font-family: 'Dela Gothic One', sans-serif; font-size: 26px;
+    letter-spacing: .5em; text-indent: .5em; color: var(--ceniza); }
+  .raya { position: absolute; left: 900px; bottom: 136px; width: 120px; height: 3px; border-radius: 2px; background: var(--shu); }
+  .raya::after { content: ''; position: absolute; inset: 0; border-radius: 2px; box-shadow: 0 0 10px 1px var(--shu-claro), 0 0 24px 3px rgba(224, 48, 58, .5);
+    opacity: 0; animation: respira 5.2s ease-in-out infinite alternate; }
+  @keyframes deriva { from { transform: scale(1) translateX(0); } to { transform: scale(1.04) translateX(-20px); } }
+  @keyframes respira { from { opacity: 0; } to { opacity: .8; } }
+</style>
+</head>
+<body>
+  <div class="fondo"></div>
+  <div class="velo"></div>
+  <div class="marco"></div>
+  <span class="kanji izq" aria-hidden="true">極道</span>
+  <span class="kanji der" aria-hidden="true">極道</span>
+  <i class="raya" aria-hidden="true"></i>
+  <div class="firma">GOKUDŌ</div>
+</body>
+</html>

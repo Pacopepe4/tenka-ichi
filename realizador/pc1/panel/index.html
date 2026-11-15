@@ -102,6 +102,19 @@
   .resumen.vivo { border-color: var(--rojo); }
   .resumen button.lanzar { background: var(--acento); color: #111; border-color: var(--acento); font-weight: 700; padding: 12px 18px; }
   .resumen button[hidden] { display: none; }
+  /* Fases del directo (las lleva el PC 2) */
+  .fases { margin-top: 20px; display: grid; gap: 10px; }
+  .fases[hidden] { display: none; }
+  .fases .cabeza { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .fases .que { font-size: 18px; font-weight: 600; }
+  .fases .datos { display: flex; gap: 10px; flex-wrap: wrap; }
+  .fases .datos label { display: grid; gap: 4px; font-size: 13px; color: var(--suave); flex: 1 1 140px; }
+  .fases .datos input { font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--borde); background: var(--caja2); color: inherit; }
+  .fases .botones { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+  .fases .botones button { padding: 12px 8px; font-weight: 600; }
+  .fases .botones button.sale { background: var(--rojo); border-color: var(--rojo); color: #fff; }
+  .fases .botones button.auto { border-color: var(--ok); color: var(--ok); }
+  .fases .botones button.auto.sale { background: var(--ok); color: #111; }
   .como ol { margin: 6px 0 0; padding-left: 18px; }
   .como li { padding: 2px 0; }
 
@@ -234,6 +247,26 @@
             <button class="lanzar" id="resumenLanzar" data-accion="lanzar" hidden>Lanzar resumen</button>
             <button id="resumenRepetir" data-accion="repetir" hidden>Repetir resumen</button>
             <button id="resumenCancelar" data-accion="cancelar" hidden>Cancelar</button>
+          </div>
+        </section>
+        <section class="fases" id="cajaFases" hidden>
+          <div class="cabeza"><h2 style="margin:0">Fases del directo</h2><span class="insignia" id="faseInsignia"></span></div>
+          <div class="que" id="faseQue"></div>
+          <div class="sub" id="faseSub"></div>
+          <div class="datos">
+            <label>Hora de empezar (Espera)<input type="time" id="faseHora"></label>
+            <label>Jornada (si la web no la da)<input type="text" id="faseJornada" maxlength="80"></label>
+          </div>
+          <div class="botones" id="botonesFases">
+            <button data-fase="espera" title="Cuenta atrás hasta la hora de arriba; al llegar, la intro (sin hora: se queda a mano)">Espera</button>
+            <button data-fase="intro" title="La cabecera unos segundos y luego draft o pausa">Intro</button>
+            <button data-fase="traileres" title="Los tráilers de los equipos y el de la jornada, desde el principio; luego draft o pausa">Tráilers</button>
+            <button data-fase="pausa">Pausa</button>
+            <button data-fase="postpartida" title="Quién ha ganado unos segundos y luego Casters">Postpartida</button>
+            <button data-fase="casters">Casters</button>
+            <button data-fase="cierre">Cierre</button>
+            <button data-fase="saltar" title="Acaba ya la intro, los tráilers o la postpartida y sigue con lo siguiente">Saltar</button>
+            <button data-fase="auto" class="auto" title="Devuelve el control al flujo automático">Automático</button>
           </div>
         </section>
         <section class="enAntena" id="cajaEnAntena" hidden>
@@ -487,6 +520,55 @@
     mandar('/resumen', { accion: a });
   };
 
+  // ---------- Fases del directo (las lleva el PC 2; el PC 1 enseña lo mismo y manda las órdenes) ----------
+  const NOMBRES_FASE = { espera: 'Espera', intro: 'Intro', traileres: 'Tráilers', draft: 'Draft', pausa: 'Pausa', partida: 'Partida', repeticion: 'Repetición', postpartida: 'Postpartida', casters: 'Casters', resumen: 'Resumen', cierre: 'Cierre' };
+  const horaDe = ms => new Date(ms).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  function pintarFases() {
+    const x = f.fase;
+    $('cajaFases').hidden = !x;
+    if (!x) return;
+    $('faseInsignia').textContent = x.manual ? 'A mano' : 'Automático';
+    $('faseInsignia').className = `insignia ${x.manual ? 'espera' : 'listo'}`;
+    $('faseQue').textContent = x.actual ? `${NOMBRES_FASE[x.actual] || x.actual}${x.detalle ? ` ${x.detalle}` : ''}${x.escena ? ` · escena ${x.escena}` : ''}` : 'Sin fase';
+    const sig = x.siguiente ? NOMBRES_FASE[x.siguiente] || x.siguiente : null;
+    const dentro = s => (s >= 60 ? `${reloj(s)} min` : `${Math.round(s)} s`);
+    let sub = sig ? (x.faltan !== null && x.faltan !== undefined ? `${sig} en ${dentro(x.faltan)}` : `Luego: ${sig}`) : '';
+    if (!sig && x.actual === 'cierre' && x.faltan !== null && x.faltan !== undefined) sub = `La emisión se corta en ${dentro(x.faltan)}`;
+    if (x.hasta) sub = `Empieza a las ${horaDe(x.hasta)}${sub ? ` · ${sub}` : ''}`;
+    $('faseSub').textContent = sub;
+    $('faseJornada').placeholder = f.jornada || 'Jornada 1';
+    for (const b of $('botonesFases').children) b.classList.toggle('sale', b.dataset.fase === 'auto' ? !x.manual : x.manual && b.dataset.fase === x.actual);
+  }
+  // horaEspera:inicio (lo prueba test/panel-hora.test.js)
+  // «HH:MM» del campo → { hasta } en ms, o { error }. Una hora que pasó hace poco (menos de 6 h) es un error y no se
+  // manda; solo una de hace más de 6 h es la de mañana (el PC 2 rechaza además las de más de 12 h vista)
+  function horaEspera(valor, ahora = Date.now()) {
+    const [h, m] = String(valor).split(':').map(Number);
+    if (!Number.isFinite(h) || !Number.isFinite(m)) return { error: 'Esa hora no vale' };
+    const d = new Date(ahora);
+    d.setHours(h, m, 0, 0);
+    if (d.getTime() < ahora - 60000) {
+      if (ahora - d.getTime() < 6 * 3600 * 1000) return { error: `Las ${valor} ya han pasado: pon la hora de empezar (o deja el campo vacío)` };
+      d.setDate(d.getDate() + 1);
+    }
+    return { hasta: d.getTime() };
+  }
+  // horaEspera:fin
+  $('botonesFases').onclick = e => {
+    const fase = e.target.closest('button')?.dataset.fase;
+    if (!fase) return;
+    const cuerpo = { fase };
+    if (fase === 'espera' && $('faseHora').value) {
+      const h = horaEspera($('faseHora').value);
+      if (h.error) { alert(h.error); return; }
+      cuerpo.hasta = h.hasta;
+    }
+    const j = $('faseJornada').value.trim();
+    if (j) cuerpo.jornada = j;
+    if (fase === 'cierre' && f.emision?.enElAire && !confirm('¿Poner el cierre? Sale en la emisión.')) return;
+    mandar('/fase', cuerpo);
+  };
+
   // ---------- Realización (PC 1) ----------
   function pintarRealizacion() {
     const p = f.planoActual;
@@ -713,6 +795,7 @@
       .map(([k, v]) => `<span><i class="punto ${v ? 'si' : 'no'}"></i>${NOMBRES[k]}</span>`).join('');
     pintarDirecto();
     pintarResumen();
+    pintarFases();
     if (pc1) { pintarRealizacion(); pintarIa(); }
     if (f.camaras) pintarCamaras();
     pintarRegistro();

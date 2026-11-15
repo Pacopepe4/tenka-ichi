@@ -1,6 +1,7 @@
 // Deja OBS listo para el realizador (PC 2, o el mismo PC en las pruebas de un solo PC). Con OBS cerrado:
 //
-//   - Colección de escenas "Realizador": Juego, Repeticion, Casters, Pausa, Draft y Resumen, con sus fuentes
+//   - Colección de escenas "Realizador": Juego, Repeticion, Casters, Pausa, Draft, Resumen, Espera, Intro,
+//     Traileres, Postpartida y Cierre, con sus fuentes
 //     (captura del juego, overlay de Gokudō, "Repeticion clip", cámaras, rótulos y audio). En Draft, cuatro
 //     cámaras debajo del overlay: el relé las encaja en los huecos del draft y les pone la cámara elegida.
 //     Con las transiciones de la repetición (obs/repeticion-entrada.webm y -salida.webm) y el overlay de REPLAY
@@ -25,6 +26,8 @@ import { pathToFileURL, fileURLToPath } from 'node:url';
 import { ponerEnIni } from './configurar-lol.js';
 import { configurarDestinos } from './multi-rtmp.js';
 import { disposicionCamaras, FUENTES as CAMARAS_DRAFT } from '../pc2/camaras.js';
+import { FUENTES_FASES, MUSICA } from '../pc2/fases.js';
+import { carpetasVideos, listarVideos } from '../pc2/traileres.js';
 
 export const NOMBRE = 'Realizador';
 const ANCHO = 1920;
@@ -36,6 +39,8 @@ export const OVERLAY_REPLAY = 'Overlay REPLAY';
 export const PLACA_RESUMEN = 'Overlay RESUMEN';
 export const ALERTAS = 'Alertas Kick';
 export const MARCO_MINIMAPA = 'Marco minimapa';
+// Fuente de los tráilers del inicio del directo (el relé le carga los vídeos uno detrás de otro: pc2/traileres.js)
+export const FUENTE_TRAILERES = 'Trailer directo';
 
 // Dirección del marco del minimapa (obs/minimapa.html, del hilo de overlays): posición y tamaño del hueco por la URL
 // (obs.minimapa en opciones.json: lado, ancho, alto, x, y, margen, grosor, rotulo, guia). Sin nada, abajo a la derecha
@@ -143,7 +148,39 @@ function stinger(nombre, archivo) {
   };
 }
 
-export function crearColeccion({ escenas, fuenteRepeticion, fuenteResumen = 'Resumen clip', placaResumen = PLACA_RESUMEN, overlay = '', recursos = null, alertas = '', minimapa = {} }) {
+// Fases del directo (pc2/fases.js): cada escena lleva su página de obs/ (si está; si no, el fondo y un rótulo) y su
+// música de obs/musica/ en bucle. La música suena solo en la pista 1 (la emisión), nunca en la 2 ni la 3, que son las
+// que graba el búfer de repetición: así no se cuela en las repeticiones ni en el resumen. Volumen en dB (obs.volumenMusica).
+export const dbALineal = db => (Number.isFinite(Number(db)) ? Math.round(10 ** (Number(db) / 20) * 10000) / 10000 : 1);
+function musica(nombre, archivo, volumenDb) {
+  const f = fuente(nombre, 'ffmpeg_source', {
+    is_local_file: true, local_file: rutaObs(archivo), looping: true, restart_on_activate: true,
+    close_when_inactive: true, clear_on_media_end: false, hw_decode: false,
+  }, { audio: true, pistas: 1 });
+  f.volume = dbALineal(volumenDb);
+  return f;
+}
+const CSS_TRANSPARENTE = 'body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }';
+function pagina(nombre, url) {
+  return fuente(nombre, 'browser_source', {
+    is_local_file: false, url, width: ANCHO, height: ALTO, fps: 30, shutdown: true, restart_when_active: true,
+    reroute_audio: false, css: CSS_TRANSPARENTE,
+  });
+}
+// El overlay de la web en su vista final (quién ha ganado), transparente: la misma dirección que «Overlay Gokudō»
+export function urlOverlayFinal(overlay) {
+  try {
+    const u = new URL(overlay);
+    if (!/^https?:$/.test(u.protocol)) return '';
+    u.searchParams.set('vista', 'final');
+    u.searchParams.set('transparente', '1');
+    return u.href;
+  } catch { return ''; }
+}
+
+export function crearColeccion({ escenas, fuenteRepeticion, fuenteResumen = 'Resumen clip', placaResumen = PLACA_RESUMEN, fuenteTraileres = FUENTE_TRAILERES, overlay = '', recursos = null, alertas = '', minimapa = {}, volumenMusica = -12 }) {
+  // Un volumen que no es un número (un texto, null…) daría la música a todo volumen: −12 dB
+  if (typeof volumenMusica !== 'number' || !Number.isFinite(volumenMusica)) volumenMusica = -12;
   const juego = fuente('Juego LoL', 'game_capture', {
     capture_mode: 'window', window: VENTANA_LOL, priority: 2, capture_cursor: false, allow_transparency: false,
   });
@@ -194,6 +231,34 @@ export function crearColeccion({ escenas, fuenteRepeticion, fuenteResumen = 'Res
     reroute_audio: false, css: 'body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }',
   }) : null;
 
+  // ---------- fases del directo ----------
+  const hay = archivo => Boolean(recursos && existsSync(join(recursos, archivo)));
+  const urlDe = archivo => pathToFileURL(join(recursos, archivo)).href;
+  const musicas = {};
+  for (const [fase, archivo] of Object.entries(MUSICA)) {
+    const ruta = join('musica', archivo);
+    if (hay(ruta)) musicas[fase] = musica(`Musica ${fase}`, join(recursos, ruta), volumenMusica);
+  }
+  const conMusica = (fase, partes) => (musicas[fase] ? [...partes, [musicas[fase]]] : partes);
+  // Espera: la cuenta atrás (el relé le pone ?hasta=<hora en ms>&jornada=<texto>); sin la página, un rótulo
+  const fEspera = hay('espera.html') ? pagina(FUENTES_FASES.espera, urlDe('espera.html')) : rotulo('Rotulo espera', 'EMPEZAMOS ENSEGUIDA', 96);
+  const fCabecera = hay('cabecera.html') ? pagina(FUENTES_FASES.cabecera, urlDe('cabecera.html')) : rotulo('Rotulo intro', 'GOKUDŌ · LIGA DE FAMILIAS', 96);
+  const fPausa = hay('pausa.html') ? pagina(FUENTES_FASES.pausa, urlDe('pausa.html')) : null;
+  const fFondoPost = hay('postpartida.html') ? pagina(FUENTES_FASES.fondoPostpartida, urlDe('postpartida.html')) : null;
+  const fFinal = fuente(FUENTES_FASES.final, 'browser_source', {
+    url: urlOverlayFinal(overlay), width: ANCHO, height: ALTO, fps: 30, shutdown: true, restart_when_active: true,
+    reroute_audio: false, css: CSS_TRANSPARENTE,
+  });
+  // Tráilers: los vídeos los carga el relé (local, sin bucle, se cierra al salir de la escena); suenan solo en la pista 1,
+  // como la música. Debajo, el fondo de noche por si hay un hueco entre dos vídeos
+  const fTrailer = fuente(fuenteTraileres || FUENTE_TRAILERES, 'ffmpeg_source', {
+    is_local_file: true, local_file: '', looping: false, restart_on_activate: false,
+    close_when_inactive: true, clear_on_media_end: false, hw_decode: true,
+  }, { audio: true, pistas: 1 });
+  const fCierre = hay('cierre.html') ? pagina(FUENTES_FASES.cierre, urlDe('cierre.html')) : rotulo('Rotulo cierre', 'GRACIAS POR VERNOS', 96);
+  const centro = { x: ANCHO / 2, y: ALTO / 2 };
+  const conRotulo = (f, esPagina) => (esPagina ? [[f]] : [[fondo], [f, centro]]);
+
   const lista = [
     escena(escenas.juego, conAlertas([[juego], ...(fMinimapa ? [[fMinimapa]] : []), [marcador]])),
     // En la repetición solo el cartel REPLAY: el marcador se quita (Pacopepe, 08/11)
@@ -201,10 +266,16 @@ export function crearColeccion({ escenas, fuenteRepeticion, fuenteResumen = 'Res
     // El marco del minimapa también: el clip limpio del LoL lleva el minimapa en el mismo sitio (14/11: se quitaba)
     escena(escenas.repeticion, [[clip], ...(fMinimapa ? [[fMinimapa]] : []), [rRepeticion, recursos ? { x: 0, y: 0, w: ANCHO, h: ALTO, oculto: true } : { x: 220, y: 80 }]]),
     escena(escenas.casters, conAlertas([[fondo], [camara], [rCasters, { x: ANCHO / 2, y: 980 }]])),
-    escena(escenas.pausa, conAlertas([[fondo], [rPausa, { x: ANCHO / 2, y: ALTO / 2 }]])),
+    escena(escenas.pausa, conAlertas(conMusica('pausa', fPausa ? [[fPausa]] : [[fondo], [rPausa, centro]]))),
     escena(escenas.draft || 'Draft', conAlertas([[fondo], ...camarasDraft.map((c, i) => [c, { ...huecos[i], oculto: true }]), [marcador]])),
     // Como la repetición: el clip y la placa, sin el marcador ni las alertas
     escena(escenas.resumen || 'Resumen', [[clipResumen], [fPlaca, recursos ? null : { x: 220, y: 80 }]]),
+    escena(escenas.espera || 'Espera', conAlertas(conMusica('espera', conRotulo(fEspera, hay('espera.html'))))),
+    escena(escenas.intro || 'Intro', conAlertas(conMusica('intro', conRotulo(fCabecera, hay('cabecera.html'))))),
+    escena(escenas.traileres || 'Traileres', conAlertas([[fondo], [fTrailer]])),
+    // Postpartida: el fondo (obs/postpartida.html, o el color de siempre) y encima el overlay de la web en su vista final
+    escena(escenas.postpartida || 'Postpartida', conAlertas(conMusica('postpartida', [[fFondoPost || fondo], [fFinal]]))),
+    escena(escenas.cierre || 'Cierre', conAlertas(conMusica('cierre', conRotulo(fCierre, hay('cierre.html'))))),
   ];
 
   return {
@@ -212,7 +283,8 @@ export function crearColeccion({ escenas, fuenteRepeticion, fuenteResumen = 'Res
     current_scene: lista[0].name,
     current_program_scene: lista[0].name,
     scene_order: lista.map(e => ({ name: e.name })),
-    sources: [...lista, juego, marcador, clip, clipResumen, fPlaca, fondo, camara, ...camarasDraft, rRepeticion, rCasters, rPausa, ...(fAlertas ? [fAlertas] : []), ...(fMinimapa ? [fMinimapa] : [])],
+    sources: [...lista, juego, marcador, clip, clipResumen, fPlaca, fondo, camara, ...camarasDraft, rRepeticion, rCasters, rPausa, ...(fAlertas ? [fAlertas] : []), ...(fMinimapa ? [fMinimapa] : []),
+      fEspera, fCabecera, ...(fPausa ? [fPausa] : []), ...(fFondoPost ? [fFondoPost] : []), fFinal, fCierre, fTrailer, ...Object.values(musicas)],
     groups: [],
     // Pistas de audio: 1 = emisión (juego y micro), 2 = solo juego (lo que suena al repetir un clip), 3 = juego y
     // micro (para el resumen). El búfer de repetición graba la 2 y la 3: así en la repetición no se oye a los casters
@@ -421,16 +493,29 @@ export function configurarObs({ carpeta, opciones, rutaLocal, overlay, overlayPo
   // 2. Colección de escenas
   const escenas = join(carpeta, 'basic', 'scenes');
   const url = overlay ?? (o.overlay || buscarOverlay(escenas, u => esDeGokudo(u, overlayPorDefecto)) || overlayPorDefecto || '');
-  const nombres = { juego: o.escenaJuego, repeticion: o.escenaRepeticion, casters: o.escenaCasters, pausa: o.escenaPausa, draft: o.escenaDraft || 'Draft', resumen: o.escenaResumen || 'Resumen' };
+  const nombres = {
+    juego: o.escenaJuego, repeticion: o.escenaRepeticion, casters: o.escenaCasters, pausa: o.escenaPausa, draft: o.escenaDraft || 'Draft', resumen: o.escenaResumen || 'Resumen',
+    espera: o.escenaEspera || 'Espera', intro: o.escenaIntro || 'Intro', traileres: o.escenaTraileres || 'Traileres', postpartida: o.escenaPostpartida || 'Postpartida', cierre: o.escenaCierre || 'Cierre',
+  };
   const rutaColeccion = join(escenas, `${NOMBRE}.json`);
   guardarCopia(rutaColeccion, `${NOMBRE}.json`);
   // Las alertas de Kick salen de la misma web que el overlay (/alertas/), salvo que opciones.json diga otra
   let alertas = o.alertas ?? '';
   if (o.alertas === undefined && /^https?:/i.test(url)) { try { alertas = new URL('/alertas/', url).href; } catch { /* sin dirección */ } }
-  escribir(rutaColeccion, JSON.stringify(crearColeccion({ escenas: nombres, fuenteRepeticion: o.fuenteRepeticion, fuenteResumen: o.fuenteResumen || 'Resumen clip', placaResumen: o.placaResumen || PLACA_RESUMEN, overlay: url, alertas, minimapa: o.minimapa || {}, recursos: recursos && existsSync(recursos) ? recursos : null }), null, 4));
+  escribir(rutaColeccion, JSON.stringify(crearColeccion({ escenas: nombres, fuenteRepeticion: o.fuenteRepeticion, fuenteResumen: o.fuenteResumen || 'Resumen clip', placaResumen: o.placaResumen || PLACA_RESUMEN, fuenteTraileres: o.fuenteTraileres || FUENTE_TRAILERES, overlay: url, alertas, minimapa: o.minimapa || {}, volumenMusica: o.volumenMusica ?? -12, recursos: recursos && existsSync(recursos) ? recursos : null }), null, 4));
   hechos.push(`Colección "${NOMBRE}": ${Object.values(nombres).join(', ')}`);
   if (recursos && existsSync(recursos)) hechos.push(`Transiciones de la repetición ("${TRANSICIONES.entrada}", "${TRANSICIONES.salida}") y "${OVERLAY_REPLAY}"`);
   if (alertas) hechos.push(`Alertas de Kick en todas las escenas (${alertas})`);
+  // Grafismos y música de las fases del directo: lo que no está va con el fondo y un rótulo (o sin música)
+  if (recursos && existsSync(recursos)) {
+    const faltan = [...['espera.html', 'cabecera.html', 'pausa.html', 'postpartida.html', 'cierre.html'], ...Object.values(MUSICA).map(m => `musica/${m}`)]
+      .filter(f => !existsSync(join(recursos, f)));
+    hechos.push(faltan.length ? `Fases del directo: faltan en obs/ ${faltan.join(', ')} (van con fondo y rótulo o sin música; vuelve a configurar OBS cuando estén)` : 'Fases del directo: páginas y música de obs/ puestas');
+  }
+  // Tráilers del inicio: no van en el zip; se copian a mano (obs.videosDirecto.carpeta). Solo se dice si están
+  const videos = listarVideos(carpetasVideos({ obs: o }, join(RECURSOS, '..')));
+  hechos.push(videos.rutas.length ? `Tráilers del inicio: ${videos.rutas.length} vídeos en ${videos.carpeta}`
+    : `Tráilers del inicio: no hay vídeos en ${o.videosDirecto?.carpeta || 'la carpeta de obs.videosDirecto'} (la escena Traileres está; sin vídeos, la fase se salta)`);
   // Fuentes de Gokudō para los rótulos (solo en Windows; en las pruebas se pasa instalarFuentes: false)
   if (instalarLasFuentes && process.platform === 'win32') {
     const f = instalarFuentes({ origen: join(recursos || RECURSOS, 'fuentes') });
