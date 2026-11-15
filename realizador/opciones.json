@@ -13,6 +13,7 @@
 
   "rele": {
     "cinematicaInicio": { "activo": true, "hastaSegundo": 20 },
+    "casteo": { "activo": false, "calidad": 1 },
     "recorridos": { "activo": true },
     "vision": { "activo": false, "segundosPorEquipo": 2 },
     "ip": "127.0.0.1",

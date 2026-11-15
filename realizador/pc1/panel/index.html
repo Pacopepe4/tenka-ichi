@@ -336,6 +336,12 @@
   </div>
 
   <div class="pestana" id="registroP" hidden>
+    <section id="cajaCasteo" hidden style="margin-bottom:20px">
+      <h2>Casteo a distancia (VDO.Ninja)</h2>
+      <div class="sub" id="casteoEstado"></div>
+      <div id="casteoEnlaces"></div>
+      <div class="como">Cada caster abre su enlace en Chrome o Edge, con auriculares: ve la partida y oye a los demás. Su voz entra sola en la emisión por el audio del escritorio del PC 2 (no hace falta ninguna fuente en OBS).</div>
+    </section>
     <div class="real">
       <section><h2>Registro</h2><ol class="l registro" id="registro"></ol></section>
       <section class="avisos"><h2>Avisos</h2><ul class="l" id="avisos"></ul></section>
@@ -784,8 +790,29 @@
       || '<li class="vacio">Ninguno</li>';
   }
 
+  function pintarCasteo() {
+    const c = f.casteo;
+    $('cajaCasteo').hidden = !c;
+    if (!c) return;
+    const pc2 = f.papel === 'pc2';
+    $('casteoEstado').textContent = pc2
+      ? (c.automatico ? 'Este PC abre solo la sala de voz y comparte la ventana del LoL cuando hay partida.' : 'Apagado: abre a mano «Compartir la partida» y «Hablar con los casters».')
+      : 'Pásales a los casters su enlace.';
+    const filas = [['Caster 1', c.caster1], ['Caster 2', c.caster2], ...(pc2 ? [['Compartir la partida (este PC)', c.compartir], ['Hablar con los casters (este PC)', c.hablar]] : [])].filter(([, u]) => u);
+    const firma = JSON.stringify(filas);
+    if ($('casteoEnlaces').dataset.firma === firma) return;
+    $('casteoEnlaces').dataset.firma = firma;
+    $('casteoEnlaces').innerHTML = filas.map(([n, u]) => `<div style="display:flex;gap:8px;align-items:center;margin:6px 0"><b style="min-width:12em">${esc(n)}</b><input readonly value="${esc(u)}" style="flex:1;min-width:0"><button data-copiar="${esc(u)}">Copiar</button><a href="${esc(u)}" target="_blank" rel="noopener">Abrir</a></div>`).join('');
+  }
+  $('casteoEnlaces').onclick = async e => {
+    const b = e.target.closest('button[data-copiar]');
+    if (!b) return;
+    try { await navigator.clipboard.writeText(b.dataset.copiar); aviso('Enlace copiado'); } catch { aviso('No se pudo copiar: selecciónalo y copia a mano'); }
+  };
+
   function pintar() {
     if (!f) return;
+    pintarCasteo();
     const pc1 = f.papel === 'pc1';
     $('papel').textContent = pc1 ? 'PC 1 · realización' : 'PC 2 · emisión';
     document.title = `Realizador · ${pc1 ? 'PC 1' : 'PC 2'}`;

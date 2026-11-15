@@ -24,6 +24,8 @@ import { Actualizador, codigoSala } from '../comun/app.js';
 import { abrirObs, obsCorriendo } from './abrir-obs.js';
 import { secuencia as secuenciaCinematica, duracion as duracionCinematica, INICIO, RIO, tocaCinematica } from './cinematica.js';
 import { juegoDeVision, ejecutarTeclas as ejecutarTeclasLol } from './teclas.js';
+import { Casteo } from './casteo.js';
+import { enlacesCasteo } from '../comun/casteo.js';
 import { readFileSync, writeFileSync, existsSync, appendFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL as aUrl } from 'node:url';
@@ -671,10 +673,12 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
     try {
       pb = await pedirJSON(`${api}/replay/playback`, { tiempoMs: 1500 });
       estado.playback = { ...pb, hora: Date.now() };
+      casteo?.paso({ lol: true }).catch(e => registrar(`[casteo] ${e.message}`));
       estado.errores = 0;
     } catch (e) {
       if (++estado.errores === 3) registrar(`[antena] sin respuesta de la Replay API: ${e.message}`);
       estado.playback = null;
+      casteo?.paso({ lol: false }).catch(() => {});
       estado.modo = 'sin-juego';
       estado.meta = null;
       await pasoEmision();
@@ -832,6 +836,11 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
   }
 
   // Página del PC 2 (la misma interfaz que el PC 1, con lo que se sabe aquí)
+  // Casteo a distancia con VDO.Ninja (comun/casteo.js, pc2/casteo.js): abre solo sus páginas si rele.casteo.activo.
+  // Los enlaces de los casters salen en el panel aunque esté apagado (para abrirlos a mano)
+  const enlacesCaster = o.clave ? enlacesCasteo(o.clave, { calidad: r.casteo?.calidad ?? 1 }) : null;
+  const casteo = r.casteo?.activo === true && process.platform === 'win32' && enlacesCaster ? new Casteo({ enlaces: enlacesCaster, registrar }) : null;
+
   function foto() {
     const c = condicionesAhora();
     const tA = tAntenaAhora();
@@ -848,6 +857,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
       modoRele: estado.modo, manual: estado.manual,
       registro: registro.slice(0, 40).map(l => ({ hora: l.hora, quien: 'PC 2', que: l.texto })),
       app: { ...app.publico(), sala: sala?.sala ? String(sala.sala).slice(0, 4).toUpperCase() : null },
+      casteo: enlacesCaster ? { automatico: Boolean(casteo), ...enlacesCaster } : null,
       grabador: grabador ? { activo: grabador.activo, forma: grabador.forma?.nombre || null } : null,
       vista: obs ? {
         escena: estado.escenaObs, escenas: escenasMano(), camaraVirtual: estado.camaraVirtual, modo: o.obs?.vista ?? 'camara',
@@ -1056,6 +1066,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
       if (otroTenka === undefined) tenka?.cerrar();
       if (typeof conObs !== 'object') obs?.cerrar();
       if (otroGrabador === undefined) grabador?.parar();
+      casteo?.parar().catch(() => {});
       app.parar();
       clearInterval(vigiaObs);
       servidor.close();

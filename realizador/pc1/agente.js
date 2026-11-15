@@ -20,6 +20,7 @@ import { Ia } from './ia.js';
 import { Actualizador, registroEnArchivo } from '../comun/app.js';
 import { LectorPantalla, leerFotograma, SeguidorMarcador, SeguidorHechizos, sucesoDeContador } from './pantalla.js';
 import { carpetaFfmpeg } from '../instalar/ffmpeg.js';
+import { enlacesCasteo } from '../comun/casteo.js';
 
 // «explorador» permite cambiar de dónde salen los sucesos (el modo grabada pone el suyo)
 // «ia»: para las pruebas (un Ia con cliente de mentira). Sin él, se crea si ia.activo está encendido.
@@ -310,6 +311,8 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
       avisos: avisos.slice(0, 10),
       ia: o.ia?.activo || otraIa ? ia.foto() : null,
       app: { ...app.publico(), sala: sala?.sala ? String(sala.sala).slice(0, 4).toUpperCase() : null },
+      // Enlaces de VDO.Ninja para los casters a distancia (los mismos que en el PC 2: salen de la contraseña)
+      casteo: o.clave ? (({ caster1, caster2 }) => ({ caster1, caster2 }))(enlacesCasteo(o.clave, { calidad: o.rele?.casteo?.calidad ?? 1 })) : null,
     };
   }
 
