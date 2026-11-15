@@ -27,6 +27,14 @@
 [data-estilo="a"] .datos { padding: 0 18px; background: rgba(12, 13, 19, .92); font-family: var(--dela); font-size: 17px; font-weight: 400; border-radius: 0 0 8px 8px; box-shadow: var(--filo-fino); }
 [data-estilo="a"] .caido { border-radius: 5px; overflow: hidden; box-shadow: 0 0 0 1px var(--sumi-linea); }
 [data-estilo="a"] .caido b { font-family: var(--dela); font-weight: 400; font-size: 17px; color: #fff; text-shadow: 0 0 4px #000, 0 0 2px #000; }
+/* Enfriamientos a los lados: placa de noche con filo, retrato con el tubo de su familia, cifras en Dela */
+[data-estilo="a"] .lateral { padding: 8px; background: rgba(12, 13, 19, .82); border-radius: 8px; box-shadow: var(--filo-fino), 0 10px 26px rgba(0, 0, 0, .4); }
+[data-estilo="a"] .lat-campeon { border-radius: 8px; box-shadow: 0 0 0 2px var(--lado); }
+[data-estilo="a"] .lat-hechizo img { border-radius: 5px; box-shadow: 0 0 0 1px var(--sumi-linea); }
+[data-estilo="a"] .lat-r img { border-radius: 50%; box-shadow: 0 0 0 2px var(--sumi), 0 0 0 3px var(--lado); }
+[data-estilo="a"] .lat-r:not(.cd) img { box-shadow: 0 0 0 2px var(--sumi), 0 0 0 3px var(--lado), 0 0 10px var(--lado); }
+[data-estilo="a"] .lat-hechizo.largo b { font-size: 10px; letter-spacing: -.02em; }
+[data-estilo="a"] .lat-hechizo b { font-family: var(--dela); font-size: 13px; color: #fff; text-shadow: 0 0 3px #000, 0 0 2px #000; }
 [data-estilo="a"] .dato svg { color: var(--hai); }
 [data-estilo="a"] .dato.oro b { color: var(--washi); }
 [data-estilo="a"] .dato.larvas svg { color: #9B6BD4; }

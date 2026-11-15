@@ -9,7 +9,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { puntuar, participacion } from './puntuacion.js';
 
-import { adelantoDe, csRepartido, sucesosAdelantados } from './adelanto.js';
+import { adelantoDe, csRepartido, sucesosAdelantados, enfriamientosEn } from './adelanto.js';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 let precios = {};            // id de objeto → oro total (Data Dragon)
@@ -380,6 +380,8 @@ export function resumen() {
       muerto: Boolean(j.isDead), reaparece: Math.round(j.respawnTimer || 0), objetos: porHuecos(j.items), racha: 0,
       posicion: j.position || '', aplastar: tieneAplastar(j),
       hechizos: hechizosDe(j), runa: j.runes?.keystone?.id ?? null, mision: misionDe(j) };
+    // Enfriamientos de la D, la F y la R en la emisión, leídos de la pantalla por el PC 1 (server/adelanto.js)
+    jugador.enfriamientos = conAdelanto ? enfriamientosEn(nombreJugador(j), bruto.tiempo) || null : null;
     jugadores[lado].push(jugador);
     for (const n of [j.summonerName, j.riotId, j.riotIdGameName, jugador.nombre]) if (n) jugadorPorNombre.set(normalizar(n), jugador);
   }
@@ -611,6 +613,8 @@ export function resumen() {
     sinPartida: bruto.sinPartida, prueba: bruto.prueba, terminada,
     tiempo: t, velocidad: bruto.velocidad, recibido: bruto.recibido,
     azul: eq.azul, rojo: eq.rojo, jugadores, lineas,
+    // Hay enfriamientos del PC 1 para esta partida: el marcador enseña las columnas de los lados
+    enfriamientos: [...jugadores.azul, ...jugadores.rojo].some(j => j.enfriamientos),
     objetivos, historiaIncompleta, grafica: grafica(),
     buffs: buffs.filter(b => b.hasta > t),
     inhibidores: [...caidos.values()].filter(i => i.vuelve > t),

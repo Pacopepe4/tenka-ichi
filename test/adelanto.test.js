@@ -2,7 +2,7 @@
 // y dragones, heraldo y Barón que salen solos cuando la emisión (el PC 2, 2 minutos detrás) llega a su minuto.
 import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { recibirAdelanto, adelantoDe, csRepartido, olvidarAdelanto, sucesosAdelantados } from '../server/adelanto.js';
+import { recibirAdelanto, adelantoDe, csRepartido, olvidarAdelanto, sucesosAdelantados, enfriamientosEn } from '../server/adelanto.js';
 import { recibir, olvidarPartida, marcarObjetivo } from '../server/partida.js';
 
 const POSICIONES = ['TOP', 'JUNGLE', 'MIDDLE', 'BOTTOM', 'UTILITY'];
@@ -77,4 +77,35 @@ test('el marcador enseña los CS repartidos, pero no en la partida de prueba ni 
   assert.equal(p.lineas[0].azul.cs, 15, 'con PC 1, repartido');
   const prueba = recibir({ juego: { gameTime: 90 }, jugadores: jugadores({ A1: 10 }), eventos: [] }, { prueba: true });
   assert.equal(prueba.lineas[0].azul.cs, 10, 'la partida de prueba no usa lo del PC 1');
+});
+
+// ---------- 14/11: enfriamientos leídos de la pantalla del PC 1 y larvas ----------
+
+test('los enfriamientos de la D, la F y la R se cuentan en el segundo de la emisión', () => {
+  recibirAdelanto({ ...delPc1(600), hechizos: [
+    { nombre: 'A1', equipo: 'azul', d: [[149, 329], [455, 635.1]], f: [], r: [[500.5, null]] },
+    { nombre: 'R1', equipo: 'rojo', d: [[10, 'mal'], [-5, 20]], f: [[300, 280]], r: [] },   // tramos raros: fuera
+  ] });
+  assert.deepEqual(enfriamientosEn('A1', 100), { d: null, f: null, r: null }, 'antes de lanzar nada, todo listo');
+  assert.deepEqual(enfriamientosEn('A1', 200).d, { quedan: 129 }, 'el Destello, con su cuenta atrás');
+  assert.equal(enfriamientosEn('A1', 329).d, null, 'en cuanto vuelve, listo');
+  assert.deepEqual(enfriamientosEn('A1', 600).d, { quedan: 36 }, 'el segundo tramo');
+  assert.deepEqual(enfriamientosEn('A1', 550).r, { quedan: null }, 'la R lanzada sin saber aún cuándo vuelve: sin número');
+  assert.deepEqual(enfriamientosEn('R1', 100), { d: null, f: null, r: null });
+  assert.equal(enfriamientosEn('Nadie', 100), undefined, 'sin datos de ese jugador');
+});
+
+test('las larvas del PC 1 cuentan para su familia y el marcador enseña los enfriamientos solo con datos del PC 1', () => {
+  let p = paquete(400, { A1: 30 });
+  assert.equal(p.enfriamientos, false, 'sin PC 1, no hay columnas de enfriamientos');
+  recibirAdelanto({ ...delPc1(600, [
+    { id: 'grub-1', tipo: 'larvas', lado: 'rojo', t: 380 }, { id: 'grub-2', tipo: 'larvas', lado: 'rojo', t: 381 },
+    { id: 'grub-3', tipo: 'larvas', lado: 'azul', t: 500 },
+  ]), hechizos: [{ nombre: 'A1', equipo: 'azul', d: [[390, 690]], f: [], r: [] }] });
+  p = paquete(400, { A1: 30 });
+  assert.equal(p.rojo.larvas, 2);
+  assert.equal(p.azul.larvas, 0, 'la de los 500 s aún no ha llegado a la emisión');
+  assert.equal(p.enfriamientos, true);
+  assert.deepEqual(p.lineas[0].azul.enfriamientos.d, { quedan: 290 });
+  assert.equal(p.lineas[1].azul.enfriamientos, null, 'quien no tiene datos de hechizos, sin enfriamientos');
 });

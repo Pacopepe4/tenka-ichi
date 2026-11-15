@@ -191,6 +191,7 @@ function pintarPartida() {
       dr.innerHTML = (lado === 'azul' ? todos.reverse() : todos).join('');
     }
   }
+  pintarLaterales(p);
   const dif = p.azul.oro - p.rojo.oro;
   const igual = Math.abs(dif) < 100;
   const d = $('.diferencia');
@@ -460,6 +461,48 @@ filas.addEventListener('error', e => { if (e.target.tagName === 'IMG' && e.targe
 filas.addEventListener('error', e => {
   if (e.target.tagName === 'IMG' && e.target.closest('.iconos')) { e.target.dataset.roto = e.target.getAttribute('src'); e.target.hidden = true; }
 }, true);
+// ---------- los enfriamientos de cada jugador, en una columna a cada lado ----------
+// El PC 1 del realizador lee de la pantalla cuándo se lanza cada hechizo de invocador (D y F) y cada definitiva (R) y cuándo
+// vuelven, y lo manda con 2 minutos de adelanto (server/adelanto.js): aquí llega ya en el segundo de la emisión. Solo
+// salen si hay esos datos para esta partida. En enfriamiento, el icono en gris con los segundos que faltan (sin número si
+// aún no se sabe cuándo vuelve). La R no sale hasta que se desbloquea. Las filas se rehacen solo si cambia quién juega
+const ENFRIABLES = ['d', 'f', 'r'];
+function pintarLaterales(p) {
+  const caja = $('.laterales');
+  const ver = Boolean(p.enfriamientos);
+  caja.hidden = !ver;
+  if (!ver) return;
+  for (const lado of ['azul', 'rojo']) {
+    const columna = caja.querySelector(`.lateral.${lado}`);
+    const jugadores = p.lineas.map(l => l[lado]);
+    const firma = jugadores.map(j => `${j?.campeon || ''}:${(j?.hechizos || []).join('+')}`).join('|');
+    if (columna.dataset.firma !== firma) {
+      columna.dataset.firma = firma;
+      columna.innerHTML = jugadores.map(j => `<div class="lat-jugador">
+        <span class="lat-retrato"><img class="lat-campeon" alt=""><i class="lat-hechizo lat-r" data-k="r"><img alt=""><b></b></i></span>
+        <span class="lat-sums"><i class="lat-hechizo" data-k="d"><img alt=""><b></b></i><i class="lat-hechizo" data-k="f"><img alt=""><b></b></i></span>
+      </div>`).join('');
+      columna.querySelectorAll('.lat-jugador').forEach((fila, i) => {
+        const j = jugadores[i];
+        pintarIcono(fila.querySelector('.lat-campeon'), j?.campeon && icono(j.campeon));
+        pintarIcono(fila.querySelector('[data-k="r"] img'), j?.campeon && definitiva(j.campeon));
+        ['d', 'f'].forEach((k, n) => pintarIcono(fila.querySelector(`[data-k="${k}"] img`), j?.hechizos?.[n] && `/ddragon/hechizo/${j.hechizos[n]}.png`));
+      });
+    }
+    columna.querySelectorAll('.lat-jugador').forEach((fila, i) => {
+      const j = jugadores[i];
+      fila.classList.toggle('muerto', Boolean(j?.muerto));
+      fila.querySelector('.lat-r').hidden = !(j?.campeon && estadoDefinitiva(j.campeon, j.nivel).encendida);
+      for (const k of ENFRIABLES) {
+        const el = fila.querySelector(`[data-k="${k}"]`), cd = j?.enfriamientos?.[k] || null;
+        el.classList.toggle('cd', Boolean(cd));
+        el.querySelector('b').textContent = cd && cd.quedan != null ? cd.quedan : '';
+        el.classList.toggle('largo', Boolean(cd && cd.quedan >= 100));  // tres cifras: letra más pequeña para que quepan
+      }
+    });
+  }
+}
+
 function pintarIcono(img, src) {
   const verlo = Boolean(src) && img.dataset.roto !== src;
   if (verlo && img.getAttribute('src') !== src) img.src = src;
