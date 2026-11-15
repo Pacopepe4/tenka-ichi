@@ -97,7 +97,7 @@ export function limpiarFilas(filas) {
     victoria: Boolean(f.victoria), mvp: Boolean(f.mvp), k: numero(f.k), d: numero(f.d), a: numero(f.a),
     cs: opcional(f.cs, LIMITES.cs), vision: opcional(f.vision, LIMITES.vision), dano: opcional(f.dano, LIMITES.dano),
     danoTorres: opcional(f.danoTorres, LIMITES.danoTorres), primeraSangre: siNo(f.primeraSangre), triples: opcional(f.triples, LIMITES.triples), quadras: opcional(f.quadras, LIMITES.quadras),
-    pentas: opcional(f.pentas, LIMITES.pentas), torres: opcional(f.torres, LIMITES.torres), fuente: f.fuente === 'puente' ? 'puente' : 'a mano',
+    pentas: opcional(f.pentas, LIMITES.pentas), torres: opcional(f.torres, LIMITES.torres), fuente: ['puente', 'riot'].includes(f.fuente) ? f.fuente : 'a mano',
   }));
   for (const f of limpias) {
     const equipo = limpias.filter(x => x.clan === f.clan).reduce((s, x) => s + x.k, 0);

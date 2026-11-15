@@ -10,7 +10,7 @@ import { TEMPORADA } from './formato.js';
 import { hojaActiva, asegurarPestana, leer, escribir } from './sheets.js';
 
 const carpeta = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'data-proyecto');
-const ARCHIVO = path.join(carpeta, 'competicion.json');
+const ARCHIVO = process.env.ARCHIVO_COMPETICION || path.join(carpeta, 'competicion.json');   // la vista previa usa otro
 const SIMULACION = path.join(carpeta, 'simulacion.json');
 const PESTANA = 'Calendario';
 const CABECERA = ['Jornada', 'Cruce', 'Lado azul', 'Lado rojo', 'Semilla', 'Participantes'];

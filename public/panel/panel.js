@@ -1050,3 +1050,112 @@ setInterval(() => { if (codigo?.vivo && codigo.caduca > Date.now()) actualizarGa
 const pintarAntesVistas = pintar;
 pintar = function () { pintarAntesVistas(); pintarVistas(); pintarJornadaAuto(); seguirOverlay(); pintarPastillas(); };
 if (estado) pintar();
+
+// ---------- Códigos de torneo (server/torneo.js) ----------
+// El código solo se ve al pulsar «Ver» y en el hilo privado de Discord; el estado que llega aquí no lo lleva
+let torneo = null, diaTorneo = null;
+const MODOS_TORNEO = {
+  riot: 'Con clave de Riot: códigos de torneo de verdad. La partida jugada con el código se registra sola en el fantasy.',
+  stub: 'Modo de prueba (tournament-stub de Riot): los códigos no valen en el cliente.',
+  sala: 'Sin clave de torneo de Riot: cada partido lleva una sala personalizada con nombre y contraseña que crea el staff. Las estadísticas se apuntan a mano.',
+};
+const fechaTorneo = f => f.split('-').reverse().slice(0, 2).join('/');
+function pintarTorneo(t = torneo) {
+  torneo = t;
+  if (!t) return;
+  $('#modoTorneo').textContent = MODOS_TORNEO[t.modo] + (t.discord ? '' : ' Falta el bot de Discord: los códigos se ven aquí, pero no se pueden enviar.');
+  const dias = [...new Set(t.partidos.map(p => p.fecha))];
+  const hoy = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
+  if (!dias.includes(diaTorneo)) diaTorneo = dias.find(d => d >= hoy) || dias.at(-1) || null;
+  $('#torneoDia').innerHTML = dias.map(d => `<option value="${d}" ${d === diaTorneo ? 'selected' : ''}>${fechaTorneo(d)}</option>`).join('');
+  const del = t.partidos.filter(p => p.fecha === diaTorneo);
+  $('#listaTorneo').innerHTML = del.length ? del.map(p => `<div class="partido-torneo" data-id="${escapar(p.id)}">
+      <div class="cabeza-torneo"><b>${escapar(p.hora)}</b> ${escapar(p.azulNombre)} 対 ${escapar(p.rojoNombre)} <small>${escapar(p.ronda)}${p.cambiado ? ' · hora cambiada' : ''}</small></div>
+      <div class="fila">
+        <input type="date" class="t-fecha" value="${p.fecha}" aria-label="Día"><input type="time" class="t-hora" value="${p.hora}" aria-label="Hora">
+        <button type="button" class="secundario t-horario">Cambiar día y hora</button>
+      </div>
+      <div class="fila">
+        ${p.tiene ? '<button type="button" class="secundario t-ver">Ver el código</button>' : '<button type="button" class="t-generar">Generar el código</button>'}
+        <button type="button" class="t-entregar" ${t.discord ? '' : 'disabled'}>${p.entregado ? 'Enviar otra vez' : 'Enviar a los capitanes'}</button>
+        ${t.modo !== 'sala' && p.tiene ? `<button type="button" class="secundario t-resultado">${p.registrado ? 'Registrar otra vez' : 'Leer la partida de Riot'}</button>` : ''}
+        ${p.tiene ? '<button type="button" class="secundario t-otro">Otro código</button>' : ''}
+        ${p.drafts.espectador ? '<button type="button" class="secundario t-usar">Poner su draft en el panel</button>' : ''}
+      </div>
+      <p class="estado t-estado ${p.registrado ? 'ok' : ''}">${[
+        p.drafts.azul && p.drafts.rojo ? 'Drafts listos.' : 'Sin drafts (pégalos abajo).',
+        p.entregado ? `Enviado el ${new Date(p.entregado).toLocaleString('es-ES', { timeZone: 'Europe/Madrid', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}.` : p.tiene ? 'Sin enviar.' : 'Sin código.',
+        p.registrado ? `Registrada en el fantasy (${escapar(p.partidaFantasy)}).` : p.partidaRiot ? `Partida de Riot ${escapar(p.partidaRiot)}.` : '',
+      ].filter(Boolean).join(' ')}</p></div>`).join('') : '<p class="ayuda">No hay partidos ese día (¿está sorteado el calendario?).</p>';
+}
+async function actualizarTorneo() {
+  const r = await directo.enviar('torneoEstado', {}, claveInput.value);
+  if (r.sinConexion) return setTimeout(actualizarTorneo, 1500);
+  if (r.ok) pintarTorneo(r.torneo);
+}
+const textoCodigo = c => [!c.codigo ? 'Sin código.' : c.modo === 'sala' ? `Sala «${c.sala}», contraseña ${c.codigo}.` : `Código ${c.codigo}${c.modo === 'stub' ? ' (de prueba)' : ''}.`,
+  c.drafts ? `Drafts: azul ${c.drafts.azul || '—'} · rojo ${c.drafts.rojo || '—'} · espectador ${c.drafts.espectador || '—'}` : ''].filter(Boolean).join(' ');
+$('#guardarPegados').onclick = async () => {
+  const r = await enviar('torneoPegarDrafts', { texto: $('#pegarDrafts').value });
+  const est = $('#estadoTorneo');
+  if (r.torneo) pintarTorneo(r.torneo);
+  est.className = `estado ${r.errores?.length ? 'mal' : 'ok'}`;
+  est.textContent = `${r.hechos?.length || 0} partidos con drafts.${r.errores?.length ? ` No valen: ${r.errores.join(' · ')}` : ''}`;
+  if (r.hechos?.length && !r.errores?.length) $('#pegarDrafts').value = '';
+};
+$('#torneoDia').onchange = e => { diaTorneo = e.target.value; pintarTorneo(); };
+$('#torneoRefrescar').onclick = actualizarTorneo;
+$('#listaTorneo').addEventListener('click', async e => {
+  const b = e.target.closest('button');
+  const caja = b?.closest('.partido-torneo');
+  if (!caja) return;
+  const id = caja.dataset.id, est = caja.querySelector('.t-estado');
+  const poner = (texto, bien = true) => { est.className = `estado t-estado ${bien ? 'ok' : 'mal'}`; est.textContent = texto; };
+  let r;
+  if (b.classList.contains('t-ver')) {
+    r = await enviar('torneoVer', { id });
+    if (r.ok && r.codigo) return poner(textoCodigo(r.codigo));
+  } else if (b.classList.contains('t-usar')) {
+    // Solo rellena el enlace de DraftCore: conectarse sigue siendo a mano (el primer pick cierra las alineaciones)
+    r = await enviar('torneoVer', { id });
+    if (r.ok && r.codigo?.drafts?.espectador) { $('#enlace').value = r.codigo.drafts.espectador; aviso('Enlace de espectador puesto en DraftCore: pulsa «Conectar» cuando toque'); return; }
+  } else if (b.classList.contains('t-generar') || b.classList.contains('t-otro')) {
+    if (b.classList.contains('t-otro') && !confirm('¿Hacer otro código? El anterior deja de servir aquí (si ya lo tienen los capitanes, envía el nuevo).')) return;
+    r = await enviar('torneoGenerar', { id, otraVez: b.classList.contains('t-otro') });
+    if (r.ok) { pintarTorneo(r.torneo); return caja.isConnected ? null : $(`.partido-torneo[data-id="${CSS.escape(id)}"] .t-estado`).replaceChildren(textoCodigo(r.codigo)); }
+  } else if (b.classList.contains('t-entregar')) {
+    r = await enviar('torneoEntregar', { id });
+    if (r.ok) { pintarTorneo(r.torneo); aviso(`Enviado a ${r.capitanes} ${r.capitanes === 1 ? 'capitán' : 'capitanes'}${r.aviso ? `. ${r.aviso}` : ''}`); return; }
+  } else if (b.classList.contains('t-resultado')) {
+    r = await enviar('torneoResultado', { id, otraVez: b.textContent.includes('otra vez') });
+    if (r.ok) { $('#listaTorneo').dispatchEvent(new CustomEvent('torneo-riot', { detail: r })); pintarTorneo(r.torneo); actualizarGacha(); aviso(r.registrado ? `Registrada en el fantasy: gana ${clanes.clan(r.ganador).nombre}` : 'Leída la partida de Riot'); return; }
+  } else if (b.classList.contains('t-horario')) {
+    r = await enviar('torneoHorario', { id, fecha: caja.querySelector('.t-fecha').value, hora: caja.querySelector('.t-hora').value });
+    if (r.ok) { diaTorneo = caja.querySelector('.t-fecha').value; pintarTorneo(r.torneo); return; }
+  }
+  if (r && !r.ok) poner(r.error || 'No se pudo hacer', false);
+});
+const actualizarGachaAntesTorneo = actualizarGacha;
+actualizarGacha = async function () { await actualizarGachaAntesTorneo(); actualizarTorneo(); };
+actualizarTorneo();
+// Con la partida de Riot leída, el formulario de «Resultado» se rellena con sus números (si en el panel están esas dos
+// familias), para que al elegir el MVP y guardar no se pierdan: lo guardado desde el panel sustituye a lo de Riot
+function kdaDesdeRiot(r) {
+  if (!estado?.equipos || !r?.porClan) return false;
+  let alguno = false;
+  document.querySelectorAll('.kda .lado-kda').forEach(caja => {
+    const filas = r.porClan[estado.equipos[caja.dataset.lado]?.clan];
+    if (!filas) return;
+    caja.querySelectorAll('.fila-kda').forEach((f, i) => {
+      const s = filas[i];
+      if (!s) return;
+      for (const k of ['k', 'd', 'a', 'cs', 'vision', 'dano', 'danoTorres']) f.querySelector(`.${k}`).value = s[k] ?? '';
+      f.dataset.extras = JSON.stringify({ primeraSangre: s.primeraSangre, triples: s.triples, quadras: s.quadras, pentas: s.pentas, torres: s.torres, fuente: 'riot' });
+      f.querySelector('.extras-kda').textContent = `De Riot: ${s.nombre}${s.campeon ? ` (${s.campeon})` : ''}`;
+      alguno = true;
+    });
+  });
+  if (alguno) { $('#estadoKda').className = 'estado'; $('#estadoKda').textContent = 'Rellenado con la partida de Riot (ya registrada en el fantasy). Elige el MVP y guarda para añadirlo.'; }
+  return alguno;
+}
+$('#listaTorneo').addEventListener('torneo-riot', e => kdaDesdeRiot(e.detail));

@@ -27,6 +27,7 @@ import { cargarGacha, catalogo, cartasDeColeccion, probabilidades, abrirSobre, a
   GARANTIA_A, GARANTIA_S, MAXIMO_TIRADAS, REPETIDAS_POR_MEJORA, TIER_SIGUIENTE, CARTAS_CONMEMORATIVA } from './gacha.js';
 import { crearCodigo, cerrarCodigo, mostrarCodigo, estadoCodigo, codigoEnPantalla, canjearCodigo as canjearCodigoDirecto } from './codigos.js';
 import { estadoJornadas, terminarJornada, jornadasCerradas, premiosPublicos } from './jornada.js';
+import { torneo } from './torneo-web.js';
 import { clasificacionJornada } from './fantasy.js';
 import { previa, fichaJugador, fichaClan } from './previa.js';
 import { cargarCanal, conectarCanal, cambiarCoste, sondear, sondearSiHaceFalta, estadoCanal, SCOPE_CANAL } from './canal.js';
@@ -468,6 +469,34 @@ async function accion(nombre, d = {}) {
     case 'codigoMostrar':
       await mostrarCodigo(d.visible);
       return { ok: true, gacha: estadoGachaPanel() };
+    // Códigos de torneo de cada partido (server/torneo.js). Solo van en la respuesta a quien lo pide desde el panel:
+    // nunca en el estado que se emite a todos
+    case 'torneoEstado':
+      return { ok: true, torneo: torneo.estado() };
+    case 'torneoVer':
+      return { ok: true, codigo: torneo.ver(d.id), torneo: torneo.estado() };
+    case 'torneoGenerar': {
+      const c = await torneo.generar(d.id, { otraVez: Boolean(d.otraVez) });
+      return { ok: true, codigo: { modo: c.modo, codigo: c.codigo, sala: c.sala || null }, torneo: torneo.estado() };
+    }
+    case 'torneoEntregar': {
+      const r = await torneo.entregar(d.id);
+      return { ...r, torneo: torneo.estado() };
+    }
+    case 'torneoResultado': {
+      const r = await torneo.resultado(d.id, { otraVez: Boolean(d.otraVez) });
+      return { ...r, torneo: torneo.estado() };
+    }
+    case 'torneoHorario':
+      return { ok: true, torneo: await torneo.cambiarHorario(d.id, { fecha: d.fecha || null, hora: d.hora || null }) };
+    case 'torneoDrafts':
+      return { ok: true, torneo: await torneo.guardarDrafts(d.id, d) };
+    case 'torneoPegarDrafts': {
+      const r = await torneo.pegarDrafts(d.texto);
+      return { ok: r.hechos.length > 0 || !r.errores.length, error: r.errores.join(' · ') || null, ...r };
+    }
+    case 'torneoOlvidar':
+      return { ok: true, torneo: await torneo.olvidar(d.id) };
     // Jornada del fantasy: su clasificación y, al terminarla, los sobres de los tres primeros
     case 'jornadaEstado':
       return { ok: true, ...estadoJornadas(d.jornada) };
@@ -1087,6 +1116,17 @@ const servidor = http.createServer(async (req, res) => {
     } catch (e) {
       console.error(url.pathname, e);
       return json(res, { ok: false }, 500);
+    }
+  }
+  // Riot avisa aquí al acabar cada partida jugada con uno de nuestros códigos de torneo (server/torneo.js). Se contesta
+  // 200 siempre que el cuerpo se lea, para que Riot no repita el aviso; los que no son nuestros se ignoran
+  if (url.pathname === '/api/torneo/riot' && req.method === 'POST') {
+    try {
+      const r = await torneo.aviso(await leerCuerpo(req, 20_000));
+      if (!r.ok) console.error('Aviso de Riot ignorado:', r.error);
+      return json(res, { ok: true });
+    } catch (e) {
+      return json(res, { ok: false, error: e.message }, 400);
     }
   }
   if (url.pathname === '/discord/interacciones' && req.method === 'POST') {

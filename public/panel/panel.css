@@ -369,3 +369,11 @@ main > section#realizador[data-resumen="arriba"] { order: -2; }
 .realizador-resumen[data-fase="cuenta"] .estado { color: var(--oro); font-size: 20px; }
 .realizador-resumen[data-fase="emitiendo"] { border-color: rgba(224, 48, 58, .5); box-shadow: 0 0 24px rgba(224, 48, 58, .12); }
 .realizador-resumen[data-fase="emitiendo"] .estado { color: var(--shu-claro); font-weight: 700; }
+
+/* Códigos de torneo */
+.lista-torneo { display: grid; gap: 12px; margin-top: 14px; }
+.partido-torneo { border: 1px solid var(--sumi-linea); border-radius: 8px; padding: 12px 14px; }
+.partido-torneo .cabeza-torneo { font-size: 15px; }
+.partido-torneo .cabeza-torneo small { color: var(--hai); margin-left: 6px; }
+.partido-torneo .fila { margin-top: 10px; }
+.partido-torneo .estado { margin-top: 8px; }

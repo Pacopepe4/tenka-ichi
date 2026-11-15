@@ -210,6 +210,24 @@
       </div>
     </section>
 
+    <section id="torneo" data-fases="preparar resultado liga">
+      <h2>Códigos de torneo</h2>
+      <p class="pista" id="modoTorneo">Entra con la contraseña del panel para ver los códigos.</p>
+      <p class="ayuda">Un código por partido. «Enviar a los capitanes» abre un hilo privado en #tickets con los Oyabun de las dos familias y les deja el código: nunca sale en abierto. Con clave de torneo de Riot, la partida jugada con el código queda registrada sola en el fantasy al acabar (el MVP se pone después en «Resultado» y se vuelve a guardar).</p>
+      <div class="fila">
+        <label>Día <select id="torneoDia" aria-label="Día de los partidos"></select></label>
+        <button type="button" class="secundario" id="torneoRefrescar">Actualizar</button>
+      </div>
+      <div class="lista-torneo" id="listaTorneo"></div>
+      <details class="plegable">
+        <summary>Pegar los drafts de golpe</summary>
+        <p class="ayuda">Los drafts se crean en DraftCore como siempre. Aquí va una línea por partido: el id (J1-1…), el enlace del lado azul, el del rojo y el de espectador. Cada capitán recibe solo el de su lado.</p>
+        <textarea id="pegarDrafts" rows="6" placeholder="J1-1 https://lol.draftcore.net/AZUL https://lol.draftcore.net/ROJO https://lol.draftcore.net/ESPECTADOR"></textarea>
+        <div class="fila"><button type="button" id="guardarPegados">Guardar los drafts</button></div>
+      </details>
+      <p class="estado" id="estadoTorneo"></p>
+    </section>
+
     <section id="enfrentamiento" data-fases="preparar">
       <h2>Enfrentamiento</h2>
       <div class="rejilla">
