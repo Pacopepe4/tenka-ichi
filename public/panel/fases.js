@@ -21,7 +21,7 @@ export const FASES = {
   cierre: { nombre: 'Cierre', con: 'el cierre' },
 };
 // Los botones del panel, en orden (la espera va aparte, con su hora)
-export const BOTONES = ['intro', 'traileres', 'saltar', 'pausa', 'postpartida', 'casters', 'cierre', 'auto'];
+export const BOTONES = ['intro', 'traileres', 'partida', 'saltar', 'pausa', 'postpartida', 'casters', 'cierre', 'auto'];
 
 // 754 → «12:34»; 3725 → «1:02:05». La cuenta atrás redondea hacia arriba (con 20,2 s quedan «0:21»)
 export const cuenta = s => {
@@ -81,7 +81,7 @@ const INTRO = new Set([null, 'espera', 'pausa', 'casters', 'cierre']);
 const POSTPARTIDA = new Set(['partida', 'repeticion', 'pausa', 'casters', 'resumen']);
 const ESPERA = new Set([null, 'espera', 'intro', 'traileres', 'pausa', 'casters', 'cierre']);
 
-const NADA = { intro: false, traileres: false, saltar: false, pausa: false, postpartida: false, casters: false, cierre: false, auto: false, espera: false };
+const NADA = { intro: false, traileres: false, partida: false, saltar: false, pausa: false, postpartida: false, casters: false, cierre: false, auto: false, espera: false };
 const VACIA = { actual: null, manual: false, titulo: '', detalle: '', texto: '', modo: '', escena: '', aviso: null, esperaTexto: 'Poner la espera', hora: '' };
 
 export function vistaFases(foto, ahora = Date.now()) {
@@ -133,6 +133,9 @@ export function vistaFases(foto, ahora = Date.now()) {
   // Los tráilers, donde la intro (o justo tras ella); «Saltar» acaba ya lo que dura un tiempo fijo
   v.traileres = (INTRO.has(actual) || actual === 'intro') && actual !== 'traileres';
   v.saltar = ['intro', 'traileres', 'postpartida'].includes(actual);
+  // «Partida» (meter partida): antes de que la partida esté en antena. Con la partida esperando en 0:00, se dice
+  v.partida = !['partida', 'repeticion'].includes(actual);
+  if (f.partidaEsperando === true) v.detalle = `${v.detalle ? `${v.detalle} · ` : ''}la partida espera en 0:00 (entra al acabar, o pulsa «Partida»)`;
   v.pausa = actual !== 'pausa';
   v.postpartida = POSTPARTIDA.has(actual);
   v.casters = actual !== 'casters';
@@ -141,7 +144,7 @@ export function vistaFases(foto, ahora = Date.now()) {
   v.espera = ESPERA.has(actual);
   // Con el resumen en vídeo saliendo, lo que se pida espera a que acabe: mejor cancelarlo antes en «Resumen final»
   if (actual === 'resumen') {
-    v.intro = v.traileres = v.saltar = v.pausa = v.postpartida = v.casters = v.espera = false;
+    v.intro = v.traileres = v.partida = v.saltar = v.pausa = v.postpartida = v.casters = v.espera = false;
     v.detalle = `${v.detalle ? `${v.detalle} · ` : ''}para cambiar de fase, cancela antes el resumen`;
   }
   return v;
@@ -153,6 +156,7 @@ export const preguntaCierre = actual => (['draft', 'partida', 'repeticion'].incl
 // La pregunta antes de cada botón (null: sin pregunta). En plena partida, cualquier fase tapa el juego en antena
 export function preguntaFase(fase, actual) {
   if (fase === 'cierre') return preguntaCierre(actual);
+  if (fase === 'partida' && ['espera', 'intro', 'traileres'].includes(actual)) return `¿Meter la partida ya? Se corta ${FASES[actual].con} y la partida arranca desde 0:00.`;
   if (['partida', 'repeticion'].includes(actual) && ['intro', 'traileres', 'pausa', 'postpartida', 'casters'].includes(fase)) {
     return `¿Poner ${FASES[fase].con} con la partida en antena? El juego deja de verse hasta que pulses «Automático».`;
   }

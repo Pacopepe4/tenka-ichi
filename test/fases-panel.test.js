@@ -105,7 +105,7 @@ test('los mensajes que se mandan al PC 1', () => {
     { tipo: 'panelFase', fase: 'espera', hasta: new Date(2026, 10, 15, 21, 30).getTime() }, 'sin jornada no va el campo');
   assert.equal(ordenFase('espera', { hora: 'nada', ahora: AHORA }), null);
   for (const fase of BOTONES) assert.deepEqual(ordenFase(fase), { tipo: 'panelFase', fase });
-  assert.equal(ordenFase('partida'), null, 'la partida no se pone a mano');
+  assert.equal(ordenFase('draft'), null, 'el draft no se pone a mano (la partida sí, desde el 15/11: «meter partida»)');
 });
 
 test('cuenta atrás y la pregunta del cierre', () => {
@@ -148,4 +148,17 @@ test('tráilers y saltar: Tráilers donde la intro o tras ella; Saltar solo con 
 test('tráilers: el «2 de 8» del realizador va delante de lo que viene', () => {
   const v = vistaFases(foto({ actual: 'traileres', faltan: 300, siguiente: 'draft', detalle: '2 de 8' }), AHORA);
   assert.equal(v.detalle, '2 de 8 · el draft en 5:00');
+});
+
+test('meter partida: botón antes de que la partida esté en antena, aviso de que espera en 0:00 y pregunta si corta el inicio', () => {
+  const v = (fase, extra = {}) => vistaFases(foto({ actual: fase, ...extra }), AHORA);
+  assert.equal(v('intro').partida, true);
+  assert.equal(v('draft').partida, true);
+  assert.equal(v('partida').partida, false);
+  assert.equal(v('repeticion').partida, false);
+  assert.match(v('traileres', { partidaEsperando: true, faltan: 60, siguiente: 'draft' }).detalle, /la partida espera en 0:00/);
+  assert.doesNotMatch(v('draft', { partidaEsperando: false }).detalle, /espera en 0:00/);
+  assert.deepEqual(ordenFase('partida'), { tipo: 'panelFase', fase: 'partida' });
+  assert.match(preguntaFase('partida', 'intro'), /Se corta la intro/);
+  assert.equal(preguntaFase('partida', 'draft'), null);
 });
