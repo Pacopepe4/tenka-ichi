@@ -22,6 +22,8 @@ import { CamarasDraft } from './camaras.js';
 import { GrabadorLol, cursorEnClip } from './grabador.js';
 import { Actualizador, codigoSala } from '../comun/app.js';
 import { abrirObs, obsCorriendo } from './abrir-obs.js';
+import { secuencia as secuenciaCinematica, duracion as duracionCinematica, INICIO, RIO, tocaCinematica } from './cinematica.js';
+import { juegoDeVision, ejecutarTeclas as ejecutarTeclasLol } from './teclas.js';
 import { readFileSync, writeFileSync, existsSync, appendFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL as aUrl } from 'node:url';
@@ -70,7 +72,7 @@ export function segundoHace(historial, hora) {
 
 // obs: false para no tocar OBS desde el relé (modo de un solo PC, donde lo lleva el agente). En las pruebas,
 // obs y sala pueden ser objetos de mentira.
-export function crearRele(o, { registrar: registrarFuera = console.log, obs: conObs = true, grabador: otroGrabador = undefined, salir = null, sala: otraSala = null, panel: conPanel = false, tenka: otroTenka = undefined, rutaLocal = join(RAIZ, 'opciones.local.json') } = {}) {
+export function crearRele(o, { registrar: registrarFuera = console.log, obs: conObs = true, grabador: otroGrabador = undefined, salir = null, sala: otraSala = null, panel: conPanel = false, tenka: otroTenka = undefined, rutaLocal = join(RAIZ, 'opciones.local.json'), ejecutarTeclas = ejecutarTeclasLol } = {}) {
   const r = o.rele;
   // Lo que se apunta también se guarda para la página del PC 2
   const registro = [];
@@ -93,6 +95,12 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
     errores: 0,
     accionesObs: [],        // lo que hay que hacer en el OBS de este PC (lo manda el PC 1 con el guion)
     hechasObs: new Set(),
+    camaraLibre: null,      // { t0, hasta, nombre }: secuencia de cámara en marcha (cinemática de inicio o recorrido)
+    inicio: null,           // segundo en que salió la cinemática de inicio de esta partida (null: aún no)
+    accionesRecorrido: [],  // recorridos de cámara para los ratos muertos (los manda el PC 1 con el guion)
+    hechosRecorrido: new Set(),
+    accionesVision: [],     // momentos de visión de cada equipo (los manda el PC 1 con el guion)
+    hechasVision: new Set(),
     clips: new Map(),       // jugada → { ruta, t } (búfer de OBS, con el marcador dentro: para el resumen)
     clipsLol: new Map(),    // jugada → { ruta, t, inicioMs, guardadoMs } (solo el LoL, del grabador: para repetir)
     meta: null,             // segundo al que va (o irá) la antena; negativo mientras espera el margen
@@ -532,6 +540,84 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
     registrar(`[cámara] ${motivo}: ${p?.general ? `plano general sobre ${p.objetivo.campeon}` : p?.tipo === 'seguir' ? `sigue a ${p.objetivo.campeon}` : 'plano general'} (zoom ${z})`);
   }
 
+  // ---------- cámara libre: cinemática de inicio y recorridos (pc2/cinematica.js) ----------
+  // Secuencias de la cámara del propio LoL (Replay API), nunca vídeo:
+  //  - la cinemática de inicio (20 s) sale una vez por partida al pasar a «partida» (la antena en marcha en sus
+  //    primeros segundos). Cuando el relé tenga fases (hilo de optimización: espera → inicio → draft → partida → …),
+  //    este es el sitio para colgarla de la entrada en «partida»;
+  //  - el recorrido del río, en los ratos muertos que elige el PC 1 (lo manda con el guion como «recorrido»).
+  // Mientras dura una, la cámara es suya; si el PC 1 manda una jugada, se corta. Devuelve true mientras dura.
+  async function camaraLibre(pb) {
+    const c = estado.camaraLibre;
+    if (c) {
+      const t = tAntenaAhora();
+      const jugada = estado.planos.find(x => x.jugada && x.inicio <= t && (x.fin === null || x.fin > t));
+      if (t < c.hasta && !jugada && !estado.manual) return true;
+      estado.camaraLibre = null;
+      await enviarSecuencia({}).catch(() => {});
+      await render({ ...interfaz, fogOfWar: true, cameraMode: 'top', cameraAttached: false }).catch(() => {});
+      estado.aplicado = null; estado.zoomAplicado = null; estado.planoCamara = null;
+      registrar(`[cinemática] ${c.nombre} ${jugada ? `cortada por la jugada ${jugada.jugada}` : 'terminada'}: la cámara vuelve al realizador`);
+      return false;
+    }
+    // Mientras la antena espera su margen (meta negativa) aún no ha empezado nada: el relé la va a pausar
+    if (estado.meta !== null && estado.meta < 0) return false;
+    if (estado.inicio === null && tocaCinematica({ opciones: r.cinematicaInicio || {}, pb, hecha: false, manual: estado.manual })) {
+      estado.inicio = pb.time;
+      // Sin niebla: al empezar la partida no se ve casi nada del mapa
+      return lanzarCamaraLibre(pb, INICIO, 'de inicio', { fogOfWar: false });
+    }
+    if (estado.inicio === null && pb.time > (r.cinematicaInicio?.hastaSegundo ?? 20)) estado.inicio = -1;  // entró tarde: ya no sale
+    // Recorrido para un rato muerto
+    const t = tAntenaAhora();
+    for (const a of estado.accionesRecorrido) {
+      if (estado.hechosRecorrido.has(a.id) || a.t > t) continue;
+      estado.hechosRecorrido.add(a.id);
+      if (r.recorridos?.activo === false) continue;
+      if (t - a.t > 2 || estado.manual || pb.paused || pb.seeking || (pb.speed && pb.speed !== 1)) { registrar(`[cinemática] recorrido ${a.id}: no toca ahora, se salta`); continue; }
+      if (estado.planos.some(x => x.jugada && x.inicio <= t && (x.fin === null || x.fin > t))) continue;
+      return lanzarCamaraLibre(pb, RIO, `recorrido del río (${a.id})`, {});
+    }
+    return false;
+  }
+
+  async function lanzarCamaraLibre(pb, guion, nombre, extra) {
+    const t0 = pb.time + 0.3;
+    animacion++; secuencia++;           // cualquier zoom a medias se olvida
+    estado.secuenciaActiva = null; estado.secuenciaZoom = null;
+    try {
+      await render({ ...interfaz, cameraMode: 'fps', cameraAttached: false, selectionName: '', ...extra });
+      await enviarSecuencia(secuenciaCinematica(t0, guion));
+      estado.camaraLibre = { t0, hasta: t0 + duracionCinematica(guion), nombre };
+      registrar(`[cinemática] ${nombre} en ${t0.toFixed(1)} s, ${duracionCinematica(guion)} s`);
+      return true;
+    } catch (e) {
+      registrar(`[cinemática] ${nombre}: no se pudo lanzar: ${e.message}`);
+      await render({ ...interfaz, fogOfWar: true }).catch(() => {});
+      estado.aplicado = null;
+      return false;
+    }
+  }
+
+  // ---------- visión de cada equipo (pc2/teclas.js) ----------
+  // En las peleas por objetivos el PC 1 manda un momento «vision»: visión del azul, del rojo y vuelta a la de los
+  // dos, con F1/F2/F3 en el LoL. Apagado de fábrica (rele.vision.activo) hasta probarlo en directo.
+  let enVision = false;
+  function hacerVision(tA) {
+    for (const a of estado.accionesVision) {
+      if (estado.hechasVision.has(a.id) || a.t > tA) continue;
+      estado.hechasVision.add(a.id);
+      if (r.vision?.activo !== true) { registrar(`[visión] ${a.jugada || a.id}: apagada en opciones (rele.vision.activo)`); continue; }
+      if (tA - a.t > 3) { registrar(`[visión] ${a.jugada || a.id}: llega tarde, se salta`); continue; }
+      if (estado.manual || enVision) continue;
+      enVision = true;
+      registrar(`[visión] ${a.jugada || a.id}: azul, rojo y vuelta a los dos`);
+      juegoDeVision({ segundos: a.segundos ?? r.vision?.segundosPorEquipo ?? 2, ejecutar: ejecutarTeclas })
+        .catch(e => registrar(`[visión] no se pudo: ${e.message}`))
+        .finally(() => { enVision = false; });
+    }
+  }
+
   // Segundo de partida al que debería ir la antena
   // La antena enseña lo que el PC 1 veía hace «margen» segundos de reloj: así las pausas y el final de la
   // partida (cuando el reloj del PC 1 se para) salen igual, y no hay que corregir hacia atrás.
@@ -567,6 +653,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
     } else if (meta < 0) {
       if (!pb.paused) { await playback({ paused: true }); registrar('[antena] en pausa hasta tener el margen'); }
       estado.ultimoSeguido = null;  // partida nueva: el último seguido era de la anterior
+      estado.inicio = null;
     } else if (pb.paused) {
       await playback({ paused: false, time: meta, speed: 1 });
       estado.ultimoSalto = ahora;
@@ -588,7 +675,11 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
 
     // 2. Cámara
     const sinNoticias = (ahora - estado.ultimoContacto) / 1000 > r.degradadoTrasSegundos;
-    if (estado.manual) {
+    // Si la antena vuelve muy atrás (otra partida en el mismo cliente), la cinemática puede volver a salir
+    if (estado.inicio !== null && estado.inicio >= 0 && pb.time < estado.inicio - 30) estado.inicio = null;
+    if (await camaraLibre(pb)) {
+      // Mientras dura la cinemática de inicio, la cámara es suya
+    } else if (estado.manual) {
       estado.modo = 'manual';
       if (estado.ordenManual) await aplicar(estado.ordenManual, 'orden manual');
     } else if (sinNoticias) {
@@ -602,8 +693,9 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
       await aplicar(p || null, p?.jugada ? `jugada ${p.jugada}` : 'guion');
     }
 
-    // 3. OBS (repeticiones)
+    // 3. OBS (repeticiones) y visión de cada equipo
     hacerObs(pb.time).catch(e => registrar(`[obs] ${e.message}`));
+    hacerVision(pb.time);
 
     // 4. Emisión (el botón de empezar el directo)
     await pasoEmision();
@@ -702,6 +794,8 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
     // Con el id de la partida delante: las jugadas se llaman igual en cada partida (j1, j2…) y si no, en la segunda
     // partida de una serie se saltarían sus clips y repeticiones como «ya hechas»
     if (Array.isArray(d.obs)) estado.accionesObs = d.obs.filter(a => a && a.id && Number.isFinite(a.t)).map(a => (d.partida ? { ...a, id: `${d.partida}/${a.id}` } : a));
+    if (Array.isArray(d.recorridos)) estado.accionesRecorrido = d.recorridos.filter(a => a && a.id && Number.isFinite(a.t)).map(a => (d.partida ? { ...a, id: `${d.partida}/${a.id}` } : a));
+    if (Array.isArray(d.vision)) estado.accionesVision = d.vision.filter(a => a && a.id && Number.isFinite(a.t)).map(a => (d.partida ? { ...a, id: `${d.partida}/${a.id}` } : a));
     if (Array.isArray(d.resumen)) resumen.recibirLista(d.resumen);
     if (typeof d.manual === 'boolean') {
       if (estado.manual && !d.manual) { estado.ordenManual = null; registrar('[relé] el realizador vuelve a mandar'); }

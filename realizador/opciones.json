@@ -12,6 +12,9 @@
   },
 
   "rele": {
+    "cinematicaInicio": { "activo": true, "hastaSegundo": 20 },
+    "recorridos": { "activo": true },
+    "vision": { "activo": false, "segundosPorEquipo": 2 },
     "ip": "127.0.0.1",
     "puerto": 4610,
     "replayApi": "https://127.0.0.1:2999",
@@ -67,6 +70,8 @@
   },
 
   "reglas": {
+    "recorridos": { "activo": true, "duracionSegundos": 12, "huecoSegundos": 30, "libreAntesSegundos": 10, "separacionSegundos": 180, "desdeSegundo": 120 },
+    "vision": { "activo": true, "objetivos": ["DragonKill", "BaronKill", "HeraldKill", "HordeKill"], "minimoMuertes": 1, "antesSegundos": 5, "separacionSegundos": 240, "esperaSegundos": 10, "segundosPorEquipo": 2 },
     "anticipacion": 7,
     "anticipacionPelea": 12,
     "zoomPelea": { "activo": true, "muchos": 6, "pocos": 2 },

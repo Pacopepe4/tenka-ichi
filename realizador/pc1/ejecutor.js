@@ -128,11 +128,18 @@ export class Ejecutor extends EventEmitter {
       // Las acciones solo se deciden con lo que se sabe de verdad: tras el final no hay «calma» que valga
       const acciones = this.cerebro.planificarAcciones(tA ?? 0, this.explorador.conocido?.() ?? tD);
       for (const a of acciones) this.apuntar('realizador', 'programa', { accion: a.tipo, t: a.t, jugada: a.jugada || null });
+      for (const a of this.cerebro.planificarVision?.(this.explorador.conocido?.() ?? tD) || []) this.apuntar('realizador', 'programa', { accion: 'vision', t: a.t, jugada: a.jugada });
+      // Recorridos: solo desde lo que aún no se ha fijado para la antena (lo congelado ya no se toca)
+      for (const a of this.cerebro.planificarRecorridos?.(desde, this.explorador.conocido?.() ?? tD) || []) this.apuntar('realizador', 'programa', { accion: 'recorrido', t: a.t });
       if (this.releConectado) {
         try {
           await this.mandar('guion', {
             planos: this.manual ? [] : this.guion.filter(p => tA === null || p.fin === null || p.fin > tA), tDirecto: tD, manual: this.manual,
             obs: this.obs ? [] : this.accionesObs(tA),
+            // Momentos de visión de cada equipo (los hace el PC 2 con F1/F2/F3 en su LoL)
+            vision: (this.cerebro.visiones || []).filter(a => tA === null || a.t + 10 > tA),
+            // Recorridos del río para los ratos muertos (los hace el PC 2 con la cámara del juego)
+            recorridos: (this.cerebro.recorridos || []).filter(a => tA === null || a.t + 10 > tA),
             // Segundo en que acabó la partida (o null): el PC 2 pasa a la escena final al llegar ahí
             tFin: this.tFin ?? null,
             enPartida: Boolean(this.explorador.enPartida),
