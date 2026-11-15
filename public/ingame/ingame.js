@@ -192,6 +192,8 @@ function pintarPartida() {
     }
   }
   pintarLaterales(p);
+  // En pelea (la detecta el PC 1), fuera el línea por línea, la gráfica y la ficha: tapan la acción. Vuelven al acabar
+  document.body.classList.toggle('en-pelea', Boolean(p.pelea));
   const dif = p.azul.oro - p.rojo.oro;
   const igual = Math.abs(dif) < 100;
   const d = $('.diferencia');

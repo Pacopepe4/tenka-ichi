@@ -2,7 +2,7 @@
 // y dragones, heraldo y Barón que salen solos cuando la emisión (el PC 2, 2 minutos detrás) llega a su minuto.
 import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { recibirAdelanto, adelantoDe, csRepartido, olvidarAdelanto, sucesosAdelantados, enfriamientosEn } from '../server/adelanto.js';
+import { recibirAdelanto, adelantoDe, csRepartido, olvidarAdelanto, sucesosAdelantados, enfriamientosEn, peleaEn } from '../server/adelanto.js';
 import { recibir, olvidarPartida, marcarObjetivo } from '../server/partida.js';
 
 const POSICIONES = ['TOP', 'JUNGLE', 'MIDDLE', 'BOTTOM', 'UTILITY'];
@@ -125,4 +125,34 @@ test('el KDA viene del PC 1 en el segundo de la emisión: lo que el PC 2 se salt
   // Si el cliente va por delante del PC 1, manda el cliente
   p = recibir({ juego: { gameTime: 660 }, jugadores: jugadores({ A1: 30 }).map(j => (j.riotIdGameName === 'A1' ? { ...j, scores: { ...j.scores, kills: 5 } } : j)), eventos: [] });
   assert.equal(p.lineas[0].azul.k, 5);
+});
+
+test('en pelea (según el PC 1) el overlay quita las estadísticas, con 3 s de margen al acabar', () => {
+  recibirAdelanto({ ...delPc1(900), peleas: [[400, 430], [800, null], ['mal', 2]] });
+  assert.equal(peleaEn(390), false);
+  assert.equal(peleaEn(400), true);
+  assert.equal(peleaEn(432), true, 'margen al acabar');
+  assert.equal(peleaEn(434), false);
+  assert.equal(peleaEn(850), true, 'una pelea que sigue');
+  assert.equal(paquete(410, { A1: 30 }).pelea, true);
+  assert.equal(paquete(500, { A1: 30 }).pelea, false);
+});
+
+test('los temporizadores se fían del PC 1 aunque el PC 2 salte tramos, y las larvas salen una sola vez', () => {
+  // El PC 2 ha saltado: su cliente cuenta 3 asesinatos de A1 que no ha visto como sucesos (historia incompleta)
+  const conSaltos = t => recibir({ juego: { gameTime: t }, jugadores: jugadores({ A1: 30 }).map(j => (j.riotIdGameName === 'A1' ? { ...j, scores: { ...j.scores, kills: 3 } } : j)),
+    eventos: [{ EventID: 0, EventName: 'GameStart', EventTime: 0 }] });
+  let p = conSaltos(420);
+  assert.equal(p.historiaIncompleta, true);
+  assert.equal(p.objetivos.some(o => o.tipo === 'larvas'), false, 'sin PC 1, no se sabe si las larvas siguen vivas');
+  recibirAdelanto(delPc1(600, [{ id: 'g1', tipo: 'larvas', lado: 'azul', t: 450 }, { id: 'g2', tipo: 'larvas', lado: 'azul', t: 455 }, { id: 'g3', tipo: 'larvas', lado: 'rojo', t: 470 }]));
+  p = conSaltos(420);
+  const larvas = p.objetivos.find(o => o.tipo === 'larvas');
+  assert.ok(larvas, 'con el PC 1, las larvas siguen vivas aunque el PC 2 haya saltado');
+  assert.equal(larvas.quedan, 3);
+  assert.ok(p.objetivos.some(o => o.tipo === 'dragon') && p.objetivos.some(o => o.tipo === 'baron'));
+  // Caen las tres antes de las 9:45: ya no sale un segundo grupo, y el heraldo va a las 15:00
+  p = conSaltos(500);
+  assert.equal(p.objetivos.some(o => o.tipo === 'larvas'), false, 'una sola vez por partida');
+  assert.equal(p.objetivos.find(o => o.tipo === 'heraldo')?.aparece, 900);
 });

@@ -9,7 +9,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { puntuar, participacion } from './puntuacion.js';
 
-import { adelantoDe, csRepartido, sucesosAdelantados, enfriamientosEn, kdaEn } from './adelanto.js';
+import { adelantoDe, csRepartido, sucesosAdelantados, enfriamientosEn, kdaEn, peleaEn } from './adelanto.js';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 let precios = {};            // id de objeto → oro total (Data Dragon)
@@ -31,9 +31,10 @@ export async function cargarPartida() {
 export const REGLAS = {
   primerDragon: 300, reaparicionDragon: 300, reaparicionAncestral: 360, duracionAncestral: 150,
   primerBaron: 1200, reaparicionBaron: 360, duracionBaron: 180,
-  // Larvas del vacío: un grupo de 3 a las 6:00. Si cae entero antes de las 9:45, sale otro grupo
-  // 4 minutos después; a las 14:45 se van
-  larvas: 360, larvasPorGrupo: 3, segundoGrupoAntesDe: 585, reaparicionLarvas: 240, finLarvas: 885,
+  // Larvas del vacío: un grupo de 3 a las 6:00, una sola vez por partida (15/11, lo que ve el PC 1 del realizador); a las
+  // 14:45 se van. segundoGrupoAntesDe es el de antes (otro grupo 4 minutos después si caía entero antes de las 9:45):
+  // con 0 no hay segundo grupo; si un parche lo devuelve, se pone otra vez a 585
+  larvas: 360, larvasPorGrupo: 3, segundoGrupoAntesDe: 0, reaparicionLarvas: 240, finLarvas: 885,
   // Heraldo de la Grieta: de las 15:00 a las 19:45
   heraldo: 900, finHeraldo: 1185,
   reaparicionInhibidor: 300,
@@ -586,10 +587,13 @@ export function resumen() {
   const dragon = !ultimoDragon ? { aparece: REGLAS.primerDragon, desde: 0, ancestral: false }
     : ultimoDragon.tipo === 'ancestral' || conAlma ? { aparece: ultimoDragon.t + REGLAS.reaparicionAncestral, desde: ultimoDragon.t, ancestral: true }
       : { aparece: ultimoDragon.t + REGLAS.reaparicionDragon, desde: ultimoDragon.t, ancestral: false };
-  if (t < REGLAS.primerDragon || ultimoDragon || marcando || (da('DragonKill') && !historiaIncompleta)) objetivos.push({ tipo: 'dragon', ...dragon });
+  // Con los datos del PC 1 del realizador de esta partida se saben todos los objetivos aunque el PC 2 salte tramos en una
+  // repetición (y entonces la historia del PC 2 queda incompleta): los temporizadores se fían de ellos
+  const sabeObjetivos = conAdelanto || (daObjetivos && !historiaIncompleta);
+  if (t < REGLAS.primerDragon || ultimoDragon || marcando || sabeObjetivos) objetivos.push({ tipo: 'dragon', ...dragon });
   const g = REGLAS.larvasPorGrupo;
   let finLarvas = REGLAS.finLarvas;
-  const larvasConocidas = muertesLarvas.length > 0 && !historiaIncompleta;
+  const larvasConocidas = conAdelanto || (muertesLarvas.length > 0 && !historiaIncompleta);
   if (t >= REGLAS.larvas && !larvasConocidas) finLarvas = Math.min(t, REGLAS.finLarvas);
   else if (t < REGLAS.finLarvas) {
     const n = muertesLarvas.length;
@@ -600,11 +604,11 @@ export function resumen() {
     } else finLarvas = muertesLarvas.at(-1);
   }
   if (!objetivos.some(o => o.tipo === 'larvas') && !heraldoMuerto && t < REGLAS.finHeraldo
-    && (t < REGLAS.heraldo || marcando || (daObjetivos && !historiaIncompleta))) {
+    && (t < REGLAS.heraldo || marcando || sabeObjetivos)) {
     objetivos.push({ tipo: 'heraldo', aparece: REGLAS.heraldo, desde: Math.min(finLarvas, REGLAS.heraldo), hasta: REGLAS.finHeraldo });
   }
   const proximoBaron = ultimoBaron != null ? ultimoBaron + REGLAS.reaparicionBaron : REGLAS.primerBaron;
-  if (t < REGLAS.primerBaron || ultimoBaron != null || marcando || (daObjetivos && !historiaIncompleta)) {
+  if (t < REGLAS.primerBaron || ultimoBaron != null || marcando || sabeObjetivos) {
     objetivos.push({ tipo: 'baron', aparece: proximoBaron, desde: ultimoBaron ?? 0 });
   }
 
@@ -618,6 +622,8 @@ export function resumen() {
     azul: eq.azul, rojo: eq.rojo, jugadores, lineas,
     // Hay enfriamientos del PC 1 para esta partida: el marcador enseña las columnas de los lados
     enfriamientos: [...jugadores.azul, ...jugadores.rojo].some(j => j.enfriamientos),
+    // Hay pelea en la emisión (la detecta el PC 1): el overlay quita lo que tapa la acción
+    pelea: conAdelanto && peleaEn(t),
     objetivos, historiaIncompleta, grafica: grafica(),
     buffs: buffs.filter(b => b.hasta > t),
     inhibidores: [...caidos.values()].filter(i => i.vuelve > t),

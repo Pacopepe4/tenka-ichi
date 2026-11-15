@@ -5,7 +5,8 @@
 //     jugadores: [{ nombre, equipo: 'ORDER'|'CHAOS', cs: [[gameTime, creepScore], …],      cada vez que cambia el CS
 //                   kda: [[gameTime, k, d, a], …] }],                                          cada vez que cambia el KDA
 //     objetivos: [{ id, tipo: 'dragon'|'heraldo'|'baron'|'larvas', dragon?, lado: 'azul'|'rojo', t }],
-//     hechizos: [{ nombre, equipo, d: [[desde, hasta|null], …], f: […], r: […] }] }   (desde el 14/11, leídos de la pantalla)
+//     hechizos: [{ nombre, equipo, d: [[desde, hasta|null], …], f: […], r: […] }],   (desde el 14/11, leídos de la pantalla)
+//     peleas: [[desde, hasta|null], …] }   (15/11: las que detecta el PC 1 para la cámara, con su anticipación)
 // Con eso:
 //  - CS: el cliente de LoL los da de 10 en 10. Sabiendo en qué segundo llegó cada jugador a 150 y a 160, entre medias se
 //    reparten al ritmo real de ese tramo: exactos en cada múltiplo de 10, nunca por encima del siguiente salto ni por
@@ -22,7 +23,7 @@ const TIPOS = new Set(['dragon', 'heraldo', 'baron', 'larvas']);
 const DRAGONES = new Set(['infernal', 'oceano', 'montana', 'nube', 'hextech', 'quimtech', 'ancestral']);
 
 const normalizar = s => String(s || '').toLowerCase().split('#')[0].replace(/[\s_.-]/g, '');
-const vacio = () => ({ recibido: 0, t: 0, cs: new Map(), kda: new Map(), objetivos: new Map(), hechizos: new Map() });
+const vacio = () => ({ recibido: 0, t: 0, cs: new Map(), kda: new Map(), objetivos: new Map(), hechizos: new Map(), peleas: [] });
 let adelanto = vacio();
 
 export function olvidarAdelanto() { adelanto = vacio(); }
@@ -61,7 +62,15 @@ export function recibirAdelanto(d, ahora = Date.now()) {
     if (!nombre) continue;
     adelanto.hechizos.set(nombre, Object.fromEntries(['d', 'f', 'r'].map(k => [k, tramos(j[k])])));
   }
+  if (Array.isArray(d.peleas)) adelanto.peleas = tramos(d.peleas).slice(-50);
   return true;
+}
+
+// ¿Hay pelea en el segundo t de la emisión? Mientras la hay, el overlay quita las estadísticas que tapan la acción. Una
+// pelea sin final aún (hasta null) sigue; al acabar, 3 s más de margen
+const MARGEN_PELEA = 3;
+export function peleaEn(t) {
+  return adelanto.peleas.some(([a, b]) => a <= t && (b === null || t <= b + MARGEN_PELEA));
 }
 
 // Los enfriamientos de un hechizo: tramos [desde, hasta] ordenados (hasta null: aún no ha vuelto, según el PC 1)
