@@ -14,6 +14,9 @@ export class Cerebro {
     this.r = reglas;
     this.jugadas = [];
     this.acciones = [];
+    this.visiones = [];   // momentos de visión de cada equipo (pc2/teclas.js), ver planificarVision
+    this.recorridos = []; // recorridos del río para los ratos muertos (pc2/cinematica.js), ver planificarRecorridos
+    this.recorridoMirado = 0;
     this.siguiente = 1;
     this.ultimaOro = -Infinity;
     // Rachas de asesinatos sin morir (para la ficha del jugador en racha)
@@ -472,6 +475,62 @@ export class Cerebro {
 
   // ---------- acciones: repeticiones y lo que se cambia en el overlay (ficha en racha, gráfica de oro) ----------
   // Solo se decide lo que ya se puede saber: hace falta ver «calma» segundos después de cada momento
+  // ---------- visión de cada equipo (15/11, Pacopepe) ----------
+  // En las peleas por un objetivo del río (dragón, Barón, heraldo, larvas), unos segundos antes de que caiga: visión
+  // del azul, del rojo y vuelta a la de los dos. No en todas: hace falta pelea (alguna muerte) y un rato desde la última.
+  // Se decide cuando ya se ha visto un poco después del objetivo (el PC 1 va 2 minutos por delante: sobra tiempo).
+  planificarVision(conocidoHasta) {
+    const c = this.r.vision;
+    const nuevas = [];
+    if (!c || c.activo === false) return nuevas;
+    const objetivos = c.objetivos || ['DragonKill', 'BaronKill', 'HeraldKill', 'HordeKill'];
+    for (const j of this.jugadas) {
+      if (j.vision !== undefined) continue;
+      const obj = j.eventos.find(e => objetivos.includes(e.nombre));
+      if (!obj || obj.t + (c.esperaSegundos ?? 10) > conocidoHasta) continue;
+      const t = Math.max(j.inicio, obj.t - (c.antesSegundos ?? 5));
+      const ultima = this.visiones.at(-1);
+      if (j.muertes < (c.minimoMuertes ?? 1)) { j.vision = 'sin-pelea'; continue; }
+      if (ultima && t - ultima.t < (c.separacionSegundos ?? 240)) { j.vision = 'muy-seguida'; continue; }
+      const a = { id: `vis-${j.id}`, tipo: 'vision', t: Math.round(t * 100) / 100, segundos: c.segundosPorEquipo ?? 2, jugada: j.id };
+      j.vision = a.id;
+      this.visiones.push(a);
+      nuevas.push(a);
+    }
+    return nuevas;
+  }
+
+  // ---------- recorridos para los ratos muertos (15/11, Pacopepe) ----------
+  // Si hay un hueco de unos 30 s sin jugadas (ni repeticiones ni momentos de visión), el PC 2 hace el recorrido del
+  // río con la cámara del juego. El PC 1 va 2 minutos por delante: sabe de antemano cuánto dura el hueco, así que
+  // el recorrido cabe entero y acaba antes de que empiece la siguiente jugada. Como mucho uno cada «separacion».
+  planificarRecorridos(desde, conocidoHasta) {
+    const c = this.r.recorridos;
+    const nuevas = [];
+    if (!c || c.activo === false) return nuevas;
+    const dur = c.duracionSegundos ?? 12, hueco = c.huecoSegundos ?? 30, antes = c.libreAntesSegundos ?? 10;
+    const despues = Math.max(0, hueco - antes - dur);
+    // Una pelea que aparezca luego adelanta su jugada (anticipacionPelea): hay que haber visto ese rato de más
+    const margen = (this.r.anticipacionPelea ?? this.r.anticipacion ?? 7) + 2;
+    const libre = (a, b) => !this.jugadas.some(j => j.inicio < b && j.fin > a)
+      && !this.acciones.some(x => x.t < b && x.t + (x.segundos || 0) > a)
+      && !this.visiones.some(x => x.t < b && x.t + 2 * (x.segundos || 2) + 1 > a);
+    let t = Math.max(desde, this.recorridoMirado, c.desdeSegundo ?? 120);
+    const ultima = this.recorridos.at(-1);
+    if (ultima) t = Math.max(t, ultima.t + (c.separacionSegundos ?? 180));
+    for (; t + dur + despues + margen <= conocidoHasta; t += 2) {
+      if (!libre(t - antes, t + dur + despues)) continue;
+      const a = { id: `rec-${Math.round(t)}`, tipo: 'recorrido', t: Math.round(t * 100) / 100, segundos: dur, recorrido: 'rio' };
+      this.recorridos.push(a);
+      nuevas.push(a);
+      t += c.separacionSegundos ?? 180;
+      break;
+    }
+    // Lo ya mirado sin hueco no se vuelve a mirar (salvo que llegue algo nuevo: las jugadas solo se añaden)
+    this.recorridoMirado = Math.max(this.recorridoMirado, Math.min(t, conocidoHasta - dur - despues - margen));
+    return nuevas;
+  }
+
   planificarAcciones(desde, conocidoHasta) {
     const r = this.r;
     const nuevas = [];
