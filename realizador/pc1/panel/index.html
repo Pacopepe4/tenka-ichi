@@ -606,7 +606,9 @@
     $('iaEstado').textContent = ia.activa
       ? (ia.pausada ? `${ia.modelo}: falla (${ia.ultimoError?.texto || 'sin respuesta'}). Mientras, reglas.` : `${ia.modelo} encendida · ${ia.llamadas} consultas${ia.fallos ? ' · ' + ia.fallos + ' fallos' : ''}`)
       : `Apagada: ${ia.motivo}. El realizador va con sus reglas.`;
-    $('iaConsejo').textContent = ia.consejo ? `Próximo rato tranquilo: ${OVERLAY[ia.consejo.tipo] || ia.consejo.tipo}${ia.consejo.campeon ? ' de ' + ia.consejo.campeon : ''}. ${ia.consejo.motivo || ''}` : '';
+    // Lo que la IA ha programado (ya validado por los límites) y el MVP al acabar
+    $('iaConsejo').innerHTML = (ia.decisiones || []).slice(0, 6).map(d => `<div>${d.t === null ? '' : reloj(d.t) + ' · '}${esc(d.texto)}${d.motivo ? ' <span class="vacio">' + esc(d.motivo) + '</span>' : ''}</div>`).join('')
+      + (ia.mvp ? `<div><b>MVP:</b> ${esc(ia.mvp.jugador)} (${esc(ia.mvp.campeon)})</div>` : '');
     $('iaTitulares').innerHTML = (ia.titulares || []).slice(0, 5).map(x => `<li><span class="t">${reloj(x.t)}</span><span>${esc(x.texto)}</span></li>`).join('');
     $('iaResumen').hidden = !ia.resumen;
     if (ia.resumen) $('iaResumen').innerHTML = `<b>Resumen final${ia.resumen.hecho === 'ia' ? '' : ' (sin IA)'}</b>${ia.resumen.titular ? '<br>' + esc(ia.resumen.titular) : ''}<br>${esc(ia.resumen.resumen)}`;

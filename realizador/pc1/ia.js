@@ -15,6 +15,8 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { RAIZ } from '../comun/opciones.js';
+import { herramientas, limitesDe, LimitesIa } from './ia-limites.js';
+import { contextoTurno } from './ia-contexto.js';
 
 export const MODELOS = { normal: 'claude-sonnet-5-5', rapido: 'claude-haiku-5-5' };
 export const NOMBRE_MODELO = { 'claude-sonnet-5-5': 'Sonnet 5.5', 'claude-haiku-5-5': 'Haiku 5.5' };
@@ -183,70 +185,84 @@ export function resumenReglas(cerebro, jugadores = [], tFin = null) {
   return { titular: null, resumen: lineas.join(' '), hecho: 'reglas' };
 }
 
-// ---------- lo que se le pide ----------
+// ---------- la conversación con Sonnet ----------
+// Una conversación por partida: system prompt y herramientas fijos (mismo texto y orden en cada turno), mensajes que
+// solo se añaden. Cada turno es UNA llamada: el mensaje del usuario lleva primero los tool_result de lo que pidió en
+// el turno anterior (aceptada o rechazada con su motivo) y luego el contexto nuevo. La caché va con cache_control
+// automático (y un punto fijo al final del system prompt). Si la IA falla, el turno no se apunta: lo que no llegó se
+// vuelve a mandar en el siguiente, y mientras tanto el realizador sigue con sus reglas.
 
-const SISTEMA = `Eres el ayudante de realización de un directo de League of Legends de la comunidad Gokudō.
-La emisión va 2 minutos por detrás de la partida real: sabes lo que va a pasar antes de que el público lo vea.
-La cámara, las repeticiones y las transiciones las lleva un programa con reglas fijas; tú no las tocas.
+export function sistema(ia = {}) {
+  const L = limitesDe(ia);
+  return `Eres el productor de grafismos y repeticiones del directo de League of Legends de la liga de Gokudō. La emisión va unos 2 minutos por detrás de la partida: sabes lo que va a pasar antes que el público.
 
-Tu trabajo, cuando te lo pidan:
-1. Overlay en el próximo rato tranquilo de lo que aún no se ha emitido. Opciones:
-   - "oro": gráfica de diferencia de oro. Buena cuando la partida se está decantando o tras varios objetivos.
-   - "ficha": ficha de un jugador. Solo para alguien con una racha clara o que está decidiendo la partida. Di su campeón tal cual aparece en los equipos.
-   - "lineas": dejar el línea por línea (comparativa de los dos equipos). Úsalo si se prepara una pelea o un objetivo justo después del rato tranquilo, o si hace poco que salió otra cosa.
-   No repitas lo mismo que salió hace poco (mira overlayReciente) salvo que haya un motivo claro.
-2. Titular: una frase corta (máximo 70 caracteres) en español de España, con tono de narrador, sobre lo más interesante que está pasando o va a pasar. Sin inventar datos que no estén en el resumen. null si no hay nada que contar.
-3. Repetición: si te dan varias jugadas que acabaron a la vez, elige la que más merece repetirse (la que más cambia la partida: muertes, objetivos grandes, un ace, un robo).
-4. Resumen final: 3 a 5 frases para los casters con lo que decidió la partida. Si te dan candidatas para el resumen en vídeo,
-   en "destacadas" van los ids de las que merecen salir (solo de entre las candidatas), en el orden en que deben salir.
-   Entran todas las que importan, sin límite fijo; quita solo las que no aportan nada.
+Un programa de reglas (el realizador) lleva la cámara, los cortes, las repeticiones normales y el overlay. Tú propones cambios con tus herramientas; el realizador comprueba cada uno y lo acepta o lo rechaza.
 
-Responde solo con el JSON que se te pide. Sé breve en "motivo" (una frase).`;
+Qué puedes hacer
+- programar_grafico: gráfica de oro, ficha de un jugador o reservar un rato para el línea por línea, de ${L.grafismos.minimoSegundos} a ${L.grafismos.maximoSegundos} s.
+- pedir_repeticion: repetir una jugada acabada que las reglas no han repetido (repeticion "sin-hueco", "otra-elegida" o "no").
+- seguir_jugador: llevar la cámara a un campeón en un rato muerto.
+- elegir_repeticion: solo cuando el mensaje traiga "elegirRepeticion".
+- Al acabar la partida: resumen_final y elegir_mvp.
+No hace falta hacer algo en cada turno: si nada merece la pena, contesta "nada" sin herramientas. Pocas cosas y buenas.
 
-const nulable = tipo => ({ anyOf: [{ type: tipo }, { type: 'null' }] });
+Cuándo merece la pena
+- oro: cuando la partida se decanta (asesinatos, objetivos o CS que se separan) o tras varios objetivos seguidos.
+- ficha: alguien en racha clara o que está decidiendo la partida.
+- lineas: para guardar limpio el rato justo antes de una pelea u objetivo que sabes que viene.
+- seguir_jugador: en un rato muerto, quien va a protagonizar la próxima jugada conocida (llega antes que nadie, va a robar, viene de rotar), o quien va en racha. Mejor justo antes de esa jugada, sin pisarla.
+- pedir_repeticion: una jugada que cambia la partida y se ha quedado sin repetición.
 
-export const ESQUEMAS = {
-  consejo: {
-    type: 'object', additionalProperties: false, required: ['overlay', 'campeon', 'titular', 'motivo'],
-    properties: { overlay: { type: 'string', enum: ['oro', 'ficha', 'lineas'] }, campeon: nulable('string'), titular: nulable('string'), motivo: { type: 'string' } },
-  },
-  repeticion: (ids) => ({
-    type: 'object', additionalProperties: false, required: ['jugada', 'motivo'],
-    properties: { jugada: { type: 'string', enum: ids }, motivo: { type: 'string' } },
-  }),
-  resumen: {
-    type: 'object', additionalProperties: false, required: ['titular', 'resumen'],
-    properties: { titular: { type: 'string' }, resumen: { type: 'string' } },
-  },
-  // El mismo, con las jugadas destacadas para el resumen en vídeo (ids de las candidatas, en el orden en que salen)
-  resumenConDestacadas: ids => ({
-    type: 'object', additionalProperties: false, required: ['titular', 'resumen', 'destacadas'],
-    properties: { titular: { type: 'string' }, resumen: { type: 'string' }, destacadas: { type: 'array', items: { type: 'string', enum: ids } } },
-  }),
-};
+Lo que sale solo y no hay que pedir: el línea por línea de base, los sellos de objetivo, los avisos de primera sangre y multikill, la ficha automática de quien llega a una racha de 3, 5 u 8, la gráfica de oro de las reglas si llevas rato sin programar ninguna, las repeticiones de peleas grandes y objetivos, la visión de cada equipo y los recorridos del río.
+
+Cómo leer cada mensaje
+- Primero van los resultados de tus herramientas del turno anterior: "aceptada: …" o "rechazada: motivo". Si te rechazan algo, el motivo dice qué falla: corrige y vuelve a proponer solo si sigue teniendo sentido; no insistas con lo mismo.
+- Después, un JSON. Todos los tiempos en segundos de partida.
+  - reloj.antena: lo que ve el público. reloj.sabido: hasta dónde sabes. reloj.programable: [desde, hasta]; solo puedes programar dentro.
+  - jugadasNuevas y jugadasCambiadas: solo lo nuevo desde el último mensaje; lo anterior ya lo tienes. estado: "emitida", "en antena" o "por emitir". repeticion: la de las reglas.
+  - ratosTranquilos: tramos [desde, hasta] por emitir sin jugadas ni nada programado: ahí caben tus cosas.
+  - programado: [segundo, qué, duración, de quién]. No lo pises.
+  - cupo: cuántas te quedan ahora de cada cosa.
+  - cs: CS por equipo (el oro no llega a este PC). objetivos.vistos: [segundo, objetivo, equipo].
+
+Reglas
+- No inventes: usa solo campeones, ids y tiempos que estén en los datos. Si falta un dato, no lo supongas.
+- Los campeones, tal como salen en equipos.
+- Español de España. Motivos de una frase.
+- Resumen final: titular de 70 caracteres como mucho con tono de narrador; resumen de 3 a 5 frases para los casters con lo que decidió la partida; en destacadas, los ids de las candidatas que merecen el resumen en vídeo, en el orden en que deben salir (sin límite fijo; quita solo las que no aportan nada). MVP: quien más decidió la partida según los datos (KDA, objetivos, jugadas).`;
+}
+
+const estimar = x => Math.ceil(JSON.stringify(x).length / 3.5);
+
+// La crónica se publica en la web y en Discord: con el nombre de cada familia, nunca «el azul / el rojo»
+export function nombresFamilias(familias) {
+  return familias?.azul || familias?.rojo
+    ? ` Llama a cada equipo por el nombre de su familia (azul: ${familias.azul || '?'}, rojo: ${familias.rojo || '?'}), nunca «el azul» ni «el rojo».`
+    : ' No llames a los equipos «el azul» ni «el rojo»: di el campeón o el jugador.';
+}
 
 export class Ia extends EventEmitter {
   // cliente: para las pruebas (algo con messages.create). Sin él se crea el de la SDK de Anthropic con la clave.
   constructor({ opciones, clave = null, cliente = null, log = () => {} }) {
     super();
     this.o = opciones.ia || {};
+    this.reglas = opciones.reglas || {};
     this.clave = clave;
     this.cliente = cliente;
     this.log = log;
     this.modelo = this.o.rapido ? (this.o.modeloRapido || MODELOS.rapido) : (this.o.modelo || MODELOS.normal);
     this.estado = { activa: false, motivo: 'apagada', llamadas: 0, ahorradas: 0, fallos: 0, seguidos: 0, ultimoError: null, ultimaRespuesta: null };
-    this.ultimaPregunta = 0;
-    this.ultimaHuella = null;
-    this.consejo = null;
+    this.sistema = sistema(this.o);
+    this.herramientas = herramientas(this.o);
+    this.limites = new LimitesIa(this.o);
+    this.uso = { entrada: 0, cacheLeida: 0, cacheEscrita: 0, salida: 0 };
     this.titulares = [];
-    this.resumen = null;
-    this.ocupada = false;
-    this.ultimoConsejo = 0;
-    this.pausaHasta = 0;
     this.temporizador = null;
+    this.ocupada = false;
+    this.pausaHasta = 0;
+    this.partidaNueva();
   }
 
-  // Prepara el cliente. Devuelve false (y dice por qué) si no se puede: el realizador sigue con las reglas.
   async preparar() {
     if (!this.o.activo) { this.estado.motivo = 'apagada (doble clic en INSTALAR-IA.bat para encenderla)'; return false; }
     if (!this.cliente) {
@@ -271,26 +287,72 @@ export class Ia extends EventEmitter {
 
   get nombreModelo() { return NOMBRE_MODELO[this.modelo] || this.modelo; }
 
-  // Una pregunta con respuesta en JSON. Cualquier fallo lanza un error ya sin clave dentro.
-  async pedir(contenido, esquema, { maxTokens = 1500 } = {}) {
+  // Conversación nueva: al empezar partida, o al pasar del tope (entonces con un resumen de lo decidido)
+  nuevaConversacion(arrastre = null) {
+    this.mensajes = [];
+    this.turnos = 0;
+    this.enviadas = new Map();
+    this.pendientes = [];  // tool_result del último turno, para el siguiente
+    this.arrastre = arrastre;
+  }
+
+  partidaNueva() {
+    this.nuevaConversacion();
+    this.limites.reiniciar();
+    this.decisiones = [];
+    this.gruposPreguntados = new Set();
+    this.resumen = null;
+    this.mvp = null;
+    this.resumenIa = null;
+    this.ultimoTurno = 0;
+    this.ultimaHuella = null;
+  }
+
+  tokensConversacion() { return estimar(this.sistema) + estimar(this.herramientas) + estimar(this.mensajes); }
+
+  // Los parámetros de la llamada: el prefijo (herramientas, system y mensajes ya enviados) no cambia nunca
+  parametros(mensajes, maxTokens) {
+    const p = {
+      model: this.modelo,
+      max_tokens: maxTokens,
+      system: [{ type: 'text', text: this.sistema, cache_control: { type: 'ephemeral' } }],
+      tools: this.herramientas,
+      tool_choice: { type: 'auto' },
+      messages: mensajes,
+      cache_control: { type: 'ephemeral' },
+      output_config: { effort: this.o.esfuerzo || 'low' },
+    };
+    // Sin pensar (lo más barato) si se pide; por defecto, pensamiento adaptativo (a esfuerzo bajo casi no piensa)
+    if (this.o.pensar === 'entre_herramientas') p.thinking = { type: 'between_tools' };
+    return p;
+  }
+
+  // Una llamada. Devuelve la respuesta ya comprobada o lanza un error sin clave dentro.
+  async llamar(contenido, { maxTokens = 4000 } = {}) {
     this.estado.llamadas++;
+    const mensajes = [...this.mensajes, { role: 'user', content: contenido }];
     try {
-      const r = await this.cliente.messages.create({
-        model: this.modelo,
-        max_tokens: maxTokens,
-        system: [{ type: 'text', text: SISTEMA, cache_control: { type: 'ephemeral' } }],
-        messages: [{ role: 'user', content: contenido }],
-        output_config: { effort: this.o.esfuerzo || 'low', format: { type: 'json_schema', schema: esquema } },
-      });
-      if (r.stop_reason === 'refusal') throw new Error('la IA no ha querido contestar');
+      const p = this.parametros(mensajes, maxTokens);
+      // Respaldo del servidor si la SDK lo tiene (beta): si Sonnet 5.5 rechaza por política, reintenta en otro modelo
+      const beta = this.o.respaldo !== false && this.cliente.beta?.messages?.create;
+      const pedir = beta ? this.cliente.beta.messages.create({ ...p, betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' })
+        : this.cliente.messages.create(p);
+      let reloj;
+      const tope = new Promise((_, no) => { reloj = setTimeout(() => no(new Error('no contesta a tiempo')), ((this.o.tiempoSegundos ?? 20) + 5) * 1000); reloj.unref?.(); });
+      const r = await Promise.race([pedir, tope]).finally(() => clearTimeout(reloj));
+      if (r.stop_reason === 'refusal') throw new Error(`la IA no ha querido contestar${r.stop_details?.category ? ' (' + r.stop_details.category + ')' : ''}`);
       if (r.stop_reason === 'max_tokens') throw new Error('respuesta cortada');
-      const texto = r.content.find(b => b.type === 'text')?.text;
-      if (!texto) throw new Error('respuesta vacía');
-      const datos = JSON.parse(texto);
+      if (!Array.isArray(r.content)) throw new Error('respuesta vacía');
+      // El turno sale bien: se apunta (solo se añade, nunca se reescribe)
+      this.mensajes.push({ role: 'user', content: contenido }, { role: 'assistant', content: r.content });
+      this.turnos++;
+      const u = r.usage || {};
+      this.uso.entrada += u.input_tokens || 0; this.uso.cacheLeida += u.cache_read_input_tokens || 0;
+      this.uso.cacheEscrita += u.cache_creation_input_tokens || 0; this.uso.salida += u.output_tokens || 0;
       this.estado.seguidos = 0;
       this.estado.ultimaRespuesta = new Date().toISOString();
       if (!this.estado.activa) { this.estado.activa = true; this.estado.motivo = 'lista'; }
-      return datos;
+      return r;
     } catch (e) {
       this.estado.fallos++;
       this.estado.seguidos++;
@@ -311,9 +373,79 @@ export class Ia extends EventEmitter {
     }
   }
 
+  // Lo que se valida: el estado de ahora
+  ctxLimites(cerebro, { final = false, candidatas = [] } = {}) {
+    const c = this.ctx || {};
+    return { cerebro, jugadores: c.jugadores?.() || cerebro.jugadores || [], tA: c.tAntena?.() ?? null, tD: c.tDirecto?.() ?? null, reglas: this.reglas, manual: Boolean(c.manual?.()), final, candidatas };
+  }
+
+  // Un turno: tool_result pendientes + contexto. Procesa las herramientas que pida y deja sus resultados pendientes.
+  async turno(cerebro, { final = false, candidatas = [], extra = null, maxTokens = 4000 } = {}) {
+    const c = this.ctx || {};
+    const L = this.o.conversacion || {};
+    if (this.turnos >= (L.maximoTurnos ?? 120) || this.tokensConversacion() > (L.maximoTokens ?? 150000)) {
+      this.nuevaConversacion(this.decisiones.slice(0, 40).map(d => `${d.t === null ? '' : Math.round(d.t) + ' '}${d.texto}`));
+    }
+    const vl = this.ctxLimites(cerebro, { final, candidatas });
+    const { datos, firmas } = contextoTurno({
+      cerebro, jugadores: vl.jugadores, tA: vl.tA, tD: vl.tD, reglas: this.reglas, limites: this.limites, enviadas: this.enviadas,
+      primera: this.turnos === 0, fase: c.fase?.() ?? null, cs: c.cs?.() ?? null, final,
+    });
+    if (this.turnos === 0 && this.arrastre) datos.decididoAntes = this.arrastre;
+    if (extra) Object.assign(datos, extra);
+    const contenido = [...this.pendientes, { type: 'text', text: JSON.stringify(datos) }];
+    const r = await this.llamar(contenido, { maxTokens });
+    this.pendientes = [];
+    for (const [id, f] of firmas) this.enviadas.set(id, f);
+    for (const b of r.content) if (b.type === 'tool_use') this.pendientes.push(this.ejecutar(b, cerebro, { final, candidatas }));
+    c.hayCambios?.();
+    return r;
+  }
+
+  // Valida una herramienta y, si vale, la aplica. Devuelve su tool_result.
+  ejecutar(b, cerebro, opciones) {
+    const v = this.limites.validar(b.name, b.input, this.ctxLimites(cerebro, opciones));
+    if (!v.ok) {
+      this.ctx?.apuntar?.('ia', 'rechazada', { herramienta: b.name, motivo: v.motivo });
+      return { type: 'tool_result', tool_use_id: b.id, content: `rechazada: ${v.motivo}`, is_error: true };
+    }
+    this.aplicar(b.name, v.accion, cerebro);
+    this.limites.apuntar(b.name, v.accion);
+    const d = { hora: new Date().toISOString(), t: v.accion.t ?? v.accion.desde ?? null, herramienta: b.name, texto: v.texto.replace(/^aceptada: /, ''), motivo: v.accion.motivo || b.input.motivo || null };
+    this.decisiones.unshift(d);
+    this.decisiones.length = Math.min(this.decisiones.length, 60);
+    this.ctx?.apuntar?.('ia', b.name.replace(/_/g, ' '), { decision: d.texto, motivo: d.motivo });
+    return { type: 'tool_result', tool_use_id: b.id, content: v.texto };
+  }
+
+  aplicar(nombre, a, cerebro) {
+    if (nombre === 'programar_grafico') {
+      cerebro.acciones.push({ id: `ia-${a.tipo}-${Math.round(a.t)}`, tipo: a.tipo, t: a.t, segundos: a.segundos, ia: true, motivo: a.motivo || null,
+        ...(a.tipo === 'ficha' ? { campeon: a.campeon, jugador: a.jugador, equipo: a.equipo } : {}) });
+      // La gráfica de oro de las reglas no sale pegada a un grafismo de la IA
+      if (a.tipo !== 'lineas') cerebro.ultimaOro = Math.max(cerebro.ultimaOro, a.t);
+      if (a.tipo === 'ficha') cerebro.ultimaFicha.set(a.campeon, a.t);
+    } else if (nombre === 'pedir_repeticion') {
+      const j = cerebro.jugadas.find(x => x.id === a.jugada);
+      j.repetir = true;
+      if (j.repeticion && !String(j.repeticion).startsWith('rep-')) delete j.repeticion;
+      j.eleccionIa = true;      // cuenta como jugada fuerte: menos calma y sin separación de otras
+      j.repetirDesde = a.t;     // y no antes del rato que se validó
+    } else if (nombre === 'seguir_jugador') {
+      cerebro.propuestasIa.push({ id: `ia-seguir-${Math.round(a.desde)}`, desde: a.desde, hasta: a.hasta, jugador: a.jugador, motivo: a.motivo || null });
+    } else if (nombre === 'elegir_repeticion') {
+      cerebro.elegirRepeticion(a.grupo, a.jugada);
+    } else if (nombre === 'elegir_mvp') {
+      this.mvp = { ...a, hora: new Date().toISOString() };
+      this.emit('mvp', this.mvp);
+    } else if (nombre === 'resumen_final') {
+      this.resumenIa = a;
+    }
+  }
+
   // ---------- en marcha ----------
 
-  // ctx: { cerebro(), jugadores(), tAntena(), tDirecto(), enPartida(), manual(), hayCambios(), apuntar() }
+  // ctx: { cerebro(), jugadores(), tAntena(), tDirecto(), enPartida(), manual(), hayCambios(), apuntar(), fase?(), cs?() }
   arrancar(ctx) {
     this.ctx = ctx;
     const vuelta = () => { this.paso().catch(() => {}); };
@@ -323,21 +455,11 @@ export class Ia extends EventEmitter {
 
   parar() { clearInterval(this.temporizador); }
 
-  partidaNueva() {
-    this.consejo = null;
-    this.titulares = [];
-    this.resumen = null;
-    this.ultimoConsejo = 0;
-    this.ultimaPregunta = 0;
-    this.ultimaHuella = null;
-  }
-
-  // Lo que cambiaría la respuesta de la IA: las jugadas que entran en el resumen y las rachas.
-  // Si no cambia (y el consejo de antes aún no se ha usado), no hace falta volver a preguntar.
-  huellaConsejo(cerebro, tA) {
-    const jugadas = cerebro.jugadas.filter(j => j.fin > tA - 150).map(j => `${j.id}:${Math.round(j.fin)}`).join(',');
-    const rachas = [...cerebro.rachas.entries()].filter(([, n]) => n >= 2).map(([campeon, n]) => `${campeon}=${n}`).sort().join(',');
-    return `${jugadas}|${rachas}`;
+  // Lo que cambiaría la respuesta: las jugadas, las rachas y si la antena avanza
+  huella(cerebro, tA) {
+    const jugadas = cerebro.jugadas.map(j => `${j.id}:${Math.round(j.fin)}:${j.repeticion || ''}`).join(',');
+    const rachas = [...cerebro.rachas.entries()].filter(([, n]) => n >= 2).map(([c, n]) => `${c}=${n}`).sort().join(',');
+    return { jugadas: `${jugadas}|${rachas}`, antena: tA === null ? null : Math.floor(tA / 10) };
   }
 
   async paso() {
@@ -345,103 +467,72 @@ export class Ia extends EventEmitter {
     if (!this.estado.activa || this.ocupada || !c || Date.now() < this.pausaHasta) return;
     const cerebro = c.cerebro();
     cerebro.usarIa = true;
-    if (!c.enPartida() || c.manual()) return;
+    if (!c.enPartida() || c.manual() || cerebro.finPartida !== null) return;
     const tA = c.tAntena();
     const tD = c.tDirecto();
     if (tD === null) return;
+    const g = cerebro.gruposSinElegir().find(x => !this.gruposPreguntados.has(x.id));
+    const h = this.huella(cerebro, tA);
+    const desde = Date.now() - this.ultimoTurno;
+    const cada = (this.o.cadaSegundos ?? 25) * 1000;
+    const nuevas = !this.ultimaHuella || h.jugadas !== this.ultimaHuella.jugadas;
+    const rechazos = this.pendientes.some(p => p.is_error);
+    const toca = Boolean(g)
+      || (nuevas && desde >= (this.o.minimoSegundos ?? 8) * 1000)
+      || (desde >= cada && (rechazos || h.antena !== this.ultimaHuella?.antena))
+      || desde >= (this.o.repreguntarSegundos ?? 180) * 1000;
+    if (!toca) { if (desde >= cada && Date.now() - (this.ultimoAhorro || 0) >= cada) { this.estado.ahorradas++; this.ultimoAhorro = Date.now(); } return; }
     this.ocupada = true;
     try {
-      // Primero lo que corre prisa: una repetición por elegir
-      const g = cerebro.gruposSinElegir()[0];
-      if (g) { await this.elegirRepeticion(cerebro, g); return; }
-      if (tA !== null && Date.now() - this.ultimoConsejo >= (this.o.cadaSegundos ?? 25) * 1000) {
-        this.ultimoConsejo = Date.now();
-        const huella = this.huellaConsejo(cerebro, tA);
-        const vigente = cerebro.consejo && cerebro.consejo === this.consejo && !cerebro.consejo.usado;
-        const reciente = Date.now() - this.ultimaPregunta < (this.o.repreguntarSegundos ?? 180) * 1000;
-        if (vigente && reciente && huella === this.ultimaHuella) {
-          // Nada nuevo (por ejemplo, la antena aún parada antes de empezar): el consejo de antes sigue valiendo
-          // para el próximo rato tranquilo, sin gastar otra llamada
-          cerebro.consejo.hasta = Math.max(cerebro.consejo.hasta, tD + 30);
-          this.estado.ahorradas++;
-          return;
-        }
-        this.ultimaPregunta = Date.now();
-        await this.pedirConsejo(cerebro, c.jugadores(), tA, tD);
-        this.ultimaHuella = huella;
-      }
+      this.ultimoTurno = Date.now();
+      const extra = g ? { elegirRepeticion: g.jugadas.map(j => j.id) } : null;
+      if (g) this.gruposPreguntados.add(g.id);
+      try { await this.turno(cerebro, { extra }); }
+      catch (e) { if (g) cerebro.elegirRepeticion(g.id, null); throw e; }  // sin respuesta: se repiten como siempre
+      this.ultimaHuella = h;
     } catch (e) {
       c.apuntar?.('ia', 'falla', { motivo: e.message });
     } finally { this.ocupada = false; }
   }
 
-  async pedirConsejo(cerebro, jugadores, tA, tD) {
-    const resumen = resumenPartida({ cerebro, jugadores, tA, tD });
-    const r = await this.pedir(`Resumen de la partida:\n${JSON.stringify(resumen)}\n\nElige el overlay para el próximo rato tranquilo por emitir y, si hay algo que contar, un titular.`, ESQUEMAS.consejo);
-    let consejo = { tipo: r.overlay, motivo: r.motivo, desde: tA, hasta: tD + 30, hora: new Date().toISOString() };
-    if (r.overlay === 'ficha') {
-      const j = jugadores.find(x => x.campeon.toLowerCase() === String(r.campeon || '').toLowerCase());
-      // Un campeón que no está en la partida no vale: se queda en gráfica de oro
-      consejo = j ? { ...consejo, campeon: j.campeon, jugador: j.jugador, equipo: j.equipo } : { ...consejo, tipo: 'oro' };
-    }
-    cerebro.consejo = consejo;
-    this.consejo = consejo;
-    if (this.o.titulares !== false && r.titular) {
-      const titular = String(r.titular).slice(0, 90);
-      if (titular !== this.titulares[0]?.texto) {
-        this.titulares.unshift({ hora: new Date().toISOString(), t: tA, texto: titular });
-        this.titulares.length = Math.min(this.titulares.length, 10);
-        this.emit('titular', titular);
-      }
-    }
-    this.ctx?.apuntar?.('ia', 'consejo', { overlay: consejo.tipo, campeon: consejo.campeon || null, motivo: r.motivo });
-    this.ctx?.hayCambios?.();
-    return consejo;
-  }
-
-  async elegirRepeticion(cerebro, grupo) {
-    const ids = grupo.jugadas.map(j => j.id);
-    try {
-      const r = await this.pedir(
-        `Han acabado a la vez varias jugadas que merecen repetición y solo cabe una:\n${JSON.stringify(grupo.jugadas.map(j => jugadaCorta(j, null)))}\n\nElige cuál se repite.`,
-        ESQUEMAS.repeticion(ids), { maxTokens: 800 });
-      cerebro.elegirRepeticion(grupo.id, ids.includes(r.jugada) ? r.jugada : null);
-      this.ctx?.apuntar?.('ia', 'elige repetición', { jugada: r.jugada, de: ids.join(', '), motivo: r.motivo });
-    } catch (e) {
-      // Sin respuesta: se repiten como siempre (reglas)
-      cerebro.elegirRepeticion(grupo.id, null);
-      throw e;
-    } finally { this.ctx?.hayCambios?.(); }
+  async esperarLibre(ms = 30000) {
+    const fin = Date.now() + ms;
+    while (this.ocupada && Date.now() < fin) await new Promise(r => setTimeout(r, 100));
   }
 
   // Al acabar la partida. Siempre devuelve algo: si la IA falla, el resumen por reglas.
-  // candidatas: jugadas que pueden entrar en el resumen en vídeo. En la misma llamada la IA dice cuáles salen y en qué
-  // orden («destacadas»; se tiran los ids que no son candidatos). Sin IA o si falla, destacadas null: entran todas.
+  // candidatas: jugadas que pueden entrar en el resumen en vídeo. La IA dice cuáles salen y en qué orden («destacadas»;
+  // se tiran los ids que no son candidatos) y elige el MVP. Sin IA o si falla, destacadas null: entran todas.
+  // familias {azul, rojo}: la crónica sale en la web y en Discord con el nombre de cada familia.
   async resumenFinal({ cerebro, jugadores = [], tFin = null, carpeta = null, candidatas = [], familias = null }) {
     let r = { ...resumenReglas(cerebro, jugadores, tFin), destacadas: null };
-    const ids = candidatas.map(j => j.id);
     if (this.estado.activa && this.o.resumenFinal !== false && cerebro.jugadas.length) {
+      await this.esperarLibre();
+      this.ocupada = true;
       try {
-        const datos = {
-          duracion: reloj(tFin),
-          equipos: resumenPartida({ cerebro, jugadores, tA: tFin, tD: tFin }).equipos,
-          marcador: marcador(cerebro, jugadores),
-          jugadas: cerebro.jugadas.map(j => jugadaCorta(j, null)),
-          ...(ids.length ? { candidatasResumenVideo: ids } : {}),
+        if (!this.ctx) this.ctx = {};
+        const antes = this.ctx.jugadores;
+        if (!antes && jugadores.length) this.ctx = { ...this.ctx, jugadores: () => jugadores };
+        if (cerebro.finPartida === null || cerebro.finPartida === undefined) cerebro.finPartida = tFin;
+        const kda = this.ctx.cs?.()?.jugadores?.().map(h => [h.nombre, h.kda.at(-1)?.slice(1) || null, h.cs.at(-1)?.[1] ?? null]) || null;
+        const extra = {
+          partidaTerminada: true,
+          candidatasResumenVideo: candidatas.map(j => [j.id, j.tipo, Math.round(j.inicio), j.muertes, j.objetivos.join(' ')]),
+          ...(kda ? { kdaYcs: kda } : {}),
           ...(familias?.azul || familias?.rojo ? { familias } : {}),
+          pide: 'La partida ha terminado. En esta respuesta llama a resumen_final y a elegir_mvp.' + nombresFamilias(familias),
         };
-        // La crónica se publica en la web y en Discord: con el nombre de cada familia, nunca «el azul / el rojo»
-        const nombres = familias?.azul || familias?.rojo ? ` Llama a cada equipo por el nombre de su familia (azul: ${familias.azul || '?'}, rojo: ${familias.rojo || '?'}), nunca «el azul» ni «el rojo».` : ' No llames a los equipos «el azul» ni «el rojo»: di el campeón o el jugador.';
-        const pide = (ids.length ? 'Escribe el titular y el resumen final, y elige las destacadas para el resumen en vídeo.' : 'Escribe el titular y el resumen final.') + nombres;
-        const ia = await this.pedir(`La partida ha terminado. Todo lo que pasó:\n${JSON.stringify(datos)}\n\n${pide}`,
-          ids.length ? ESQUEMAS.resumenConDestacadas(ids) : ESQUEMAS.resumen, { maxTokens: 2500 });
-        const destacadas = ids.length && Array.isArray(ia.destacadas) ? ia.destacadas.filter(id => ids.includes(id)) : null;
-        r = { titular: ia.titular, resumen: ia.resumen, hecho: 'ia', destacadas };
+        for (let intento = 0; intento < 2 && !this.resumenIa; intento++) {
+          await this.turno(cerebro, { final: true, candidatas, extra: intento ? { pide: 'Falta resumen_final (y elegir_mvp si no lo has hecho).' } : extra, maxTokens: 6000 });
+        }
+        if (this.resumenIa) r = { titular: this.resumenIa.titular, resumen: this.resumenIa.resumen, hecho: 'ia', destacadas: candidatas.length ? this.resumenIa.destacadas : null };
       } catch (e) { this.ctx?.apuntar?.('ia', 'falla', { motivo: `resumen final: ${e.message}` }); }
+      finally { this.ocupada = false; }
     }
-    this.resumen = { ...r, hora: new Date().toISOString() };
+    this.resumen = { ...r, mvp: this.mvp ? { campeon: this.mvp.campeon, jugador: this.mvp.jugador, equipo: this.mvp.equipo, clave: this.mvp.clave, motivo: this.mvp.motivo } : null, hora: new Date().toISOString() };
     if (carpeta) {
-      try { writeFileSync(join(carpeta, 'resumen.txt'), `${r.titular ? r.titular + '\n\n' : ''}${r.resumen}\n`); } catch { /* sin carpeta: solo en el panel */ }
+      const mvp = this.mvp ? `\n\nMVP: ${this.mvp.jugador} (${this.mvp.campeon})${this.mvp.motivo ? '. ' + this.mvp.motivo : ''}\n` : '';
+      try { writeFileSync(join(carpeta, 'resumen.txt'), `${r.titular ? r.titular + '\n\n' : ''}${r.resumen}\n${mvp}`); } catch { /* sin carpeta: solo en el panel */ }
     }
     this.emit('resumen', this.resumen);
     return this.resumen;
@@ -458,8 +549,11 @@ export class Ia extends EventEmitter {
       fallos: this.estado.fallos,
       pausada: Date.now() < this.pausaHasta,
       ultimoError: this.estado.ultimoError,
-      consejo: this.consejo ? { tipo: this.consejo.tipo, campeon: this.consejo.campeon || null, motivo: this.consejo.motivo, hora: this.consejo.hora } : null,
+      decisiones: this.decisiones.slice(0, 10),
+      conversacion: { turnos: this.turnos, tokens: this.tokensConversacion(), uso: { ...this.uso } },
+      consejo: null,
       titulares: this.titulares,
+      mvp: this.mvp,
       resumen: this.resumen,
     };
   }

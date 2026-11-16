@@ -238,7 +238,17 @@
     "tiempoSegundos": 20,
     "archivoClave": "",
     "titulares": true,
-    "resumenFinal": true
+    "resumenFinal": true,
+    "minimoSegundos": 8,
+    "pensar": "adaptativo",
+    "respaldo": true,
+    "conversacion": { "maximoTurnos": 120, "maximoTokens": 150000 },
+    "limites": {
+      "antenaSegundos": 15, "margenCongelado": 2, "colchonSegundos": 5,
+      "grafismos": { "maximo": 1, "ventanaSegundos": 60, "separacionSegundos": 30, "minimoSegundos": 8, "maximoSegundos": 25 },
+      "repeticiones": { "maximo": 1, "ventanaSegundos": 240, "calmaSegundos": 20, "buscarSegundos": 60 },
+      "camara": { "maximo": 2, "ventanaSegundos": 300, "minimoSegundos": 6, "maximoSegundos": 20 }
+    }
   },
 
   "registro": {

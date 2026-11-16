@@ -32,6 +32,9 @@ export class Cerebro {
     this.eleccionesRep = new Map(); // grupo de jugadas → id de la elegida (null: sin respuesta, se repiten como siempre)
     this.gruposPedidos = new Map(); // grupo → segundo conocido en que empezó a esperar a la IA
     this.finPartida = null;         // segundo en que acabó (ya no llega nada más)
+    // Planos «seguir» que pide la IA para los ratos muertos (pc1/ia.js, ya validados en pc1/ia-limites.js):
+    // { id, desde, hasta, jugador: { jugador, campeon, equipo }, motivo }. Solo entran en los huecos (rellenarCalma).
+    this.propuestasIa = [];
   }
 
   // Jugadas que se repetirían y acaban casi a la vez («grupoSegundos»): con la IA se repite solo la mejor.
@@ -369,7 +372,10 @@ export class Cerebro {
   // hilo conductor por los junglas y las líneas: un jungla, una línea, el otro jungla, la siguiente línea…
   // (top, mid, bot). La rueda va por el reloj de la partida, así el plan sale igual cada vez que se rehace.
   // Huecos cortos (menos de «minimo» s), fuera de horario o sin datos de los jugadores: plano general como antes.
-  rellenarCalma(a, b) {
+  rellenarCalma(a, b, conIa = true) {
+    // Lo que pida la IA para este hueco va antes que la alternancia (ver calmaConIa)
+    const propuestas = conIa ? this.propuestasIaEn(a, b) : [];
+    if (propuestas.length) return this.calmaConIa(a, b, propuestas);
     const c = this.r.calma;
     const general = [{ inicio: a, fin: b, tipo: 'general', objetivo: null, jugada: null }];
     const js = this.jugadores || [];
@@ -406,6 +412,28 @@ export class Cerebro {
       s = e;
     }
     if (b === null && planos.length) planos.at(-1).fin = null;
+    return planos;
+  }
+
+  // Propuestas «seguir» de la IA que caen en el hueco [a, b) (b null: abierto)
+  propuestasIaEn(a, b) {
+    const fin = b === null ? Infinity : b;
+    return (this.propuestasIa || []).filter(p => p.hasta > a && p.desde < fin).sort((x, y) => x.desde - y.desde);
+  }
+
+  // Hueco con propuestas de la IA: sus planos (recortados al hueco) y, entre medias, la calma de siempre
+  calmaConIa(a, b, propuestas) {
+    const fin = b === null ? Infinity : b;
+    const planos = [];
+    let t = a;
+    for (const p of propuestas) {
+      const i = Math.max(t, p.desde), f = Math.min(fin, p.hasta);
+      if (f - i < 1) continue;
+      if (i > t) planos.push(...this.rellenarCalma(t, i, false));
+      planos.push({ inicio: i, fin: f, tipo: 'seguir', objetivo: { jugador: p.jugador.jugador, campeon: p.jugador.campeon, equipo: p.jugador.equipo }, jugada: null, guion: 'ia', ia: p.id });
+      t = f;
+    }
+    if (t < fin) planos.push(...this.rellenarCalma(t, b, false));
     return planos;
   }
 
@@ -524,7 +552,8 @@ export class Cerebro {
     const margen = (this.r.anticipacionPelea ?? this.r.anticipacion ?? 7) + 2;
     const libre = (a, b) => !this.jugadas.some(j => j.inicio < b && j.fin > a)
       && !this.acciones.some(x => x.t < b && x.t + (x.segundos || 0) > a)
-      && !this.visiones.some(x => x.t < b && x.t + 2 * (x.segundos || 2) + 1 > a);
+      && !this.visiones.some(x => x.t < b && x.t + 2 * (x.segundos || 2) + 1 > a)
+      && !(this.propuestasIa || []).some(p => p.desde < b && p.hasta > a);
     let t = Math.max(desde, this.recorridoMirado, c.desdeSegundo ?? 120);
     const ultima = this.recorridos.at(-1);
     if (ultima) t = Math.max(t, ultima.t + (c.separacionSegundos ?? 180));
@@ -585,6 +614,7 @@ export class Cerebro {
       const lejosDeOtra = t => fuerte || !this.acciones.some(a => a.tipo === 'repeticion' && Math.abs(a.t - t) < (sueltas.separacion ?? 0));
       for (let t = j.fin + 2; t <= j.fin + 60; t += 2) {
         if (t + calma > conocidoHasta) break;  // aún no se sabe
+        if (t < (j.repetirDesde ?? -Infinity)) continue;  // repetición pedida por la IA: no antes de lo que validó
         if (!ocupado(t, t + calma, fuerte ? r.prioridades.objetivo : 0) && lejosDeOtra(t)) {
           const a = { id: `rep-${j.id}`, tipo: 'repeticion', t: red(t), segundos: r.repeticion.segundos, jugada: j.id, desdeT: red(j.inicio), hastaT: red(hastaT), ...(j.eleccionIa ? { ia: true } : {}) };
           j.repeticion = a.id;

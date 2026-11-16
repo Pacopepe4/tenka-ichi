@@ -115,7 +115,7 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
   conexiones.ia = o.ia?.activo || otraIa ? false : null;
   ia.preparar().then(ok => {
     conexiones.ia = conexiones.ia === null ? null : ok;
-    if (ok) log(`IA encendida (${ia.nombreModelo}): elige el overlay en los ratos tranquilos, la repetición si coinciden varias y escribe el resumen final`);
+    if (ok) log(`IA encendida (${ia.nombreModelo}): programa grafismos, repeticiones extra y cámara en ratos muertos (con límites), elige la repetición si coinciden varias, el MVP y escribe el resumen final`);
     else if (o.ia?.activo) avisar(`IA: ${ia.estado.motivo}. El realizador sigue con sus reglas`);
     panel?.emitir();
   }).catch(e => avisar(`IA: ${e.message}`));
@@ -128,6 +128,9 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
     manual: () => ejecutor.manual,
     hayCambios: () => { ejecutor.hayCambios(); panel?.emitir(); },
     apuntar: (quien, que, datos) => ejecutor.apuntar(quien, que, datos),
+    // Para el contexto de la IA: fase del directo (la manda el PC 2) y CS de cada jugador (el oro no llega aquí)
+    fase: () => (ejecutor.releConectado ? ejecutor.antena?.fase?.fase || null : null),
+    cs: () => explorador.cs,
   });
   let fallosIa = 0;
   const vigiaIa = setInterval(() => {
