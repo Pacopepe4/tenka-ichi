@@ -10,7 +10,8 @@
 //     repetición activado y los clips en Vídeos\Realizador.
 //   - Servidor WebSocket activado, con el puerto de opciones.json y una contraseña, que se apunta en
 //     opciones.local.json para que el agente la use.
-//   - OBS arranca con esa colección y ese perfil.
+//   - Tu perfil y tu colección siguen siendo los de arranque (16/11): el realizador abre OBS con los suyos
+//     (--profile/--collection), y lo que usabas se apunta en realizador-copiadueno.json (instalar/desconfigurar-obs.js).
 //
 //   node instalar/configurar-obs.js
 //   Opcional: --carpeta "C:\Users\yo\AppData\Roaming\obs-studio"   --overlay "https://.../overlay"
@@ -25,6 +26,7 @@ import { execFileSync } from 'node:child_process';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { ponerEnIni } from './configurar-lol.js';
 import { configurarDestinos } from './multi-rtmp.js';
+import { apuntarDueno } from './desconfigurar-obs.js';
 import { disposicionCamaras, FUENTES as CAMARAS_DRAFT } from '../pc2/camaras.js';
 import { FUENTES_FASES, MUSICA } from '../pc2/fases.js';
 import { carpetasVideos, listarVideos } from '../pc2/traileres.js';
@@ -489,6 +491,8 @@ export function configurarObs({ carpeta, opciones, rutaLocal, overlay, overlayPo
   const inis = [rutaUser, rutaGlobal].filter(existsSync);
   if (!inis.length) inis.push(rutaGlobal);  // OBS no se ha abierto nunca: lo leerá de global.ini
   const actual = leerIni(leerTexto(inis[0])).Basic || {};
+  // Lo que usa el dueño de este OBS (si no es ya el del realizador): para dejárselo como estaba (desconfigurar-obs.js)
+  apuntarDueno(carpeta, actual);
 
   // 2. Colección de escenas
   const escenas = join(carpeta, 'basic', 'scenes');
@@ -587,12 +591,11 @@ export function configurarObs({ carpeta, opciones, rutaLocal, overlay, overlayPo
   local.obs.url ||= `ws://127.0.0.1:${puerto}`;
   writeFileSync(rutaLocal, JSON.stringify(local, null, 2) + '\n');
 
-  // 5. global.ini / user.ini: colección, perfil y WebSocket. Y el config.json de las versiones de
-  //    obs-websocket que aún lo leen (las nuevas lo pasan solas al ini y lo borran).
-  const cambios = {
-    Basic: { Profile: NOMBRE, ProfileDir: NOMBRE, SceneCollection: NOMBRE, SceneCollectionFile: NOMBRE },
-    ...ajustesWebsocket(puerto, clave),
-  };
+  // 5. global.ini / user.ini: solo el WebSocket. El perfil y la colección de arranque se quedan los del dueño (16/11:
+  //    con los nuestros de arranque, su OBS de siempre emitía también en los canales de Gokudō); el realizador abre
+  //    OBS con los suyos (pc2/abrir-obs.js, 5-abrir-obs.bat). Y el config.json de las versiones de obs-websocket que
+  //    aún lo leen (las nuevas lo pasan solas al ini y lo borran).
+  const cambios = { ...ajustesWebsocket(puerto, clave) };
   for (const ruta of inis) {
     const nombre = ruta.endsWith('user.ini') ? 'user.ini' : 'global.ini';
     guardarCopia(ruta, nombre);

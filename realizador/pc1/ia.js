@@ -417,7 +417,7 @@ export class Ia extends EventEmitter {
   // Al acabar la partida. Siempre devuelve algo: si la IA falla, el resumen por reglas.
   // candidatas: jugadas que pueden entrar en el resumen en vídeo. En la misma llamada la IA dice cuáles salen y en qué
   // orden («destacadas»; se tiran los ids que no son candidatos). Sin IA o si falla, destacadas null: entran todas.
-  async resumenFinal({ cerebro, jugadores = [], tFin = null, carpeta = null, candidatas = [] }) {
+  async resumenFinal({ cerebro, jugadores = [], tFin = null, carpeta = null, candidatas = [], familias = null }) {
     let r = { ...resumenReglas(cerebro, jugadores, tFin), destacadas: null };
     const ids = candidatas.map(j => j.id);
     if (this.estado.activa && this.o.resumenFinal !== false && cerebro.jugadas.length) {
@@ -428,8 +428,11 @@ export class Ia extends EventEmitter {
           marcador: marcador(cerebro, jugadores),
           jugadas: cerebro.jugadas.map(j => jugadaCorta(j, null)),
           ...(ids.length ? { candidatasResumenVideo: ids } : {}),
+          ...(familias?.azul || familias?.rojo ? { familias } : {}),
         };
-        const pide = ids.length ? 'Escribe el titular y el resumen final, y elige las destacadas para el resumen en vídeo.' : 'Escribe el titular y el resumen final.';
+        // La crónica se publica en la web y en Discord: con el nombre de cada familia, nunca «el azul / el rojo»
+        const nombres = familias?.azul || familias?.rojo ? ` Llama a cada equipo por el nombre de su familia (azul: ${familias.azul || '?'}, rojo: ${familias.rojo || '?'}), nunca «el azul» ni «el rojo».` : ' No llames a los equipos «el azul» ni «el rojo»: di el campeón o el jugador.';
+        const pide = (ids.length ? 'Escribe el titular y el resumen final, y elige las destacadas para el resumen en vídeo.' : 'Escribe el titular y el resumen final.') + nombres;
         const ia = await this.pedir(`La partida ha terminado. Todo lo que pasó:\n${JSON.stringify(datos)}\n\n${pide}`,
           ids.length ? ESQUEMAS.resumenConDestacadas(ids) : ESQUEMAS.resumen, { maxTokens: 2500 });
         const destacadas = ids.length && Array.isArray(ia.destacadas) ? ia.destacadas.filter(id => ids.includes(id)) : null;

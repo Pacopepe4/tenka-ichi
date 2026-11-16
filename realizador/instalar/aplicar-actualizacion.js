@@ -19,7 +19,7 @@ import { join } from 'node:path';
 import { execFileSync, spawn } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 
-export const PRESERVAR = ['.actualizacion', '.git', 'node', 'node_modules', 'partidas', 'capturas', 'opciones.local.json', 'clave-ia.txt',
+export const PRESERVAR = ['.actualizacion', '.git', 'node', 'node_modules', 'partidas', 'capturas', 'opciones.local.json', 'clave-ia.txt', 'cronicas-clave.txt',
   'puente/clave.txt', 'herramientas/ffmpeg'];
 
 const norm = rel => rel.replace(/\\/g, '/');

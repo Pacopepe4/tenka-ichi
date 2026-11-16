@@ -216,6 +216,7 @@
         <div><h2>Estado</h2><div class="luces" id="luces"></div></div>
         <div class="sub">OBS está en la bandeja, junto al reloj: un clic en su icono si hace falta tocar algo a mano.</div>
         <button id="capturaJuego" title="Guarda la imagen del LoL a tamaño completo, sin overlay, para cuadrar el marco del minimapa">Captura para el marco del minimapa</button>
+        <button id="desconfigurarObs" title="Cierra OBS y deja tu perfil y tu colección de siempre como los de arranque, para que tu OBS no emita en los canales de Gokudō">Desconfigurar OBS (dejar el mío)</button>
       </section>
     </div>
     <div class="directo">
@@ -715,6 +716,16 @@
   };
   $('repetir').onclick = () => mandar('/repetir', {});
   $('abrirObs').onclick = () => mandar('/obs', {});
+  $('desconfigurarObs').onclick = async () => {
+    if (!confirm('Se cierra OBS y vuelve a arrancar con tu perfil y tu colección de siempre (los del realizador siguen ahí, pero ya no se abren solos). ¿Seguir?')) return;
+    try {
+      const d = await (await fetch('/desconfigurar-obs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).json();
+      if (!d.ok) { aviso(d.error || (d.faltan || []).join(' ') || 'No se pudo'); return; }
+      $('toast').style.borderColor = 'var(--ok)';
+      aviso([...(d.hechos || []), ...(d.faltan || [])].join(' · '));
+      setTimeout(() => { $('toast').style.borderColor = ''; }, 9000);
+    } catch { aviso('No se pudo hablar con el realizador'); }
+  };
   $('capturaJuego').onclick = async () => {
     try {
       const d = await (await fetch('/captura-juego', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).json();

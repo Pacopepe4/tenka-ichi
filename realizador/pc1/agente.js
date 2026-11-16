@@ -17,7 +17,8 @@ import { Sala } from '../comun/sala.js';
 import { aplicarPerfil, restaurarPerfil, rutaConfig } from '../instalar/configurar-lol.js';
 import { condiciones } from '../comun/condiciones.js';
 import { Ia } from './ia.js';
-import { Actualizador, registroEnArchivo } from '../comun/app.js';
+import { Actualizador, registroEnArchivo, webDe } from '../comun/app.js';
+import { claveCronicas, familiasDe, mandarCronica } from '../comun/cronicas.js';
 import { LectorPantalla, leerFotograma, SeguidorMarcador, SeguidorHechizos, sucesoDeContador } from './pantalla.js';
 import { carpetaFfmpeg } from '../instalar/ffmpeg.js';
 import { enlacesCasteo } from '../comun/casteo.js';
@@ -238,6 +239,17 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
     if (lectura.lector) { conexiones.pantalla = false; lectura.lector.arrancar(); }
     log(`Partida encontrada (${info.modo || 'modo desconocido'}). Registro en ${buzon.carpeta}`);
   });
+  // Crónica de la partida a la web (comun/cronicas.js): solo la que escribe la IA, con la clave de cronicas-clave.txt
+  const mandarCronicaFinal = (r, familias) => {
+    if (o.cronicas?.activo === false || !r || (o.cronicas?.soloIa !== false && r.hecho !== 'ia')) return;
+    const clave = claveCronicas(RAIZ);
+    if (!clave) { log('Crónica: sin cronicas-clave.txt en la carpeta del realizador, no se manda'); return; }
+    mandarCronica({ web: o.cronicas?.web || webDe(o), clave, titulo: r.titular, texto: r.resumen, resumen: r.resumen, ...familias })
+      .then(x => {
+        ejecutor.apuntar('realizador', 'crónica', { ok: x.ok, estado: x.estado ?? null, error: x.error ?? null });
+        if (x.ok) log('Crónica de la partida mandada a la web'); else avisar(`Crónica: no se ha podido mandar (${x.error})`);
+      });
+  };
   explorador.on('fin', info => {
     // El PC 2 pasa a la escena final cuando la antena llegue a este segundo
     ejecutor.tFin = info?.t ?? explorador.tiempo?.t ?? explorador.ahora();
@@ -251,8 +263,9 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
     // Resumen escrito y, en la misma llamada, las jugadas destacadas para el resumen en vídeo (sin IA, todas las
     // candidatas). La lista va al PC 2 con el guion: allí sale cuando la emisión pase a Casters.
     const lista = r => { if (c === cerebro) ejecutor.ponerResumen(c.listaResumen(tFin, r?.destacadas ?? null)); };
-    ia.resumenFinal({ cerebro: c, jugadores: explorador.jugadores, tFin, carpeta: ejecutor.buzon?.carpeta, candidatas: c.candidatasResumen() })
-      .then(r => { ejecutor.apuntar(r.hecho === 'ia' ? 'ia' : 'realizador', 'resumen final', { titular: r.titular || null }); lista(r); panel?.emitir(); })
+    const familias = familiasDe(tenka?.estado);
+    ia.resumenFinal({ cerebro: c, jugadores: explorador.jugadores, tFin, carpeta: ejecutor.buzon?.carpeta, candidatas: c.candidatasResumen(), familias })
+      .then(r => { ejecutor.apuntar(r.hecho === 'ia' ? 'ia' : 'realizador', 'resumen final', { titular: r.titular || null }); lista(r); panel?.emitir(); mandarCronicaFinal(r, familias); })
       .catch(() => lista(null));
   });
   explorador.on('evento', e => {

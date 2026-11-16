@@ -22,6 +22,8 @@ import { CamarasDraft } from './camaras.js';
 import { GrabadorLol, cursorEnClip } from './grabador.js';
 import { Actualizador, codigoSala } from '../comun/app.js';
 import { abrirObs, obsCorriendo } from './abrir-obs.js';
+import { desconfigurarObs, restaurarDueno, arrancaConRealizador } from '../instalar/desconfigurar-obs.js';
+import { carpetaObs } from '../instalar/configurar-obs.js';
 import { secuencia as secuenciaCinematica, duracion as duracionCinematica, INICIO, RIO, tocaCinematica } from './cinematica.js';
 import { juegoDeVision, ejecutarTeclas as ejecutarTeclasLol } from './teclas.js';
 import { Casteo } from './casteo.js';
@@ -162,7 +164,9 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
     estado.obsAbierto = abierto;
     if (!abierto) {
       sinContestarDesde = null;
-      if (o.obs?.abrirSolo === false || Date.now() - ultimoIntentoObs < 60000) return;
+      devolverArranqueAlDueno();
+      // Tras «Desconfigurar OBS» no se vuelve a abrir solo hasta que se arranque otra vez el realizador
+      if (o.obs?.abrirSolo === false || estado.obsDesconfigurado || Date.now() - ultimoIntentoObs < 60000) return;
       ultimoIntentoObs = Date.now();
       try { abrirObs(o, { minimizado: true }); registrar('[obs] OBS no estaba abierto: abierto en la bandeja'); } catch (e) { registrar(`[obs] no se puede abrir OBS: ${e.message}`); }
       return;
@@ -178,6 +182,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
     if (await obsCorriendo()) throw new Error('OBS ya está abierto pero no contesta: búscalo en la bandeja (junto al reloj) y mira si tiene un aviso; si no, ciérralo desde el Administrador de tareas y vuelve a pulsar');
     abrirObs(o, { minimizado: false });
     ultimoIntentoObs = Date.now();
+    estado.obsDesconfigurado = false;  // se vuelve a usar: el realizador lo vigila otra vez
     registrar('[obs] OBS abierto desde el panel');
   }
 
@@ -206,6 +211,30 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
   }
   // Captura del juego a tamaño completo (sin overlay ni marco) para cuadrar el marco del minimapa (14/11): se guarda en
   // partidas/captura-juego-<hora>.png y se abre la carpeta con el archivo marcado para pasarlo
+  // «Desconfigurar OBS» (16/11): cierra OBS y deja como perfil y colección de arranque los del dueño del PC, para que su
+  // OBS de siempre no emita en los canales de Gokudō (instalar/desconfigurar-obs.js). Mientras no se arranque otra vez
+  // el realizador, no se vuelve a abrir OBS solo.
+  // OBS recuerda al cerrarse el último perfil: si el que se cerró era el del realizador, el arranque vuelve al del dueño
+  // (con OBS cerrado; el realizador lo abre siempre con el suyo explícitamente)
+  function devolverArranqueAlDueno() {
+    if (o.obs?.devolverAlDueno === false || process.platform !== 'win32' || typeof conObs === 'object') return;
+    try {
+      const carpeta = o.obs?.carpeta || carpetaObs();
+      if (!arrancaConRealizador(carpeta)) return;
+      const r = restaurarDueno({ carpeta });
+      if (r.ok) registrar(`[obs] OBS cerrado: vuelve a arrancar con el perfil del dueño («${r.perfil}»)`);
+    } catch { /* sin configuración de OBS */ }
+  }
+
+  async function desconfigurarObsRele() {
+    if (emision.salidaActiva) throw new Error('Se está emitiendo: corta la emisión antes de desconfigurar OBS');
+    estado.obsDesconfigurado = true;
+    const r = await desconfigurarObs();
+    for (const h of r.hechos) registrar(`[obs] ${h}`);
+    for (const f of r.faltan) registrar(`[obs] ojo: ${f}`);
+    return r;
+  }
+
   async function capturaJuego() {
     if (!obs?.listo) throw new Error('OBS no está conectado');
     const r = await obs.pedir('GetSourceScreenshot', { sourceName: 'Juego LoL', imageFormat: 'png', imageWidth: 1920, imageHeight: 1080 });
@@ -1089,6 +1118,10 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
             if (accion === 'cerrar') {
               if (emision.salidaActiva) throw new Error('Se está emitiendo: para la emisión antes de cerrar el realizador');
               registrar('[app] cerrado desde el panel');
+              // Su OBS se cierra con él y el del dueño vuelve a ser el de arranque (16/11)
+              if (o.obs?.devolverAlDueno !== false && obs && typeof conObs !== 'object' && process.platform === 'win32') {
+                try { const r = await desconfigurarObs({ carpeta: o.obs?.carpeta || carpetaObs() }); for (const h of r.hechos) registrar(`[obs] ${h}`); } catch { /* sigue cerrando */ }
+              }
               setTimeout(cerrar, 300);
               return {};
             }
@@ -1099,6 +1132,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
           obs: () => botonObs(),
           captura: () => capturaObs(),
           capturaJuego: () => capturaJuego(),
+          desconfigurarObs: () => desconfigurarObsRele(),
         });
       }
       servidor.listen(puerto, '0.0.0.0');
