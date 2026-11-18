@@ -50,7 +50,7 @@ Una vez en cada PC:
 
 Si el PC no tiene Node.js 22 o superior, cualquier `.bat` lo baja solo: la versión LTS portátil oficial de nodejs.org (comprobada con su suma SHA-256) en la carpeta `node` del realizador, sin pedir permisos ni instalar nada en el PC. Solo si no hay internet abre nodejs.org.
 
-Cada directo: abre **Realizador PC2** (abre OBS con el búfer en marcha, el puente del marcador y el relé) y **Realizador PC1** (el agente y su panel en http://localhost:4600/). Los dos se encuentran solos en la sala del realizador del servidor de Gokudō (`puente.url`, `wss://tenka-ichi.onrender.com/realizador`) con la contraseña, aunque estén en redes distintas. Luego, espectead la partida en los dos: el PC 1 la encuentra y empieza a realizar solo, y el PC 2 pone la antena 2 minutos por detrás.
+Cada directo: abre **Realizador PC2** (abre OBS con el búfer en marcha, el puente del marcador y el relé) y **Realizador PC1** (el agente y su panel en http://localhost:4600/). Los dos se encuentran solos en la sala del realizador del servidor de Gokudō (`puente.url`, `wss://gokudo.es/realizador`) con la contraseña, aunque estén en redes distintas. Luego, espectead la partida en los dos: el PC 1 la encuentra y empieza a realizar solo, y el PC 2 pone la antena 2 minutos por detrás.
 
 - La contraseña no viaja: solo su huella (sha256), que hace de nombre de sala. El servidor no entiende nada, solo pasa mensajes de un PC al otro.
 - OBS lo maneja el relé del PC 2 en local: el PC 1 le manda con el guion qué clip guardar y qué repetición lanzar, y en qué segundo de antena. Las repeticiones no viajan: se graban y se emiten en el PC 2. Con 2 minutos de margen sobra tiempo (el guion llega con más de 100 s de antelación).
@@ -254,7 +254,7 @@ Cómo va, paso a paso:
 
 ## Gokudō (opcional)
 
-Los instaladores lo dejan activado en los dos PCs con la contraseña del panel (`"tenkaIchi": { "activo": true, "url": "wss://tenka-ichi.onrender.com/ws", "clave": "…" }`). El PC 1 manda al panel lo que enseña el overlay (línea por línea, gráfica de oro, ficha); el PC 2 solo mira si hay draft y cuántas cámaras lleva.
+Los instaladores lo dejan activado en los dos PCs con la contraseña del panel (`"tenkaIchi": { "activo": true, "url": "wss://gokudo.es/ws", "clave": "…" }`). El PC 1 manda al panel lo que enseña el overlay (línea por línea, gráfica de oro, ficha); el PC 2 solo mira si hay draft y cuántas cámaras lleva.
 
 Los **enlaces de DraftCore** los crea la web de Gokudō por adelantado (todas las partidas del calendario que quedan, sin cuenta en DraftCore) y, al cargar una partida en el panel, se conecta sola a su draft: en el apartado DraftCore salen los enlaces de azul, rojo y espectador para copiarlos.
 

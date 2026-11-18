@@ -95,7 +95,7 @@ test('con clave de Riot: registra proveedor y torneo una vez y pide un código p
   assert.equal(riot.llamadas.filter(l => l.ruta.endsWith('/tournaments')).length, 1);
   const prov = riot.llamadas.find(l => l.ruta.endsWith('/providers'));
   assert.equal(prov.ruta, '/lol/tournament/v5/providers');
-  assert.deepEqual(prov.cuerpo, { region: 'EUW', url: 'https://tenka-ichi.onrender.com/api/torneo/riot' });
+  assert.deepEqual(prov.cuerpo, { region: 'EUW', url: 'https://gokudo.es/api/torneo/riot' });
   const cod = riot.llamadas.find(l => l.ruta.includes('/codes'));
   assert.equal(cod.ruta, '/lol/tournament/v5/codes?count=1&tournamentId=4242');
   assert.equal(cod.cuerpo.teamSize, 5);

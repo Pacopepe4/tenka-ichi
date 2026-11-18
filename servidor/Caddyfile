@@ -1,0 +1,14 @@
+# HTTPS automático con Let's Encrypt para el dominio de .env (DOMINIO=gokudo.es).
+# Caddy pide y renueva el certificado solo; los websockets (/ws, /realizador) pasan sin tocar nada.
+{
+	email {$CORREO_CERTIFICADO}
+}
+
+{$DOMINIO} {
+	encode zstd gzip
+	reverse_proxy app:3000
+}
+
+www.{$DOMINIO} {
+	redir https://{$DOMINIO}{uri} permanent
+}

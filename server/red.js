@@ -8,7 +8,7 @@ import path from 'node:path';
 import { archivoDatos } from './datos.js';
 import { hojaActiva, asegurarPestana, leer, escribirEncima } from './sheets.js';
 
-const AGENTE = 'DiscordBot (https://tenka-ichi.onrender.com, 1.0)';
+const AGENTE = 'DiscordBot (https://gokudo.es, 1.0)';
 const BERMELLON = 0xBE2A2F;
 const MENSAJE = 4, SOLO_TU = 64, FILA = 1, BOTON = 2, VERDE = 3, ROJO = 4;
 const ADMINISTRADOR = 1n << 3n, GESTIONAR_SERVIDOR = 1n << 5n;

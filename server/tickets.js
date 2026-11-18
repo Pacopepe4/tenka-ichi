@@ -19,7 +19,7 @@ import { crearMemoria, RANGOS } from './tickets-memoria.js';
 import { elegirRamas, seccionesSaber, filasKb, textoLiga, recortarLore, loQueDijoLaGente, leerFichaKb, aliasDeFicha, quienEs } from './tickets-ramas.js';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const AGENTE = 'DiscordBot (https://tenka-ichi.onrender.com, 1.0)';
+const AGENTE = 'DiscordBot (https://gokudo.es, 1.0)';
 export const MODELO_POR_DEFECTO = 'claude-haiku-5-5';
 export const BERMELLON = 0xBE2A2F;
 const GRIS = 0x2A2B38;

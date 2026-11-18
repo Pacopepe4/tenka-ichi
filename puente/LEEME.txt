@@ -46,4 +46,4 @@ cliente da de cada jugador (hechizos, runas, objetos y sus huecos). Solo lee dat
 este ordenador y no manda nada a internet. Si lo pide quien mantiene la web, se lo envías.
 
 
-Todo lo demás está en la guía: https://tenka-ichi.onrender.com/guia/#ingame
+Todo lo demás está en la guía: https://gokudo.es/guia/#ingame

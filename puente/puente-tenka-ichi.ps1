@@ -6,7 +6,7 @@
 # cuando la partida termina. No instala nada: usa PowerShell, que viene con Windows. Solo lee datos
 # que el propio cliente ofrece; no toca el juego.
 param(
-  [string]$Servidor = 'https://tenka-ichi.onrender.com'
+  [string]$Servidor = 'https://gokudo.es'
 )
 $Version = 4
 
