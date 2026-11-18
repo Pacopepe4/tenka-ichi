@@ -11,3 +11,7 @@ puente/volcado-jugadores.json
 # Originales de los marcos (se sacan con node diseno/marcos/exportar.mjs)
 diseno/marcos/png/
 diseno/marcos/.tmp/
+
+# Server casero: secretos y estado del aviso de IP
+servidor/ddns/config.json
+servidor/ddns/updates.json

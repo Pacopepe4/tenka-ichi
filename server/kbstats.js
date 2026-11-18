@@ -6,7 +6,7 @@
 const BASE = 'https://www.kbstats.es';
 const CADA_MS = 6 * 3600 * 1000;
 const REINTENTO_MS = 10 * 60 * 1000;
-const AGENTE = 'GokudoTickets/1.0 (+https://tenka-ichi.onrender.com)';
+const AGENTE = 'GokudoTickets/1.0 (+https://gokudo.es)';
 const ROLES = { TOP: 'Top', JGL: 'Jungla', JUNGLE: 'Jungla', MID: 'Medio', ADC: 'ADC', BOT: 'ADC', SUP: 'Support', SUPPORT: 'Support' };
 
 const entidades = s => s.replace(/&amp;/g, '&').replace(/&#39;|&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ');

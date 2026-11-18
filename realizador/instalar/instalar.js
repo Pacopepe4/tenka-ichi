@@ -43,7 +43,7 @@ export function wsDeTenka(urlPuente) {
 export function opcionesLocales(papel, clave, actuales = {}, ruta, urlPuente) {
   // Los dos PCs hablan con el panel de Gokudō con la misma contraseña: el PC 1 lleva el overlay (línea por
   // línea, gráfica de oro, ficha) y el PC 2 mira el draft para poner su escena
-  const tenka = wsDeTenka(urlPuente || actuales.puente?.url || 'wss://tenka-ichi.onrender.com/realizador');
+  const tenka = wsDeTenka(urlPuente || actuales.puente?.url || 'wss://gokudo.es/realizador');
   const comun = { papel, clave, ...(ruta ? { rutaLoL: ruta } : {}), ...(tenka ? { tenkaIchi: { activo: true, url: actuales.tenkaIchi?.url || tenka, clave } } : {}) };
   // Los dos PCs se encuentran en la sala del realizador del servidor de Gokudō. OBS va en el PC 2 y lo
   // maneja su relé: el PC 1 solo le dice qué guardar y qué repetir.

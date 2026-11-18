@@ -1,0 +1,18 @@
+{
+  "settings": [
+    {
+      "provider": "dondominio",
+      "domain": "gokudo.es",
+      "username": "TU_USUARIO_API_DE_DONDOMINIO",
+      "key": "TU_CLAVE_API_DE_DONDOMINIO",
+      "ip_version": "ipv4"
+    },
+    {
+      "provider": "dondominio",
+      "domain": "www.gokudo.es",
+      "username": "TU_USUARIO_API_DE_DONDOMINIO",
+      "key": "TU_CLAVE_API_DE_DONDOMINIO",
+      "ip_version": "ipv4"
+    }
+  ]
+}

@@ -148,7 +148,7 @@ export function crearTorneo({
   stub = Boolean(process.env.RIOT_TORNEO_STUB),
   riot = null, pedirRiot = fetch,
   plataforma = process.env.RIOT_TORNEO_PLATAFORMA || 'EUW1',
-  urlAvisos = `${process.env.TORNEO_URL_PUBLICA || process.env.RENDER_EXTERNAL_URL || 'https://tenka-ichi.onrender.com'}/api/torneo/riot`,
+  urlAvisos = `${process.env.TORNEO_URL_PUBLICA || process.env.RENDER_EXTERNAL_URL || 'https://gokudo.es'}/api/torneo/riot`,
   nombreTorneo = 'Gokudō 2026',
   parametros = { teamSize: 5, pickType: 'TOURNAMENT_DRAFT', mapType: 'SUMMONERS_RIFT', spectatorType: 'LOBBYONLY', enoughPlayers: false },
   secreto = process.env.SESION_SECRETO || 'secreto-solo-para-pruebas-en-local',

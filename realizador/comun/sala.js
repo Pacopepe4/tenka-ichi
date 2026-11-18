@@ -6,7 +6,7 @@
 import { EventEmitter } from 'node:events';
 import { ficha } from './puente.js';
 
-export const URL_TENKA = 'wss://tenka-ichi.onrender.com/realizador';
+export const URL_TENKA = 'wss://gokudo.es/realizador';
 
 export class Sala extends EventEmitter {
   constructor({ url = URL_TENKA, clave, papel }) {

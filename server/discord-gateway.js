@@ -15,7 +15,7 @@ const OP = { DISPATCH: 0, HEARTBEAT: 1, IDENTIFY: 2, RESUME: 6, RECONNECT: 7, IN
 // Códigos de cierre con los que no vale la pena volver a intentarlo
 const FATALES = { 4004: 'el DISCORD_BOT_TOKEN no vale', 4010: 'shard no válido', 4011: 'hace falta sharding', 4012: 'versión de la API no válida',
   4013: 'intents no válidos', 4014: 'intents no permitidos' };
-const AGENTE = 'DiscordBot (https://tenka-ichi.onrender.com, 1.0)';
+const AGENTE = 'DiscordBot (https://gokudo.es, 1.0)';
 
 export function crearGateway({ token, urlApi = 'https://discord.com/api/v10', alMensaje, log = console, crearSocket = url => new WebSocket(url),
   esperar = (ms, fn) => setTimeout(fn, ms), contenido = false }) {

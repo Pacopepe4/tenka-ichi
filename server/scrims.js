@@ -21,7 +21,7 @@ import { hojaActiva, asegurarPestana, leer, escribirEncima } from './sheets.js';
 import { crearValoracion, riotIdsDe, nombreDeValor, CITA } from './valoracion.js';
 import { eloNumero } from './elo.js';
 
-const AGENTE = 'DiscordBot (https://tenka-ichi.onrender.com, 1.0)';
+const AGENTE = 'DiscordBot (https://gokudo.es, 1.0)';
 const BERMELLON = 0xBE2A2F;
 const MENSAJE = 4, DIFERIDA = 5, VENTANA = 9, SOLO_TU = 64, FILA = 1, BOTON = 2, TEXTO = 4, ROJO = 4, GRIS = 2;
 const ADMINISTRADOR = 1n << 3n;

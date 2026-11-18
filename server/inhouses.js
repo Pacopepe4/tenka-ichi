@@ -20,7 +20,7 @@ import { eloNumero } from './elo.js';
 import { crearValoracion, riotIdsDe, nombreDeValor, CITA } from './valoracion.js';
 export { eloNumero };
 
-const AGENTE = 'DiscordBot (https://tenka-ichi.onrender.com, 1.0)';
+const AGENTE = 'DiscordBot (https://gokudo.es, 1.0)';
 const BERMELLON = 0xBE2A2F, AZUL = 0x39C6F0;
 const MENSAJE = 4, DIFERIDA = 5, VENTANA = 9, SOLO_TU = 64, FILA = 1, BOTON = 2, TEXTO = 4, PRIMARIO = 1, GRIS = 2, VERDE = 3, ROJO = 4;
 const ADMINISTRADOR = 1n << 3n, GESTIONAR_SERVIDOR = 1n << 5n;

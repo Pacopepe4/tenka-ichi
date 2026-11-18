@@ -29,7 +29,7 @@ function discordDeGokudo({ token = process.env.DISCORD_BOT_TOKEN, urlApi = proce
   async function pedir(metodo, ruta, cuerpo) {
     const r = await fetch(`${urlApi}${ruta}`, {
       method: metodo,
-      headers: { Authorization: `Bot ${token}`, 'User-Agent': 'DiscordBot (https://tenka-ichi.onrender.com, 1.0)', ...(cuerpo && { 'Content-Type': 'application/json' }) },
+      headers: { Authorization: `Bot ${token}`, 'User-Agent': 'DiscordBot (https://gokudo.es, 1.0)', ...(cuerpo && { 'Content-Type': 'application/json' }) },
       body: cuerpo ? JSON.stringify(cuerpo) : undefined,
       signal: AbortSignal.timeout(15_000),
     });

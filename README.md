@@ -90,6 +90,8 @@ Para que otro clan pase a Legacy (o vuelva a competir) basta con poner o quitar 
 4. Render te da una dirección tipo `https://tenka-ichi.onrender.com`. Cada vez que hagas `git push`, se actualiza sola.
 5. El plan gratuito se duerme tras 15 min sin uso: abre el panel un minuto antes del directo.
 
+> **En el server casero (gokudo.es):** todo lo de Docker, HTTPS, copias y la checklist del cambio está en [`servidor/README.md`](servidor/README.md).
+
 ## Google Sheets (registro de picks y bans)
 
 A la hoja solo va el registro de las partidas: cada pick y cada ban, quién lo hace, de qué clan y si ganó o perdió.
@@ -325,7 +327,7 @@ El gachapon va por **temporadas** (`TEMPORADA` en `server/datos.js`). Al estrena
 1. Entra en https://discord.com/developers/applications con tu cuenta de Discord y pulsa **New Application** (nombre: `Tenka Ichi`, o el que quieras). No hace falta crear ningún bot ni verificar la aplicación.
 2. En el menú **OAuth2**:
    - Copia el **Client ID** y pulsa **Reset Secret** para sacar el **Client Secret**.
-   - En **Redirects** añade `https://tenka-ichi.onrender.com/auth/discord/callback` y, para probar en local, `http://localhost:3030/auth/discord/callback`. Guarda los cambios.
+   - En **Redirects** añade `https://gokudo.es/auth/discord/callback` y, para probar en local, `http://localhost:3030/auth/discord/callback`. Guarda los cambios.
 3. En Render, en Environment del servicio, añade:
    - `DISCORD_CLIENT_ID`: el Client ID.
    - `DISCORD_CLIENT_SECRET`: el Client Secret.
@@ -360,7 +362,7 @@ Cómo es el servidor (roles, categorías, canales con su emoji, permisos y webho
 Los roles quedan en el orden de `roles` (Kumichō, el staff, arriba; luego Oyabun (los jefes de familia), las familias y Kobun): cada rol solo puede dar los que tiene por debajo, así que los Oyabun (pueden invitar, mover gente y dar roles) reparten los de las familias y Kobun, pero no el de Kumichō. **/reclutar** (comando del bot): un Oyabun escribe `/reclutar quien:@alguien` y el bot le da a esa persona el rol de la familia del Oyabun y el de Kobun, y lo anuncia en el canal. Solo deja reclutar para la familia propia, a quien no es de ninguna otra (sacarlo de una familia lo hace el staff). Por eso los Oyabun no tienen «Gestionar roles». Lo atiende la web (`server/discord-comandos.js`, ruta `POST /discord/interacciones`), que comprueba la firma de Discord con la Public Key; no hace falta tener el bot conectado. Para activarlo:
 
 1. En Render: `DISCORD_PUBLIC_KEY` (discord.com/developers › Gokudō › General Information › Public Key; no es secreta) y `DISCORD_BOT_TOKEN` (el mismo del `.env`; secreto).
-2. Con la web ya desplegada, en General Information › **Interactions Endpoint URL**: `https://tenka-ichi.onrender.com/discord/interacciones` y guardar (Discord la prueba en ese momento).
+2. Con la web ya desplegada, en General Information › **Interactions Endpoint URL**: `https://gokudo.es/discord/interacciones` y guardar (Discord la prueba en ese momento).
 3. `npm run discord-aplicar` registra el comando en el servidor (los comandos están en `comandos` de `discord/servidor.json`).
 
 Todo lo automático va con el bot, nunca con la cuenta de una persona. Para probar sin Discord: `npm run discord-api-falso` y `DISCORD_URL_API=http://localhost:4060/api/v10 DISCORD_BOT_TOKEN=token-prueba`.
@@ -529,7 +531,7 @@ Para activarlo:
 
 1. Entra en https://dev.twitch.tv/console/apps con tu cuenta de Twitch y pulsa **Register Your Application**:
    - Name: `Tenka Ichi` (o el que quieras).
-   - OAuth Redirect URLs: `https://tenka-ichi.onrender.com/auth/twitch/callback` y, para probar en local, `http://localhost:3030/auth/twitch/callback`.
+   - OAuth Redirect URLs: `https://gokudo.es/auth/twitch/callback` y, para probar en local, `http://localhost:3030/auth/twitch/callback`.
    - Category: **Website Integration**. Client Type: **Confidential**.
 2. En la app creada copia el **Client ID** y pulsa **New Secret** para sacar el **Client Secret**.
 3. En Render añade `TWITCH_CLIENT_ID` y `TWITCH_CLIENT_SECRET` (y `SESION_SECRETO`, si no lo tenías ya).
@@ -549,9 +551,9 @@ Para activarlo:
 
 1. En Kick, con la cuenta **Gokudo_zoku**: **Ajustes › Developer** (kick.com/settings/developer) › **Create new app**:
    - Nombre: `Gokudō` (o el que quieras).
-   - Redirect URL: `https://tenka-ichi.onrender.com/auth/kick/callback` (y, para probar en local, `http://localhost:3030/auth/kick/callback`).
+   - Redirect URL: `https://gokudo.es/auth/kick/callback` (y, para probar en local, `http://localhost:3030/auth/kick/callback`).
    - Permisos (*scopes*): `user:read`, `channel:rewards:read`, `channel:rewards:write`, `events:subscribe`, `chat:write` y `kicks:read` (en Kick: leer la información del usuario, leer y gestionar las recompensas de puntos, suscribirse a eventos, escribir en el chat y leer lo de los KICKs).
-   - **Enable Webhooks** encendido, con la Webhook URL `https://tenka-ichi.onrender.com/webhooks/kick`.
+   - **Enable Webhooks** encendido, con la Webhook URL `https://gokudo.es/webhooks/kick`.
 2. Copia el **Client ID** y el **Client Secret** de la app y ponlos en Render, en Environment: `KICK_CLIENT_ID` y `KICK_CLIENT_SECRET` (nunca en el chat ni en el repo).
 3. En el panel, apartado **Gachapon**, pulsa **Conectar el canal de Kick** y entra con la cuenta **Gokudo_zoku**. La web crea la recompensa «Omamori» a 3000 puntos, en el bermellón de la marca; el coste se cambia desde el panel. Si en Kick ya hay una recompensa «Omamori» creada a mano, hay que borrarla antes: Kick solo deja a cada app aceptar los canjes de las recompensas que ha creado ella.
 
