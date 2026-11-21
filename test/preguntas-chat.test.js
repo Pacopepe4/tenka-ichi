@@ -34,7 +34,13 @@ test('contesta en una línea, con la mención, los trozos del contexto y el pape
   assert.match(p.system[0].text, /Una liga de LoL\./, 'el núcleo de la ficha va en el papel');
   assert.match(p.system[0].text, /NO debe decir nunca/);
   assert.match(p.messages[0].content, /<contexto>\n### Plantilla de la familia Ryūjin\nTop: GAATSU\.\n<\/contexto>/);
-  assert.match(p.messages[0].content, /en el chat de Twitch/);
+  assert.match(p.messages[0].content, /en el chat de Twitch\./);
+  assert.match(p.system[0].text, /Don Paco/);
+  // Si su nombre es el de alguien con ficha, le llega el tono que pidió
+  const conFicha = crearPreguntasChat({ cliente: claude, saber: () => SABER, log: silencio,
+    fichas: () => '## JLEGEND · Jungla · Yasha\n- **¿Cómo se le llama en la comunidad?:** JLEGEND\n- **Tono con esta persona:** Serio\n' });
+  await conFicha.responder({ pregunta: 'hola', plataforma: 'kick', quien: { id: '7', nombre: 'jlegend' } });
+  assert.match(claude.peticiones.at(-1).messages[0].content, /en el chat de Kick \(según su ficha es JLEGEND; tono con esta persona: Serio\)\./);
   assert.ok(p.max_tokens <= 400);
   assert.ok(MAX_CHAT < 500);
 });

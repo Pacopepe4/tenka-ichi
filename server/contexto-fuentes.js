@@ -13,7 +13,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { leerFichaKb, normalizar } from './tickets-ramas.js';
+import { leerFichaKb, normalizar, nombra } from './tickets-ramas.js';
 import { RANGOS } from './tickets-memoria.js';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -107,10 +107,28 @@ export function quitarSinRespuesta(texto) {
   }
   return lineas.filter((_, i) => !fuera.has(i)).join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
+// Valen las dos formas: el cuestionario contestado (preguntas numeradas, la respuesta debajo) y las fichas ya pasadas a
+// limpio (discord/fichas-miembros.md desde el 21/11: «## GAATSU · Top · Ryūjin» y una línea «- **Tono…:** …» por dato).
+// La entradilla del archivo (sin preguntas ni datos) no entra
 export function trozosFichas(md) {
   return trozosMarkdown(md, { prefijo: 'Ficha' })
     .map(t => ({ ...t, texto: quitarSinRespuesta(t.texto) }))
-    .filter(t => t.texto && /\d+\.\s/.test(t.texto) && !/^Introducción/.test(t.titulo.replace(/^Ficha · /, '')));
+    .filter(t => t.texto && /(^|\n)\s*(\d+\.\s|- \*\*[^*]+:\*\*)/.test(t.texto) && !/^Introducción/.test(t.titulo.replace(/^Ficha · /, '')));
+}
+
+// La ficha de quien habla con el bot, para hablarle con el tono que pidió y no sacar lo que no quiere: se busca por el
+// nombre del apartado («## GAATSU · …») y por cómo se le llama en la comunidad. Devuelve { nombre, tono, noSacar } o null
+export function leerFichas(md) {
+  return String(md || '').replace(/\r/g, '').split(/^(?=## )/m).filter(b => b.startsWith('## ')).map(b => {
+    const dato = re => (re.exec(b)?.[1] || '').trim().replace(/[,.\s]+$/, '');
+    const nombre = b.split('\n')[0].slice(3).split('·')[0].trim();
+    const apodos = dato(/^- \*\*¿Cómo se le llama[^*]*\*\*\s*(.*)$/m).split(/[,/]| y /).map(s => s.trim()).filter(Boolean);
+    return { nombre, apodos, tono: dato(/^- \*\*Tono[^*]*\*\*\s*(.*)$/m), noSacar: dato(/^- \*\*(?:Temas que el bot no debe sacar|Lo que el bot NO debe decir)[^*]*\*\*\s*(.*)$/mi) };
+  }).filter(f => f.nombre && (f.tono || f.noSacar));
+}
+export function fichaDe(fichas, quien) {
+  if (!quien) return null;
+  return fichas.find(f => [f.nombre, ...f.apodos].some(n => nombra(quien, n))) || null;
 }
 
 // Lo aprendido: un trozo por dato, con el rango de quien lo dijo dentro del texto (así se ve en cualquier bot)

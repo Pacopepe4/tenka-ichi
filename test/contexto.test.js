@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { PGlite } from '@electric-sql/pglite';
 import { vector } from '@electric-sql/pglite-pgvector';
 import { crearContexto, textoTrozos, DIMENSIONES } from '../server/contexto.js';
-import { crearSincronizacion, trozosFicha, trozosFichas, trozosKb, trozosPlantillas, trozosCronica, trozosMemoria, partir, quitarSinRespuesta } from '../server/contexto-fuentes.js';
+import { crearSincronizacion, trozosFicha, trozosFichas, leerFichas, fichaDe, trozosKb, trozosPlantillas, trozosCronica, trozosMemoria, partir, quitarSinRespuesta } from '../server/contexto-fuentes.js';
 import { normalizar } from '../server/tickets-ramas.js';
 import { crearTickets } from '../server/tickets.js';
 
@@ -79,6 +79,30 @@ Su trabajo.
   assert.match(t[0].texto, /10\. Lo que el bot NO debe decir nunca[^\n]*\nSu trabajo\./);
   assert.doesNotMatch(t[0].texto, /Cuentas/);
   assert.equal(quitarSinRespuesta('1. ¿Algo?\n\n2. ¿Otra?\nSí.'), '2. ¿Otra?\nSí.');
+});
+
+test('las fichas pasadas a limpio (discord/fichas-miembros.md): un trozo por persona y el tono de quien pregunta', () => {
+  const md = `# Fichas de los miembros de Gokudō
+
+Sacadas del cuestionario.
+
+## GAATSU · Top · Ryūjin
+- **¿Cómo se le llama en la comunidad?:** Gaatsu, MRP
+- **Su lore en Gokudō:** El rey de la Toplane de Gokudo
+- **Tono con esta persona:** Muy de cachondeo, muy vacilón
+
+## MAKITAH · Legacy · Shinigami (Legacy)
+- **¿Cómo se le llama en la comunidad?:** Mamamamamamamakitaaaah, makitah
+- **Temas que el bot no debe sacar:** No pasarse de bromista con el
+- **Tono con esta persona:** De cachondeo pero con mucho respeto por su juego.
+`;
+  const t = trozosFichas(md);
+  assert.deepEqual(t.map(x => x.titulo), ['Ficha · GAATSU · Top · Ryūjin', 'Ficha · MAKITAH · Legacy · Shinigami (Legacy)'], 'sin la entradilla');
+  assert.match(t[0].texto, /El rey de la Toplane/);
+  const fichas = leerFichas(md);
+  assert.deepEqual(fichaDe(fichas, 'Gaatsu_MRP'), { nombre: 'GAATSU', apodos: ['Gaatsu', 'MRP'], tono: 'Muy de cachondeo, muy vacilón', noSacar: '' });
+  assert.equal(fichaDe(fichas, 'makitah').noSacar, 'No pasarse de bromista con el');
+  assert.equal(fichaDe(fichas, 'ana_kick'), null);
 });
 
 test('KB, plantillas, lo aprendido y las crónicas, en trozos', () => {

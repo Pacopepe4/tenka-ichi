@@ -8,13 +8,13 @@ import { readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
 import { vector } from '@electric-sql/pglite-pgvector';
 import { crearContexto, crearEmbeddings } from '../server/contexto.js';
-import { trozosFicha, trozosLore, trozosKb, trozosPlantillas } from '../server/contexto-fuentes.js';
+import { trozosFicha, trozosLore, trozosKb, trozosPlantillas, trozosFichas } from '../server/contexto-fuentes.js';
 import { CLANES } from '../server/clanes.js';
 
 const hilos = Number(process.argv[process.argv.indexOf('--hilos') + 1]) || undefined;
 const PREGUNTAS = [
   '¿cuándo es la próxima jornada?', '¿cómo consigo más tiradas del gachapon?', '¿quién es el oyabun de Ryūjin?', '¿en qué familia juega GAATSU?',
-  '¿qué es una carta legacy?', '¿cómo funciona el fantasy?', '¿dónde se ve el directo?', 'háblame de los Tengu', '¿qué opinas de KB?', '¿cómo se apunta uno a una familia?',
+  '¿qué es una carta legacy?', '¿cómo funciona el fantasy?', '¿dónde se ve el directo?', 'háblame de los Tengu', '¿qué opinas de KB?', '¿cómo se apunta uno a una familia?', '¿quién es el rey de la toplane?', '¿quién es el dictador de la botlane?', '¿qué campeón juega Freddy?',
 ];
 
 const silencio = { log() {}, error: console.error };
@@ -31,6 +31,7 @@ const fuentes = {
   ficha: trozosFicha(readFileSync('discord/tickets-saber.md', 'utf8')),
   lore: trozosLore(readFileSync('discord/lore.md', 'utf8')),
   kb: trozosKb(readFileSync('discord/kbstats-jugadores.md', 'utf8')),
+  fichas: trozosFichas(readFileSync('discord/fichas-miembros.md', 'utf8')),
   plantillas: trozosPlantillas(CLANES.map(c => ({ ...c, ...(plantillas[c.id] || {}) }))),
 };
 t = performance.now();
