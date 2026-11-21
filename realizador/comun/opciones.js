@@ -3,6 +3,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { opcionesAlDia } from './direcciones.js';
 
 export const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -27,5 +28,6 @@ export function cargarOpciones() {
   const base = leer(join(RAIZ, 'opciones.json'));
   const local = leer(join(RAIZ, 'opciones.local.json'));
   const extra = process.env.REALIZADOR_OPCIONES ? leer(process.env.REALIZADOR_OPCIONES) : {};
-  return mezclar(mezclar(base, local), extra);
+  // Las direcciones de Render de una instalación vieja pasan a gokudo.es (comun/direcciones.js)
+  return opcionesAlDia(mezclar(mezclar(base, local), extra));
 }
