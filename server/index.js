@@ -726,17 +726,21 @@ const escaparHTML = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<'
 
 // Página mínima para contar el resultado de conectar el canal o de entrar; el enlace de salida es el panel salvo que se diga otro
 // ---------- Crónicas ----------
-// Los enfrentamientos del último día con partidas (en la liguilla, los tres de la jornada), con su ganador y la crónica
+// Los enfrentamientos de la última jornada con partidas (en la liguilla, sus tres), con su ganador y la crónica
 // que haya mandado el realizador. Sin partidas, cuándo es la primera
 function ultimoDiaDePartidas() {
   const ps = todas().filter(p => p.clanAzul && p.clanRojo);
   const hoy = new Date().toISOString().slice(0, 10);
   const proxima = formatoTemporada().liguilla.find(j => j.fecha >= hoy) || null;
   if (!ps.length) return { dia: null, jornada: null, enfrentamientos: [], proxima };
-  const dia = ps.map(p => p.fecha).sort().at(-1);
-  const delDia = ps.filter(p => p.fecha === dia);
+  // La última jornada con partidas, aunque sus partidos se jueguen en días distintos (la 1 se jugó el 15 y el 16/11):
+  // sus enfrentamientos, del primero al último. Sin jornada apuntada, los del último día
+  const ultima = [...ps].sort((x, y) => String(x.fecha).localeCompare(String(y.fecha))).at(-1);
+  const delDia = ultima.jornada ? ps.filter(p => p.jornada === ultima.jornada) : ps.filter(p => p.fecha === ultima.fecha);
+  delDia.sort((x, y) => String(x.fecha).localeCompare(String(y.fecha)) || (x.partida || 0) - (y.partida || 0));
+  const dia = delDia[0].fecha;
   return {
-    dia, jornada: delDia[0].jornada || null, proxima,
+    dia, jornada: ultima.jornada || null, proxima,
     enfrentamientos: delDia.map(p => {
       const c = cronicaDe(p.clanAzul, p.clanRojo, p.fecha);
       return { azul: p.clanAzul, rojo: p.clanRojo, ganador: p.ganador === 'azul' ? p.clanAzul : p.clanRojo, partida: p.partida,

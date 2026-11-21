@@ -16,6 +16,7 @@ import { homedir } from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { RAIZ, cargarOpciones, mezclar } from '../comun/opciones.js';
+import { alDia, opcionesAlDia } from '../comun/direcciones.js';
 import { configurarApis, rutaConfig } from './configurar-lol.js';
 import { configurarObs, carpetaObs, obsAbierto, NOMBRE } from './configurar-obs.js';
 import { instalarComplemento } from './multi-rtmp.js';
@@ -41,10 +42,11 @@ export function wsDeTenka(urlPuente) {
 }
 
 export function opcionesLocales(papel, clave, actuales = {}, ruta, urlPuente) {
+  actuales = opcionesAlDia(JSON.parse(JSON.stringify(actuales || {}))); // las de Render de antes, a gokudo.es
   // Los dos PCs hablan con el panel de Gokudō con la misma contraseña: el PC 1 lleva el overlay (línea por
   // línea, gráfica de oro, ficha) y el PC 2 mira el draft para poner su escena
-  const tenka = wsDeTenka(urlPuente || actuales.puente?.url || 'wss://gokudo.es/realizador');
-  const comun = { papel, clave, ...(ruta ? { rutaLoL: ruta } : {}), ...(tenka ? { tenkaIchi: { activo: true, url: actuales.tenkaIchi?.url || tenka, clave } } : {}) };
+  const tenka = wsDeTenka(urlPuente || alDia(actuales.puente?.url) || 'wss://gokudo.es/realizador');
+  const comun = { papel, clave, ...(ruta ? { rutaLoL: ruta } : {}), ...(tenka ? { tenkaIchi: { activo: true, url: alDia(actuales.tenkaIchi?.url) || tenka, clave } } : {}) };
   // Los dos PCs se encuentran en la sala del realizador del servidor de Gokudō. OBS va en el PC 2 y lo
   // maneja su relé: el PC 1 solo le dice qué guardar y qué repetir.
   const puente = { modo: 'tenka' };

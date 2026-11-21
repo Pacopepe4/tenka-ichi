@@ -19,6 +19,7 @@
 // No borra nada tuyo: tus colecciones y perfiles siguen en el menú de OBS, y lo que se cambia se copia antes
 // en obs-studio\realizador-copia\<fecha>\.
 import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, readdirSync } from 'node:fs';
+import { alDia } from '../comun/direcciones.js';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { randomBytes, randomUUID } from 'node:crypto';
@@ -496,7 +497,8 @@ export function configurarObs({ carpeta, opciones, rutaLocal, overlay, overlayPo
 
   // 2. Colección de escenas
   const escenas = join(carpeta, 'basic', 'scenes');
-  const url = overlay ?? (o.overlay || buscarOverlay(escenas, u => esDeGokudo(u, overlayPorDefecto)) || overlayPorDefecto || '');
+  // alDia: el overlay de una instalación vieja apuntaba a Render, que ya no existe (ahora gokudo.es)
+  const url = alDia(overlay ?? (o.overlay || buscarOverlay(escenas, u => esDeGokudo(u, overlayPorDefecto)) || overlayPorDefecto || ''));
   const nombres = {
     juego: o.escenaJuego, repeticion: o.escenaRepeticion, casters: o.escenaCasters, pausa: o.escenaPausa, draft: o.escenaDraft || 'Draft', resumen: o.escenaResumen || 'Resumen',
     espera: o.escenaEspera || 'Espera', intro: o.escenaIntro || 'Intro', traileres: o.escenaTraileres || 'Traileres', postpartida: o.escenaPostpartida || 'Postpartida', cierre: o.escenaCierre || 'Cierre',
@@ -504,7 +506,7 @@ export function configurarObs({ carpeta, opciones, rutaLocal, overlay, overlayPo
   const rutaColeccion = join(escenas, `${NOMBRE}.json`);
   guardarCopia(rutaColeccion, `${NOMBRE}.json`);
   // Las alertas de Kick salen de la misma web que el overlay (/alertas/), salvo que opciones.json diga otra
-  let alertas = o.alertas ?? '';
+  let alertas = alDia(o.alertas ?? '');
   if (o.alertas === undefined && /^https?:/i.test(url)) { try { alertas = new URL('/alertas/', url).href; } catch { /* sin dirección */ } }
   escribir(rutaColeccion, JSON.stringify(crearColeccion({ escenas: nombres, fuenteRepeticion: o.fuenteRepeticion, fuenteResumen: o.fuenteResumen || 'Resumen clip', placaResumen: o.placaResumen || PLACA_RESUMEN, fuenteTraileres: o.fuenteTraileres || FUENTE_TRAILERES, overlay: url, alertas, minimapa: o.minimapa || {}, volumenMusica: o.volumenMusica ?? -12, recursos: recursos && existsSync(recursos) ? recursos : null }), null, 4));
   hechos.push(`Colección "${NOMBRE}": ${Object.values(nombres).join(', ')}`);
