@@ -543,6 +543,34 @@ En la pestaña Gachapon de la hoja, cada canje queda a nombre del id de Twitch d
 
 Como pide Twitch, los tokens guardados se validan al arrancar y cada hora (`/oauth2/validate`). Si el canal cambia la contraseña o retira el permiso, el panel avisa «vuelve a conectarlo» y deja de recoger canjes hasta que se conecte otra vez.
 
+### El contexto de los bots: Postgres con embeddings (SrDirector, Kick y Twitch)
+
+Lo pidió Pacopepe el 21/11/2026 para que los bots contesten rápido y gasten poco. Todo lo que saben se guarda en trozos en **Postgres con pgvector**, que es el contenedor `db` del server casero, con su **índice HNSW**. A cada pregunta solo le llegan los trozos que más se parecen a ella. Los tres bots usan la misma búsqueda: SrDirector en Discord y `!pregunta` en los chats de Kick y Twitch.
+
+- **Los embeddings se calculan en la propia web.** El modelo es multilingual-e5-small (licencia MIT; 384 dimensiones; cuantizado a int8), con transformers.js. No se paga ninguna API. La primera vez baja el modelo, unos 130 MB, al volumen `modelos`. En memoria ocupa unos 450 MB.
+- **La búsqueda mezcla dos cosas:** el parecido, con HNSW sobre el vector, y las palabras, con `tsvector` en español, porque el modelo no conoce nombres como GAATSU. Se juntan con Reciprocal Rank Fusion. Está en `server/contexto.js`.
+- **Qué se guarda** (`server/contexto-fuentes.js`):
+  - la ficha (`discord/tickets-saber.md`, menos el núcleo, que va siempre en el papel);
+  - el lore entero (`discord/lore.md`, copia de `gokudo/diseno/teasers-familias/LORE.md`; si cambia, hay que volver a copiarlo);
+  - la lista de KB (`discord/kbstats-jugadores.md`);
+  - las plantillas de las familias;
+  - las fichas de los miembros (`discord/fichas-miembros.md`);
+  - lo que aprende SrDirector, con el rango de quien lo dijo;
+  - cada crónica, en cuanto entra por `POST /api/cronicas/partida`.
+- **Las fichas de los miembros** salen del cuestionario `gokudo/contexto/cuestionario-miembros.md`. Cuando Pacopepe lo conteste (debajo de cada pregunta), se copia entero a `discord/fichas-miembros.md`. Las preguntas sin contestar no se guardan. La 10 («lo que el bot NO debe decir nunca») sí se guarda, y los bots la respetan como un tema que no sacan.
+- **Cuándo se actualiza:** todo se sincroniza al arrancar y luego cada 10 minutos, y solo se recalcula lo que ha cambiado. Lo aprendido y las crónicas van al momento. Si se borra la base, la web la rellena sola: todo sale de los archivos y de la hoja.
+- **Si algo falla:** sin `PG_CLAVE` (o `DATABASE_URL`), o con `CONTEXTO=0`, o si la base o el modelo fallan, los bots siguen como antes, por las ramas de `server/tickets-ramas.js`.
+- **`!pregunta` en Kick y Twitch** (`server/preguntas-chat.js`):
+  - Contesta SrDirector con Haiku, en una o dos frases. En el chat no aprende nada.
+  - Topes: `CHAT_TOPE_DIA` (100 al día entre los dos chats), `CHAT_TOPE_PERSONA` (5 al día) y una pregunta por minuto y persona; si alguien pregunta antes de que pase el minuto, el bot no contesta.
+  - Alias: `!p`, `!srdirector` y `!director`.
+  - En Kick va por el webhook de siempre.
+  - En Twitch es un bot nuevo (`server/twitch-chat.js`): escucha el chat por EventSub (WebSocket, `channel.chat.message`) y contesta con `POST /helix/chat/messages`, como la cuenta del canal.
+  - Para Twitch hacen falta los permisos `user:read:chat` y `user:write:chat`: en el panel, **Gachapon › Volver a conectar el canal**, con la cuenta gokudo_zoku. El panel dice si el chat está escuchando.
+- **Lo que tarda:** `node scripts/medir-contexto.mjs` llena una base PGlite (Postgres en WASM con pgvector) con lo del repo y mide la búsqueda completa. El 21/11, en un i7-5700HQ, dio entre 14 y 21 ms de media (8–14 ms el embedding y 5–8 ms Postgres). El server es un Celeron N3350 sin AVX, así que allí será varias veces más lento: está sin medir.
+
+Pruebas: `test/contexto.test.js` (PGlite con pgvector y HNSW de verdad, con embeddings de mentira) y `test/preguntas-chat.test.js` (`!pregunta` y el bot de Twitch, con un EventSub y un Claude de mentira).
+
 ### Puntos del canal de Kick: la recompensa «Omamori»
 
 Lo mismo que en Twitch, en el canal de Kick (kick.com/gokudo-zoku): los espectadores canjean sus puntos del canal por la recompensa **Omamori** y les llega un sobre del gachapon. Cada espectador **vincula su Kick** a su cuenta una vez («vincula tu Kick» en el gachapon, ya dentro con Discord); si canjea antes, el sobre se le guarda y le llega al vincular. Una cuenta puede llevar a la vez su Twitch y su Kick.

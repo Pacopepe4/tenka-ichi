@@ -10,7 +10,19 @@ import { CANAL, ErrorTwitch, helix, refrescarToken, twitchActivo, validarToken }
 import { canjeProcesado, darSobres } from './gacha.js';
 
 export const TITULO_RECOMPENSA = 'Sobre de Gokudō';
-export const SCOPE_CANAL = 'channel:manage:redemptions';
+// Las recompensas y, desde el 21/11/2026, el chat (leer y escribir como la cuenta del canal, para !pregunta:
+// server/twitch-chat.js). Una conexión de antes solo tiene el de las recompensas: hay que volver a conectar el canal
+export const SCOPE_RECOMPENSAS = 'channel:manage:redemptions';
+export const SCOPES_CHAT = ['user:read:chat', 'user:write:chat'];
+export const SCOPE_CANAL = [SCOPE_RECOMPENSAS, ...SCOPES_CHAT].join(' ');
+const tieneChat = scopes => SCOPES_CHAT.every(s => (scopes || []).includes(s));
+// Quien quiere enterarse de que el canal se ha conectado o validado (el bot del chat)
+const oyentes = [];
+export const alCambiarCanal = fn => { oyentes.push(fn); };
+const avisar = () => oyentes.forEach(fn => Promise.resolve().then(fn).catch(e => console.error('Canal de Twitch:', e.message)));
+export const idCanalTwitch = () => ajuste('canal_id');
+// Para el bot del chat: llama a Twitch con el token del canal (y lo renueva si hace falta)
+export const conTokenCanal = fn => conToken(fn);
 const COSTE_INICIAL = 3000;
 // Lo que lee el espectador en Twitch al canjear
 const TEXTO_RECOMPENSA = 'Una tirada de la tragaperras del gachapon de Gokudō (4 cartas). Entra en gokudo.es/gachapon/ y vincula tu Twitch: la tirada te llega en un minuto.';
@@ -65,7 +77,9 @@ export async function validarCanal() {
     let v;
     try { v = await validarToken(tokens.access_token); }
     catch (e) { if (e.estado !== 401) throw e; await renovar(); v = await validarToken(tokens.access_token); }
-    if (!v.scopes?.includes(SCOPE_CANAL)) estado.error = 'La conexión del canal no tiene permiso para las recompensas: vuelve a conectarlo desde el panel';
+    const chat = tieneChat(v.scopes);
+    if (estado.chat !== chat) { estado.chat = chat; avisar(); }
+    if (!v.scopes?.includes(SCOPE_RECOMPENSAS)) estado.error = 'La conexión del canal no tiene permiso para las recompensas: vuelve a conectarlo desde el panel';
     else if (ajuste('canal_id') && v.user_id !== ajuste('canal_id')) estado.error = 'La conexión guardada es de otra cuenta: vuelve a conectar el canal';
     estado.validado = new Date().toISOString();
   } catch (e) {
@@ -83,7 +97,9 @@ export async function conectarCanal(t, usuario) {
   if (usuario.login.toLowerCase() !== CANAL) throw new Error(`Hay que conectar con la cuenta del canal (${CANAL}), no con ${usuario.login}`);
   tokens = { access_token: t.access_token, refresh_token: t.refresh_token };
   await guardarAjustes({ canal_tokens: cifrar(JSON.stringify(tokens)), canal_id: usuario.id, canal_login: usuario.login });
-  Object.assign(estado, { conectado: true, login: usuario.login, error: null, validado: new Date().toISOString() });
+  Object.assign(estado, { conectado: true, login: usuario.login, error: null, validado: new Date().toISOString(),
+    chat: tieneChat(Array.isArray(t.scope) ? t.scope : String(t.scope || '').split(' ')) });
+  avisar();
   await asegurarRecompensa();
   iniciarSondeo();
   iniciarValidacion();

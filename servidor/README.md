@@ -96,12 +96,23 @@ Al final debe decir **«¡Funciona!»** con la dirección de casa. Sal (`exit`) 
 - [ ] **Copia en otro disco** (recomendado en el NAS): monta un disco de las bahías, por ejemplo en `/mnt/datos`, y añade `COPIA_EXTRA=/mnt/datos/copias-tenka` delante del comando en `/etc/cron.d/tenka-copias`.
 - [ ] Cada vez que se suba algo nuevo a GitHub: `bash /opt/tenka/servidor/actualizar.sh`. Render lo hacía solo; aquí es un comando.
 
+### E. El contexto de los bots (Postgres con pgvector, desde el 21/11/2026)
+
+Hacerlo **sin directo** y nunca un día de competición.
+
+- [ ] En `servidor/.env`, añade `PG_CLAVE=` con una clave de solo letras y números: `openssl rand -hex 24`.
+- [ ] `bash actualizar.sh`. Construye la imagen nueva (ahora es Debian), arranca `db` y la web llena el contexto sola: la primera vez son unos minutos.
+- [ ] `docker compose logs app | grep Contexto` tiene que decir «modelo de embeddings cargado» y «… trozos nuevos o cambiados».
+- [ ] En el panel, **Gachapon › Volver a conectar el canal** con gokudo_zoku, para que Twitch dé el permiso del chat. El panel tiene que decir «SrDirector escucha el chat y contesta a !pregunta».
+- [ ] Prueba `!pregunta ¿cuándo juega Ryūjin?` en el chat de Kick y en el de Twitch, y una mención a @SrDirector en Discord.
+
 ## Comandos útiles
 
 ```
 cd /opt/tenka/servidor
 docker compose ps                    # qué está en marcha
 docker compose logs -f app           # lo que dice la web (Ctrl+C para salir)
+docker compose exec db psql -U tenka -c "select fuente, count(*) from trozos group by 1"   # qué hay en el contexto
 docker compose restart app           # reiniciar la web
 bash actualizar.sh                   # actualizar a lo último de GitHub
 bash scripts/copia-seguridad.sh      # hacer una copia ahora

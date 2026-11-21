@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Copia de seguridad de Tenka Ichi: la hoja de Google (todas las pestañas, en JSON), la carpeta data/,
-# el .env y la configuración del DDNS. Guarda las últimas 30 en /opt/tenka-copias.
+# el .env, la configuración del DDNS y el contexto de los bots (pg_dump de «db»). Guarda las últimas 30 en /opt/tenka-copias.
 # Si defines COPIA_EXTRA (por ejemplo, un disco del NAS montado en /mnt/datos), deja ahí otra copia.
 set -euo pipefail
 AQUI="$(cd "$(dirname "$0")/.." && pwd)"
@@ -20,6 +20,17 @@ if docker compose exec -T app node --input-type=module - < "$AQUI/scripts/copia-
 else
   echo "$FECHA AVISO: no se pudo copiar la hoja de Google: $(tail -1 "$TMP/error-hoja.txt")"
   rm -f "$TMP/copia/hoja.json"
+fi
+
+# El contexto de los bots (Postgres con pgvector, contenedor «db»). Se puede rehacer solo, pero así no hay que esperar
+# a que se vuelvan a calcular los embeddings
+if docker compose ps --status running --services 2>/dev/null | grep -qx db; then
+  if docker compose exec -T db pg_dump -U tenka -d tenka -Fc > "$TMP/copia/contexto.dump" 2> "$TMP/error-db.txt"; then
+    echo "$FECHA contexto de los bots: $(wc -c < "$TMP/copia/contexto.dump") bytes"
+  else
+    echo "$FECHA AVISO: no se pudo copiar el contexto de los bots: $(tail -1 "$TMP/error-db.txt")"
+    rm -f "$TMP/copia/contexto.dump"
+  fi
 fi
 
 cp -a "$RAIZ/data" "$TMP/copia/data"

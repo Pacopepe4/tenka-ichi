@@ -22,6 +22,7 @@ const aFila = d => [d.fecha, d.sobre, d.dato, d.rango, d.quien, d.id];
 export function crearMemoria({ hoja = hojaActiva, asegurar = asegurarPestana, leerHoja = leer, anadirHoja = anadir, pestana = 'SrDirector',
   archivo = archivoDatos('srdirector.json'), ahora = () => new Date(), log = console } = {}) {
   let datos = [];
+  let cargada = false;   // el contexto de los bots (server/contexto-fuentes.js) espera a que se haya leído
   let cola = Promise.resolve();
   const enCola = fn => { const p = cola.then(fn); cola = p.catch(() => {}); return p; };
 
@@ -32,9 +33,10 @@ export function crearMemoria({ hoja = hojaActiva, asegurar = asegurarPestana, le
         datos = (await leerHoja(pestana)).slice(1).filter(f => f[0]).map(deFila);
       } else datos = JSON.parse(await readFile(archivo, 'utf8')).map(deFila);
     } catch (e) {
-      if (hoja()) log.error('SrDirector: no se pudo leer lo aprendido:', e.message);
+      if (hoja()) { log.error('SrDirector: no se pudo leer lo aprendido:', e.message); datos = []; return; }
       datos = [];
     }
+    cargada = true;
   }
 
   // Apunta lo que ha aprendido. Devuelve cuántos datos nuevos ha guardado
@@ -76,5 +78,5 @@ export function crearMemoria({ hoja = hojaActiva, asegurar = asegurarPestana, le
     return elegidos.map(d => `- Sobre **${d.sobre}**: ${d.dato} (lo dijo ${RANGOS[d.rango] || RANGOS[0]}${d.quien && d.rango < 4 ? `, ${d.quien}` : ''}, el ${d.fecha.slice(0, 10)})`).join('\n');
   }
 
-  return { cargar, apuntar, relevantes, todos: () => datos.slice() };
+  return { cargar, apuntar, relevantes, todos: () => datos.slice(), cargada: () => cargada };
 }

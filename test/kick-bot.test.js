@@ -327,9 +327,10 @@ test('comandos del chat: contesta !tiradas (y el !sobres de antes) a quien lo pi
   await chat(CARLA, '!partido');
   assert.match((await hasta(async () => (await respuestas())[3])).content, /Jornada 1|Ahora|Próximo|terminado/);
   await chat(CARLA, '!comandos');
-  assert.equal((await hasta(async () => (await respuestas())[4])).content, 'Comandos de Gokudō: !tiradas · !clasificacion · !gachapon · !partido');
+  assert.equal((await hasta(async () => (await respuestas())[4])).content, 'Comandos de Gokudō: !tiradas · !clasificacion · !gachapon · !partido · !pregunta');
   await chat(CANAL, '!gachapon');
   await chat(ANA, 'hola a todos');
+  await chat(BETO, '!pregunta ¿cuándo juega Ryūjin?');   // sin ANTHROPIC_API_KEY, !pregunta no contesta (calla)
   await esperar(250);
   assert.equal((await chatDesde(n)).length, 5);
 });

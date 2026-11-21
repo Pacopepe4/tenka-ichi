@@ -28,8 +28,14 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",
+    "@huggingface/transformers": "4.3.2",
     "google-auth-library": "^9.15.0",
+    "pg": "8.23.1",
     "socket.io-client": "^4.8.1",
     "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.15",
+    "@electric-sql/pglite-pgvector": "0.0.16"
   }
 }

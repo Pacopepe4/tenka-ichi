@@ -4,12 +4,13 @@
 // Aquí solo se decide qué contestar: lo que hace falta saber (la cuenta de quien escribe, el fantasy, el calendario)
 // llega en «ctx», así se prueba sin Kick.
 
-export const COMANDOS = ['tiradas', 'clasificacion', 'gachapon', 'partido'];
+// !pregunta (21/11/2026) la contesta SrDirector con IA (server/preguntas-chat.js), no este archivo
+export const COMANDOS = ['tiradas', 'clasificacion', 'gachapon', 'partido', 'pregunta'];
 // Lo que se contesta igual a todos se contesta como mucho cada 15 s; lo de cada uno (!tiradas), cada 30 s por persona
 export const ESPERA_COMANDO_MS = { general: 15000, personal: 30000 };
 const PERSONALES = new Set(['tiradas']);
 const ALIAS = { sobres: 'tiradas', sobre: 'tiradas', tirada: 'tiradas', clasificación: 'clasificacion', ranking: 'clasificacion', gacha: 'gachapon', omamori: 'gachapon', proximo: 'partido',
-  próximo: 'partido', ayuda: 'comandos' };
+  próximo: 'partido', ayuda: 'comandos', p: 'pregunta', preguntar: 'pregunta', srdirector: 'pregunta', director: 'pregunta' };
 
 const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
 

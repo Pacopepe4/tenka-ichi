@@ -6,7 +6,8 @@
 //   · livestream.status.updated         → al empezar el directo: aviso en Discord (@everyone) y en el chat, una vez
 //   · channel.followed                  → alerta en el overlay de OBS (/alertas/), sin sobres ni anuncio
 //   · channel.subscription.new/.renewal/.gifts y kicks.gifted → sobres (SOBRES_APOYO), alerta y anuncio en el chat
-//   · chat.message.sent                 → los comandos del chat (server/comandos-kick.js)
+//   · chat.message.sent                 → los comandos del chat (server/comandos-kick.js) y !pregunta, que contesta
+//                                          SrDirector con IA (server/preguntas-chat.js)
 // Cada aviso viene firmado (se comprueba con la clave pública de Kick), se atiende una sola vez (Kick-Event-Message-Id)
 // y se contesta 200 al momento: lo demás se hace después. Si el webhook falla más de un día, Kick da de baja la suscripción.
 //
@@ -20,6 +21,7 @@ import { anunciarDirecto, directoDiscordActivo } from './discord.js';
 import { ajuste, guardarAjustes } from './ajustes.js';
 import { cifrar, descifrar } from './sesion.js';
 import { comandoDe, esPersonal, responderComando, ESPERA_COMANDO_MS } from './comandos-kick.js';
+import { preguntaDe } from './preguntas-chat.js';
 
 // Tiradas (sobres, por dentro) por apoyar en Kick (las fijó Pacopepe el 08/11/2026). Van a la temporada del gachapon en curso, como los
 // canjes: a la cuenta vinculada o, si aún no ha vinculado su Kick, guardados hasta que lo haga. Seguir al canal no da sobres
@@ -260,6 +262,14 @@ async function atenderChat(d, { web }) {
   if (!quien?.user_id || [idCanalKick(), bot.id].includes(String(quien.user_id))) return;
   const comando = comandoDe(d.content);
   if (!comando) return;
+  // !pregunta: contesta SrDirector con IA (server/preguntas-chat.js, que lleva sus propios topes y esperas)
+  if (comando === 'pregunta') {
+    const preguntar = contexto?.()?.preguntar;
+    if (!preguntar) return;
+    const texto = await preguntar({ pregunta: preguntaDe(d.content) ?? '', plataforma: 'kick', quien: { id: String(quien.user_id), nombre: quien.username } });
+    if (texto) encolar(texto, d.message_id);
+    return;
+  }
   const clave = esPersonal(comando) ? `${comando}:${quien.user_id}` : comando;
   const espera = esPersonal(comando) ? ESPERA_COMANDO_MS.personal : ESPERA_COMANDO_MS.general;
   if (Date.now() - (ultimos.get(clave) || 0) < espera) return;

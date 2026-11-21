@@ -19,6 +19,11 @@ const estado = { ultima: null };
 
 export const claveRealizador = () => process.env.CRONICAS_CLAVE || '';
 
+// Todas las crónicas guardadas, y quién se entera de cada crónica nueva (el contexto de los bots, server/contexto-fuentes.js)
+export const todasLasCronicas = () => cronicas.slice();
+const oyentes = [];
+export const alGuardarCronica = fn => { oyentes.push(fn); };
+
 // En la hoja, un texto que empiece por = + - @ se tomaría por una fórmula
 const celda = s => (/^[=+\-@]/.test(String(s ?? '')) ? `'${s}` : String(s ?? ''));
 const deFila = f => ({ fecha: fechaDeHoja(f[0], true), azul: f[1], rojo: f[2], titulo: f[3] || '', texto: f[4] || '', resumen: f[5] || '', discord: f[6] || '' });
@@ -71,6 +76,7 @@ export async function publicarCronica({ azul, rojo, titulo, texto, resumen }, pu
       await writeFile(CRON.archivo, JSON.stringify(cronicas.map(aFila), null, 1));
     }
   });
+  for (const fn of oyentes) Promise.resolve().then(() => fn(c)).catch(e => console.error('Crónicas: el contexto de los bots:', e.message));
   return { publicada: !error, error };
 }
 
