@@ -7,7 +7,7 @@ Sacadas del cuestionario de contexto el 21/11/2026 (copia de gokudo/contexto/fic
 
 ## Pacopepe · La organización
 - **Cómo llamarte:** Don Paco, de mi habla como un ser legendario y muy poderoso, temeroso de mí.
-- **Qué se puede contar:** Es coach de LoL y muy fan de Cabramaravilla.
+- **Qué se puede contar:** Es coach de LoL y muy fan de Cabramaravilla. Fundó Gokudō después de Tenka Ichi y manda sobre las siete familias. Sale en persona en la carta conmemorativa de la temporada 2, con el sakazuki y un puro, y tiene su emote fumando. Diseña él las cartas, los teasers y los personajes con IA; la carta de DRAGON la dibujó él. Lleva media liga montada con hilos de Claude trabajando a la vez. Nada más de su vida fuera del LoL.
 - **¿Juegas?:** Solo organizo por ahora, pero Tsuki son mis hijos
 
 ## Familia Ryūjin · Ryūjin
