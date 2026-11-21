@@ -24,7 +24,7 @@ async function hasta(fn, ms = 4000) {
   for (;;) { const v = await fn(); if (v || Date.now() > fin) return v; await esperar(50); }
 }
 const hoy = new Date().toISOString().slice(0, 10);
-const partida = (azul, rojo, ganador, fecha = hoy) => ({ fecha, jornada: 'Jornada 1', fase: 'Fase de liga', serie: `Jornada 1 · ${azul} vs ${rojo}`, partida: 1,
+const partida = (azul, rojo, ganador, fecha = hoy, jornada = 'Jornada 1') => ({ fecha, jornada, fase: 'Fase de liga', serie: `${jornada} · ${azul} vs ${rojo}`, partida: 1,
   clanAzul: azul, clanRojo: rojo, ganador, picks: { azul: Array(5).fill(null), rojo: Array(5).fill(null) },
   bans: { azul: Array(5).fill(null), rojo: Array(5).fill(null) }, jugadores: { azul: Array(5).fill(''), rojo: Array(5).fill('') } });
 
@@ -93,7 +93,7 @@ test('la crónica necesita la clave del realizador y texto o resumen', async () 
 test('con las partidas del día, la crónica va a su enfrentamiento, sale en #resultados y en la portada', async () => {
   await pararWeb();
   await writeFile(path.join(carpeta, 'registro.json'), JSON.stringify([
-    partida('SARU', 'KAIJU', 'azul', '2026-11-01'),   // de otro día: no sale en la portada
+    partida('SARU', 'KAIJU', 'azul', '2026-11-01', 'Pretemporada'),   // de otra jornada: no sale en la portada
     partida('SARU', 'KAIJU', 'rojo'), partida('TORA', 'BUSHI', 'azul'), partida('ATSUI', 'KEMONO', 'azul'),
   ]));
   await arrancarWeb();
@@ -189,6 +189,21 @@ test('sin webhook de #resultados va al de siempre; sin ninguno, solo a la portad
   await pararWeb();
   await arrancarWeb({ CRONICAS_CLAVE: '' });
   assert.equal((await cronica({ texto: 'x' })).estado, 503);
+});
+
+test('la portada enseña la última jornada entera aunque se juegue en dos días, del primer partido al último', async () => {
+  // La jornada 1 de verdad: dos partidos el 15/11 y el tercero el 16/11; antes, la portada solo enseñaba el del 16
+  await pararWeb();
+  await writeFile(path.join(carpeta, 'registro.json'), JSON.stringify([
+    partida('ATSUI', 'SARU', 'azul', '2026-11-08', 'Jornada 0'),
+    partida('KEMONO', 'BUSHI', 'rojo', '2026-11-15', 'Jornada 1'), partida('ATSUI', 'SARU', 'azul', '2026-11-15', 'Jornada 1'),
+    partida('KAIJU', 'TORA', 'azul', '2026-11-16', 'Jornada 1'),
+  ]));
+  await arrancarWeb();
+  const n = await portada();
+  assert.equal(n.jornada, 'Jornada 1');
+  assert.equal(n.dia, '2026-11-15', 'el día en que empezó la jornada');
+  assert.deepEqual(n.enfrentamientos.map(e => `${e.azul}-${e.rojo}`), ['KEMONO-BUSHI', 'ATSUI-SARU', 'KAIJU-TORA']);
 });
 
 // La hoja de Google devolvió la fecha de las partidas de la jornada 1 como número de serie (46341): la portada ponía mal
