@@ -4,8 +4,6 @@ data
 .env
 **/.env
 credenciales*.json
-realizador
-puente
 docs
 test
 diseno
