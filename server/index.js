@@ -105,10 +105,9 @@ const estado = {
   avisosPropios: true,
   // Marcador de partida: estilo (solo queda el A, «Placas» de Gokudō) e interruptores de lo nuevo, encendidos por defecto
   // (sirven para ocultar algo si no va bien, no para tener que activarlo). oroIngresos apagado vuelve al valor de los objetos.
-  // camaras: la cámara del caster en partida, que sí hay que activar: un hueco transparente como los del draft, pegado
-  // abajo a la izquierda y por su cuenta (no depende del línea por línea), con el nombre y el detalle del panel. Es la
-  // primera de la lista; la segunda (la derecha de antes, que chocaba con el marco del minimapa) ya no sale, pero se
-  // queda en el estado para que lo guardado de antes, con dos, siga valiendo
+  // camaras: las cámaras de los casters en partida, que sí hay que activar: huecos transparentes como los del draft, por
+  // su cuenta (no dependen del línea por línea), con el nombre y el detalle del panel. La primera, abajo a la izquierda
+  // (Livir); la segunda (22/11), entre el línea por línea y el minimapa, para un segundo caster (Istar)
   ingame: { estilo: 'a', puntosFantasy: true, resumenPelea: true, oroIngresos: true,
     camaras: [{ activa: false, nombre: '', detalle: '' }, { activa: false, nombre: '', detalle: '' }] },
   aviso: null,
@@ -127,6 +126,10 @@ function emitir() {
   const codigo = codigoEnPantalla();
   estado.codigo = codigo ? { texto: codigo.texto, sobres: codigo.sobres, quedan: codigo.caduca - Date.now() } : null;
   guardarEstadoSiCambia(fotoActual);
+  // Qué cámaras de los casters están de verdad en el aire (EGM 22/11, B5): marcadas en el panel, con partida en marcha y
+  // el marcador a la vista. Es lo mismo que pinta el overlay; el relé del PC 2 enciende las webcams con esto y no con
+  // la casilla sola (si no, al acabar la partida o al cortarse el puente salían sin marco)
+  estado.camarasEnAire = (estado.ingame?.camaras || []).map(c => Boolean(c?.activa && partidaActiva && estado.partidaVisible !== false));
   const msg = JSON.stringify({ tipo: 'estado', estado });
   for (const ws of clientes) if (ws.readyState === 1 && !CANALES_SUELTOS.has(ws.canal)) ws.send(msg);
 }
@@ -171,12 +174,14 @@ const SESION = crypto.randomUUID();
 const VERSION = process.env.RENDER_GIT_COMMIT || SESION;
 let busquedaTocada = false;
 function emitirPartida(partida = resumenPartida()) {
+  const antes = partidaActiva;
   partidaActiva = partida.activo;
   puenteConectado = partida.puente.conectado;
   const cambia = seguirPartida(partida);
   const msg = JSON.stringify({ tipo: 'partida', partida });
   for (const ws of clientes) if (ws.readyState === 1 && !CANALES_SUELTOS.has(ws.canal)) ws.send(msg);
-  if (cambia) emitir();
+  // Al empezar o acabar la partida, el estado también (camarasEnAire depende de ello)
+  if (cambia || antes !== partidaActiva) emitir();
 }
 // Si el puente deja de mandar datos, avisa al overlay para que se retire y al panel de que se ha cerrado
 setInterval(() => {
@@ -629,8 +634,8 @@ async function accion(nombre, d = {}) {
       // Desde el 08/11 solo hay un estilo del marcador (el A de Gokudō): el campo se queda por compatibilidad
       if (d.estilo === 'a') estado.ingame.estilo = 'a';
       for (const k of ['puntosFantasy', 'resumenPelea', 'oroIngresos']) if (typeof d[k] === 'boolean') estado.ingame[k] = d[k];
-      // La cámara del caster en partida es la primera de la lista: llega con lo que cambie (activarla, o su nombre y su
-      // detalle). Lo que no llega, como la segunda, se queda como estaba
+      // Las cámaras de los casters en partida llegan con lo que cambie (activarlas, o su nombre y su detalle). Lo que no
+      // llega (un {} en su sitio) se queda como estaba: lo mezcla camaraLineas (estado-guardado.js)
       if (Array.isArray(d.camaras)) estado.ingame.camaras = estado.ingame.camaras.map((c, i) => camaraLineas(d.camaras[i], c));
       ajustarIngame(estado.ingame);
       emitirPartida();  // el oro cambia al momento si se toca el interruptor de los ingresos

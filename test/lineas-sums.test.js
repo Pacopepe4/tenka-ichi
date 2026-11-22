@@ -82,3 +82,17 @@ test('22/11: la misión de rol completada se marca en todos los puestos, cada un
   assert.equal(linea(hechas, 4, 'azul').misionHecha, false);
   assert.equal('castigoMejorado' in linea(hechas, 1, 'azul'), false, 'los datos de paso no salen al overlay');
 });
+
+test('EGM 22/11 (M7, M9): solo las botas de nivel 3 de verdad; la señal vale en cualquier fila; misionEn la primera vez', () => {
+  const guja = paquete(jugadores({ A3: { items: [{ itemID: 3179, count: 1, slot: 1 }] }, R3: { items: [{ itemID: 3177, count: 1, slot: 2 }] } }));
+  assert.equal(linea(guja, 2, 'azul').misionHecha, false, 'la Guja sombría (3179) no es de la misión');
+  assert.equal(linea(guja, 2, 'rojo').misionHecha, false, 'la Espada del guardián (3177) tampoco');
+  // Un medio que cae en la fila del top (sin nombres ni picks): sus botas cuentan igual
+  const cruzado = paquete(jugadores({ A1: { items: [{ itemID: 3176, count: 1, slot: 1 }] } }));
+  assert.equal(linea(cruzado, 0, 'azul').misionHecha, true);
+  assert.equal(linea(cruzado, 0, 'azul').misionEn, 600, 'el segundo en que se vio hecha');
+  // En el siguiente paquete sigue con el mismo misionEn
+  const despues = recibir({ juego: { gameTime: 650 }, jugadores: jugadores({ A1: { items: [{ itemID: 3176, count: 1, slot: 1 }] } }), eventos: [{ EventID: 0, EventName: 'GameStart', EventTime: 0 }] });
+  assert.equal(linea(despues, 0, 'azul').misionEn, 600);
+  assert.equal(linea(despues, 1, 'azul').misionEn, null, 'sin misión, sin segundo');
+});

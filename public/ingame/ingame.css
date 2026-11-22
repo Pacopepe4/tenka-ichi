@@ -197,14 +197,15 @@ body.oculto .sello::before, body.oculto .retrato::before { animation-play-state:
 @keyframes cambia { 30% { transform: scale(1.14); } }
 .kills, .dato b, .diferencia b, .dif, .puntos b, .ficha-puntos b { display: inline-block; transform-origin: 50% 60%; }
 
-/* ---------- Línea por línea (abajo, en el centro) ---------- */
-/* El panel va dentro de su zona, que ocupa el lienzo entero y va siempre encogida hacia abajo y al centro (la escala
-   la pone el marcador: ESCALA_LINEAS en comun.js). La gráfica de oro va en
-   esta misma zona y con la misma caja: las dos salen exactamente en el mismo hueco */
+/* ---------- Línea por línea (abajo, pegado a la cámara de Livir) ---------- */
+/* El panel va dentro de su zona, que ocupa el lienzo entero y va siempre encogida hacia la esquina de abajo a la
+   izquierda (la escala y la x las pone el marcador: ESCALA_LINEAS y CAJA_LINEAS en comun.js; los valores de reserva son
+   los mismos, por si sale la gráfica antes que el panel). La gráfica de oro va en esta misma zona y con la misma caja:
+   las dos salen exactamente en el mismo hueco */
 /* 22/11: encogida desde la esquina de abajo a la izquierda; el panel va en x --x-lineas del lienzo (CAJA_LINEAS) */
-.zona-lineas { position: absolute; inset: 0; pointer-events: none; transform-origin: 0 100%; transform: scale(var(--escala-lineas, .62)); }
+.zona-lineas { position: absolute; inset: 0; pointer-events: none; transform-origin: 0 100%; transform: scale(var(--escala-lineas, .616)); }
 /* Entra subiendo desde el borde, con las filas escalonadas; se va bajando */
-.lineas { position: absolute; bottom: 0; left: calc(var(--x-lineas, 344px) / var(--escala-lineas, .62)); width: 1560px; transform-origin: 50% 100%;
+.lineas { position: absolute; bottom: 0; left: calc(var(--x-lineas, 344px) / var(--escala-lineas, .616)); width: 1560px; transform-origin: 50% 100%;
   animation: subir var(--t-lento) var(--curva) both; }
 .lineas.sale { animation: bajar var(--t-medio) var(--curva-salida) both; }
 .lineas.sale .fila { animation: none; }
@@ -325,6 +326,7 @@ body.con-camara-partida .ficha.azul { left: 360px; }
 /* La del lado rojo no pisa el marco del minimapa, abajo a la derecha (ZONA_MINIMAPA en comun.js: desde x 1641 y desde
    y 767); antes iba a 72 px del borde y se metía en él. Con la cámara de Istar fuera (de x 1313 a 1633), a su izquierda */
 .ficha.rojo { right: 324px; grid-template-columns: 400px 290px; transition: right var(--t-medio) var(--curva); }
+/* 623 = 1920 − 1313 (x de la cámara de Istar, camaraPartida(1)) + 16 de aire */
 body.con-camara-partida-2 .ficha.rojo { right: 623px; }
 .ficha.rojo .ficha-carta { order: 2; }
 .ficha.sale { animation: fichaSale var(--t-medio) var(--curva-salida) both; }
@@ -355,7 +357,7 @@ body.con-camara-partida-2 .ficha.rojo { right: 623px; }
 /* ---------- Gráfica de oro: en el mismo hueco que el línea por línea ----------
    Va dentro de .zona-lineas y mide lo mismo que el panel (1560×436: 64 de cabeza, 344 de gráfica y 28 de eje), pegada
    abajo; así, al cambiar de una a otra, no se mueve nada de sitio. Entra y sale igual que él */
-.grafica { position: absolute; bottom: 0; left: calc(var(--x-lineas, 344px) / var(--escala-lineas, .62)); width: 1560px; height: 436px; transform-origin: 50% 100%;
+.grafica { position: absolute; bottom: 0; left: calc(var(--x-lineas, 344px) / var(--escala-lineas, .616)); width: 1560px; height: 436px; transform-origin: 50% 100%;
   animation: subir var(--t-lento) var(--curva) both; }
 .grafica.sale { animation: bajar var(--t-medio) var(--curva-salida) both; }
 .grafica-cabeza { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; height: 64px; padding: 0 22px; }

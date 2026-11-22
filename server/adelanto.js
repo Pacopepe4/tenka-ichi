@@ -85,14 +85,18 @@ export function kdaEn(nombre, t) {
 
 // Cómo están la D, la F y la R de un jugador en el segundo t de la emisión: null si están listos; si no, { quedan }
 // con los segundos que faltan (null si aún no se sabe cuándo vuelven). Sin datos de ese jugador, undefined
-// Al empezar la partida todo está listo (22/11, Pacopepe): un enfriamiento que el PC 1 da por empezado en los primeros
-// segundos es una mala lectura (la versión anterior del lector tomaba el blanco del dibujo de algunos iconos por la aguja)
+// t es el tiempo de juego. Dos redes de seguridad contra lecturas malas del lector del PC 1 (sobre todo el de antes del
+// 22/11, que tomaba el blanco del dibujo de algunos iconos por la aguja):
+//  - al empezar la partida todo está listo (Pacopepe): un enfriamiento que empieza en los primeros segundos no cuenta;
+//  - un enfriamiento sin final que dura más que el más largo posible (unos 420 s: Teleportar o una R larga) tampoco
+//    (EGM 22/11, M2): era un icono que el lector se quedó tomando por gastado
 const LISTO_AL_EMPEZAR = 10;
+const ENFRIAMIENTO_MAXIMO = 420;
 export function enfriamientosEn(nombre, t) {
   const h = adelanto.hechizos.get(normalizar(nombre));
   if (!h) return undefined;
   const estado = lista => {
-    const tramo = lista.findLast(([a, b]) => a >= LISTO_AL_EMPEZAR && a <= t && (b === null || b > t));
+    const tramo = lista.findLast(([a, b]) => a >= LISTO_AL_EMPEZAR && a <= t && (b === null ? t - a <= ENFRIAMIENTO_MAXIMO : b > t));
     return tramo ? { quedan: tramo[1] === null ? null : Math.ceil(tramo[1] - t) } : null;
   };
   return { d: estado(h.d), f: estado(h.f), r: estado(h.r) };

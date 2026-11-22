@@ -405,3 +405,17 @@ test('sello de objetivo y racha a pincel: kanji de cada objetivo, su propia caja
   }
   assert.ok(!/(transition|animation)[^;]*/.test(estilo.slice(estilo.indexOf('.aviso-sello'), estilo.indexOf('.pelea {'))), 'el aspecto no anima nada');
 });
+
+test('EGM 22/11 (M8): la misión solo destella en los 3 s que siguen a cuando se vio hecha', () => {
+  const js = leerRepo('public/ingame/ingame.js').replace(/\r\n/g, '\n');
+  const i = js.indexOf('const DESTELLO_MISION_S');
+  const fin = js.indexOf('\n}\n', js.indexOf('function misionRecien', i)) + 2;
+  const misionRecien = new Function(`${js.slice(i, fin).replace('export function', 'function')}\nreturn misionRecien;`)();
+  const j = { misionHecha: true, misionEn: 600 };
+  assert.equal(misionRecien(j, 600), true);
+  assert.equal(misionRecien(j, 602.5), true);
+  assert.equal(misionRecien(j, 603), false, 'pasados 3 s, ya no');
+  assert.equal(misionRecien(j, 1080), false, 'sacar el línea por línea 8 min después no destella');
+  assert.equal(misionRecien(j, 590), false, 'la repetición por detrás tampoco');
+  assert.equal(misionRecien({ misionHecha: false, misionEn: null }, 600), false);
+});
