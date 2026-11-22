@@ -1,0 +1,262 @@
+{
+  "name": "Gokudō · Arcade (Livir)",
+  "current_scene": "Partida",
+  "current_program_scene": "Partida",
+  "scene_order": [
+    {
+      "name": "Partida"
+    }
+  ],
+  "sources": [
+    {
+      "name": "Partida",
+      "uuid": "7b1922ee-f48f-4459-b98a-1468e7920af7",
+      "id": "scene",
+      "versioned_id": "scene",
+      "settings": {
+        "custom_size": false,
+        "id_counter": 3,
+        "items": [
+          {
+            "name": "Juego LoL",
+            "source_uuid": "27f1ea9b-443e-4d6f-82ba-3a78aec37e1c",
+            "visible": true,
+            "locked": false,
+            "rot": 0,
+            "pos": {
+              "x": 0,
+              "y": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1
+            },
+            "align": 5,
+            "bounds_type": 2,
+            "bounds_align": 0,
+            "bounds": {
+              "x": 1920,
+              "y": 1080
+            },
+            "crop_left": 0,
+            "crop_top": 0,
+            "crop_right": 0,
+            "crop_bottom": 0,
+            "id": 1,
+            "group_item_backup": false,
+            "scale_filter": "disable",
+            "blend_method": "default",
+            "blend_type": "normal",
+            "show_transition": {
+              "duration": 0
+            },
+            "hide_transition": {
+              "duration": 0
+            },
+            "private_settings": {}
+          },
+          {
+            "name": "Camara Livir",
+            "source_uuid": "f8e1dd5c-e9fb-4514-a6e2-15d71e6860f1",
+            "visible": true,
+            "locked": false,
+            "rot": 0,
+            "pos": {
+              "x": 16,
+              "y": 856
+            },
+            "scale": {
+              "x": 1,
+              "y": 1
+            },
+            "align": 5,
+            "bounds_type": 3,
+            "bounds_align": 0,
+            "bounds": {
+              "x": 320,
+              "y": 180
+            },
+            "bounds_crop": true,
+            "crop_left": 0,
+            "crop_top": 0,
+            "crop_right": 0,
+            "crop_bottom": 0,
+            "id": 2,
+            "group_item_backup": false,
+            "scale_filter": "disable",
+            "blend_method": "default",
+            "blend_type": "normal",
+            "show_transition": {
+              "duration": 0
+            },
+            "hide_transition": {
+              "duration": 0
+            },
+            "private_settings": {}
+          },
+          {
+            "name": "Overlay Gokudō arcade",
+            "source_uuid": "08a75294-652e-4296-8bd5-ab24e2a6c380",
+            "visible": true,
+            "locked": false,
+            "rot": 0,
+            "pos": {
+              "x": 0,
+              "y": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1
+            },
+            "align": 5,
+            "bounds_type": 2,
+            "bounds_align": 0,
+            "bounds": {
+              "x": 1920,
+              "y": 1080
+            },
+            "crop_left": 0,
+            "crop_top": 0,
+            "crop_right": 0,
+            "crop_bottom": 0,
+            "id": 3,
+            "group_item_backup": false,
+            "scale_filter": "disable",
+            "blend_method": "default",
+            "blend_type": "normal",
+            "show_transition": {
+              "duration": 0
+            },
+            "hide_transition": {
+              "duration": 0
+            },
+            "private_settings": {}
+          }
+        ]
+      },
+      "enabled": true,
+      "muted": false,
+      "volume": 1,
+      "balance": 0.5,
+      "mixers": 0,
+      "flags": 0,
+      "sync": 0,
+      "monitoring_type": 0,
+      "hotkeys": {},
+      "private_settings": {}
+    },
+    {
+      "name": "Juego LoL",
+      "uuid": "27f1ea9b-443e-4d6f-82ba-3a78aec37e1c",
+      "id": "game_capture",
+      "versioned_id": "game_capture",
+      "settings": {
+        "capture_mode": "window",
+        "window": "League of Legends (TM) Client:RiotWindowClass:League of Legends.exe",
+        "priority": 2,
+        "capture_cursor": true,
+        "allow_transparency": false
+      },
+      "enabled": true,
+      "muted": false,
+      "volume": 1,
+      "balance": 0.5,
+      "mixers": 0,
+      "flags": 0,
+      "sync": 0,
+      "monitoring_type": 0,
+      "hotkeys": {},
+      "private_settings": {}
+    },
+    {
+      "name": "Camara Livir",
+      "uuid": "f8e1dd5c-e9fb-4514-a6e2-15d71e6860f1",
+      "id": "dshow_input",
+      "versioned_id": "dshow_input",
+      "settings": {
+        "deactivate_when_not_showing": true
+      },
+      "enabled": true,
+      "muted": false,
+      "volume": 1,
+      "balance": 0.5,
+      "mixers": 0,
+      "flags": 0,
+      "sync": 0,
+      "monitoring_type": 0,
+      "hotkeys": {},
+      "private_settings": {}
+    },
+    {
+      "name": "Overlay Gokudō arcade",
+      "uuid": "08a75294-652e-4296-8bd5-ab24e2a6c380",
+      "id": "browser_source",
+      "versioned_id": "browser_source",
+      "settings": {
+        "url": "https://gokudo.es/arcade/?nombre=Livir&usuario=liviir_",
+        "width": 1920,
+        "height": 1080,
+        "fps": 30,
+        "shutdown": false,
+        "restart_when_active": false,
+        "reroute_audio": false,
+        "css": "body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }"
+      },
+      "enabled": true,
+      "muted": false,
+      "volume": 1,
+      "balance": 0.5,
+      "mixers": 0,
+      "flags": 0,
+      "sync": 0,
+      "monitoring_type": 0,
+      "hotkeys": {},
+      "private_settings": {}
+    }
+  ],
+  "groups": [],
+  "DesktopAudioDevice1": {
+    "name": "Audio del escritorio",
+    "uuid": "ecb3967f-da1f-46b0-bcdc-bc0b211a3eea",
+    "id": "wasapi_output_capture",
+    "versioned_id": "wasapi_output_capture",
+    "settings": {
+      "device_id": "default"
+    },
+    "enabled": true,
+    "muted": false,
+    "volume": 1,
+    "balance": 0.5,
+    "mixers": 255,
+    "flags": 0,
+    "sync": 0,
+    "monitoring_type": 0,
+    "hotkeys": {},
+    "private_settings": {}
+  },
+  "AuxAudioDevice1": {
+    "name": "Mic/Aux",
+    "uuid": "77d8cbac-7bf5-4736-9f60-48ff661eaeb3",
+    "id": "wasapi_input_capture",
+    "versioned_id": "wasapi_input_capture",
+    "settings": {
+      "device_id": "default"
+    },
+    "enabled": true,
+    "muted": false,
+    "volume": 1,
+    "balance": 0.5,
+    "mixers": 255,
+    "flags": 0,
+    "sync": 0,
+    "monitoring_type": 0,
+    "hotkeys": {},
+    "private_settings": {}
+  },
+  "transitions": [],
+  "current_transition": "Fundido",
+  "transition_duration": 300,
+  "quick_transitions": [],
+  "saved_projectors": [],
+  "modules": {}
+}

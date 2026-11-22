@@ -1131,7 +1131,8 @@ async function rutasSesion(req, res, url) {
 // ---------- servidor HTTP estático ----------
 const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
   '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
-  '.svg': 'image/svg+xml', '.webp': 'image/webp', '.woff2': 'font/woff2', '.mp4': 'video/mp4', '.webm': 'video/webm' };
+  '.svg': 'image/svg+xml', '.webp': 'image/webp', '.woff2': 'font/woff2', '.mp4': 'video/mp4', '.webm': 'video/webm',
+  '.md': 'text/markdown; charset=utf-8' };
 
 // Huella de cada archivo (por su contenido, así no cambia con cada despliegue): el navegador pregunta con ella y,
 // si el archivo es el mismo, no se vuelve a mandar. Se calcula una vez y se rehace si el archivo cambia
