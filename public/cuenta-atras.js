@@ -12,12 +12,14 @@ if (cajas.length && formato) {
   // Con el calendario sorteado, cada jornada lleva las horas que haya cambiado el staff en el panel (formato.cambios)
   const horasDe = (j, i) => {
     const cruces = calendario?.jornadas?.[i];
-    return cruces?.length ? horasJornada(formato, cruces, j.fecha).sort() : horasDelDia(partidos, formato.hora, formato.margen);
+    if (!cruces?.length) return horasDelDia(partidos, formato.hora, formato.margen);
+    // Los que tienen resultado de mesa no se juegan
+    return horasJornada(formato, cruces, j.fecha).filter((h, k) => !formato.cambios?.[cruces[k].id]?.mesa).sort();
   };
   const dias = [
     ...formato.liguilla.map((j, i) => ({ nombre: j.nombre, fecha: j.fecha, horas: horasDe(j, i) })),
     ...formato.playoffs.map(r => ({ nombre: r.nombre, fecha: r.fecha, horas: [formato.hora] })),
-  ].map(d => ({ ...d, inicio: horaEspana(d.fecha, d.horas[0] || formato.hora) }));
+  ].filter(d => d.horas.length).map(d => ({ ...d, inicio: horaEspana(d.fecha, d.horas[0] || formato.hora) }));
   const fechaLarga = d => d.inicio.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Madrid' });
 
   for (const caja of cajas) {

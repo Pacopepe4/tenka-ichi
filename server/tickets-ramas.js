@@ -158,6 +158,7 @@ export function textoLiga(liga, clanes) {
     const cruce = id => (liga.calendario.jornadas || []).flat().find(c => c.id === id);
     lineas.push(`Cambios de horario (mandan sobre lo anterior): ${cambiados.map(([id, c]) => {
       const p = cruce(id);
+      if (c.mesa) return `${p ? `${nom(p.azul)} vs ${nom(p.rojo)}` : id} no se juega: se le da a ${nom(c.ganador)} (${c.mesa})`;
       return `${p ? `${nom(p.azul)} vs ${nom(p.rojo)}` : id} el ${c.fecha} a las ${c.hora}`;
     }).join('; ')}.`);
   }

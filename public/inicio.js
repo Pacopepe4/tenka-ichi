@@ -242,7 +242,9 @@ function pintarLiga() {
       $('.cruces').innerHTML = sorteadas[actual]?.map((c, i) => {
         const r = cls.resultados[c.id];
         const lado = (id, color) => `<span class="lado-cruce ${r ? (r.ganador === id ? 'gana' : 'pierde') : ''}" ${tinte(id)}><i class="punto ${color}" title="Lado ${color}"></i>${escudo(id)}${nombre(id)}</span>`;
-        return `<li>${formato.hora ? `<span class="hora-cruce">${horas[i]}</span>` : ''}${lado(c.azul, 'azul')}<span class="vs-cruce">${r ? '' : 'vs'}</span>${lado(c.rojo, 'rojo')}</li>`;
+        // Resultado de mesa (no se jugó): «Mesa» en vez de la hora, con el motivo al pasar por encima
+        const mesa = r?.mesa ? String(r.mesa).replace(/[&<>"]/g, x => `&#${x.charCodeAt(0)};`) : null;
+        return `<li>${formato.hora || mesa ? `<span class="hora-cruce"${mesa ? ` title="${mesa}"` : ''}>${mesa ? 'Mesa' : horas[i]}</span>` : ''}${lado(c.azul, 'azul')}<span class="vs-cruce">${r ? '' : 'vs'}</span>${lado(c.rojo, 'rojo')}</li>`;
       }).join('') || '<li class="vacio">Los cruces se sortean antes de la primera jornada.</li>';
       document.querySelectorAll('.jornadas button').forEach(b => b.addEventListener('click', () => { actual = Number(b.dataset.i); pintarJornada(); }));
     };

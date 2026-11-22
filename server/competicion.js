@@ -68,11 +68,24 @@ export function sortear(participantes, semilla) {
 const mismaPareja = (p, a, b) => (p.clanAzul === a && p.clanRojo === b) || (p.clanAzul === b && p.clanRojo === a);
 const ganadorDe = p => (p.ganador === 'azul' ? p.clanAzul : p.clanRojo);
 
-// Asocia cada partida de la liguilla con su cruce del calendario (la última registrada manda)
-export function resultadosLiga(calendario, partidas) {
+// Los resultados de mesa: un cruce que no se juega y el staff da por ganado ({ J2-3: { ganador: 'TORA', motivo, fecha } }).
+// Los pone el panel (server/torneo.js, «torneoMesa») y no son partidas: no cuentan en las estadísticas ni en el fantasy.
+// El 22/11/2026 Pacopepe dio la J2-3 a Byakko por incumplimiento de la normativa de Ryūjin
+let mesaDeLaWeb = () => ({});
+export function usarResultadosDeMesa(fn) { mesaDeLaWeb = fn; }
+const mesaActual = () => { try { return mesaDeLaWeb() || {}; } catch { return {}; } };
+
+// Asocia cada partida de la liguilla con su cruce del calendario (la última registrada manda). Un resultado de mesa
+// manda sobre una partida jugada del mismo cruce
+export function resultadosLiga(calendario, partidas, mesa = mesaActual()) {
   const res = {};
   const deLiga = partidas.filter(p => p.fase === FASE_LIGA);
   for (const cruce of calendario.jornadas.flat()) {
+    const m = mesa[cruce.id];
+    if (m && [cruce.azul, cruce.rojo].includes(m.ganador)) {
+      res[cruce.id] = { ganador: m.ganador, azul: cruce.azul, rojo: cruce.rojo, fecha: m.fecha || null, mesa: m.motivo || 'Resultado de mesa' };
+      continue;
+    }
     const jugada = deLiga.filter(p => mismaPareja(p, cruce.azul, cruce.rojo)).at(-1);
     if (jugada) res[cruce.id] = { ganador: ganadorDe(jugada), azul: jugada.clanAzul, rojo: jugada.clanRojo, fecha: jugada.fecha };
   }
@@ -80,8 +93,8 @@ export function resultadosLiga(calendario, partidas) {
 }
 
 // ---------- Clasificación ----------
-export function clasificacion(calendario, partidas) {
-  const res = resultadosLiga(calendario, partidas);
+export function clasificacion(calendario, partidas, mesa = mesaActual()) {
+  const res = resultadosLiga(calendario, partidas, mesa);
   const filas = Object.fromEntries(calendario.participantes.map(c => [c, { clan: c, jugadas: 0, victorias: 0, derrotas: 0, rivales: [], ganados: [] }]));
   for (const cruce of calendario.jornadas.flat()) {
     const r = res[cruce.id];
@@ -186,9 +199,9 @@ export function formatoTemporada() {
 }
 
 // Resumen completo para la web y el panel
-export function competicion(calendario, partidas) {
+export function competicion(calendario, partidas, mesa = mesaActual()) {
   const formato = formatoTemporada();
   if (!calendario) return { calendario: null, formato };
-  const clasif = clasificacion(calendario, partidas);
+  const clasif = clasificacion(calendario, partidas, mesa);
   return { calendario, clasificacion: clasif, cuadro: cuadro(clasif, partidas), formato };
 }

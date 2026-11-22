@@ -286,6 +286,18 @@ test('los cambios de horario se guardan y se pueden quitar', async () => {
   assert.equal(t.estado().partidos.find(p => p.id === 'J1-3').cambiado, false);
 });
 
+test('resultado de mesa: solo para uno de los dos de la liguilla, sale en cambios y se puede quitar', async () => {
+  const { t, guardado } = montar({ conRiot: false });
+  const cruce = t.estado().partidos.find(p => p.id === 'J1-3');
+  await t.resultadoMesa('J1-3', { ganador: cruce.rojo, motivo: 'Incumplimiento de la normativa' });
+  assert.equal(JSON.parse(guardado()).mesa['J1-3'].ganador, cruce.rojo);
+  assert.equal(t.cambios()['J1-3'].mesa, 'Incumplimiento de la normativa');
+  assert.equal(t.estado().partidos.find(p => p.id === 'J1-3').mesa.ganador, cruce.rojo);
+  await assert.rejects(t.resultadoMesa('J1-3', { ganador: 'NADIE' }));
+  await t.resultadoMesa('J1-3', {});
+  assert.equal(t.cambios()['J1-3'], undefined);
+});
+
 test('códigos de Toornament: se pegan de golpe, mandan sobre la sala y se entregan como código de torneo', async () => {
   const dc = discordFalso({ miembros: [] });
   const { t } = montar({ conRiot: false, discord: dc });

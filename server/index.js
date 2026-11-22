@@ -500,6 +500,8 @@ async function accion(nombre, d = {}) {
     }
     case 'torneoHorario':
       return { ok: true, torneo: await torneo.cambiarHorario(d.id, { fecha: d.fecha || null, hora: d.hora || null }) };
+    case 'torneoMesa':
+      return { ok: true, torneo: await torneo.resultadoMesa(d.id, { ganador: d.ganador || null, motivo: d.motivo || null }) };
     case 'torneoDrafts':
       return { ok: true, torneo: await torneo.guardarDrafts(d.id, d) };
     case 'torneoPegarDrafts': {
@@ -1203,7 +1205,7 @@ const servidor = http.createServer(async (req, res) => {
   }
   if (url.pathname === '/api/competicion') {
     res.writeHead(200, { 'Content-Type': TIPOS['.json'], 'Cache-Control': 'no-cache' });
-    const datos = sim ? competicion(sim.calendario, sim.partidas) : conCambios(competicion(calendarioActual(), todas()));
+    const datos = sim ? competicion(sim.calendario, sim.partidas, {}) : conCambios(competicion(calendarioActual(), todas()));
     return res.end(JSON.stringify({ ...datos, simulacion: Boolean(sim) }));
   }
   // El postdraft del overlay: lo que lleva cada jugador con su campeón y en general, su carta y los dos clanes
