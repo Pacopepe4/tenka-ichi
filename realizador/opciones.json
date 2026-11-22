@@ -185,7 +185,7 @@
     "segundosBufer": 60,
     "codificador": "auto",
     "emision": { "servidor": "rtmps://fa723fc1b171.global-contribute.live-video.net/" },
-    "minimapa": { "lado": 270, "margen": 0 },
+    "minimapa": { "lado": 258, "x": 1651, "y": 811 },
     "vista": "camara",
     "bitrateEmision": 6000,
     "overlay": ""
@@ -193,7 +193,7 @@
 
   "puente": {
     "modo": "red",
-    "url": "wss://tenka-ichi.onrender.com/realizador"
+    "url": "wss://gokudo.es/realizador"
   },
 
   "tenkaIchi": {

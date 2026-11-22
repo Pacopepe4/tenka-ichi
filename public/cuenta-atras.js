@@ -1,18 +1,25 @@
 // Cuenta atrás hasta el siguiente día de partidos (portada, en la liga, y gachapon): cada [data-cuenta] de la página.
 // Los días salen del formato de la temporada (/api/competicion) y la hora es la de España, la mire quien la mire.
 // Cuando llega, salta sola al siguiente día; acabada la temporada, se esconde.
-import { horaEspana, horasDelDia } from '/comun.js';
+import { horaEspana, horasDelDia, horasJornada } from '/comun.js';
 
 const cajas = [...document.querySelectorAll('[data-cuenta]')];
-const { formato } = await fetch('/api/competicion', { cache: 'no-store' }).then(r => r.json()).catch(() => ({}));
+const { formato, calendario } = await fetch('/api/competicion', { cache: 'no-store' }).then(r => r.json()).catch(() => ({}));
 const dos = n => String(n).padStart(2, '0');
 
 if (cajas.length && formato) {
   const partidos = Math.floor((formato.clanes?.length || 6) / 2);
+  // Con el calendario sorteado, cada jornada lleva las horas que haya cambiado el staff en el panel (formato.cambios)
+  const horasDe = (j, i) => {
+    const cruces = calendario?.jornadas?.[i];
+    if (!cruces?.length) return horasDelDia(partidos, formato.hora, formato.margen);
+    // Los que tienen resultado de mesa no se juegan
+    return horasJornada(formato, cruces, j.fecha).filter((h, k) => !formato.cambios?.[cruces[k].id]?.mesa).sort();
+  };
   const dias = [
-    ...formato.liguilla.map(j => ({ nombre: j.nombre, fecha: j.fecha, horas: horasDelDia(partidos, formato.hora, formato.margen) })),
+    ...formato.liguilla.map((j, i) => ({ nombre: j.nombre, fecha: j.fecha, horas: horasDe(j, i) })),
     ...formato.playoffs.map(r => ({ nombre: r.nombre, fecha: r.fecha, horas: [formato.hora] })),
-  ].map(d => ({ ...d, inicio: horaEspana(d.fecha, formato.hora) }));
+  ].filter(d => d.horas.length).map(d => ({ ...d, inicio: horaEspana(d.fecha, d.horas[0] || formato.hora) }));
   const fechaLarga = d => d.inicio.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Madrid' });
 
   for (const caja of cajas) {

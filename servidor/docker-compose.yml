@@ -1,0 +1,97 @@
+# Tenka Ichi en el server casero: la web (app), el HTTPS (caddy), el aviso de la IP de casa al DNS (ddns) y el
+# contexto de los bots en Postgres con pgvector (db).
+# Se arranca desde esta carpeta con:  docker compose up -d --build
+name: tenka
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: servidor/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PORT: "3000"
+    volumes:
+      # Los datos locales de la web (data/ en la raíz del repo, fuera de git)
+      - ../data:/app/data
+      # El modelo de embeddings del contexto de los bots (se baja solo la primera vez)
+      - modelos:/app/modelos
+    ports:
+      # Solo para la red de casa (OBS, puente, realizador): el router NO debe abrir este puerto
+      - "3000:3000"
+    healthcheck:
+      # (la imagen es Debian y no trae wget: se pregunta con el propio Node)
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/salud').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          # 1,5 GB desde el 21/11/2026: el modelo de embeddings ocupa unos 300 MB en memoria
+          memory: 1536m
+    logging: &logs
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+
+  # El contexto compartido de los bots (SrDirector, Kick y Twitch): Postgres con pgvector e índice HNSW
+  # (server/contexto.js). Solo lo ve la web, por la red de Docker: no abre ningún puerto. La clave es PG_CLAVE del
+  # .env (solo letras y números: openssl rand -hex 24). Todo lo que guarda se puede volver a sacar de la ficha, la hoja
+  # y los archivos de discord/, así que si se pierde no pasa nada: la web lo rellena sola al arrancar
+  db:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: tenka
+      POSTGRES_DB: tenka
+      POSTGRES_PASSWORD: ${PG_CLAVE:-}
+    command: ["postgres", "-c", "shared_buffers=128MB", "-c", "maintenance_work_mem=128MB", "-c", "max_connections=20"]
+    volumes:
+      - pg_datos:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tenka -d tenka"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    logging: *logs
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on: [app]
+    env_file: .env
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_datos:/data
+      - caddy_config:/config
+    logging: *logs
+
+  ddns:
+    image: qmcgaw/ddns-updater:2
+    restart: unless-stopped
+    environment:
+      PERIOD: 5m
+      LOG_LEVEL: info
+      TZ: Europe/Madrid
+    volumes:
+      - ./ddns:/updater/data
+    # Su panelito, solo en casa: http://IP-del-server:8000
+    ports:
+      - "8000:8000"
+    logging: *logs
+
+volumes:
+  caddy_datos:
+  caddy_config:
+  pg_datos:
+  modelos:

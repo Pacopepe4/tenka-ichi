@@ -411,7 +411,7 @@ function pintarGacha(g) {
   const c = g.canal, est = $('#estadoCanal');
   est.className = `estado ${c.error ? 'mal' : c.conectado ? 'ok' : ''}`;
   est.textContent = c.error ? c.error
-    : c.conectado ? `Conectado como ${c.login}. La recompensa «${c.titulo}» cuesta ${c.coste} puntos.${c.ultimoSondeo ? ` Última recogida de canjes: ${new Date(c.ultimoSondeo).toLocaleTimeString('es-ES')}.` : ''}`
+    : c.conectado ? `Conectado como ${c.login}. La recompensa «${c.titulo}» cuesta ${c.coste} puntos.${c.ultimoSondeo ? ` Última recogida de canjes: ${new Date(c.ultimoSondeo).toLocaleTimeString('es-ES')}.` : ''}${c.chatTexto ? ` ${c.chatTexto}` : ''}`
       : `Sin conectar. Hay que entrar con la cuenta del canal (${c.canal}); la web crea la recompensa «${c.titulo}».`;
   $('#conectarCanal').textContent = c.conectado ? 'Volver a conectar el canal' : 'Conectar el canal de Twitch';
   if (c.coste && document.activeElement !== $('#costeSobre')) $('#costeSobre').value = c.coste;
@@ -694,32 +694,40 @@ function pintarIngame() {
   pintarCamaraPartida();
 }
 
-// ---------- Cámara del caster en partida, abajo a la izquierda ----------
-// Un solo hueco, abajo a la izquierda (camaraPartida en comun.js; abajo a la derecha va el minimapa), que va por su cuenta: no depende del línea por línea.
-// Es ingame.camaras[0] en el estado (la segunda de la lista, la derecha de antes, ya no sale). Marcarla se aplica al
-// momento; el nombre y el detalle, con el botón, como en las cámaras del draft
+// ---------- Cámaras de los casters en partida ----------
+// Dos huecos en la franja de abajo (camaraPartida en comun.js): el 1 a la izquierda del línea por línea y el 2 (22/11,
+// segundo caster) entre él y el minimapa. Son ingame.camaras[0] y [1] en el estado, y cada uno va por su cuenta.
+// Marcarlos se aplica al momento; los nombres y los detalles, con el botón, como en las cámaras del draft
+const CAMPOS_CAMARA = ['camaraPartida', 'camaraPartida2'];
 let camaraPartidaRellena = false;
 function pintarCamaraPartida() {
-  const cam = estado?.ingame?.camaras?.[0];
-  if (!cam) return;
+  const camaras = estado?.ingame?.camaras;
+  if (!camaras?.length) return;
   // Lo escrito no se pisa cada vez que llega el estado: el nombre y el detalle se rellenan una vez
-  if (!camaraPartidaRellena) {
-    camaraPartidaRellena = true;
-    $('#camaraPartidaNombre').value = cam.nombre;
-    $('#camaraPartidaDetalle').value = cam.detalle;
-  }
-  $('#camaraPartidaActiva').checked = Boolean(cam.activa);
-  const h = camaraPartida();
-  $('#camaraPartidaMedida').textContent = `${h.w}×${h.h} en x ${h.x}, y ${h.y}`;
+  const rellenar = !camaraPartidaRellena;
+  camaraPartidaRellena = true;
+  CAMPOS_CAMARA.forEach((id, i) => {
+    const cam = camaras[i];
+    if (!cam) return;
+    if (rellenar) { $(`#${id}Nombre`).value = cam.nombre; $(`#${id}Detalle`).value = cam.detalle; }
+    $(`#${id}Activa`).checked = Boolean(cam.activa);
+    const h = camaraPartida(i);
+    $(`#${id}Medida`).textContent = `${h.w}×${h.h} en x ${h.x}, y ${h.y}`;
+  });
 }
-$('#camaraPartidaActiva').onchange = async e => {
-  const activa = e.target.checked;
-  const r = await enviar('ingame', { camaras: [{ activa }] });
-  if (r.ok) aviso(activa ? 'Cámara del caster activada: sale en la partida, abajo a la izquierda' : 'Cámara del caster quitada');
-};
+// Solo cambia la cámara tocada: la otra va vacía ({}) y el server la deja como estaba
+const soloLa = (i, datos) => [0, 1].map(n => (n === i ? datos : {}));
+CAMPOS_CAMARA.forEach((id, i) => {
+  $(`#${id}Activa`).onchange = async e => {
+    const activa = e.target.checked;
+    const r = await enviar('ingame', { camaras: soloLa(i, { activa }) });
+    if (r.ok) aviso(activa ? `Cámara del caster ${i + 1} activada: sale en la partida` : `Cámara del caster ${i + 1} quitada`);
+  };
+});
 $('#guardarCamaraPartida').onclick = async () => {
-  const r = await enviar('ingame', { camaras: [{ nombre: $('#camaraPartidaNombre').value.trim(), detalle: $('#camaraPartidaDetalle').value.trim() }] });
-  if (r.ok) aviso('Nombre del caster en el overlay');
+  const camaras = CAMPOS_CAMARA.map(id => ({ nombre: $(`#${id}Nombre`).value.trim(), detalle: $(`#${id}Detalle`).value.trim() }));
+  const r = await enviar('ingame', { camaras });
+  if (r.ok) aviso('Nombres de los casters en el overlay');
 };
 
 // Estadísticas del fantasy desde la partida: cada puesto del panel con el jugador de esa línea.

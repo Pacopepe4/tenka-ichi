@@ -63,7 +63,8 @@ export class HistorialCs {
 
 // Misiones de rol (14/11), de la lista de jugadores de la Live Client (el espectador sí las ve):
 //  - jungla: el Castigo cambia de nombre (SummonerSmite → SummonerSmiteAvatar…, el mejorado)
-//  - top: el Teleport cambia de nombre (el mejorado)
+//  - top: no hay señal fiable. El Teleport desatado no es su misión: les llega al minuto 10 a todos los que lo llevan
+//    (22/11: en las partidas del 15 y el 16/11 cambió a los 602 s en un top y dos medios a la vez)
 //  - botas de nivel 3 (las de la misión de mid; 3170-3179)
 // Solo cuenta un cambio después de la primera lectura: si se entra con la partida empezada, lo que ya estaba no sale.
 const CRUDO = s => String(s?.rawDisplayName || s?.displayName || '');
@@ -92,7 +93,6 @@ export class SeguidorMisiones {
         const antes = p.hechizos[k], ahora = hechizos[k];
         if (!antes || !ahora || antes === ahora) continue;
         if (/SummonerSmite(_|$)/.test(antes) && /Smite/.test(ahora)) apuntar('jungla', 'castigo mejorado');
-        else if (/Teleport/.test(antes) && /Teleport/.test(ahora)) apuntar('top', 'teleport mejorado');
       }
       if (botas.length && !p.botas) apuntar('botas', 'botas de nivel 3');
       p.hechizos = hechizos; p.botas = p.botas || botas.length > 0;

@@ -20,7 +20,7 @@ before(async () => {
   const entorno = { ...process.env };
   for (const k of Object.keys(entorno)) if (/^(GOOGLE_|TWITCH_|DISCORD_|RENDER|GACHA_|IMPORTACIONES)/.test(k)) delete entorno[k];
   web = spawn(process.execPath, ['server/index.js'], { cwd: RAIZ, stdio: 'ignore',
-    env: { ...entorno, PORT: String(puerto), PANEL_CLAVE: CLAVE, SESION_SECRETO: 'secreto-de-las-pruebas', CARPETA_DATOS: carpeta } });
+    env: { ...entorno, PORT: String(puerto), PANEL_CLAVE: CLAVE, SESION_SECRETO: 'secreto-de-las-pruebas', CARPETA_DATOS: carpeta, TWITCH_ALERTAS_URL: 'https://dashboard.twitch.tv/widgets/alertbox#token-de-prueba' } });
   await esperarWeb(web, urlWeb);
 });
 after(async () => {
@@ -48,4 +48,16 @@ test('la página del panel trae la entrada y deja el resto sin poder tocar hasta
   assert.match(html, /<div class="disposicion" inert>/);
   assert.ok(html.indexOf('entrada.js') < html.indexOf('panel.js'), 'la entrada carga antes que el panel');
   assert.doesNotMatch(html, /id="clave" type="password"/, 'la contraseña ya no va en la barra');
+});
+
+test('alertas de Twitch (22/11): la URL con token solo con la contraseña del panel, por POST', async () => {
+  const pedir = (cuerpo, metodo = 'POST') => fetch(`${urlWeb}/api/realizador/alertas-twitch`, { method: metodo,
+    headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': '10.0.0.9' }, ...(metodo === 'POST' ? { body: JSON.stringify(cuerpo) } : {}) });
+  const bien = await pedir({ clave: CLAVE });
+  assert.equal(bien.status, 200);
+  assert.deepEqual(await bien.json(), { ok: true, url: 'https://dashboard.twitch.tv/widgets/alertbox#token-de-prueba' });
+  const mal = await pedir({ clave: 'otra' });
+  assert.equal(mal.status, 401);
+  assert.doesNotMatch(await mal.text(), /token-de-prueba/);
+  assert.equal((await pedir(null, 'GET')).status, 405);
 });

@@ -4,12 +4,13 @@
 // Aquí solo se decide qué contestar: lo que hace falta saber (la cuenta de quien escribe, el fantasy, el calendario)
 // llega en «ctx», así se prueba sin Kick.
 
-export const COMANDOS = ['tiradas', 'clasificacion', 'gachapon', 'partido'];
+// !pregunta (21/11/2026) la contesta SrDirector con IA (server/preguntas-chat.js), no este archivo
+export const COMANDOS = ['tiradas', 'clasificacion', 'gachapon', 'partido', 'pregunta'];
 // Lo que se contesta igual a todos se contesta como mucho cada 15 s; lo de cada uno (!tiradas), cada 30 s por persona
 export const ESPERA_COMANDO_MS = { general: 15000, personal: 30000 };
 const PERSONALES = new Set(['tiradas']);
 const ALIAS = { sobres: 'tiradas', sobre: 'tiradas', tirada: 'tiradas', clasificación: 'clasificacion', ranking: 'clasificacion', gacha: 'gachapon', omamori: 'gachapon', proximo: 'partido',
-  próximo: 'partido', ayuda: 'comandos' };
+  próximo: 'partido', ayuda: 'comandos', p: 'pregunta', preguntar: 'pregunta', srdirector: 'pregunta', director: 'pregunta' };
 
 const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
 
@@ -74,11 +75,14 @@ export function textoPartido({ formato, calendario, nombre }, ahora = Date.now()
   for (const j of formato.liguilla) {
     const cruces = calendario?.jornadas?.[j.jornada - 1] || null;
     const horas = horasDelDia(cruces?.length || 1, formato.hora, formato.margen);
-    if (cruces) cruces.forEach((c, k) => partidos.push({ ronda: j.nombre, fecha: j.fecha, hora: horas[k], cruce: `${nombre(c.azul)} contra ${nombre(c.rojo)}` }));
+    // formato.cambios: el día o la hora que el staff cambió en el panel para ese partido
+    if (cruces) cruces.forEach((c, k) => !formato.cambios?.[c.id]?.mesa && partidos.push({ ronda: j.nombre, fecha: formato.cambios?.[c.id]?.fecha || j.fecha,
+      hora: formato.cambios?.[c.id]?.hora || horas[k], cruce: `${nombre(c.azul)} contra ${nombre(c.rojo)}` }));
     else partidos.push({ ronda: j.nombre, fecha: j.fecha, hora: horas[0], cruce: null });
   }
   for (const r of formato.playoffs) partidos.push({ ronda: r.nombre, fecha: r.fecha, hora: formato.hora, cruce: null });
   for (const p of partidos) p.inicio = horaEspana(p.fecha, p.hora).getTime();
+  partidos.sort((a, b) => a.inicio - b.inicio);
 
   const enJuego = partidos.find(p => p.cruce && p.inicio <= ahora && ahora < p.inicio + formato.margen * 60000);
   const siguiente = partidos.find(p => p.inicio > ahora);

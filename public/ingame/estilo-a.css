@@ -27,8 +27,18 @@
 [data-estilo="a"] .datos { padding: 0 18px; background: rgba(12, 13, 19, .92); font-family: var(--dela); font-size: 17px; font-weight: 400; border-radius: 0 0 8px 8px; box-shadow: var(--filo-fino); }
 [data-estilo="a"] .caido { border-radius: 5px; overflow: hidden; box-shadow: 0 0 0 1px var(--sumi-linea); }
 [data-estilo="a"] .caido b { font-family: var(--dela); font-weight: 400; font-size: 17px; color: #fff; text-shadow: 0 0 4px #000, 0 0 2px #000; }
-/* Enfriamientos a los lados: placa de noche con filo, retrato con el tubo de su familia, cifras en Dela */
-[data-estilo="a"] .lateral { padding: 8px; background: rgba(12, 13, 19, .82); border-radius: 8px; box-shadow: var(--filo-fino), 0 10px 26px rgba(0, 0, 0, .4); }
+/* Enfriamientos a los lados (22/11): placa de noche pegada al borde de la pantalla, como las del marcador: filo fino, el
+   color de la familia que se apaga hacia dentro y su tubo de neón en el borde de fuera */
+[data-estilo="a"] .lateral { padding: 10px 10px 10px 22px; background: linear-gradient(180deg, rgba(21, 22, 31, .96), rgba(12, 13, 19, .96));
+  border-radius: 0 8px 8px 0; box-shadow: var(--filo-fino), 0 10px 26px rgba(0, 0, 0, .45); }
+[data-estilo="a"] .lateral.rojo { padding: 10px 22px 10px 10px; border-radius: 8px 0 0 8px; }
+[data-estilo="a"] .lateral::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: .2;
+  background: linear-gradient(90deg, var(--lado) 0%, transparent 80%); }
+[data-estilo="a"] .lateral.rojo::before { background: linear-gradient(270deg, var(--lado) 0%, transparent 80%); }
+[data-estilo="a"] .lateral::after { content: ''; position: absolute; top: 14px; bottom: 14px; width: 4px; border-radius: 2px; pointer-events: none;
+  background: var(--lado); box-shadow: 0 0 8px var(--lado), 0 0 18px var(--lado); }
+[data-estilo="a"] .lateral.azul::after { left: 6px; }
+[data-estilo="a"] .lateral.rojo::after { right: 6px; }
 [data-estilo="a"] .lat-campeon { border-radius: 8px; box-shadow: 0 0 0 2px var(--lado); }
 [data-estilo="a"] .lat-hechizo img { border-radius: 5px; box-shadow: 0 0 0 1px var(--sumi-linea); }
 [data-estilo="a"] .lat-r img { border-radius: 50%; box-shadow: 0 0 0 2px var(--sumi), 0 0 0 3px var(--lado); }
@@ -157,6 +167,26 @@
 [data-estilo="a"] .runa { border-radius: 50%; background: rgba(12, 13, 19, .7); box-shadow: 0 0 0 1px var(--sumi-linea); }
 [data-estilo="a"] .mision { box-shadow: 0 0 0 1px #4A4B5E; }
 [data-estilo="a"] .mision.vacio { box-shadow: inset 0 0 0 1px var(--sumi-linea); }
+/* Misión de rol completada (22/11): sin objeto, el sello 済 en bermellón de neón en su hueco; con objeto (ADC, apoyo, el
+   top sin Teleportar), el hueco con halo. Al completarse, se estampa con un destello una sola vez */
+[data-estilo="a"] .mision.hecha { box-shadow: 0 0 0 1.5px var(--shu-claro), 0 0 8px var(--shu); }
+[data-estilo="a"] .mision.hecha.vacio { position: relative; background: rgba(12, 13, 19, .9); }
+[data-estilo="a"] .mision.hecha.vacio::after { content: '済'; position: absolute; inset: 0; display: grid; place-items: center;
+  font-family: var(--pincel); font-style: normal; font-size: 19px; line-height: 1; color: var(--shu-neon); text-shadow: var(--neon-suave); }
+[data-estilo="a"] .mision.recien { animation: misionHecha 1.4s var(--golpe) 1; }
+[data-estilo="a"] .lat-mision { position: absolute; z-index: 2; top: -5px; width: 20px; height: 20px; display: none; place-items: center; border-radius: 50%;
+  font-style: normal; background: rgba(12, 13, 19, .95); box-shadow: 0 0 0 1.5px var(--shu-claro), 0 0 8px var(--shu); }
+[data-estilo="a"] .lat-mision::after { content: '済'; font-family: var(--pincel); font-size: 13px; line-height: 1; color: var(--shu-neon); }
+[data-estilo="a"] .azul .lat-mision { right: -6px; }
+[data-estilo="a"] .rojo .lat-mision { left: -6px; }
+[data-estilo="a"] .lat-mision.hecha { display: grid; }
+[data-estilo="a"] .lat-mision.recien { animation: misionHecha 1.4s var(--golpe) 1; }
+@keyframes misionHecha {
+  0% { transform: scale(1.9); opacity: 0; filter: brightness(2.2); }
+  30% { transform: scale(.92); opacity: 1; filter: brightness(1.8); }
+  55% { transform: scale(1.06); }
+  100% { transform: scale(1); filter: none; }
+}
 /* En medio: puntos del fantasy (el que va por delante, del color de su familia) y la diferencia de oro */
 [data-estilo="a"] .puntos b { font-family: var(--dela); font-size: 27px; color: var(--hai); }
 [data-estilo="a"] .rotulo-pts { font-size: 16px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--hai); }

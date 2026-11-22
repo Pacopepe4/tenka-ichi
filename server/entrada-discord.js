@@ -11,7 +11,7 @@ const URL_WEB = (process.env.DISCORD_URL_WEB || 'https://discord.com').replace(/
 const URL_API = (process.env.DISCORD_URL_API || 'https://discord.com/api/v10').replace(/\/$/, '');
 const URL_CDN = (process.env.DISCORD_URL_CDN || 'https://cdn.discordapp.com').replace(/\/$/, '');
 // Discord pide que toda petición diga quién la hace
-const AGENTE = 'TenkaIchi (https://tenka-ichi.onrender.com, 1.0)';
+const AGENTE = 'TenkaIchi (https://gokudo.es, 1.0)';
 
 export const loginDiscordActivo = () => Boolean(ID && SECRETO && sesionesActivas());
 

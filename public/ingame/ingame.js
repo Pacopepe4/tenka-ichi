@@ -5,7 +5,7 @@
 // enfrentamiento del panel (lado azul a la izquierda).
 // El aspecto es el estilo A de Gokudō («Placas», estilo-a.css, acotado a data-estilo="a" en <body>). Pacopepe se quedó con
 // él el 08/11 y la B se borró.
-import { cargarClanes, cargarCampeones, conectarDirecto, logo, icono, splash, definitiva, estadoDefinitiva, camaraPartida, ESCALA_LINEAS } from '/comun.js';
+import { cargarClanes, cargarCampeones, conectarDirecto, logo, icono, splash, definitiva, estadoDefinitiva, camaraPartida, ESCALA_LINEAS, CAJA_LINEAS } from '/comun.js';
 import { cartaHTML } from '/carta.js';
 
 const $ = s => document.querySelector(s);
@@ -473,6 +473,7 @@ function pintarLaterales(p) {
   const caja = $('.laterales');
   const ver = Boolean(p.enfriamientos);
   caja.hidden = !ver;
+  document.body.classList.toggle('con-laterales', ver);
   if (!ver) return;
   for (const lado of ['azul', 'rojo']) {
     const columna = caja.querySelector(`.lateral.${lado}`);
@@ -481,7 +482,7 @@ function pintarLaterales(p) {
     if (columna.dataset.firma !== firma) {
       columna.dataset.firma = firma;
       columna.innerHTML = jugadores.map(j => `<div class="lat-jugador">
-        <span class="lat-retrato"><img class="lat-campeon" alt=""><i class="lat-hechizo lat-r" data-k="r"><img alt=""><b></b></i></span>
+        <span class="lat-retrato"><img class="lat-campeon" alt=""><i class="lat-mision" aria-hidden="true"></i><i class="lat-hechizo lat-r" data-k="r"><img alt=""><b></b></i></span>
         <span class="lat-sums"><i class="lat-hechizo" data-k="d"><img alt=""><b></b></i><i class="lat-hechizo" data-k="f"><img alt=""><b></b></i></span>
       </div>`).join('');
       columna.querySelectorAll('.lat-jugador').forEach((fila, i) => {
@@ -494,6 +495,7 @@ function pintarLaterales(p) {
     columna.querySelectorAll('.lat-jugador').forEach((fila, i) => {
       const j = jugadores[i];
       fila.classList.toggle('muerto', Boolean(j?.muerto));
+      marcarMision(fila.querySelector('.lat-mision'), j?.misionHecha, `lat-${lado}-${i}`);
       fila.querySelector('.lat-r').hidden = !(j?.campeon && estadoDefinitiva(j.campeon, j.nivel).encendida);
       for (const k of ENFRIABLES) {
         const el = fila.querySelector(`[data-k="${k}"]`), cd = j?.enfriamientos?.[k] || null;
@@ -502,6 +504,20 @@ function pintarLaterales(p) {
         el.classList.toggle('largo', Boolean(cd && cd.quedan >= 100));  // tres cifras: letra más pequeña para que quepan
       }
     });
+  }
+}
+
+// La misión de rol completada (misionHecha, server/partida.js): clase «hecha» y, solo al pasar de no a sí con la partida
+// ya vista, «recien» un momento para el destello. «clave» es el puesto (lado e índice): si cambia quién juega ahí, se
+// empieza de cero sin destello
+const misionesVistas = new Map();
+function marcarMision(el, hecha, clave) {
+  const antes = misionesVistas.get(clave);
+  misionesVistas.set(clave, Boolean(hecha));
+  el.classList.toggle('hecha', Boolean(hecha));
+  if (hecha && antes === false && !el.classList.contains('recien')) {
+    el.classList.add('recien');
+    setTimeout(() => el.classList.remove('recien'), 1600);
   }
 }
 
@@ -515,7 +531,7 @@ function pintarLineas(mostrar) {
   const caja = $('.lineas');
   // La zona del panel (la misma de la gráfica de oro) va siempre encogida a ESCALA_LINEAS: así la gráfica sale justo en
   // el mismo hueco
-  if (mostrar) variable($('.zona-lineas'), '--escala-lineas', String(ESCALA_LINEAS));
+  if (mostrar) { variable($('.zona-lineas'), '--escala-lineas', String(ESCALA_LINEAS)); variable($('.zona-lineas'), '--x-lineas', `${CAJA_LINEAS.x}px`); }
   aparecer(caja, mostrar);
   if (!mostrar) return;
   const conPuntos = interruptor('puntosFantasy');
@@ -562,6 +578,8 @@ function pintarLineas(mostrar) {
       const mision = caja.querySelector('.mision');
       pintarIcono(mision.querySelector('img'), j.mision?.objeto && `/ddragon/objeto/${j.mision.objeto}.png`);
       mision.classList.toggle('vacio', !j.mision);
+      // Misión de rol completada (22/11): sello 済, o halo si trae objeto, con un destello la vez que se completa
+      marcarMision(mision, j.misionHecha, `${lado}-${i}`);
       // El nombre del panel para ese puesto, si lo hay; si no, el del cliente
       texto(caja.querySelector('.nombre'), estado?.equipos?.[lado]?.jugadores?.[i] || j.nombre);
       texto(caja.querySelector('.kda-cifras'), `${j.k} / ${j.d} / ${j.a}`);
@@ -596,27 +614,28 @@ function pintarLineas(mostrar) {
   });
 }
 
-// ---------- cámara del caster en partida, abajo a la izquierda ----------
-// Un hueco transparente abajo a la izquierda (abajo a la derecha va el minimapa del LoL): la cámara va por debajo del
-// overlay en OBS, justo donde dice el panel (camaraPartida en comun.js). Va por su cuenta, se vea o no el línea por línea: sale (con su animación) cuando se
-// activa en el panel y hay partida, y se va al quitarla. Lleva el marco de caster: el emblema de Gokudō y el nombre y
-// el detalle que se escriban en el panel. Es ingame.camaras[0]; la segunda de la lista no sale (la derecha de
-// antes chocaría con el marco del minimapa)
+// ---------- cámaras de los casters en partida ----------
+// Huecos transparentes en la franja de abajo (camaraPartida en comun.js): la cámara va por debajo del overlay en OBS
+// (la pone el realizador). La 0 (Livir) abajo a la izquierda; la 1 (Istar, 22/11) entre el línea por línea y el
+// minimapa, solo si hay segundo caster. Cada una sale (con su animación) cuando se activa en el panel y hay partida, y
+// se va al quitarla. Llevan el marco de caster: el emblema de Gokudō, el nombre y el detalle (su @) que se escriban
+// en el panel. Son ingame.camaras[0] y [1]
 function pintarCamaraPartida() {
-  const cam = estado?.ingame?.camaras?.[0];
-  const ver = Boolean(cam?.activa && partida?.activo);
-  document.body.classList.toggle('con-camara-partida', ver);
-  const h = camaraPartida();
-  lista($('.camaras-partida'), ver ? [{ ...cam, clave: 'partida' }] : [], () => {
+  const activas = [0, 1].map(i => ({ ...(estado?.ingame?.camaras?.[i] || {}), i }))
+    .filter(c => c.activa && partida?.activo);
+  document.body.classList.toggle('con-camara-partida', activas.some(c => c.i === 0));
+  document.body.classList.toggle('con-camara-partida-2', activas.some(c => c.i === 1));
+  lista($('.camaras-partida'), activas.map(c => ({ ...c, clave: `partida-${c.i}` })), () => {
     const el = document.createElement('div');
     el.className = 'camara-partida';
     el.innerHTML = '<div class="ventana-cam"><div class="medidas-cam"><span></span></div></div>'
       + '<div class="placa-cam"><span class="sello-cam"><img src="/marca/gokudo.png" alt=""></span><span class="nombre-cam"></span><span class="detalle-cam"></span></div>';
     return el;
   }, (el, c) => {
+    const h = camaraPartida(c.i);
     Object.assign(el.style, { left: `${h.x}px`, top: `${h.y}px`, width: `${h.w}px` });
     el.querySelector('.ventana-cam').style.height = `${h.h}px`;
-    el.querySelector('.medidas-cam span').innerHTML = `Cámara del caster<br>${h.w}×${h.h} en x ${h.x}, y ${h.y}`;
+    el.querySelector('.medidas-cam span').innerHTML = `Cámara del caster ${c.i + 1}<br>${h.w}×${h.h} en x ${h.x}, y ${h.y}`;
     el.querySelector('.nombre-cam').textContent = c.nombre || 'Caster';
     el.querySelector('.detalle-cam').textContent = c.detalle || '';
   });

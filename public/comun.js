@@ -32,6 +32,15 @@ export function horasDelDia(cuantos, primera = '17:00', margen = 45) {
     return `${String(Math.floor(t / 60) % 24).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
   });
 }
+// La hora de cada cruce de una jornada: la de la temporada o, si el staff la cambió en el panel («Códigos de torneo»),
+// la nueva (formato.cambios, de /api/competicion). Solo cuenta la hora si el partido sigue ese mismo día
+export function horasJornada(formato, cruces = [], fecha = null) {
+  const base = horasDelDia(cruces.length, formato.hora, formato.margen);
+  return cruces.map((c, i) => {
+    const cambio = formato.cambios?.[c.id];
+    return cambio?.hora && (!fecha || !cambio.fecha || cambio.fecha === fecha) ? cambio.hora : base[i];
+  });
+}
 
 export function fechaCorta(fecha, largo = false) {
   if (!fecha) return '';
@@ -121,22 +130,30 @@ export function disposicionCamaras(n) {
   }
 }
 
-// El línea por línea del marcador de partida (y la gráfica de oro, que sale en su mismo hueco) va siempre encogido a
-// ESCALA_LINEAS, que el marcador pone en .zona-lineas: así queda de x 430 a 1490 y de y 784 al borde de abajo.
-// Desde el 08/11 solo hay un estilo (el A)
-export const ESCALA_LINEAS = 0.68;  // 09/11: Pacopepe lo quiere más pequeño aún (antes 0.78)
 
-// Cámara del caster en partida: un hueco en 16:9 abajo a la izquierda (el de la izquierda de siempre), con la placa
-// del nombre (PLACA_CAMARA_PARTIDA) pegada debajo hasta el borde. Coordenadas del lienzo, sin la placa. Va por su
-// cuenta, se vea o no el línea por línea (12/11). Abajo a la derecha va el marco del minimapa del LoL, pegado al borde
-// para que cuadre con el mapa (lo calibra el realizador: más o menos de x 1640 a 1920 y de y 780 al borde): ahí no va
-// nada del overlay (ZONA_MINIMAPA), así que la cámara de la derecha que había antes se quitó. Tampoco pisa la caja del
-// línea por línea (desde x 430)
+// ---------- La franja de abajo en partida (22/11): cámara de Livir | línea por línea | cámara de Istar | minimapa ----------
+// Minimapa: el marco del realizador (obs/minimapa.html, obs.minimapa de su opciones.json) deja el hueco justo encima del
+// mapa del LoL del PC 2 (con MinimapScale 0,78 que pone su instalador: medido en el directo del 22/11, 258 px de lado
+// en x 1651, y 811). Su filo de 10 px y el rótulo «MAPA» de 34 px de encima quedan dentro de la pantalla. Ahí no va
+// nada del overlay (ZONA_MINIMAPA)
+export const MINIMAPA = { x: 1651, y: 811, lado: 258, grosor: 10, rotulo: 34 };
+export const ZONA_MINIMAPA = {
+  x: MINIMAPA.x - MINIMAPA.grosor, y: MINIMAPA.y - MINIMAPA.grosor - MINIMAPA.rotulo,
+  w: 1920 - (MINIMAPA.x - MINIMAPA.grosor), h: 1080 - (MINIMAPA.y - MINIMAPA.grosor - MINIMAPA.rotulo),
+};
+// Cámaras de los casters: huecos en 16:9 abajo, con la placa del nombre (PLACA_CAMARA_PARTIDA) pegada debajo hasta el
+// borde. Coordenadas del lienzo, sin la placa. La 0 (Livir) abajo a la izquierda; la 1 (Istar, solo si hay segundo
+// caster) justo a la izquierda del minimapa. Cada una va por su cuenta, se vea o no el línea por línea
 export const PLACA_CAMARA_PARTIDA = 44;
-export const ZONA_MINIMAPA = { x: 1620, y: 780, w: 300, h: 300 };
-export function camaraPartida() {
-  const w = 320, h = 180, margen = 16;
-  return { x: margen, y: 1080 - PLACA_CAMARA_PARTIDA - h, w, h };
+const AIRE = 8;  // separación entre las piezas de la franja
+export function camaraPartida(n = 0) {
+  const w = 320, h = 180, y = 1080 - PLACA_CAMARA_PARTIDA - h;
+  return n === 1 ? { x: ZONA_MINIMAPA.x - AIRE - w, y, w, h } : { x: 16, y, w, h };
 }
+// El línea por línea (y la gráfica de oro, que sale en su mismo hueco) mide 1560×436 y va encogido a ESCALA_LINEAS,
+// pegado a la derecha de la cámara de Livir y hasta la de Istar (sin ella, el hueco de su derecha queda libre). Sin
+// hechizos ni R en las filas (van en las columnas de los lados) cabe un poco más pequeño que antes (0,68)
+export const CAJA_LINEAS = { x: camaraPartida(0).x + camaraPartida(0).w + AIRE, derecha: camaraPartida(1).x - AIRE };
+export const ESCALA_LINEAS = Math.round((CAJA_LINEAS.derecha - CAJA_LINEAS.x) / 1560 * 1000) / 1000;
 // Alias de antes (lo que lo importe recibe ya solo el hueco de partida)
 export const camarasLineas = () => [camaraPartida()];

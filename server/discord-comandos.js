@@ -17,7 +17,7 @@ import { crearInhouses, mensajePanelInhouses } from './inhouses.js';
 import { CLANES } from './clanes.js';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const AGENTE = 'DiscordBot (https://tenka-ichi.onrender.com, 1.0)';
+const AGENTE = 'DiscordBot (https://gokudo.es, 1.0)';
 // Tipos de Discord: interacción PING, COMANDO, BOTÓN y VENTANA enviada; respuesta PONG y MENSAJE; el mensaje solo lo
 // ve quien lo pide
 const PING = 1, COMANDO = 2, BOTON = 3, VENTANA = 5, PONG = 1, MENSAJE = 4, SOLO_TU = 64;

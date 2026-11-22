@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { recibir, olvidarPartida, ajustarIngame, INGRESOS, REGLAS_PELEA } from '../server/partida.js';
 import { puntuar } from '../server/puntuacion.js';
 import { camaraLineas, restaurarEstado } from '../server/estado-guardado.js';
-import { camaraPartida, camarasLineas, PLACA_CAMARA_PARTIDA, ZONA_MINIMAPA, ESCALA_LINEAS } from '../public/comun.js';
+import { camaraPartida, camarasLineas, PLACA_CAMARA_PARTIDA, ZONA_MINIMAPA, MINIMAPA, ESCALA_LINEAS, CAJA_LINEAS } from '../public/comun.js';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -209,7 +209,7 @@ const raizRepo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 const leerRepo = r => readFileSync(path.join(raizRepo, r), 'utf8');
 // Lo que mide el panel del línea por línea (ingame.css) y el filo del marco de la cámara por fuera del hueco (estilo-a.css)
 const ANCHO_PANEL = 1560, ALTO_PANEL = 436, FILO_MARCO = 3;
-const cajaLineas = () => ({ x: 960 - ANCHO_PANEL * ESCALA_LINEAS / 2, y: 1080 - ALTO_PANEL * ESCALA_LINEAS, w: ANCHO_PANEL * ESCALA_LINEAS, h: ALTO_PANEL * ESCALA_LINEAS });
+const cajaLineas = () => ({ x: CAJA_LINEAS.x, y: 1080 - ALTO_PANEL * ESCALA_LINEAS, w: ANCHO_PANEL * ESCALA_LINEAS, h: ALTO_PANEL * ESCALA_LINEAS });
 const seCruzan = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 // El hueco entero de la cámara: el marco (con su filo y el tubo bermellón de 6 px por encima) y la placa del nombre
 const marcoCamara = h => ({ x: h.x - FILO_MARCO, y: h.y - 6, w: h.w + 2 * FILO_MARCO, h: h.h + PLACA_CAMARA_PARTIDA + 6 + FILO_MARCO });
@@ -219,20 +219,25 @@ const cajaFicha = ({ left, right }) => ({ x: left ?? 1920 - right - ANCHO_FICHA,
 const reglaCss = (css, sel) => css.match(new RegExp(`\n${sel.replace(/\./g, '\\.')} \\{([^}]*)\\}`))?.[1] || '';
 const px = (regla, prop) => { const m = regla.match(new RegExp(`(?:^|[ ;])${prop}: (\\d+)px`)); return m ? Number(m[1]) : undefined; };
 
-test('el línea por línea va encogido a ESCALA_LINEAS: su caja de 1560×436 queda de x 430 a 1490 y de y 784 al borde', () => {
-  assert.equal(ESCALA_LINEAS, 0.68);
+test('22/11: el línea por línea va encogido y pegado a la derecha de la cámara de Livir, hasta la de Istar', () => {
+  assert.ok(ESCALA_LINEAS > 0.58 && ESCALA_LINEAS < 0.68, 'un pelín más pequeño que antes (0,68)');
   const css = leerRepo('public/ingame/ingame.css');
-  assert.match(reglaCss(css, '.lineas'), /bottom: 0;[^}]*width: 1560px/);
+  assert.match(reglaCss(css, '.lineas'), /bottom: 0; left: calc\(var\(--x-lineas[^)]*\) \/ var\(--escala-lineas[^)]*\)\); width: 1560px/);
+  assert.match(css, /.zona-lineas { position: absolute;[^}]*transform-origin: 0 100%/, 'encogida desde la esquina de abajo a la izquierda');
+  assert.ok(leerRepo('public/ingame/ingame.js').includes("'--x-lineas', `${CAJA_LINEAS.x}px`"));
   const lineas = cajaLineas();
-  assert.ok(Math.abs(lineas.x - 429.6) < 1 && Math.abs(lineas.x + lineas.w - 1490.4) < 1 && Math.abs(lineas.y - 783.5) < 1);
-  assert.equal(lineas.y + lineas.h, 1080);
-  // Y no pisa la zona del minimapa, que va abajo a la derecha
+  assert.equal(lineas.x, camaraPartida(0).x + camaraPartida(0).w + 8, 'pegado a la cámara de Livir');
+  assert.ok(Math.abs(lineas.x + lineas.w - (camaraPartida(1).x - 8)) < 1.5, 'llega hasta la de Istar');
+  assert.equal(Math.round(lineas.y + lineas.h), 1080);
   assert.ok(!seCruzan(lineas, ZONA_MINIMAPA), 'el línea por línea no pisa el minimapa');
 });
 
-test('la cámara del caster en partida: un solo hueco en 16:9 abajo a la izquierda, con la placa hasta el borde', () => {
+test('las cámaras de los casters en partida: en 16:9 abajo, la de Livir a la izquierda y la de Istar junto al minimapa', () => {
   const h = camaraPartida();
   assert.deepEqual(h, { x: 16, y: 856, w: 320, h: 180 });
+  const istar = camaraPartida(1);
+  assert.deepEqual([istar.y, istar.w, istar.h], [h.y, h.w, h.h], 'la de Istar, del mismo tamaño y a la misma altura');
+  assert.ok(istar.x + istar.w + FILO_MARCO < ZONA_MINIMAPA.x, 'a la izquierda del minimapa, sin pisarlo');
   assert.equal(h.w / h.h, 16 / 9, 'la cámara no se deforma');
   assert.equal(h.y + h.h + PLACA_CAMARA_PARTIDA, 1080, 'la placa del nombre llega justo al borde de abajo');
   assert.ok(h.x - FILO_MARCO >= 0, 'dentro del lienzo, con su filo');
@@ -247,10 +252,13 @@ test('la cámara del caster en partida: un solo hueco en 16:9 abajo a la izquier
 });
 
 test('nada del overlay pisa el marco del minimapa de abajo a la derecha, y la cámara no pisa el línea por línea ni las fichas', () => {
-  // La zona del minimapa: su marco va pegado a la esquina de abajo a la derecha (más o menos de x 1640 a 1920 y de
-  // y 780 al borde, lo calibra el realizador), con algo de aire
-  assert.deepEqual(ZONA_MINIMAPA, { x: 1620, y: 780, w: 300, h: 300 });
-  assert.ok(ZONA_MINIMAPA.x <= 1640 && ZONA_MINIMAPA.y <= 780 && ZONA_MINIMAPA.x + ZONA_MINIMAPA.w >= 1920 && ZONA_MINIMAPA.y + ZONA_MINIMAPA.h >= 1080);
+  // 22/11: el hueco del marco es el mapa del LoL del PC 2 (258 px en x 1651, y 811) y el filo y el rótulo caben en pantalla
+  assert.deepEqual(MINIMAPA, { x: 1651, y: 811, lado: 258, grosor: 10, rotulo: 34 });
+  assert.ok(MINIMAPA.x + MINIMAPA.lado + MINIMAPA.grosor <= 1920 && MINIMAPA.y + MINIMAPA.lado + MINIMAPA.grosor <= 1080, 'el marco entero dentro de la pantalla');
+  assert.deepEqual(ZONA_MINIMAPA, { x: 1641, y: 767, w: 279, h: 313 });
+  assert.ok(ZONA_MINIMAPA.x + ZONA_MINIMAPA.w === 1920 && ZONA_MINIMAPA.y + ZONA_MINIMAPA.h === 1080);
+  const istar = marcoCamara(camaraPartida(1));
+  assert.ok(!seCruzan(istar, ZONA_MINIMAPA) && !seCruzan(istar, cajaLineas()), 'la de Istar no pisa el minimapa ni el línea por línea');
   const cam = marcoCamara(camaraPartida());
   assert.ok(!seCruzan(cam, ZONA_MINIMAPA), 'la cámara no pisa el minimapa');
   const lineas = cajaLineas();
@@ -269,6 +277,10 @@ test('nada del overlay pisa el marco del minimapa de abajo a la derecha, y la c�
   assert.ok(seCruzan(azul, cam), 'sin apartarse, la ficha azul chocaría con la cámara');
   assert.ok(!seCruzan(azulConCamara, cam), 'la ficha azul se aparta de la cámara');
   assert.ok(!seCruzan(rojo, cam));
+  // Con la de Istar fuera, la ficha roja se aparta a su izquierda
+  const rojoConIstar = cajaFicha({ right: px(reglaCss(css, 'body.con-camara-partida-2 .ficha.rojo'), 'right') });
+  assert.ok(seCruzan(rojo, istar), 'sin apartarse, la ficha roja chocaría con la cámara de Istar');
+  assert.ok(!seCruzan(rojoConIstar, istar) && rojoConIstar.x + rojoConIstar.w > 960, 'se aparta y sigue en su lado');
   assert.ok(azulConCamara.x < 960 && rojo.x + rojo.w > 960, 'cada una sigue en su lado');
 });
 
@@ -302,21 +314,27 @@ test('la cámara del caster sale por su cuenta en partida, se vea o no el línea
   mundo.estado = { grafico: null, ingame: { camaras: camaras(true) } };
   pintarGraficos();
   assert.equal(mundo.lineas, false, 'el línea por línea no está');
-  assert.equal(mundo.pintadas.length, 1, 'un solo hueco');
-  assert.equal(mundo.pintadas[0].nombre, 'Koryu', 'es la primera de la lista; la segunda no sale');
+  assert.deepEqual(mundo.pintadas.map(c => c.nombre), ['Koryu', 'Derecha'], 'las dos, cada una en su hueco');
+  assert.deepEqual(mundo.pintadas.map(c => c.clave), ['partida-0', 'partida-1']);
   assert.equal(mundo.clases.get('con-camara-partida'), true);
+  assert.equal(mundo.clases.get('con-camara-partida-2'), true);
   // Con el línea por línea, con la ficha o con la gráfica, sigue igual
   for (const tipo of ['lineas', 'ficha', 'oro']) {
     mundo.estado = { grafico: { tipo, lado: 'azul', indice: 0 }, ingame: { camaras: camaras(true) } };
     pintarGraficos();
-    assert.equal(mundo.pintadas.length, 1, `sale también con ${tipo}`);
+    assert.equal(mundo.pintadas.length, 2, `salen también con ${tipo}`);
   }
   // Quitada en el panel: se va (aunque esté el línea por línea), y la ficha azul vuelve a su sitio
   mundo.estado = { grafico: { tipo: 'lineas' }, ingame: { camaras: camaras(false) } };
   pintarGraficos();
   assert.equal(mundo.lineas, true);
-  assert.equal(mundo.pintadas.length, 0);
+  assert.deepEqual(mundo.pintadas.map(c => c.nombre), ['Derecha'], 'la de Livir se va; la de Istar sigue');
   assert.equal(mundo.clases.get('con-camara-partida'), false);
+  // Sin segundo caster: solo la de Livir, y la ficha roja en su sitio
+  mundo.estado = { grafico: null, ingame: { camaras: [camaras(true)[0], { activa: false, nombre: '', detalle: '' }] } };
+  pintarGraficos();
+  assert.deepEqual(mundo.pintadas.map(c => c.nombre), ['Koryu']);
+  assert.equal(mundo.clases.get('con-camara-partida-2'), false);
   // Sin partida en marcha no sale, y un estado sin cámaras no rompe nada
   mundo.partida = { activo: false, lineas };
   mundo.estado = { grafico: null, ingame: { camaras: camaras(true) } };
@@ -328,19 +346,21 @@ test('la cámara del caster sale por su cuenta en partida, se vea o no el línea
   assert.equal(mundo.pintadas.length, 0);
 });
 
-test('el panel tiene su bloque de la cámara del caster en partida, aparte del línea por línea', () => {
+test('el panel tiene su bloque de las cámaras de los casters en partida, aparte del línea por línea', () => {
   const html = leerRepo('public/panel/index.html'), js = leerRepo('public/panel/panel.js');
-  assert.ok(html.includes('<summary>Cámara del caster en partida</summary>'));
-  for (const id of ['camaraPartidaActiva', 'camaraPartidaNombre', 'camaraPartidaDetalle', 'camaraPartidaMedida', 'guardarCamaraPartida']) {
-    assert.ok(html.includes(`id="${id}"`), `el panel tiene #${id}`);
-    assert.ok(js.includes(`#${id}`), `panel.js usa #${id}`);
+  assert.ok(html.includes('<summary>Cámaras de los casters en partida</summary>'));
+  for (const id of ['camaraPartida', 'camaraPartida2']) {
+    for (const campo of ['Activa', 'Nombre', 'Detalle', 'Medida']) assert.ok(html.includes(`id="${id}${campo}"`), `el panel tiene #${id}${campo}`);
   }
-  // Los avisos y la ayuda ya no la atan al línea por línea
+  assert.ok(html.includes('id="guardarCamaraPartida"') && js.includes('#guardarCamaraPartida'));
+  assert.ok(js.includes("const CAMPOS_CAMARA = ['camaraPartida', 'camaraPartida2'];"));
+  // Los avisos y la ayuda no las atan al línea por línea
   const inicio = html.indexOf('<details class="plegable camara-partida">');
   const bloque = html.slice(inicio, html.indexOf('</details>', inicio));
   assert.ok(!/sale con el línea por línea|solo está mientras el línea por línea/.test(bloque + js));
-  // Marcarla manda solo la primera de la lista (la segunda se queda como estaba)
-  assert.match(js, /enviar\('ingame', \{ camaras: \[\{ activa \}\] \}\)/);
+  // Marcar una manda solo esa (la otra va vacía y el server la deja como estaba)
+  assert.ok(js.includes("enviar('ingame', { camaras: soloLa(i, { activa }) })"));
+  assert.ok(js.includes('const soloLa = (i, datos) => [0, 1].map(n => (n === i ? datos : {}));'));
 });
 
 test('la gráfica de oro sale en el mismo hueco que el línea por línea, y solo queda el estilo A', () => {

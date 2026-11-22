@@ -90,6 +90,8 @@ Para que otro clan pase a Legacy (o vuelva a competir) basta con poner o quitar 
 4. Render te da una dirección tipo `https://tenka-ichi.onrender.com`. Cada vez que hagas `git push`, se actualiza sola.
 5. El plan gratuito se duerme tras 15 min sin uso: abre el panel un minuto antes del directo.
 
+> **En el server casero (gokudo.es):** todo lo de Docker, HTTPS, copias y la checklist del cambio está en [`servidor/README.md`](servidor/README.md).
+
 ## Google Sheets (registro de picks y bans)
 
 A la hoja solo va el registro de las partidas: cada pick y cada ban, quién lo hace, de qué clan y si ganó o perdió.
@@ -325,7 +327,7 @@ El gachapon va por **temporadas** (`TEMPORADA` en `server/datos.js`). Al estrena
 1. Entra en https://discord.com/developers/applications con tu cuenta de Discord y pulsa **New Application** (nombre: `Tenka Ichi`, o el que quieras). No hace falta crear ningún bot ni verificar la aplicación.
 2. En el menú **OAuth2**:
    - Copia el **Client ID** y pulsa **Reset Secret** para sacar el **Client Secret**.
-   - En **Redirects** añade `https://tenka-ichi.onrender.com/auth/discord/callback` y, para probar en local, `http://localhost:3030/auth/discord/callback`. Guarda los cambios.
+   - En **Redirects** añade `https://gokudo.es/auth/discord/callback` y, para probar en local, `http://localhost:3030/auth/discord/callback`. Guarda los cambios.
 3. En Render, en Environment del servicio, añade:
    - `DISCORD_CLIENT_ID`: el Client ID.
    - `DISCORD_CLIENT_SECRET`: el Client Secret.
@@ -360,7 +362,7 @@ Cómo es el servidor (roles, categorías, canales con su emoji, permisos y webho
 Los roles quedan en el orden de `roles` (Kumichō, el staff, arriba; luego Oyabun (los jefes de familia), las familias y Kobun): cada rol solo puede dar los que tiene por debajo, así que los Oyabun (pueden invitar, mover gente y dar roles) reparten los de las familias y Kobun, pero no el de Kumichō. **/reclutar** (comando del bot): un Oyabun escribe `/reclutar quien:@alguien` y el bot le da a esa persona el rol de la familia del Oyabun y el de Kobun, y lo anuncia en el canal. Solo deja reclutar para la familia propia, a quien no es de ninguna otra (sacarlo de una familia lo hace el staff). Por eso los Oyabun no tienen «Gestionar roles». Lo atiende la web (`server/discord-comandos.js`, ruta `POST /discord/interacciones`), que comprueba la firma de Discord con la Public Key; no hace falta tener el bot conectado. Para activarlo:
 
 1. En Render: `DISCORD_PUBLIC_KEY` (discord.com/developers › Gokudō › General Information › Public Key; no es secreta) y `DISCORD_BOT_TOKEN` (el mismo del `.env`; secreto).
-2. Con la web ya desplegada, en General Information › **Interactions Endpoint URL**: `https://tenka-ichi.onrender.com/discord/interacciones` y guardar (Discord la prueba en ese momento).
+2. Con la web ya desplegada, en General Information › **Interactions Endpoint URL**: `https://gokudo.es/discord/interacciones` y guardar (Discord la prueba en ese momento).
 3. `npm run discord-aplicar` registra el comando en el servidor (los comandos están en `comandos` de `discord/servidor.json`).
 
 Todo lo automático va con el bot, nunca con la cuenta de una persona. Para probar sin Discord: `npm run discord-api-falso` y `DISCORD_URL_API=http://localhost:4060/api/v10 DISCORD_BOT_TOKEN=token-prueba`.
@@ -529,7 +531,7 @@ Para activarlo:
 
 1. Entra en https://dev.twitch.tv/console/apps con tu cuenta de Twitch y pulsa **Register Your Application**:
    - Name: `Tenka Ichi` (o el que quieras).
-   - OAuth Redirect URLs: `https://tenka-ichi.onrender.com/auth/twitch/callback` y, para probar en local, `http://localhost:3030/auth/twitch/callback`.
+   - OAuth Redirect URLs: `https://gokudo.es/auth/twitch/callback` y, para probar en local, `http://localhost:3030/auth/twitch/callback`.
    - Category: **Website Integration**. Client Type: **Confidential**.
 2. En la app creada copia el **Client ID** y pulsa **New Secret** para sacar el **Client Secret**.
 3. En Render añade `TWITCH_CLIENT_ID` y `TWITCH_CLIENT_SECRET` (y `SESION_SECRETO`, si no lo tenías ya).
@@ -541,6 +543,34 @@ En la pestaña Gachapon de la hoja, cada canje queda a nombre del id de Twitch d
 
 Como pide Twitch, los tokens guardados se validan al arrancar y cada hora (`/oauth2/validate`). Si el canal cambia la contraseña o retira el permiso, el panel avisa «vuelve a conectarlo» y deja de recoger canjes hasta que se conecte otra vez.
 
+### El contexto de los bots: Postgres con embeddings (SrDirector, Kick y Twitch)
+
+Lo pidió Pacopepe el 21/11/2026 para que los bots contesten rápido y gasten poco. Todo lo que saben se guarda en trozos en **Postgres con pgvector**, que es el contenedor `db` del server casero, con su **índice HNSW**. A cada pregunta solo le llegan los trozos que más se parecen a ella. Los tres bots usan la misma búsqueda: SrDirector en Discord y `!pregunta` en los chats de Kick y Twitch.
+
+- **Los embeddings se calculan en la propia web.** El modelo es multilingual-e5-small (licencia MIT; 384 dimensiones; cuantizado a int8), con transformers.js. No se paga ninguna API. La primera vez baja el modelo, unos 130 MB, al volumen `modelos`. En memoria ocupa unos 450 MB.
+- **La búsqueda mezcla dos cosas:** el parecido, con HNSW sobre el vector, y las palabras, con `tsvector` en español, porque el modelo no conoce nombres como GAATSU. Se juntan con Reciprocal Rank Fusion. Está en `server/contexto.js`.
+- **Qué se guarda** (`server/contexto-fuentes.js`):
+  - la ficha (`discord/tickets-saber.md`, menos el núcleo, que va siempre en el papel);
+  - el lore entero (`discord/lore.md`, copia de `gokudo/diseno/teasers-familias/LORE.md`; si cambia, hay que volver a copiarlo);
+  - la lista de KB (`discord/kbstats-jugadores.md`);
+  - las plantillas de las familias;
+  - las fichas de los miembros (`discord/fichas-miembros.md`);
+  - lo que aprende SrDirector, con el rango de quien lo dijo;
+  - cada crónica, en cuanto entra por `POST /api/cronicas/partida`.
+- **Las fichas de los miembros** salen del cuestionario `gokudo/contexto/cuestionario-miembros.md`. Cuando Pacopepe lo conteste (debajo de cada pregunta), se copia entero a `discord/fichas-miembros.md`. Las preguntas sin contestar no se guardan. La 10 («lo que el bot NO debe decir nunca») sí se guarda, y los bots la respetan como un tema que no sacan.
+- **Cuándo se actualiza:** todo se sincroniza al arrancar y luego cada 10 minutos, y solo se recalcula lo que ha cambiado. Lo aprendido y las crónicas van al momento. Si se borra la base, la web la rellena sola: todo sale de los archivos y de la hoja.
+- **Si algo falla:** sin `PG_CLAVE` (o `DATABASE_URL`), o con `CONTEXTO=0`, o si la base o el modelo fallan, los bots siguen como antes, por las ramas de `server/tickets-ramas.js`.
+- **`!pregunta` en Kick y Twitch** (`server/preguntas-chat.js`):
+  - Contesta SrDirector con Haiku, en una o dos frases. En el chat no aprende nada.
+  - Topes: `CHAT_TOPE_DIA` (100 al día entre los dos chats), `CHAT_TOPE_PERSONA` (5 al día) y una pregunta por minuto y persona; si alguien pregunta antes de que pase el minuto, el bot no contesta.
+  - Alias: `!p`, `!srdirector` y `!director`.
+  - En Kick va por el webhook de siempre.
+  - En Twitch es un bot nuevo (`server/twitch-chat.js`): escucha el chat por EventSub (WebSocket, `channel.chat.message`) y contesta con `POST /helix/chat/messages`, como la cuenta del canal.
+  - Para Twitch hacen falta los permisos `user:read:chat` y `user:write:chat`: en el panel, **Gachapon › Volver a conectar el canal**, con la cuenta gokudo_zoku. El panel dice si el chat está escuchando.
+- **Lo que tarda:** `node scripts/medir-contexto.mjs` llena una base PGlite (Postgres en WASM con pgvector) con lo del repo y mide la búsqueda completa. El 21/11, en un i7-5700HQ, dio entre 14 y 21 ms de media (8–14 ms el embedding y 5–8 ms Postgres). El server es un Celeron N3350 sin AVX, así que allí será varias veces más lento: está sin medir.
+
+Pruebas: `test/contexto.test.js` (PGlite con pgvector y HNSW de verdad, con embeddings de mentira) y `test/preguntas-chat.test.js` (`!pregunta` y el bot de Twitch, con un EventSub y un Claude de mentira).
+
 ### Puntos del canal de Kick: la recompensa «Omamori»
 
 Lo mismo que en Twitch, en el canal de Kick (kick.com/gokudo-zoku): los espectadores canjean sus puntos del canal por la recompensa **Omamori** y les llega un sobre del gachapon. Cada espectador **vincula su Kick** a su cuenta una vez («vincula tu Kick» en el gachapon, ya dentro con Discord); si canjea antes, el sobre se le guarda y le llega al vincular. Una cuenta puede llevar a la vez su Twitch y su Kick.
@@ -549,9 +579,9 @@ Para activarlo:
 
 1. En Kick, con la cuenta **Gokudo_zoku**: **Ajustes › Developer** (kick.com/settings/developer) › **Create new app**:
    - Nombre: `Gokudō` (o el que quieras).
-   - Redirect URL: `https://tenka-ichi.onrender.com/auth/kick/callback` (y, para probar en local, `http://localhost:3030/auth/kick/callback`).
+   - Redirect URL: `https://gokudo.es/auth/kick/callback` (y, para probar en local, `http://localhost:3030/auth/kick/callback`).
    - Permisos (*scopes*): `user:read`, `channel:rewards:read`, `channel:rewards:write`, `events:subscribe`, `chat:write` y `kicks:read` (en Kick: leer la información del usuario, leer y gestionar las recompensas de puntos, suscribirse a eventos, escribir en el chat y leer lo de los KICKs).
-   - **Enable Webhooks** encendido, con la Webhook URL `https://tenka-ichi.onrender.com/webhooks/kick`.
+   - **Enable Webhooks** encendido, con la Webhook URL `https://gokudo.es/webhooks/kick`.
 2. Copia el **Client ID** y el **Client Secret** de la app y ponlos en Render, en Environment: `KICK_CLIENT_ID` y `KICK_CLIENT_SECRET` (nunca en el chat ni en el repo).
 3. En el panel, apartado **Gachapon**, pulsa **Conectar el canal de Kick** y entra con la cuenta **Gokudo_zoku**. La web crea la recompensa «Omamori» a 3000 puntos, en el bermellón de la marca; el coste se cambia desde el panel. Si en Kick ya hay una recompensa «Omamori» creada a mano, hay que borrarla antes: Kick solo deja a cada app aceptar los canjes de las recompensas que ha creado ella.
 
@@ -595,6 +625,13 @@ En la zona de la liga, donde salía el anuncio del sorteo del calendario (ahora 
 - **Para activarlo:** `npm run discord-aplicar` (crea los webhooks de #resultados y #avisos-directo y los deja en el `.env`), copiar `DISCORD_WEBHOOK_RESULTADOS` y `DISCORD_WEBHOOK_DIRECTO` a Render, y poner allí `CRONICAS_CLAVE` (una contraseña larga inventada que va también en el realizador).
 - En la hoja, pestaña «Cronicas». El panel (Liga y gachapon › Crónicas de las partidas) dice cuántas hay, qué falta configurar y si la última se publicó.
 - El botón «Entrar en el Discord» de la portada sale cuando se pone la invitación del servidor en `DISCORD_INVITACION` (`public/inicio.js`).
+
+### Alertas de Twitch en el OBS del realizador
+
+El grupo de alertas «Gokudō» de Twitch (dashboard.twitch.tv › Alertas de stream) se ve en OBS con una fuente de navegador cuya URL lleva un **token**: no va en el repo, ni en el zip del realizador, ni en ningún commit.
+
+- **Dónde vive:** en el `.env` del server, `TWITCH_ALERTAS_URL`. La pega Pacopepe desde el menú ⋮ del grupo › «Copiar URL de origen del navegador». Solo vale una dirección `https` de `twitch.tv`.
+- **Cómo llega a OBS:** al instalar o actualizar, el realizador pide `POST /api/realizador/alertas-twitch` con `{ "clave": <contraseña del panel> }` (con el mismo freno que la entrada del panel) y crea la fuente «Alertas Twitch» en sus escenas. Sin la variable, la respuesta trae `url: null` y no se crea nada.
 
 ### Probarlo sin Discord ni Twitch de verdad
 

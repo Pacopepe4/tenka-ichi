@@ -2,6 +2,7 @@
 // enfrentamiento y lo reparte en directo por WebSocket a todas las pantallas abiertas.
 import http from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
@@ -30,15 +31,19 @@ import { estadoJornadas, terminarJornada, jornadasCerradas, premiosPublicos } fr
 import { torneo } from './torneo-web.js';
 import { clasificacionJornada } from './fantasy.js';
 import { previa, fichaJugador, fichaClan } from './previa.js';
-import { cargarCanal, conectarCanal, cambiarCoste, sondear, sondearSiHaceFalta, estadoCanal, SCOPE_CANAL } from './canal.js';
+import { cargarCanal, conectarCanal, cambiarCoste, sondear, sondearSiHaceFalta, estadoCanal, SCOPE_CANAL, alCambiarCanal, idCanalTwitch, conTokenCanal } from './canal.js';
 import { cargarCanalKick, conectarCanalKick, cambiarCosteKick, recogerCanjesKick, estadoCanalKick, asegurarSuscripciones, SCOPE_CANAL_KICK } from './canal-kick.js';
 import { atenderWebhookKick, alAlertar, alertaDePrueba, contextoComandos, cargarBotKick, conectarBotKick, quitarBotKick, estadoBotKick, estadoDirectoKick, SCOPE_BOT_KICK } from './kick-bot.js';
 import { textoPartido } from './comandos-kick.js';
-import { cargarCronicas, cronicaDe, publicarCronica, estadoCronicas, claveRealizador, MAXIMO_TEXTO } from './cronicas.js';
+import { cargarCronicas, cronicaDe, publicarCronica, estadoCronicas, claveRealizador, MAXIMO_TEXTO, todasLasCronicas, alGuardarCronica } from './cronicas.js';
+import { crearBase, crearEmbeddings, crearContexto } from './contexto.js';
+import { crearSincronizacion } from './contexto-fuentes.js';
+import { crearPreguntasChat } from './preguntas-chat.js';
+import { crearChatTwitch, textoChatTwitch } from './twitch-chat.js';
 import { formatoTemporada } from './competicion.js';
 import { kickActivo, pkce, urlAutorizar as urlAutorizarKick, canjearCodigo as canjearCodigoKick, usuarioDeToken as usuarioDeKick, CANAL_KICK } from './kick.js';
 import { firmar, verificar, leerCookies, ponerCookie, cifrar, descifrar } from './sesion.js';
-import { twitchActivo, urlAutorizar, canjearCodigo, usuarioDeToken, usuarioPorNombre, CANAL } from './twitch.js';
+import { twitchActivo, urlAutorizar, canjearCodigo, usuarioDeToken, usuarioPorNombre, CANAL, helix } from './twitch.js';
 import { loginDiscordActivo, urlAutorizarDiscord, sesionDeDiscord } from './entrada-discord.js';
 import crypto from 'node:crypto';
 import { cargarFantasy, infoFantasy, cambiarAlineacion, guardarEstadisticas, cerrarAlineaciones, alineacionesCerradas, puntosDeJugadores } from './fantasy.js';
@@ -142,10 +147,16 @@ alAlertar(alerta => {
   for (const ws of clientes) if (ws.readyState === 1 && ws.canal === 'alertas') ws.send(msg);
 });
 // Lo que contestan los comandos del chat de Kick que necesitan el fantasy o el calendario
+// Los partidos con la hora o el día cambiados en el panel (server/torneo.js): mandan sobre la hora de la temporada en la
+// portada, la cuenta atrás, el !partido de Kick y Twitch y lo que saben los tickets y el !pregunta (22/11: +30 min)
+const cambiosHorario = () => { try { return torneo.cambios(); } catch (e) { console.error('Cambios de horario:', e.message); return {}; } };
+const conCambios = d => ({ ...d, formato: { ...d.formato, cambios: cambiosHorario() } });
 contextoComandos(() => ({
   clasificacion: () => infoFantasy(null).clasificacion,
   puesto: id => infoFantasy({ id }).yo?.puesto || null,
-  partido: () => textoPartido({ formato: formatoTemporada(), calendario: calendarioActual(), nombre: id => CLANES.find(c => c.id === id)?.nombre || id }),
+  partido: () => textoPartido({ formato: { ...formatoTemporada(), cambios: cambiosHorario() }, calendario: calendarioActual(), nombre: id => CLANES.find(c => c.id === id)?.nombre || id }),
+  // !pregunta: SrDirector con IA (más abajo, con el contexto de los bots)
+  preguntar: x => preguntasChat.responder(x),
 }));
 
 // La partida en directo va en su propio mensaje: llega cada segundo y no hace falta reenviar todo el estado
@@ -489,6 +500,8 @@ async function accion(nombre, d = {}) {
     }
     case 'torneoHorario':
       return { ok: true, torneo: await torneo.cambiarHorario(d.id, { fecha: d.fecha || null, hora: d.hora || null }) };
+    case 'torneoMesa':
+      return { ok: true, torneo: await torneo.resultadoMesa(d.id, { ganador: d.ganador || null, motivo: d.motivo || null }) };
     case 'torneoDrafts':
       return { ok: true, torneo: await torneo.guardarDrafts(d.id, d) };
     case 'torneoPegarDrafts': {
@@ -667,7 +680,8 @@ const usuarioDeSesion = req => verificar(leerCookies(req).tk_sesion);
 const volverSeguro = v => (/^\/(?![/\\])/.test(v || '') ? v : '/gachapon/');
 
 function estadoGachaPanel() {
-  return { login: loginDiscordActivo(), canal: estadoCanal(), kick: { ...estadoCanalKick(), activo: kickActivo(), bot: estadoBotKick() }, resumen: resumenGacha(), probabilidades: probabilidades(), reparto: reparto(), cerrado: infoFantasy(null).cerrado,
+  return { login: loginDiscordActivo(), canal: { ...estadoCanal(), chatTexto: textoChatTwitch(estadoCanal(), chatTwitch.estado(), preguntasChat.activo()) },
+    contexto: contextoBots.estado(), chatIA: preguntasChat.estado(), kick: { ...estadoCanalKick(), activo: kickActivo(), bot: estadoBotKick() }, resumen: resumenGacha(), probabilidades: probabilidades(), reparto: reparto(), cerrado: infoFantasy(null).cerrado,
     codigo: estadoCodigo(), jornadas: estadoJornadas(), publicarDiscord: discordActivo('clasificacion'), temporada: estadoTemporada(),
     cronicas: { ...estadoCronicas(), discord: resultadosDiscordActivo() } };
 }
@@ -745,6 +759,32 @@ function ultimoDiaDePartidas() {
 const sinTildes = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 const idDeFamilia = t => CLANES.find(c => c.id === String(t || '').toUpperCase() || sinTildes(c.nombre) === sinTildes(t))?.id || null;
 const nombreFamilia = id => CLANES.find(c => c.id === id)?.nombre || id;
+
+// La contraseña del panel en el cuerpo ({ clave }), con freno: quien falla muchas seguidas desde la misma dirección espera
+async function claveConFreno(req) {
+  const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+  const ahora = Date.now(), f = fallosClave.get(ip);
+  // Las direcciones que fallaron una vez y no volvieron se quedaban para siempre: de vez en cuando se barren las pasadas
+  if (fallosClave.size > 500) for (const [k, v] of fallosClave) if (ahora - v.desde > FRENO_CLAVE.ventana) fallosClave.delete(k);
+  if (f && ahora - f.desde > FRENO_CLAVE.ventana) fallosClave.delete(ip);
+  if ((fallosClave.get(ip)?.n || 0) >= FRENO_CLAVE.fallos) return { ok: false, error: 'Demasiados intentos', codigo: 429 };
+  let cuerpo;
+  try { cuerpo = await leerCuerpo(req, 2000); } catch (e) { return { ok: false, error: e.message, codigo: 400 }; }
+  if (cuerpo.clave === CLAVE) { fallosClave.delete(ip); return { ok: true }; }
+  const g = fallosClave.get(ip) || { n: 0, desde: ahora };
+  g.n++;
+  fallosClave.set(ip, g);
+  return { ok: false, error: 'Contraseña incorrecta', codigo: 401 };
+}
+
+// La URL de las alertas de Twitch, solo si es una dirección https de Twitch (lo que da «Copiar URL de origen del navegador»)
+function urlAlertasTwitch(entorno = process.env) {
+  const v = String(entorno.TWITCH_ALERTAS_URL || '').trim();
+  try {
+    const u = new URL(v);
+    return u.protocol === 'https:' && /(^|.)twitch.tv$/i.test(u.hostname) ? u.href : null;
+  } catch { return null; }
+}
 
 // POST /api/cronicas/partida, con Authorization: Bearer CRONICAS_CLAVE.
 // Cuerpo: { texto, resumen, titulo?, azul?, rojo?, discord? }. Sin las familias, es la última partida guardada. Con
@@ -1108,8 +1148,24 @@ async function huella(archivo, s) {
 // Los comandos del bot en el servidor de Discord (/reclutar) y los tickets: Discord los manda aquí firmados. La IA de
 // los tickets lee la liga en vivo (calendario, clasificación y fechas, como /api/competicion), las cartas del gachapon y
 // los puntos de fantasy de cada jugador
-const comandosDiscord = crearComandos({ tickets: { datosLiga: () => competicion(calendarioActual(), todas()),
-  cartas: () => ({ catalogo: catalogo(), puntos: puntosDeJugadores() }) } });
+// El contexto compartido de los bots (server/contexto.js): Postgres con pgvector (DATABASE_URL, el contenedor «db» del
+// server casero) y embeddings locales. Sin DATABASE_URL (o con CONTEXTO=0), los bots siguen por ramas, como antes
+const baseContexto = process.env.CONTEXTO === '0' ? null : await crearBase().catch(e => { console.error('Contexto: sin base de datos:', e.message); return null; });
+const contextoBots = crearContexto({ db: baseContexto, embeddings: baseContexto ? crearEmbeddings() : null });
+let sincronizacion = null;
+const comandosDiscord = crearComandos({ tickets: { datosLiga: () => conCambios(competicion(calendarioActual(), todas())),
+  cartas: () => ({ catalogo: catalogo(), puntos: puntosDeJugadores() }),
+  buscador: contextoBots, alAprender: () => sincronizacion?.aprendido() } });
+// Lo que se guarda en el contexto (server/contexto-fuentes.js); lo aprendido, cuando SrDirector ya lo ha leído de la hoja
+sincronizacion = crearSincronizacion(contextoBots, { clanes: clanesConPlantilla, cronicas: todasLasCronicas, nombre: nombreFamilia,
+  memoria: () => { const m = comandosDiscord.tickets?.memoria; return m?.cargada?.() ? m.todos() : null; } });
+alGuardarCronica(c => contextoBots.activo() && sincronizacion.cronica(c));
+// !pregunta en los chats de Kick y Twitch (server/preguntas-chat.js), con el mismo contexto
+const preguntasChat = crearPreguntasChat({ buscador: contextoBots, clanes: CLANES, datosLiga: () => conCambios(competicion(calendarioActual(), todas())),
+  saber: () => readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'discord', 'tickets-saber.md'), 'utf8') });
+const chatTwitch = crearChatTwitch({ helix, conToken: conTokenCanal, canal: idCanalTwitch, preguntar: x => preguntasChat.responder(x),
+  activo: () => Boolean(estadoCanal().conectado && estadoCanal().chat && preguntasChat.activo()) });
+alCambiarCanal(() => chatTwitch.arrancar());
 // Y SrDirector, conectado al gateway, contesta cuando lo mencionan (@SrDirector) en el chat
 comandosDiscord.arrancarGateway();
 // El tablón de scrims: carga las ofertas guardadas y borra cada pocos minutos las que ya han empezado
@@ -1175,7 +1231,7 @@ const servidor = http.createServer(async (req, res) => {
   }
   if (url.pathname === '/api/competicion') {
     res.writeHead(200, { 'Content-Type': TIPOS['.json'], 'Cache-Control': 'no-cache' });
-    const datos = sim ? competicion(sim.calendario, sim.partidas) : competicion(calendarioActual(), todas());
+    const datos = sim ? competicion(sim.calendario, sim.partidas, {}) : conCambios(competicion(calendarioActual(), todas()));
     return res.end(JSON.stringify({ ...datos, simulacion: Boolean(sim) }));
   }
   // El postdraft del overlay: lo que lleva cada jugador con su campeón y en general, su carta y los dos clanes
@@ -1193,19 +1249,17 @@ const servidor = http.createServer(async (req, res) => {
   // La entrada del panel (public/panel/entrada.js) pregunta aquí si la contraseña vale. Quien falla muchas seguidas espera
   if (url.pathname === '/api/clave') {
     if (req.method !== 'POST') return json(res, { ok: false, error: 'Método no permitido' }, 405);
-    const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
-    const ahora = Date.now(), f = fallosClave.get(ip);
-    // Las direcciones que fallaron una vez y no volvieron se quedaban para siempre: de vez en cuando se barren las pasadas
-    if (fallosClave.size > 500) for (const [k, v] of fallosClave) if (ahora - v.desde > FRENO_CLAVE.ventana) fallosClave.delete(k);
-    if (f && ahora - f.desde > FRENO_CLAVE.ventana) fallosClave.delete(ip);
-    if ((fallosClave.get(ip)?.n || 0) >= FRENO_CLAVE.fallos) return json(res, { ok: false, error: 'Demasiados intentos' }, 429);
-    let cuerpo;
-    try { cuerpo = await leerCuerpo(req, 2000); } catch (e) { return json(res, { ok: false, error: e.message }, 400); }
-    if (cuerpo.clave === CLAVE) { fallosClave.delete(ip); return json(res, { ok: true }); }
-    const g = fallosClave.get(ip) || { n: 0, desde: ahora };
-    g.n++;
-    fallosClave.set(ip, g);
-    return json(res, { ok: false, error: 'Contraseña incorrecta' }, 401);
+    const c = await claveConFreno(req);
+    return c.ok ? json(res, { ok: true }) : json(res, { ok: false, error: c.error }, c.codigo);
+  }
+  // Alertas de Twitch (22/11): la URL de origen del navegador del grupo «Gokudō» lleva un token, así que no va en el repo
+  // ni en el zip del realizador. La guarda Pacopepe en TWITCH_ALERTAS_URL del .env del server y el realizador la pide
+  // aquí al configurar OBS, con la contraseña del panel (POST, nunca en la dirección). Sin variable: url null
+  if (url.pathname === '/api/realizador/alertas-twitch') {
+    if (req.method !== 'POST') return json(res, { ok: false, error: 'Método no permitido' }, 405);
+    const c = await claveConFreno(req);
+    if (!c.ok) return json(res, { ok: false, error: c.error }, c.codigo);
+    return json(res, { ok: true, url: urlAlertasTwitch() });
   }
   // El puente del PC del espectador manda aquí la partida cada segundo (con la contraseña del panel)
   if (url.pathname === '/api/partida') {
@@ -1357,6 +1411,8 @@ await cargarPartida();
 await cargarCanal().catch(e => console.error('Canal de Twitch:', e.message));
 await cargarCanalKick().catch(e => console.error('Canal de Kick:', e.message));
 cargarBotKick();
+// El contexto de los bots se llena por detrás (la primera vez, unos minutos en el server: calcula los embeddings de todo)
+if (contextoBots.activo()) sincronizacion.arrancar().catch(e => console.error('Contexto:', e.message));
 estado.hoja = estadoHoja();
 estado.fantasy.cerrado = alineacionesCerradas();
 // Lo que el panel tenía puesto antes del reinicio (y, si estaba conectado a DraftCore, se vuelve a conectar)

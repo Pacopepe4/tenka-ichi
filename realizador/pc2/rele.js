@@ -18,7 +18,7 @@ import { condiciones } from '../comun/condiciones.js';
 import { arrancarPanel } from '../pc1/panel.js';
 import { POR_DEFECTO as BORDES, ajusteBorde, suavizar, zoomConBorde, posicionSeguido } from './bordes.js';
 import { Tenka } from '../pc1/tenka.js';
-import { CamarasDraft } from './camaras.js';
+import { CamarasDraft, CamarasPartida } from './camaras.js';
 import { GrabadorLol, cursorEnClip } from './grabador.js';
 import { Actualizador, codigoSala } from '../comun/app.js';
 import { abrirObs, obsCorriendo } from './abrir-obs.js';
@@ -339,6 +339,9 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
   // Cámaras de la escena de draft, encajadas en los huecos del overlay
   const camaras = obs ? new CamarasDraft({ obs, escena: o.obs?.escenaDraft || 'Draft', registrar, elegidos: o.obs?.camarasDraft || [] }) : null;
   tenka?.on?.('estado', e => camaras?.desdeTenka(e));
+  // Y las de los casters en la escena de juego, encendidas con las casillas del panel (22/11)
+  const camarasPartida = obs ? new CamarasPartida({ obs, escena: o.obs?.escenaJuego || 'Juego', registrar }) : null;
+  tenka?.on?.('estado', e => camarasPartida?.desdeTenka(e));
   function elegirCamaras(lista) {
     if (!camaras) throw new Error('Este PC no lleva OBS');
     camaras.elegir(lista);
@@ -839,6 +842,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
     try { await pasoFases(); } catch (e) { registrar(`[fases] ${e.message}`); }
     resumen.actualizar({ draft: Boolean(draftDeTenka(tenka?.estado)), enJuego: emision.fase === 'previa' || emision.fase === 'directo' });
     camaras?.paso().catch(() => {});
+    camarasPartida?.paso().catch(() => {});
   }
   // ---------- fases del directo (pc2/fases.js) ----------
   // Pone la escena que dice fases (las suyas, o las pedidas a mano), saca al aire lo que lleva fases con la emisión
@@ -921,6 +925,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
       papel: 'pc2',
       conexiones: { ...(sala ? { puente: sala.unido } : {}), pc1: pc1Conectado(), obs: obs ? Boolean(obs.listo) : null, tenka: tenka ? Boolean(tenka.listo) : null },
       camaras: camaras ? camaras.publico() : null,
+      camarasPartida: camarasPartida ? camarasPartida.publico() : null,
       draft: draftDeTenka(tenka?.estado),
       condiciones: c.lista, listo: c.listo,
       emision: emision.publico(), faltan: faltan(), resumen: obs ? resumen.publico() : null,

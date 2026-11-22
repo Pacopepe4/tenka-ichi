@@ -23,7 +23,7 @@ export const EVENTOS_KICK = ['channel.reward.redemption.updated', 'livestream.st
 const COSTE_INICIAL = 3000;
 const COLOR = '#BE2A2F';   // el bermellón de la marca (--shu)
 // Lo que lee el espectador en Kick al canjear (máximo 200 caracteres)
-const TEXTO_OMAMORI = 'Una tirada de la tragaperras del gachapon de Gokudō (4 cartas). Entra en tenka-ichi.onrender.com/gachapon/ y vincula tu Kick: la tirada te llega al momento.';
+const TEXTO_OMAMORI = 'Una tirada de la tragaperras del gachapon de Gokudō (4 cartas). Entra en gokudo.es/gachapon/ y vincula tu Kick: la tirada te llega al momento.';
 export const idKick = userId => `kick-${userId}`;
 
 let tokens = null;

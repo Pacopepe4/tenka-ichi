@@ -95,7 +95,7 @@ test('con clave de Riot: registra proveedor y torneo una vez y pide un código p
   assert.equal(riot.llamadas.filter(l => l.ruta.endsWith('/tournaments')).length, 1);
   const prov = riot.llamadas.find(l => l.ruta.endsWith('/providers'));
   assert.equal(prov.ruta, '/lol/tournament/v5/providers');
-  assert.deepEqual(prov.cuerpo, { region: 'EUW', url: 'https://tenka-ichi.onrender.com/api/torneo/riot' });
+  assert.deepEqual(prov.cuerpo, { region: 'EUW', url: 'https://gokudo.es/api/torneo/riot' });
   const cod = riot.llamadas.find(l => l.ruta.includes('/codes'));
   assert.equal(cod.ruta, '/lol/tournament/v5/codes?count=1&tournamentId=4242');
   assert.equal(cod.cuerpo.teamSize, 5);
@@ -284,6 +284,18 @@ test('los cambios de horario se guardan y se pueden quitar', async () => {
   await assert.rejects(t.cambiarHorario('J1-3', { hora: '7pm' }));
   await t.cambiarHorario('J1-3', {});
   assert.equal(t.estado().partidos.find(p => p.id === 'J1-3').cambiado, false);
+});
+
+test('resultado de mesa: solo para uno de los dos de la liguilla, sale en cambios y se puede quitar', async () => {
+  const { t, guardado } = montar({ conRiot: false });
+  const cruce = t.estado().partidos.find(p => p.id === 'J1-3');
+  await t.resultadoMesa('J1-3', { ganador: cruce.rojo, motivo: 'Incumplimiento de la normativa' });
+  assert.equal(JSON.parse(guardado()).mesa['J1-3'].ganador, cruce.rojo);
+  assert.equal(t.cambios()['J1-3'].mesa, 'Incumplimiento de la normativa');
+  assert.equal(t.estado().partidos.find(p => p.id === 'J1-3').mesa.ganador, cruce.rojo);
+  await assert.rejects(t.resultadoMesa('J1-3', { ganador: 'NADIE' }));
+  await t.resultadoMesa('J1-3', {});
+  assert.equal(t.cambios()['J1-3'], undefined);
 });
 
 test('códigos de Toornament: se pegan de golpe, mandan sobre la sala y se entregan como código de torneo', async () => {

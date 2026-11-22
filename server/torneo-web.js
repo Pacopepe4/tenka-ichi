@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { crearTorneo, partidosTemporada, AJUSTE } from './torneo.js';
 import { calendarioActual } from './calendario.js';
-import { competicion } from './competicion.js';
+import { competicion, usarResultadosDeMesa } from './competicion.js';
 import { todas } from './registro.js';
 import { clan } from './clanes.js';
 import { plantilla } from './plantillas.js';
@@ -29,7 +29,7 @@ function discordDeGokudo({ token = process.env.DISCORD_BOT_TOKEN, urlApi = proce
   async function pedir(metodo, ruta, cuerpo) {
     const r = await fetch(`${urlApi}${ruta}`, {
       method: metodo,
-      headers: { Authorization: `Bot ${token}`, 'User-Agent': 'DiscordBot (https://tenka-ichi.onrender.com, 1.0)', ...(cuerpo && { 'Content-Type': 'application/json' }) },
+      headers: { Authorization: `Bot ${token}`, 'User-Agent': 'DiscordBot (https://gokudo.es, 1.0)', ...(cuerpo && { 'Content-Type': 'application/json' }) },
       body: cuerpo ? JSON.stringify(cuerpo) : undefined,
       signal: AbortSignal.timeout(15_000),
     });
@@ -61,3 +61,5 @@ export const torneo = crearTorneo({
   guardarEstadisticas,
 });
 
+// La clasificación de toda la web cuenta los resultados de mesa que pone el panel
+usarResultadosDeMesa(() => torneo.mesa());

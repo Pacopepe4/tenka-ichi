@@ -126,6 +126,11 @@ export function leerFotograma(px, ancho, alto) {
 const UMBRAL_RELOJ = 0.06;   // más de un 6 % de píxeles blancos en el icono = la aguja del enfriamiento
 const PARECIDAS = 0.3;       // huellas a esta distancia o menos son el mismo número
 const SEGUIDAS = 2;          // fotos seguidas iguales para dar por bueno un cambio (2 fotos = 1 s)
+// 22/11: los iconos con blanco en el dibujo (Teletransporte, Prender, Extenuación) salían «en enfriamiento» desde el
+// principio de la partida. En enfriamiento el LoL oscurece el icono: solo cuenta la aguja si además el icono está
+// por debajo de este tanto del brillo que tiene listo (el más alto que se le ha visto, de dos fotos seguidas) para entrar
+const APAGADO = 0.8;
+const ENTERO = 0.95;          // ...y vuelve a estar listo con este tanto del brillo, aunque quede blanco en el dibujo
 
 // Contadores del marcador: cuando el número de un equipo cambia a uno que no se había visto, ese equipo lo ha cogido.
 // Los contadores solo suben, así que un número ya visto (un parpadeo, la interfaz que vuelve) no cuenta otra vez.
@@ -165,8 +170,15 @@ export class SeguidorHechizos {
       for (const s of ['d', 'f', 'r']) {
         const clave = `${m.equipo}-${m.k}-${s}`;
         let e = this.estado.get(clave);
-        if (!e) { e = { equipo: m.equipo, k: m.k, s, enfriando: null, veces: 0, desde: null, tramos: [] }; this.estado.set(clave, e); }
-        const ahora = m[s].blancos > UMBRAL_RELOJ;
+        if (!e) { e = { equipo: m.equipo, k: m.k, s, enfriando: null, veces: 0, desde: null, tramos: [], listo: 0, previo: null }; this.estado.set(clave, e); }
+        // Brillo de listo: el más alto visto, contando cada foto con la anterior (un destello suelto no cuenta). La primera
+        // foto es la referencia: al empezar a mirar, todo se da por listo (al principio de la partida lo está)
+        const medio = m[s].medio ?? 0;
+        e.listo = Math.max(e.listo, e.previo === null ? medio : Math.min(medio, e.previo));
+        e.previo = medio;
+        // Para entrar en enfriamiento hace falta el icono oscuro. Dentro, sigue mientras esté la aguja (la vuelta va destapando el
+        // icono) y no haya recuperado todo su brillo (si no, un icono con blanco en el dibujo no volvería nunca)
+        const ahora = m[s].blancos > UMBRAL_RELOJ && medio < (e.enfriando === true ? ENTERO : APAGADO) * e.listo;
         if (e.enfriando === null) { e.enfriando = ahora; if (ahora) e.tramos.push([t, null]); continue; }
         if (ahora === e.enfriando) { e.veces = 0; continue; }
         if (e.veces === 0) e.desde = t;

@@ -17,7 +17,7 @@ const TIERS = ['LEGACY', 'S+', 'S', 'A', 'B', 'C', 'D'];
 const ROLES = ['TOP', 'JUNGLA', 'MEDIO', 'ADC', 'SUPPORT'];
 const ROL = { TOP: 'Top', JUNGLA: 'Jungla', MEDIO: 'Medio', ADC: 'ADC', SUPPORT: 'Support' };
 const ANCHO = 1600, MARGEN = 64, ARRIBA = 236;
-const DIRECCION = 'tenka-ichi.onrender.com';
+const DIRECCION = 'gokudo.es';
 
 // ---------- utilidades ----------
 const cargadas = new Map();
