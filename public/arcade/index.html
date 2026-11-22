@@ -56,7 +56,8 @@
   .marco::before { content: ''; position: absolute; left: 14px; right: 14px; top: -11px; height: 3px; border-radius: 2px;
     background: var(--color-claro); box-shadow: 0 0 6px var(--color-claro), 0 0 14px var(--color); }
   .marco.marcador::before { top: auto; bottom: -11px; }
-  .marco .etiqueta { position: absolute; right: -8px; bottom: calc(100% + 8px); height: 26px; display: flex; align-items: center; gap: 7px;
+  .marco.mapa::before { left: 108px; }  /* el tubo, después de la pestaña 極道 MAPA */
+  .marco .etiqueta { position: absolute; left: -8px; bottom: calc(100% + 8px); height: 26px; display: flex; align-items: center; gap: 7px;
     padding: 0 10px 2px; background: rgba(15, 16, 23, .95); border-radius: 8px 8px 0 0; box-shadow: 0 0 0 1px var(--sumi-linea); }
   .marco .etiqueta b { font-family: var(--pincel); font-weight: 400; font-size: 17px; line-height: 1; color: var(--shu-neon); text-shadow: 0 0 4px var(--shu-claro), 0 0 12px var(--shu); }
   .marco .etiqueta span { font-family: var(--gothic); font-weight: 700; font-size: 10px; letter-spacing: .26em; color: var(--hai); }
