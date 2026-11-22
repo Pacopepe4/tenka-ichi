@@ -19,6 +19,7 @@
 // No borra nada tuyo: tus colecciones y perfiles siguen en el menú de OBS, y lo que se cambia se copia antes
 // en obs-studio\realizador-copia\<fecha>\.
 import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, readdirSync } from 'node:fs';
+import { esUrlTwitch } from '../comun/alertas-twitch.js';
 import { alDia } from '../comun/direcciones.js';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
@@ -28,7 +29,7 @@ import { pathToFileURL, fileURLToPath } from 'node:url';
 import { ponerEnIni } from './configurar-lol.js';
 import { configurarDestinos } from './multi-rtmp.js';
 import { apuntarDueno } from './desconfigurar-obs.js';
-import { disposicionCamaras, FUENTES as CAMARAS_DRAFT } from '../pc2/camaras.js';
+import { disposicionCamaras, FUENTES as CAMARAS_DRAFT, FUENTES_PARTIDA, camarasPartida } from '../pc2/camaras.js';
 import { FUENTES_FASES, MUSICA } from '../pc2/fases.js';
 import { carpetasVideos, listarVideos } from '../pc2/traileres.js';
 
@@ -41,6 +42,10 @@ export const TRANSICIONES = { entrada: 'Repeticion entrada', salida: 'Repeticion
 export const OVERLAY_REPLAY = 'Overlay REPLAY';
 export const PLACA_RESUMEN = 'Overlay RESUMEN';
 export const ALERTAS = 'Alertas Kick';
+// Alertas de Twitch (22/11): rótulo compacto del grupo «Gokudō», justo encima de la cámara de casters de la izquierda
+// (la de Livir, x 16, y 856 en el overlay de partida): el borde de abajo de la fuente pegado sobre ella y el mismo x
+export const ALERTAS_TWITCH = 'Alertas Twitch';
+export const HUECO_ALERTAS_TWITCH = { x: 16, y: 644, w: 320, h: 210 };
 export const MARCO_MINIMAPA = 'Marco minimapa';
 // Fuente de los tráilers del inicio del directo (el relé le carga los vídeos uno detrás de otro: pc2/traileres.js)
 export const FUENTE_TRAILERES = 'Trailer directo';
@@ -181,7 +186,7 @@ export function urlOverlayFinal(overlay) {
   } catch { return ''; }
 }
 
-export function crearColeccion({ escenas, fuenteRepeticion, fuenteResumen = 'Resumen clip', placaResumen = PLACA_RESUMEN, fuenteTraileres = FUENTE_TRAILERES, overlay = '', recursos = null, alertas = '', minimapa = {}, volumenMusica = -12 }) {
+export function crearColeccion({ escenas, fuenteRepeticion, fuenteResumen = 'Resumen clip', placaResumen = PLACA_RESUMEN, fuenteTraileres = FUENTE_TRAILERES, overlay = '', recursos = null, alertas = '', alertasTwitch = '', huecoTwitch = HUECO_ALERTAS_TWITCH, minimapa = {}, volumenMusica = -12 }) {
   // Un volumen que no es un número (un texto, null…) daría la música a todo volumen: −12 dB
   if (typeof volumenMusica !== 'number' || !Number.isFinite(volumenMusica)) volumenMusica = -12;
   const juego = fuente('Juego LoL', 'game_capture', {
@@ -207,6 +212,9 @@ export function crearColeccion({ escenas, fuenteRepeticion, fuenteResumen = 'Res
   }) : rotulo('Rotulo resumen', 'RESUMEN', 64);
   const fondo = fuente('Fondo', 'color_source', { color: 0xFF130D0C, width: ANCHO, height: ALTO }, { version: 'color_source_v3' });
   const camara = fuente('Camara casters', 'dshow_input', {});
+  // La del segundo caster (22/11): solo en la escena de juego, junto al minimapa; el dispositivo se elige a mano
+  const camara2 = fuente(FUENTES_PARTIDA[1], 'dshow_input', {});
+  const [hueco1, hueco2] = camarasPartida();
   // Sin la carpeta obs/ (pruebas antiguas), un rótulo de texto; con ella, el overlay de REPLAY (apagado: lo
   // enciende el realizador al entrar en la repetición)
   const rRepeticion = recursos
@@ -227,7 +235,12 @@ export function crearColeccion({ escenas, fuenteRepeticion, fuenteResumen = 'Res
     url: alertas, width: ANCHO, height: ALTO, fps: 30, shutdown: false, restart_when_active: false,
     reroute_audio: true, css: 'body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }',
   }) : null;
-  const conAlertas = partes => (fAlertas ? [...partes, [fAlertas]] : partes);
+  // Las de Twitch: su URL (con token) llega del server al instalar; en su hueco y con sonido en la emisión (pista 1)
+  const fTwitch = alertasTwitch ? fuente(ALERTAS_TWITCH, 'browser_source', {
+    url: alertasTwitch, width: huecoTwitch.w, height: huecoTwitch.h, fps: 30, shutdown: false, restart_when_active: false,
+    reroute_audio: true, css: 'body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }',
+  }, { pistas: 1 }) : null;
+  const conAlertas = partes => [...partes, ...(fTwitch ? [[fTwitch, huecoTwitch]] : []), ...(fAlertas ? [[fAlertas]] : [])];
   // Marco del minimapa encima de la captura del juego y debajo del overlay (solo pinta por fuera del mapa)
   const fMinimapa = recursos && existsSync(join(recursos, 'minimapa.html')) ? fuente(MARCO_MINIMAPA, 'browser_source', {
     url: urlMinimapa(recursos, minimapa), width: ANCHO, height: ALTO, fps: 30, shutdown: false, restart_when_active: true,
@@ -263,7 +276,8 @@ export function crearColeccion({ escenas, fuenteRepeticion, fuenteResumen = 'Res
   const conRotulo = (f, esPagina) => (esPagina ? [[f]] : [[fondo], [f, centro]]);
 
   const lista = [
-    escena(escenas.juego, conAlertas([[juego], ...(fMinimapa ? [[fMinimapa]] : []), [marcador]])),
+    // Las cámaras de los casters por debajo del overlay, en sus huecos; apagadas: las enciende el relé con el panel
+    escena(escenas.juego, conAlertas([[juego], ...(fMinimapa ? [[fMinimapa]] : []), [camara, { ...hueco1, oculto: true }], [camara2, { ...hueco2, oculto: true }], [marcador]])),
     // En la repetición solo el cartel REPLAY: el marcador se quita (Pacopepe, 08/11)
     // (ni siquiera las alertas: solo el clip y el cartel)
     // El marco del minimapa también: el clip limpio del LoL lleva el minimapa en el mismo sitio (14/11: se quitaba)
@@ -286,7 +300,7 @@ export function crearColeccion({ escenas, fuenteRepeticion, fuenteResumen = 'Res
     current_scene: lista[0].name,
     current_program_scene: lista[0].name,
     scene_order: lista.map(e => ({ name: e.name })),
-    sources: [...lista, juego, marcador, clip, clipResumen, fPlaca, fondo, camara, ...camarasDraft, rRepeticion, rCasters, rPausa, ...(fAlertas ? [fAlertas] : []), ...(fMinimapa ? [fMinimapa] : []),
+    sources: [...lista, juego, marcador, clip, clipResumen, fPlaca, fondo, camara, camara2, ...camarasDraft, rRepeticion, rCasters, rPausa, ...(fAlertas ? [fAlertas] : []), ...(fTwitch ? [fTwitch] : []), ...(fMinimapa ? [fMinimapa] : []),
       fEspera, fCabecera, ...(fPausa ? [fPausa] : []), ...(fFondoPost ? [fFondoPost] : []), fFinal, fCierre, fTrailer, ...Object.values(musicas)],
     groups: [],
     // Pistas de audio: 1 = emisión (juego y micro), 2 = solo juego (lo que suena al repetir un clip), 3 = juego y
@@ -326,6 +340,14 @@ export function esDeGokudo(url, porDefecto = '') {
 
 // Busca la dirección del overlay: primero en la fuente del realizador de una instalación anterior (con su nombre
 // de ahora o el viejo, por si se cambió a mano), y si no, en tus colecciones una fuente de navegador que lo parezca
+
+// La URL de «Alertas Twitch» de la colección del realizador que ya había (para no perderla si la web no contesta)
+export function alertasTwitchAnteriores(rutaColeccion) {
+  try {
+    const f = (JSON.parse(leerTexto(rutaColeccion)).sources || []).find(x => x.name === ALERTAS_TWITCH);
+    return esUrlTwitch(f?.settings?.url) ? f.settings.url : '';
+  } catch { return ''; }
+}
 
 export function buscarOverlay(carpetaEscenas, acepta = () => true) {
   if (!existsSync(carpetaEscenas)) return '';
@@ -471,7 +493,7 @@ export function servicioEmision({ servidor, clave }) {
   return { type: 'rtmp_custom', settings: { server: servidor, key: clave, use_auth: false, bwtest: false } };
 }
 
-export function configurarObs({ carpeta, opciones, rutaLocal, overlay, overlayPorDefecto, carpetaClips, recursos = RECURSOS, instalarLasFuentes = !process.env.NODE_TEST_CONTEXT, tarjetas = null }) {
+export function configurarObs({ carpeta, opciones, rutaLocal, overlay, overlayPorDefecto, carpetaClips, alertasTwitch, recursos = RECURSOS, instalarLasFuentes = !process.env.NODE_TEST_CONTEXT, tarjetas = null }) {
   const o = opciones.obs;
   const hechos = [];
   const fecha = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 19);
@@ -504,12 +526,16 @@ export function configurarObs({ carpeta, opciones, rutaLocal, overlay, overlayPo
     espera: o.escenaEspera || 'Espera', intro: o.escenaIntro || 'Intro', traileres: o.escenaTraileres || 'Traileres', postpartida: o.escenaPostpartida || 'Postpartida', cierre: o.escenaCierre || 'Cierre',
   };
   const rutaColeccion = join(escenas, `${NOMBRE}.json`);
+  // Alertas de Twitch: la URL que da el server (alertasTwitch). Si no se le pudo preguntar (undefined), la de la
+  // instalación anterior; si contesta que no hay (null), sin fuente. La URL lleva token: nunca va a «hechos»
+  const twitch = alertasTwitch === undefined ? alertasTwitchAnteriores(rutaColeccion) : (alertasTwitch || '');
   guardarCopia(rutaColeccion, `${NOMBRE}.json`);
   // Las alertas de Kick salen de la misma web que el overlay (/alertas/), salvo que opciones.json diga otra
   let alertas = alDia(o.alertas ?? '');
   if (o.alertas === undefined && /^https?:/i.test(url)) { try { alertas = new URL('/alertas/', url).href; } catch { /* sin dirección */ } }
-  escribir(rutaColeccion, JSON.stringify(crearColeccion({ escenas: nombres, fuenteRepeticion: o.fuenteRepeticion, fuenteResumen: o.fuenteResumen || 'Resumen clip', placaResumen: o.placaResumen || PLACA_RESUMEN, fuenteTraileres: o.fuenteTraileres || FUENTE_TRAILERES, overlay: url, alertas, minimapa: o.minimapa || {}, volumenMusica: o.volumenMusica ?? -12, recursos: recursos && existsSync(recursos) ? recursos : null }), null, 4));
+  escribir(rutaColeccion, JSON.stringify(crearColeccion({ escenas: nombres, fuenteRepeticion: o.fuenteRepeticion, fuenteResumen: o.fuenteResumen || 'Resumen clip', placaResumen: o.placaResumen || PLACA_RESUMEN, fuenteTraileres: o.fuenteTraileres || FUENTE_TRAILERES, overlay: url, alertas, alertasTwitch: twitch, huecoTwitch: o.alertasTwitchHueco || HUECO_ALERTAS_TWITCH, minimapa: o.minimapa || {}, volumenMusica: o.volumenMusica ?? -12, recursos: recursos && existsSync(recursos) ? recursos : null }), null, 4));
   hechos.push(`Colección "${NOMBRE}": ${Object.values(nombres).join(', ')}`);
+  if (twitch) hechos.push(`Alertas de Twitch encima de la cámara de casters (${alertasTwitch === undefined ? 'las de antes: la web no ha contestado' : 'desde la web'})`);
   if (recursos && existsSync(recursos)) hechos.push(`Transiciones de la repetición ("${TRANSICIONES.entrada}", "${TRANSICIONES.salida}") y "${OVERLAY_REPLAY}"`);
   if (alertas) hechos.push(`Alertas de Kick en todas las escenas (${alertas})`);
   // Grafismos y música de las fases del directo: lo que no está va con el fondo y un rótulo (o sin música)

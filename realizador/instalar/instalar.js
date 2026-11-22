@@ -17,6 +17,8 @@ import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { RAIZ, cargarOpciones, mezclar } from '../comun/opciones.js';
 import { alDia, opcionesAlDia } from '../comun/direcciones.js';
+import { pedirAlertasTwitch } from '../comun/alertas-twitch.js';
+import { webDe } from '../comun/app.js';
 import { configurarApis, rutaConfig } from './configurar-lol.js';
 import { configurarObs, carpetaObs, obsAbierto, NOMBRE } from './configurar-obs.js';
 import { instalarComplemento } from './multi-rtmp.js';
@@ -73,7 +75,8 @@ function accesoDirecto(nombre, papel) {
   return nombre;
 }
 
-export function instalar({ papel, clave, ruta, emision = '', twitch = '', rutaLocal = join(RAIZ, 'opciones.local.json'), carpeta = carpetaObs(), atajo = true, carpetaPuente }) {
+// alertasTwitch: la URL de las alertas de Twitch que da la web (undefined si no se le pudo preguntar)
+export function instalar({ papel, clave, ruta, emision = '', twitch = '', alertasTwitch, rutaLocal = join(RAIZ, 'opciones.local.json'), carpeta = carpetaObs(), atajo = true, carpetaPuente }) {
   if (papel !== 'pc1' && papel !== 'pc2') throw new Error('Di qué PC es: pc1 o pc2');
   if (!clave || clave.length < 4) throw new Error('La contraseña tiene que tener al menos 4 caracteres');
   const hechos = [];
@@ -109,7 +112,7 @@ export function instalar({ papel, clave, ruta, emision = '', twitch = '', rutaLo
     if (obsAbierto()) avisos.push('OBS está abierto: ciérralo y vuelve a instalar para dejarlo configurado');
     else {
       try {
-        const r = configurarObs({ carpeta, opciones: o, rutaLocal, overlayPorDefecto: overlayDeTenka(o.puente?.url), carpetaClips: join(homedir(), 'Videos', NOMBRE) });
+        const r = configurarObs({ carpeta, opciones: o, rutaLocal, overlayPorDefecto: overlayDeTenka(o.puente?.url), carpetaClips: join(homedir(), 'Videos', NOMBRE), alertasTwitch });
         hechos.push(...r.hechos.map(h => `OBS: ${h}`));
         if (!r.overlay) avisos.push('OBS: falta la URL del overlay de Gokudō (doble clic en «Overlay Gokudō»)');
       } catch (e) { avisos.push(`OBS: ${e.message}`); }
@@ -149,7 +152,11 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       clave = clave || actuales.clave;
       ruta = ruta || actuales.rutaLoL;
     }
-    const { hechos, avisos } = instalar({ papel: args[0], clave, ruta, emision: process.env.REALIZADOR_EMISION || '', twitch: process.env.REALIZADOR_TWITCH || '' });
+    // Alertas de Twitch (solo el PC 2 lleva OBS): su URL lleva token y la da la web con la contraseña del panel; no se
+    // guarda en ningún archivo nuestro, solo en la fuente de OBS
+    const alertas = args[0] === 'pc2' ? await pedirAlertasTwitch({ web: webDe(cargarOpciones()), clave }) : {};
+    const { hechos, avisos } = instalar({ papel: args[0], clave, ruta, emision: process.env.REALIZADOR_EMISION || '', twitch: process.env.REALIZADOR_TWITCH || '', alertasTwitch: alertas.url });
+    if (alertas.error) avisos.push(`OBS: alertas de Twitch sin preguntar a la web (${alertas.error}); se dejan las que hubiera`);
     // Con clave de Twitch, el complemento para emitir a la vez (se baja de su página oficial y se comprueba su huella)
     if (args[0] === 'pc2' && cargarOpciones().obs?.emision?.twitch?.clave) {
       try {
