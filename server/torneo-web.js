@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { crearTorneo, partidosTemporada, AJUSTE } from './torneo.js';
 import { calendarioActual } from './calendario.js';
-import { competicion } from './competicion.js';
+import { competicion, usarResultadosDeMesa } from './competicion.js';
 import { todas } from './registro.js';
 import { clan } from './clanes.js';
 import { plantilla } from './plantillas.js';
@@ -61,3 +61,5 @@ export const torneo = crearTorneo({
   guardarEstadisticas,
 });
 
+// La clasificación de toda la web cuenta los resultados de mesa que pone el panel
+usarResultadosDeMesa(() => torneo.mesa());

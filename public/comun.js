@@ -32,6 +32,15 @@ export function horasDelDia(cuantos, primera = '17:00', margen = 45) {
     return `${String(Math.floor(t / 60) % 24).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
   });
 }
+// La hora de cada cruce de una jornada: la de la temporada o, si el staff la cambió en el panel («Códigos de torneo»),
+// la nueva (formato.cambios, de /api/competicion). Solo cuenta la hora si el partido sigue ese mismo día
+export function horasJornada(formato, cruces = [], fecha = null) {
+  const base = horasDelDia(cruces.length, formato.hora, formato.margen);
+  return cruces.map((c, i) => {
+    const cambio = formato.cambios?.[c.id];
+    return cambio?.hora && (!fecha || !cambio.fecha || cambio.fecha === fecha) ? cambio.hora : base[i];
+  });
+}
 
 export function fechaCorta(fecha, largo = false) {
   if (!fecha) return '';

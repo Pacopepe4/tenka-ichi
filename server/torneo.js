@@ -176,6 +176,7 @@ export function crearTorneo({
     datos ||= {};
     datos.partidos ||= {};
     datos.horario ||= {};
+    datos.mesa ||= {};
     return datos;
   };
   const guardar = () => guardarAjuste(JSON.stringify(datos));
@@ -443,9 +444,17 @@ export function crearTorneo({
         return { ...p, azulNombre: clan(p.azul).nombre, rojoNombre: clan(p.rojo).nombre, tiene: Boolean(c?.codigo), modoCodigo: c?.modo || null,
           drafts: Object.fromEntries(['azul', 'rojo', 'espectador'].map(l => [l, Boolean(c?.drafts?.[l])])),
           entregado: c?.entregado || null, partidaRiot: c?.partidaRiot || null, ganador: c?.ganador || null,
-          registrado: Boolean(c?.registrado && c.registrado === c.partidaRiot), partidaFantasy: c?.partidaFantasy || null, cambiado: Boolean(d.horario[p.id]) };
+          registrado: Boolean(c?.registrado && c.registrado === c.partidaRiot), partidaFantasy: c?.partidaFantasy || null, cambiado: Boolean(d.horario[p.id]), mesa: d.mesa[p.id] || null };
       }),
     };
+  }
+  // Los partidos con el día o la hora cambiados en el panel, ya resueltos ({ J2-1: { fecha, hora } }), y los que no se
+  // juegan porque tienen resultado de mesa (con «mesa»: el motivo, y «ganador»): la web, la cuenta
+  // atrás, el !partido de Kick y los tickets los enseñan en vez de la hora de la temporada (el 22/11 se retrasó 30 min)
+  function cambios() {
+    const d = cargar();
+    return Object.fromEntries(lista().filter(p => d.horario[p.id] || d.mesa[p.id])
+      .map(p => [p.id, { fecha: p.fecha, hora: p.hora, ...(d.mesa[p.id] && { mesa: d.mesa[p.id].motivo, ganador: d.mesa[p.id].ganador }) }]));
   }
   const ver = id => { partido(id); const c = cargar().partidos[id]; return c ? { modo: c.modo || null, codigo: c.codigo || null, sala: c.sala || null, drafts: c.drafts || null } : null; };
 
@@ -459,6 +468,22 @@ export function crearTorneo({
     return estado();
   }
 
+  // Resultado de mesa: el cruce no se juega y el staff se lo da a una de las dos familias (incomparecencia, normativa…).
+  // Cuenta en la clasificación (server/competicion.js) pero no es una partida. Sin ganador, se quita
+  const mesa = () => cargar().mesa;
+  async function resultadoMesa(id, { ganador = null, motivo = null } = {}) {
+    const p = partido(id);
+    const d = cargar();
+    if (!ganador) delete d.mesa[id];
+    else {
+      if (p.fase !== 'liga') throw new Error('Los resultados de mesa solo valen para la liguilla');
+      if (![p.azul, p.rojo].includes(ganador)) throw new Error(`${ganador} no juega el ${id} (${p.azul} contra ${p.rojo})`);
+      d.mesa[id] = { ganador, motivo: String(motivo || 'Resultado de mesa').slice(0, 200), fecha: p.fecha };
+    }
+    await guardar();
+    return estado();
+  }
+
   async function olvidar(id) {
     const d = cargar();
     delete d.partidos[id];
@@ -466,5 +491,5 @@ export function crearTorneo({
     return estado();
   }
 
-  return { modo, estado, ver, generar, guardarDrafts, pegarDrafts, pegarCodigos, entregar, resultado, aviso, cambiarHorario, olvidar, firma };
+  return { modo, estado, cambios, mesa, resultadoMesa, ver, generar, guardarDrafts, pegarDrafts, pegarCodigos, entregar, resultado, aviso, cambiarHorario, olvidar, firma };
 }
