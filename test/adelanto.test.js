@@ -163,3 +163,10 @@ test('los temporizadores se fían del PC 1 aunque el PC 2 salte tramos, y las la
   assert.equal(p.objetivos.some(o => o.tipo === 'larvas'), false, 'una sola vez por partida');
   assert.equal(p.objetivos.find(o => o.tipo === 'heraldo')?.aparece, 900);
 });
+
+test('EGM 22/11 (M2): un enfriamiento sin final que dura más que el más largo posible no cuenta', () => {
+  recibirAdelanto({ ...delPc1(1200), hechizos: [{ nombre: 'A1', equipo: 'azul', d: [[100, null]], f: [[700, null]], r: [] }] });
+  assert.deepEqual(enfriamientosEn('A1', 500).d, { quedan: null }, 'a los 400 s aún puede ser verdad');
+  assert.equal(enfriamientosEn('A1', 600).d, null, 'a los 500 s ya no: era una mala lectura');
+  assert.deepEqual(enfriamientosEn('A1', 800).f, { quedan: null });
+});

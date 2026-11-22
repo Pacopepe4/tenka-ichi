@@ -59,7 +59,7 @@ export function ajustarIngame(a = {}) { if (typeof a.oroIngresos === 'boolean') 
 // Cada partida lleva un número: así el servidor sabe si la que ha terminado es la misma de antes
 let numeroPartida = 0;
 const vacia = () => ({ numero: ++numeroPartida, tiempo: 0, recibido: 0, velocidad: 1, prueba: false, sinPartida: true, jugadores: [],
-  eventos: new Map(), ids: new Set(), firmas: new Set(), llegada: new Map(), manuales: [], muestras: [] });
+  eventos: new Map(), ids: new Set(), firmas: new Set(), llegada: new Map(), manuales: [], muestras: [], misionesEn: new Map() });
 
 // ---------- objetivos marcados a mano desde el panel ----------
 // Como espectador, el cliente no da los dragones, el heraldo ni el Barón (solo al jugar): el panel los
@@ -204,22 +204,20 @@ const misionDe = j => {
 
 // ¿Ha completado su misión de rol? (22/11, Pacopepe: que se note en todas, no solo en las que dan hueco). Se mira lo que
 // tiene ahora, no el momento del cambio, así vale aunque la repetición salte. Comprobado con las partidas del 15 y el
-// 16/11 (registro del PC 1):
-//  - jungla: el Castigo cambia de nombre interno al mejorarse (SummonerSmite → SummonerSmiteAvatar…)
-//  - medio: las botas de nivel 3 (3170-3179), que solo da su misión
-//  - ADC y apoyo: el objeto del hueco nuevo (el 7)
-//  - top: el hueco nuevo si no lleva Teleportar; con Teleportar no hay señal fiable (el desatado les llega a todos los
-//    que lo llevan al minuto 10, a los de medio también), así que solo cuenta si pasa del nivel 18, que es el tope
-//    para quien no la ha hecho
+// 16/11 (registro del PC 1). Cada señal solo la da una misión, así que no se mira la fila (EGM 22/11, M9: sin nombres
+// ni picks, un medio podía caer en la fila del top):
+//  - el Castigo cambia de nombre interno al mejorarse (SummonerSmite → SummonerSmiteAvatar…): la del jungla
+//  - las botas de nivel 3 (3170-3176; EGM M7: la 3177 es la Espada del guardián y la 3179 la Guja sombría): la del medio
+//  - el objeto del hueco nuevo (el 7): la del ADC, la del apoyo y la del top sin Teleportar
+//  - pasar del nivel 18, el tope para quien no la ha hecho: la del top con Teleportar. No hay otra señal fiable (el
+//    desatado les llega al minuto 10 a todos los que lo llevan), así que en una partida de 30 min casi nunca se marca
 const internoHechizo = h => /SummonerSpell_(.+?)_DisplayName/.exec(h?.rawDisplayName || '')?.[1] || '';
 const castigoMejorado = j => ['summonerSpellOne', 'summonerSpellTwo'].some(k => /^(S\d+_)?SummonerSmite.+/.test(internoHechizo(j.summonerSpells?.[k])));
-const botasNivel3 = j => (j.items || []).some(o => o.itemID >= 3170 && o.itemID <= 3179);
-export function misionHecha(rol, j) {
+export const BOTAS_NIVEL_3 = new Set([3170, 3171, 3172, 3173, 3174, 3175, 3176]);
+const botasNivel3 = j => (j.items || []).some(o => BOTAS_NIVEL_3.has(Number(o.itemID)));
+export function misionHecha(j) {
   if (!j) return false;
-  if (rol === 'TOP') return Boolean(j.mision) || (j.nivel || 0) > 18;
-  if (rol === 'JUNGLA') return Boolean(j.castigoMejorado);
-  if (rol === 'MEDIO') return Boolean(j.botas3);
-  return Boolean(j.mision);
+  return Boolean(j.castigoMejorado || j.botas3 || j.mision || (j.nivel || 0) > 18);
 }
 
 // Estructuras: Turret_T1_…/Barracks_T1_… son del lado azul (ORDER) y T2 del rojo (CHAOS)
@@ -409,11 +407,15 @@ export function resumen() {
   }
   const porRol = { azul: porLineas(jugadores.azul, 'azul'), rojo: porLineas(jugadores.rojo, 'rojo') };
   const lineas = ROLES.map((rol, i) => ({ rol, azul: porRol.azul[i], rojo: porRol.rojo[i] }));
-  // La misión de rol, según el puesto de cada fila; los datos de paso no salen al overlay
+  // La misión de rol de cada jugador; los datos de paso no salen al overlay. misionEn: el segundo de la partida en que se
+  // vio hecha por primera vez (EGM M8): el overlay solo destella justo entonces, no al sacar el panel más tarde ni si
+  // las filas se reordenan
   for (const l of lineas) for (const lado of ['azul', 'rojo']) {
     const j = l[lado];
     if (!j) continue;
-    j.misionHecha = misionHecha(l.rol, j);
+    j.misionHecha = misionHecha(j);
+    if (j.misionHecha && !bruto.misionesEn.has(j.nombre)) bruto.misionesEn.set(j.nombre, Math.round(bruto.tiempo));
+    j.misionEn = j.misionHecha ? bruto.misionesEn.get(j.nombre) ?? null : null;
     delete j.castigoMejorado; delete j.botas3;
   }
 
@@ -758,7 +760,7 @@ export function empezarPrueba({ picks, jugadores }, alPaquete) {
         // Objetos en sus huecos, el abalorio en el 6 (el apoyo, con la lente) y el hueco de misión en el 7
         // Las botas de nivel 3 del medio a los 14:00 (su misión de rol), en el hueco que quede
         items: [...(j.rol === 2 && t >= 840 ? [...j.items.slice(0, 5), { itemID: 3171, count: 1 }] : j.items).map((o, slot) => ({ ...o, slot })), { itemID: j.rol === 4 ? 3364 : 3340, count: 1, slot: 6 },
-          ...(MISION_PRUEBA[j.rol] ? [{ itemID: MISION_PRUEBA[j.rol], count: 1, slot: 7 }] : [])],
+          ...(MISION_PRUEBA[j.rol] && t >= 780 ? [{ itemID: MISION_PRUEBA[j.rol], count: 1, slot: 7 }] : [])],  // su misión, a los 13:00
         scores: { kills: j.k, deaths: j.d, assists: j.a, creepScore: j.cs, wardScore: j.vision } })),
       eventos,
     }, { prueba: true }));

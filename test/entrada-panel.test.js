@@ -61,3 +61,19 @@ test('alertas de Twitch (22/11): la URL con token solo con la contraseña del pa
   assert.doesNotMatch(await mal.text(), /token-de-prueba/);
   assert.equal((await pedir(null, 'GET')).status, 405);
 });
+
+test('EGM 22/11 (B1): un cuerpo que no es un objeto es una contraseña mala, y la web sigue viva', async () => {
+  for (const cuerpo of ['null', '42', '"texto"', '[]', '{"clave": 123}']) {
+    for (const ruta of ['/api/clave', '/api/realizador/alertas-twitch']) {
+      const r = await fetch(`${urlWeb}${ruta}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': '10.0.0.77' }, body: cuerpo });
+      assert.ok([401, 429].includes(r.status), `${ruta} con ${cuerpo}: ${r.status}`);
+    }
+  }
+  assert.equal((await fetch(`${urlWeb}/api/clave`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': '10.0.0.78' }, body: JSON.stringify({ clave: CLAVE }) })).status, 200, 'la web sigue contestando');
+});
+
+test('EGM 22/11 (M5): /api/partida también tiene freno', async () => {
+  const pedir = clave => fetch(`${urlWeb}/api/partida`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Clave': clave, 'X-Forwarded-For': '10.0.0.88' }, body: '{"sinPartida":true}' }).then(r => r.status);
+  for (let i = 0; i < 10; i++) assert.equal(await pedir(`mala-${i}`), 401);
+  assert.equal(await pedir(CLAVE), 429, 'tras 10 malas, ni la buena');
+});

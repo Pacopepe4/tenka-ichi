@@ -188,14 +188,15 @@ test('una cámara de caster cambia solo en lo que llega bien, y los nombres tien
   assert.deepEqual(camaraLineas({ activa: 'sí', tipo: 'azul', color: 'rojo' }, derecha), derecha);
 });
 
-test('las cámaras de los casters vuelven con el estado guardado; uno anterior a ellas no las toca', () => {
+test('las cámaras de los casters vuelven con el estado guardado (apagadas); uno anterior a ellas no las toca', () => {
   const estado = () => ({ ingame: { estilo: 'a', puntosFantasy: true, resumenPelea: true, oroIngresos: true, camaras: camarasDeFabrica() } });
   // Guardado cuando aún estaba la B (se borró el 08/11): vuelve con la A, la única que queda
   const guardado = { cuando: Date.now(), ingame: { estilo: 'b', oroIngresos: false,
     camaras: [{ activa: true, nombre: 'Koryu', detalle: '@koryubudo' }, { activa: false, nombre: 'Izakaya', detalle: '' }] } };
   const e = estado();
   restaurarEstado(e, JSON.stringify(guardado));
-  assert.deepEqual(e.ingame, { estilo: 'a', puntosFantasy: true, resumenPelea: true, oroIngresos: false, camaras: guardado.ingame.camaras });
+  // Los nombres vuelven, pero ninguna sale encendida tras un reinicio (EGM 22/11, B3)
+  assert.deepEqual(e.ingame, { estilo: 'a', puntosFantasy: true, resumenPelea: true, oroIngresos: false, camaras: guardado.ingame.camaras.map(c => ({ ...c, activa: false })) });
   // Guardado por una versión sin cámaras, o con una lista que no es de dos: se quedan las de fábrica
   for (const camaras of [undefined, [], [{ activa: true }], 'dos']) {
     const viejo = estado();
@@ -403,4 +404,18 @@ test('sello de objetivo y racha a pincel: kanji de cada objetivo, su propia caja
     assert.ok(props.length && props.every(p => p === 'transform' || p === 'opacity'), `${nombre} anima solo transform y opacity: ${props}`);
   }
   assert.ok(!/(transition|animation)[^;]*/.test(estilo.slice(estilo.indexOf('.aviso-sello'), estilo.indexOf('.pelea {'))), 'el aspecto no anima nada');
+});
+
+test('EGM 22/11 (M8): la misión solo destella en los 3 s que siguen a cuando se vio hecha', () => {
+  const js = leerRepo('public/ingame/ingame.js').replace(/\r\n/g, '\n');
+  const i = js.indexOf('const DESTELLO_MISION_S');
+  const fin = js.indexOf('\n}\n', js.indexOf('function misionRecien', i)) + 2;
+  const misionRecien = new Function(`${js.slice(i, fin).replace('export function', 'function')}\nreturn misionRecien;`)();
+  const j = { misionHecha: true, misionEn: 600 };
+  assert.equal(misionRecien(j, 600), true);
+  assert.equal(misionRecien(j, 602.5), true);
+  assert.equal(misionRecien(j, 603), false, 'pasados 3 s, ya no');
+  assert.equal(misionRecien(j, 1080), false, 'sacar el línea por línea 8 min después no destella');
+  assert.equal(misionRecien(j, 590), false, 'la repetición por detrás tampoco');
+  assert.equal(misionRecien({ misionHecha: false, misionEn: null }, 600), false);
 });

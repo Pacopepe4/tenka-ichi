@@ -155,5 +155,5 @@ export function camaraPartida(n = 0) {
 // hechizos ni R en las filas (van en las columnas de los lados) cabe un poco más pequeño que antes (0,68)
 export const CAJA_LINEAS = { x: camaraPartida(0).x + camaraPartida(0).w + AIRE, derecha: camaraPartida(1).x - AIRE };
 export const ESCALA_LINEAS = Math.round((CAJA_LINEAS.derecha - CAJA_LINEAS.x) / 1560 * 1000) / 1000;
-// Alias de antes (lo que lo importe recibe ya solo el hueco de partida)
+// Alias de antes: da solo la cámara de Livir (la de Istar es camaraPartida(1))
 export const camarasLineas = () => [camaraPartida()];
