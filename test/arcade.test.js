@@ -8,7 +8,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { puertoLibre, esperarWeb, pararWeb } from './web-de-prueba.js';
-import { ajustesArcade, FABRICA } from '../public/arcade/arcade.js';
+import { ajustesArcade, FABRICA, zonasArcade, ZONAS_FABRICA } from '../public/arcade/arcade.js';
 import { coleccionArcade, urlArcade } from '../scripts/arcade-obs.js';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -77,4 +77,41 @@ test('la web sirve la página, su módulo, la colección y el LEEME', async () =
   assert.equal(json.status, 200);
   assert.equal((await json.json()).name, 'Gokudō · Arcade (Livir)');
   assert.match((await fetch(`${url}/arcade/LEEME.md`)).headers.get('content-type'), /text\/markdown/);
+});
+
+test('marcos de la interfaz del LoL: de serie a 1080p, escalas desde su ancla, caja exacta, sin marcos y nunca fuera de pantalla', () => {
+  const z = zonasArcade('');
+  assert.deepEqual(z, ZONAS_FABRICA);
+  assert.deepEqual([z.mapa.x + z.mapa.ancho, z.mapa.y + z.mapa.alto], [1920, 1080], 'el minimapa, pegado a la esquina');
+  assert.equal(z.barra.x * 2 + z.barra.ancho, 1920, 'la barra, centrada');
+  assert.deepEqual([z.marcador.x + z.marcador.ancho, z.marcador.y], [1920, 0], 'el marcador, arriba a la derecha');
+  // Escalas: cada caja crece desde donde la ancla el LoL
+  const g = zonasArcade('?hud=1.2&minimapa=0.8');
+  assert.deepEqual([g.mapa.x + g.mapa.ancho, g.mapa.y + g.mapa.alto, g.mapa.ancho], [1920, 1080, Math.round(272 * 0.8)]);
+  assert.equal(g.barra.y + g.barra.alto, 1080);
+  assert.ok(Math.abs(g.barra.x * 2 + g.barra.ancho - 1920) <= 1);
+  assert.equal(g.marcador.ancho, Math.round(360 * 1.2));
+  // La caja exacta manda; lo que no se entiende, de serie; y nada se sale
+  assert.deepEqual(zonasArcade('?mapa=1600,780,300,300').mapa, { x: 1600, y: 780, ancho: 300, alto: 300 });
+  assert.deepEqual(zonasArcade('?barra=1,2,3').barra, ZONAS_FABRICA.barra);
+  assert.deepEqual(zonasArcade('?hud=9').barra, ZONAS_FABRICA.barra, 'una escala absurda no cuenta');
+  const fuera = zonasArcade('?mapa=1900,1070,300,300').mapa;
+  assert.ok(fuera.x + fuera.ancho <= 1920 && fuera.y + fuera.alto <= 1080);
+  assert.equal(zonasArcade('?marcos=0'), null);
+});
+
+test('los marcos de serie no chocan con la cámara (abajo a la izquierda) ni entre ellos', () => {
+  const z = zonasArcade(''), a = ajustesArcade('');
+  const cam = { x: a.x, y: a.y - 36, ancho: a.ancho, alto: 1080 - (a.y - 36) };
+  const filo = 8;  // el marco va por fuera de cada caja
+  const cruzan = (p, q) => p.x - filo < q.x + q.ancho && q.x < p.x + p.ancho + filo && p.y - filo < q.y + q.alto && q.y < p.y + p.alto + filo;
+  for (const k of ['mapa', 'barra', 'marcador']) assert.ok(!cruzan(z[k], cam), `${k} no choca con la cámara`);
+  assert.ok(!cruzan(z.barra, z.mapa), 'la barra y el minimapa, separados');
+});
+
+test('la página pinta los marcos por fuera (box-shadow) y las zonas con guia=1', () => {
+  const html = readFileSync(path.join(RAIZ, 'public', 'arcade', 'index.html'), 'utf8');
+  assert.match(html, /import \{ ajustesArcade, zonasArcade \} from '\.\/arcade\.js'/);
+  assert.match(html, /\.marco \{[^}]*box-shadow: 0 0 0 2px var\(--sumi-linea\)/);
+  assert.match(html, /body\.con-guia \.marco \.zona \{ display: grid; \}/);
 });

@@ -14,7 +14,11 @@
        ?usuario=liviir_       su usuario (sale con @ delante)
        ?color=E0303A          el color del tubo y del sello (hex sin #); por defecto, el bermellón de Gokudō
        ?x=16&y=856&ancho=320  dónde va el hueco de la cámara (esquina de arriba a la izquierda) y su ancho (16:9)
-       ?guia=1                el hueco rayado con su medida, para encajar la webcam en OBS (quitarlo en directo)
+       ?guia=1                el hueco rayado con su medida, para encajar la webcam en OBS, y las zonas de los marcos
+                              (quitarlo en directo)
+     Marcos de Gokudō alrededor de la interfaz del LoL (minimapa, barra de habilidades y objetos, marcador pequeño):
+     van por fuera de cada caja, así que no tapan nada. De serie, la interfaz a 1080p con la escala de serie; se
+     ajustan con ?hud=1.1, ?minimapa=0.9 o la caja exacta ?mapa=x,y,ancho,alto (barra=, marcador=), y ?marcos=0 los quita
      La colección de OBS para importar está al lado: gokudo-arcade-livir.json (LEEME.md) -->
 <style>
   html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
@@ -44,11 +48,29 @@
     background: repeating-linear-gradient(45deg, rgba(231, 223, 210, .12) 0 12px, transparent 12px 24px); }
   .guia span { padding: 5px 10px; border-radius: 6px; background: rgba(12, 13, 19, .85); font: 700 15px/1.4 var(--gothic); color: var(--washi); text-align: center; }
   body.con-guia .guia { display: grid; }
+  /* Marcos de la interfaz del LoL: por fuera de la caja (box-shadow hacia fuera), con la placa de noche entre dos filos y
+     el tubo bermellón en el lado libre. Lo que cae fuera de la pantalla (el minimapa va pegado a la esquina) no se ve */
+  .marco { position: absolute; border-radius: 6px; pointer-events: none;
+    box-shadow: 0 0 0 2px var(--sumi-linea), 0 0 0 7px rgba(15, 16, 23, .92), 0 0 0 8px var(--sumi-linea), 0 8px 24px rgba(0, 0, 0, .35);
+    animation: aparece .7s ease both .3s; }
+  .marco::before { content: ''; position: absolute; left: 14px; right: 14px; top: -11px; height: 3px; border-radius: 2px;
+    background: var(--color-claro); box-shadow: 0 0 6px var(--color-claro), 0 0 14px var(--color); }
+  .marco.marcador::before { top: auto; bottom: -11px; }
+  .marco .etiqueta { position: absolute; right: -8px; bottom: calc(100% + 8px); height: 26px; display: flex; align-items: center; gap: 7px;
+    padding: 0 10px 2px; background: rgba(15, 16, 23, .95); border-radius: 8px 8px 0 0; box-shadow: 0 0 0 1px var(--sumi-linea); }
+  .marco .etiqueta b { font-family: var(--pincel); font-weight: 400; font-size: 17px; line-height: 1; color: var(--shu-neon); text-shadow: 0 0 4px var(--shu-claro), 0 0 12px var(--shu); }
+  .marco .etiqueta span { font-family: var(--gothic); font-weight: 700; font-size: 10px; letter-spacing: .26em; color: var(--hai); }
+  .marco .zona { display: none; position: absolute; inset: 0; place-items: center; border-radius: inherit;
+    background: repeating-linear-gradient(-45deg, rgba(231, 223, 210, .14) 0 10px, transparent 10px 20px); }
+  .marco .zona span { padding: 3px 8px; border-radius: 6px; background: rgba(12, 13, 19, .85); font: 700 13px/1.3 var(--gothic); color: var(--washi); text-align: center; white-space: nowrap; }
+  body.con-guia .marco .zona { display: grid; }
+  @keyframes aparece { from { opacity: 0; } to { opacity: 1; } }
   @keyframes entra { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
-  @media (prefers-reduced-motion: reduce) { .camara { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { .camara, .marco { animation: none; } }
 </style>
 </head>
 <body>
+  <div id="marcos"></div>
   <div class="camara" id="camara">
     <div class="marca"><b>極道</b><span>GOKUDŌ</span></div>
     <div class="ventana"><div class="guia"><span id="medida"></span></div></div>
@@ -59,7 +81,7 @@
     </div>
   </div>
 <script type="module">
-import { ajustesArcade } from './arcade.js';
+import { ajustesArcade, zonasArcade } from './arcade.js';
 const a = ajustesArcade(location.search);
 const raiz = document.documentElement.style;
 raiz.setProperty('--x', `${a.x}px`); raiz.setProperty('--y', `${a.y}px`);
@@ -69,6 +91,20 @@ document.getElementById('nombre').textContent = a.nombre;
 document.getElementById('usuario').textContent = a.usuario;
 document.getElementById('medida').textContent = `Webcam: ${a.ancho}×${a.alto} en x ${a.x}, y ${a.y}`;
 document.body.classList.toggle('con-guia', a.guia);
+// Los marcos de la interfaz del LoL
+const NOMBRES = { mapa: 'Minimapa', barra: 'Habilidades y objetos', marcador: 'Marcador' };
+const zonas = zonasArcade(location.search);
+for (const [clave, z] of Object.entries(zonas || {})) {
+  const el = document.createElement('div');
+  el.className = `marco ${clave}`;
+  Object.assign(el.style, { left: `${z.x}px`, top: `${z.y}px`, width: `${z.ancho}px`, height: `${z.alto}px` });
+  if (clave === 'mapa') el.innerHTML = '<div class="etiqueta"><b>極道</b><span>MAPA</span></div>';
+  const zona = document.createElement('div');
+  zona.className = 'zona';
+  zona.innerHTML = `<span>${NOMBRES[clave]}: ${z.ancho}×${z.alto} en x ${z.x}, y ${z.y}</span>`;
+  el.append(zona);
+  document.getElementById('marcos').append(el);
+}
 </script>
 </body>
 </html>
