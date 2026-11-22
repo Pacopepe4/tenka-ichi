@@ -13,8 +13,8 @@ if (cajas.length && formato) {
   const horasDe = (j, i) => {
     const cruces = calendario?.jornadas?.[i];
     if (!cruces?.length) return horasDelDia(partidos, formato.hora, formato.margen);
-    // Los que tienen resultado de mesa no se juegan
-    return horasJornada(formato, cruces, j.fecha).filter((h, k) => !formato.cambios?.[cruces[k].id]?.mesa).sort();
+    // Los que tienen resultado de mesa o están aplazados no se juegan ese día
+    return horasJornada(formato, cruces, j.fecha).filter((h, k) => !formato.cambios?.[cruces[k].id]?.mesa && !formato.cambios?.[cruces[k].id]?.aplazado).sort();
   };
   const dias = [
     ...formato.liguilla.map((j, i) => ({ nombre: j.nombre, fecha: j.fecha, horas: horasDe(j, i) })),

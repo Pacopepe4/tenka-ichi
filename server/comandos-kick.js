@@ -76,7 +76,7 @@ export function textoPartido({ formato, calendario, nombre }, ahora = Date.now()
     const cruces = calendario?.jornadas?.[j.jornada - 1] || null;
     const horas = horasDelDia(cruces?.length || 1, formato.hora, formato.margen);
     // formato.cambios: el día o la hora que el staff cambió en el panel para ese partido
-    if (cruces) cruces.forEach((c, k) => !formato.cambios?.[c.id]?.mesa && partidos.push({ ronda: j.nombre, fecha: formato.cambios?.[c.id]?.fecha || j.fecha,
+    if (cruces) cruces.forEach((c, k) => !formato.cambios?.[c.id]?.mesa && !formato.cambios?.[c.id]?.aplazado && partidos.push({ ronda: j.nombre, fecha: formato.cambios?.[c.id]?.fecha || j.fecha,
       hora: formato.cambios?.[c.id]?.hora || horas[k], cruce: `${nombre(c.azul)} contra ${nombre(c.rojo)}` }));
     else partidos.push({ ronda: j.nombre, fecha: j.fecha, hora: horas[0], cruce: null });
   }

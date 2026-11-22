@@ -499,7 +499,7 @@ async function accion(nombre, d = {}) {
       return { ...r, torneo: torneo.estado() };
     }
     case 'torneoHorario':
-      return { ok: true, torneo: await torneo.cambiarHorario(d.id, { fecha: d.fecha || null, hora: d.hora || null }) };
+      return { ok: true, torneo: await torneo.cambiarHorario(d.id, { fecha: d.fecha || null, hora: d.hora || null, aplazado: Boolean(d.aplazado) }) };
     case 'torneoMesa':
       return { ok: true, torneo: await torneo.resultadoMesa(d.id, { ganador: d.ganador || null, motivo: d.motivo || null }) };
     case 'torneoDrafts':

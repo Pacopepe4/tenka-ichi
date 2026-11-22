@@ -1070,10 +1070,11 @@ function pintarTorneo(t = torneo) {
   $('#torneoDia').innerHTML = dias.map(d => `<option value="${d}" ${d === diaTorneo ? 'selected' : ''}>${fechaTorneo(d)}</option>`).join('');
   const del = t.partidos.filter(p => p.fecha === diaTorneo);
   $('#listaTorneo').innerHTML = del.length ? del.map(p => `<div class="partido-torneo" data-id="${escapar(p.id)}">
-      <div class="cabeza-torneo"><b>${escapar(p.hora)}</b> ${escapar(p.azulNombre)} 対 ${escapar(p.rojoNombre)} <small>${escapar(p.ronda)}${p.cambiado ? ' · hora cambiada' : ''}</small></div>
+      <div class="cabeza-torneo"><b>${escapar(p.hora)}</b> ${escapar(p.azulNombre)} 対 ${escapar(p.rojoNombre)} <small>${escapar(p.ronda)}${p.aplazado ? ' · aplazado, fecha por anunciar' : p.cambiado ? ' · hora cambiada' : ''}</small></div>
       <div class="fila">
         <input type="date" class="t-fecha" value="${p.fecha}" aria-label="Día"><input type="time" class="t-hora" value="${p.hora}" aria-label="Hora">
         <button type="button" class="secundario t-horario">Cambiar día y hora</button>
+        ${p.aplazado || p.mesa ? '' : '<button type="button" class="secundario t-aplazar" title="No se juega en su día y la fecha nueva está por anunciar">Aplazar</button>'}
       </div>
       <div class="fila">
         ${p.tiene ? '<button type="button" class="secundario t-ver">Ver el código</button>' : '<button type="button" class="t-generar">Generar el código</button>'}
@@ -1153,6 +1154,9 @@ $('#listaTorneo').addEventListener('click', async e => {
   } else if (b.classList.contains('t-resultado')) {
     r = await enviar('torneoResultado', { id, otraVez: b.textContent.includes('otra vez') });
     if (r.ok) { $('#listaTorneo').dispatchEvent(new CustomEvent('torneo-riot', { detail: r })); pintarTorneo(r.torneo); actualizarGacha(); aviso(r.registrado ? `Registrada en el fantasy: gana ${clanes.clan(r.ganador).nombre}` : 'Leída la partida de Riot'); return; }
+  } else if (b.classList.contains('t-aplazar')) {
+    r = await enviar('torneoHorario', { id, aplazado: true });
+    if (r.ok) { pintarTorneo(r.torneo); aviso('Aplazado: la web lo enseña sin hora hasta que le pongas día y hora'); return; }
   } else if (b.classList.contains('t-horario')) {
     r = await enviar('torneoHorario', { id, fecha: caja.querySelector('.t-fecha').value, hora: caja.querySelector('.t-hora').value });
     if (r.ok) { diaTorneo = caja.querySelector('.t-fecha').value; pintarTorneo(r.torneo); return; }

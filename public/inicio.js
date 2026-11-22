@@ -244,7 +244,10 @@ function pintarLiga() {
         const lado = (id, color) => `<span class="lado-cruce ${r ? (r.ganador === id ? 'gana' : 'pierde') : ''}" ${tinte(id)}><i class="punto ${color}" title="Lado ${color}"></i>${escudo(id)}${nombre(id)}</span>`;
         // Resultado de mesa (no se jugó): «Mesa» en vez de la hora, con el motivo al pasar por encima
         const mesa = r?.mesa ? String(r.mesa).replace(/[&<>"]/g, x => `&#${x.charCodeAt(0)};`) : null;
-        return `<li>${formato.hora || mesa ? `<span class="hora-cruce"${mesa ? ` title="${mesa}"` : ''}>${mesa ? 'Mesa' : horas[i]}</span>` : ''}${lado(c.azul, 'azul')}<span class="vs-cruce">${r ? '' : 'vs'}</span>${lado(c.rojo, 'rojo')}</li>`;
+        // Aplazado sin fecha nueva: «Aplazado» en vez de la hora
+        const aplazado = !r && formato.cambios?.[c.id]?.aplazado;
+        const titulo = mesa || (aplazado && 'Fecha nueva por anunciar');
+        return `<li>${formato.hora || mesa ? `<span class="hora-cruce"${titulo ? ` title="${titulo}"` : ''}>${mesa ? 'Mesa' : aplazado ? 'Aplazado' : horas[i]}</span>` : ''}${lado(c.azul, 'azul')}<span class="vs-cruce">${r ? '' : 'vs'}</span>${lado(c.rojo, 'rojo')}</li>`;
       }).join('') || '<li class="vacio">Los cruces se sortean antes de la primera jornada.</li>';
       document.querySelectorAll('.jornadas button').forEach(b => b.addEventListener('click', () => { actual = Number(b.dataset.i); pintarJornada(); }));
     };

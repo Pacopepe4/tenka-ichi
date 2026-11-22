@@ -105,6 +105,7 @@ export function partidosTemporada({ calendario = null, cuadro = null, temporada 
     const cambio = horario[p.id];
     if (cambio?.fecha) p.fecha = cambio.fecha;
     if (cambio?.hora) p.hora = cambio.hora;
+    if (cambio?.aplazado) p.aplazado = true;   // no se juega en su día y aún no tiene otro (22/11/2026)
     p.nombre = `${nombreDe(p.azul)} 対 ${nombreDe(p.rojo)}`;
   }
   return lista.sort((a, b) => `${a.fecha} ${a.hora}`.localeCompare(`${b.fecha} ${b.hora}`) || a.id.localeCompare(b.id));
@@ -444,7 +445,7 @@ export function crearTorneo({
         return { ...p, azulNombre: clan(p.azul).nombre, rojoNombre: clan(p.rojo).nombre, tiene: Boolean(c?.codigo), modoCodigo: c?.modo || null,
           drafts: Object.fromEntries(['azul', 'rojo', 'espectador'].map(l => [l, Boolean(c?.drafts?.[l])])),
           entregado: c?.entregado || null, partidaRiot: c?.partidaRiot || null, ganador: c?.ganador || null,
-          registrado: Boolean(c?.registrado && c.registrado === c.partidaRiot), partidaFantasy: c?.partidaFantasy || null, cambiado: Boolean(d.horario[p.id]), mesa: d.mesa[p.id] || null };
+          registrado: Boolean(c?.registrado && c.registrado === c.partidaRiot), partidaFantasy: c?.partidaFantasy || null, cambiado: Boolean(d.horario[p.id]), aplazado: Boolean(p.aplazado), mesa: d.mesa[p.id] || null };
       }),
     };
   }
@@ -454,13 +455,15 @@ export function crearTorneo({
   function cambios() {
     const d = cargar();
     return Object.fromEntries(lista().filter(p => d.horario[p.id] || d.mesa[p.id])
-      .map(p => [p.id, { fecha: p.fecha, hora: p.hora, ...(d.mesa[p.id] && { mesa: d.mesa[p.id].motivo, ganador: d.mesa[p.id].ganador }) }]));
+      .map(p => [p.id, { fecha: p.fecha, hora: p.hora, ...(p.aplazado && { aplazado: true }), ...(d.mesa[p.id] && { mesa: d.mesa[p.id].motivo, ganador: d.mesa[p.id].ganador }) }]));
   }
   const ver = id => { partido(id); const c = cargar().partidos[id]; return c ? { modo: c.modo || null, codigo: c.codigo || null, sala: c.sala || null, drafts: c.drafts || null } : null; };
 
-  async function cambiarHorario(id, { fecha = null, hora = null } = {}) {
+  // aplazado: el partido no se juega en su día y la fecha nueva está por anunciar (luego se le pone con fecha y hora)
+  async function cambiarHorario(id, { fecha = null, hora = null, aplazado = false } = {}) {
     partido(id);
     const d = cargar();
+    if (aplazado) { d.horario[id] = { aplazado: true }; await guardar(); return estado(); }
     if (fecha && !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) throw new Error('El día va como 2026-11-16');
     if (hora && !/^\d{2}:\d{2}$/.test(hora)) throw new Error('La hora va como 19:00');
     if (!fecha && !hora) delete d.horario[id]; else d.horario[id] = { ...(fecha && { fecha }), ...(hora && { hora }) };

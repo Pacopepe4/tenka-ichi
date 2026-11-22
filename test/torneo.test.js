@@ -286,6 +286,17 @@ test('los cambios de horario se guardan y se pueden quitar', async () => {
   assert.equal(t.estado().partidos.find(p => p.id === 'J1-3').cambiado, false);
 });
 
+test('aplazado: sin fecha nueva, sale en cambios y se quita al ponerle día y hora', async () => {
+  const { t, guardado } = montar({ conRiot: false });
+  await t.cambiarHorario('J1-3', { aplazado: true });
+  assert.deepEqual(JSON.parse(guardado()).horario['J1-3'], { aplazado: true });
+  assert.equal(t.cambios()['J1-3'].aplazado, true);
+  assert.equal(t.estado().partidos.find(p => p.id === 'J1-3').aplazado, true);
+  await t.cambiarHorario('J1-3', { fecha: '2026-11-28', hora: '17:30' });
+  assert.equal(t.cambios()['J1-3'].aplazado, undefined);
+  assert.equal(t.cambios()['J1-3'].fecha, '2026-11-28');
+});
+
 test('resultado de mesa: solo para uno de los dos de la liguilla, sale en cambios y se puede quitar', async () => {
   const { t, guardado } = montar({ conRiot: false });
   const cruce = t.estado().partidos.find(p => p.id === 'J1-3');
