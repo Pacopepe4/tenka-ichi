@@ -21,8 +21,8 @@ export function fotoEstado(e, { draftcore = false } = {}) {
 const esLista = (v, n) => Array.isArray(v) && v.length === n;
 const lados = (v, valido) => Boolean(v) && ['azul', 'rojo'].every(l => valido(v[l]));
 
-// Una cámara de caster del marcador de partida (ingame.camaras; la que sale es la primera), venga del panel o de lo
-// guardado: lo que falte o venga mal se queda como estaba
+// Una cámara de caster del marcador de partida (ingame.camaras: la 1 a la izquierda y la 2 junto al minimapa), venga del
+// panel o de lo guardado: lo que falte o venga mal se queda como estaba
 export const camaraLineas = (x, antes) => ({
   activa: typeof x?.activa === 'boolean' ? x.activa : antes.activa,
   nombre: String(x?.nombre ?? antes.nombre).slice(0, 40), detalle: String(x?.detalle ?? antes.detalle).slice(0, 60),
@@ -68,7 +68,9 @@ export function restaurarEstado(e, texto = ajuste(CLAVE), ahora = Date.now()) {
     // Un estado guardado con la B (que se borró el 08/11) vuelve con la A, la única que queda
     if (typeof g.ingame.estilo === 'string') e.ingame.estilo = 'a';
     for (const k of ['puntosFantasy', 'resumenPelea', 'oroIngresos']) if (typeof g.ingame[k] === 'boolean') e.ingame[k] = g.ingame[k];
-    if (esLista(g.ingame.camaras, 2) && esLista(e.ingame.camaras, 2)) e.ingame.camaras = e.ingame.camaras.map((c, i) => camaraLineas(g.ingame.camaras[i], c));
+    // Los nombres vuelven; encendidas, no (EGM 22/11, B3): tras un reinicio ninguna cámara sale sola en el directo (pudo
+    // quedar guardada encendida la «derecha» de antes, que ahora es la de Istar). Se vuelven a marcar en el panel
+    if (esLista(g.ingame.camaras, 2) && esLista(e.ingame.camaras, 2)) e.ingame.camaras = e.ingame.camaras.map((c, i) => ({ ...camaraLineas(g.ingame.camaras[i], c), activa: false }));
   }
   if (reciente) {
     if (typeof g.buscarPartida?.activa === 'boolean') e.buscarPartida.activa = g.buscarPartida.activa;

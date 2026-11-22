@@ -320,7 +320,8 @@ test('si la web se reinicia, vuelve con lo que el panel tenía puesto', async ()
   assert.equal(d.estado.vistaOverlay, 'partida');
   assert.equal(d.estado.buscarPartida.activa, true);
   assert.deepEqual([d.estado.jornadaAuto.cerrar, d.estado.jornadaAuto.premios], [false, [3, 2, 3]]);
-  assert.deepEqual(d.estado.ingame.camaras, [{ activa: true, nombre: '', detalle: '' }, { activa: false, nombre: 'Koryu', detalle: '@koryubudo' }]);
+  // Los nombres vuelven; encendidas no (EGM 22/11, B3: ninguna cámara sale sola tras un reinicio)
+  assert.deepEqual(d.estado.ingame.camaras, [{ activa: false, nombre: '', detalle: '' }, { activa: false, nombre: 'Koryu', detalle: '@koryubudo' }]);
   // Sin la vista forzada, un draft que ya estaba completo va directo al postdraft
   await d.accion('vistaOverlay', { vista: 'auto' });
   assert.equal(d.estado.vistaOverlay, 'postdraft');

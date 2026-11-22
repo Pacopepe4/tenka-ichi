@@ -188,14 +188,15 @@ test('una cámara de caster cambia solo en lo que llega bien, y los nombres tien
   assert.deepEqual(camaraLineas({ activa: 'sí', tipo: 'azul', color: 'rojo' }, derecha), derecha);
 });
 
-test('las cámaras de los casters vuelven con el estado guardado; uno anterior a ellas no las toca', () => {
+test('las cámaras de los casters vuelven con el estado guardado (apagadas); uno anterior a ellas no las toca', () => {
   const estado = () => ({ ingame: { estilo: 'a', puntosFantasy: true, resumenPelea: true, oroIngresos: true, camaras: camarasDeFabrica() } });
   // Guardado cuando aún estaba la B (se borró el 08/11): vuelve con la A, la única que queda
   const guardado = { cuando: Date.now(), ingame: { estilo: 'b', oroIngresos: false,
     camaras: [{ activa: true, nombre: 'Koryu', detalle: '@koryubudo' }, { activa: false, nombre: 'Izakaya', detalle: '' }] } };
   const e = estado();
   restaurarEstado(e, JSON.stringify(guardado));
-  assert.deepEqual(e.ingame, { estilo: 'a', puntosFantasy: true, resumenPelea: true, oroIngresos: false, camaras: guardado.ingame.camaras });
+  // Los nombres vuelven, pero ninguna sale encendida tras un reinicio (EGM 22/11, B3)
+  assert.deepEqual(e.ingame, { estilo: 'a', puntosFantasy: true, resumenPelea: true, oroIngresos: false, camaras: guardado.ingame.camaras.map(c => ({ ...c, activa: false })) });
   // Guardado por una versión sin cámaras, o con una lista que no es de dos: se quedan las de fábrica
   for (const camaras of [undefined, [], [{ activa: true }], 'dos']) {
     const viejo = estado();

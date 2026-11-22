@@ -761,20 +761,49 @@ const idDeFamilia = t => CLANES.find(c => c.id === String(t || '').toUpperCase()
 const nombreFamilia = id => CLANES.find(c => c.id === id)?.nombre || id;
 
 // La contraseña del panel en el cuerpo ({ clave }), con freno: quien falla muchas seguidas desde la misma dirección espera
-async function claveConFreno(req) {
-  const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+// ---------- La contraseña del panel (EGM 22/11, B1 y M5) ----------
+// La dirección de quien pide: X-Forwarded-For solo se cree si quien conecta es el proxy (Caddy, en la red de docker o
+// en la misma máquina). Desde la red de casa o desde fuera, cada uno cuenta con su dirección de verdad
+const DE_CONFIANZA = /^(::ffff:)?(127\.|10\.|172\.(1[6-9]|2\d|3[01])\.)|^::1$/;
+export function ipDe(req) {
+  const directa = String(req.socket?.remoteAddress || '');
+  const reenviada = String(req.headers?.['x-forwarded-for'] || '').split(',')[0].trim();
+  return DE_CONFIANZA.test(directa) && reenviada ? reenviada : directa;
+}
+// La contraseña buena: solo un texto, comparado en tiempo constante (con la huella, para que midan lo mismo)
+const huellaClave = t => crypto.createHash('sha256').update(String(t)).digest();
+export function claveBuena(dada) {
+  return typeof dada === 'string' && dada.length > 0 && crypto.timingSafeEqual(huellaClave(dada), huellaClave(CLAVE));
+}
+// Freno: quien falla muchas seguidas desde la misma dirección espera. Vale para todas las entradas con contraseña
+// (/api/clave, las alertas de Twitch, /api/partida y las acciones de /ws), con un contador por dirección
+function frenada(ip) {
   const ahora = Date.now(), f = fallosClave.get(ip);
   // Las direcciones que fallaron una vez y no volvieron se quedaban para siempre: de vez en cuando se barren las pasadas
   if (fallosClave.size > 500) for (const [k, v] of fallosClave) if (ahora - v.desde > FRENO_CLAVE.ventana) fallosClave.delete(k);
   if (f && ahora - f.desde > FRENO_CLAVE.ventana) fallosClave.delete(ip);
-  if ((fallosClave.get(ip)?.n || 0) >= FRENO_CLAVE.fallos) return { ok: false, error: 'Demasiados intentos', codigo: 429 };
-  let cuerpo;
-  try { cuerpo = await leerCuerpo(req, 2000); } catch (e) { return { ok: false, error: e.message, codigo: 400 }; }
-  if (cuerpo.clave === CLAVE) { fallosClave.delete(ip); return { ok: true }; }
-  const g = fallosClave.get(ip) || { n: 0, desde: ahora };
+  return (fallosClave.get(ip)?.n || 0) >= FRENO_CLAVE.fallos;
+}
+function apuntarIntento(ip, buena) {
+  if (buena) { fallosClave.delete(ip); return; }
+  const g = fallosClave.get(ip) || { n: 0, desde: Date.now() };
   g.n++;
   fallosClave.set(ip, g);
-  return { ok: false, error: 'Contraseña incorrecta', codigo: 401 };
+}
+function comprobarClave(ip, dada) {
+  if (frenada(ip)) return { ok: false, error: 'Demasiados intentos', codigo: 429 };
+  const buena = claveBuena(dada);
+  apuntarIntento(ip, buena);
+  return buena ? { ok: true } : { ok: false, error: 'Contraseña incorrecta', codigo: 401 };
+}
+// La contraseña en el cuerpo ({ clave }). Un cuerpo que no es un objeto (null, un número…) es una contraseña mala, no
+// un error: antes, «null» tumbaba la web
+async function claveConFreno(req) {
+  const ip = ipDe(req);
+  if (frenada(ip)) return { ok: false, error: 'Demasiados intentos', codigo: 429 };
+  let cuerpo;
+  try { cuerpo = await leerCuerpo(req, 2000); } catch (e) { return { ok: false, error: e.message, codigo: 400 }; }
+  return comprobarClave(ip, cuerpo && typeof cuerpo === 'object' ? cuerpo.clave : undefined);
 }
 
 // La URL de las alertas de Twitch, solo si es una dirección https de Twitch (lo que da «Copiar URL de origen del navegador»)
@@ -782,7 +811,7 @@ function urlAlertasTwitch(entorno = process.env) {
   const v = String(entorno.TWITCH_ALERTAS_URL || '').trim();
   try {
     const u = new URL(v);
-    return u.protocol === 'https:' && /(^|.)twitch.tv$/i.test(u.hostname) ? u.href : null;
+    return u.protocol === 'https:' && /(^|\.)twitch\.tv$/i.test(u.hostname) ? u.href : null;
   } catch { return null; }
 }
 
@@ -1107,7 +1136,7 @@ async function rutasSesion(req, res, url) {
     const jornada = url.searchParams.get('jornada') || '';
     const ganadores = tipo === 'clasificacion' ? jornadasCerradas()[jornada]?.ganadores || clasificacionJornada(jornada).slice(0, 3) : [];
     const r = await atenderPublicacion({
-      tipo, req, usuario: u, staff: req.headers['x-clave-panel'] === CLAVE,
+      tipo, req, usuario: u, staff: claveBuena(req.headers['x-clave-panel']),
       datos: tipo === 'clasificacion' ? { jornada, ganadores }
         : tipo === 'coleccion' && u ? { tiene: (() => { const mias = new Set(estadoUsuario(u.id).cartas.map(c => c.id)); return cartasDeColeccion().filter(c => mias.has(c.id)).length; })(), total: cartasDeColeccion().length } : yo ? { puntos: yo.puntos, puesto: yo.puesto } : {},
       avatar: `${origen(req)}/marca/gokudo-cuadro.png`, enlace: tipo === 'mitierlist' ? `${origen(req)}/#mitierlist` : `${origen(req)}/gachapon/`,
@@ -1171,7 +1200,15 @@ comandosDiscord.arrancarGateway();
 // El tablón de scrims: carga las ofertas guardadas y borra cada pocos minutos las que ya han empezado
 comandosDiscord.arrancarScrims();
 
+// Red de seguridad (EGM 22/11, B1): un fallo sin atender en una petición contesta 500 y no tumba la web
 const servidor = http.createServer(async (req, res) => {
+  try { await atender(req, res); } catch (e) {
+    console.error('Petición', req.method, req.url?.split('?')[0], 'falló:', e?.message || e);
+    try { if (!res.headersSent) json(res, { ok: false, error: 'Error interno' }, 500); else res.end(); } catch { /* conexión cerrada */ }
+  }
+});
+process.on('unhandledRejection', e => console.error('Promesa sin atender:', e?.message || e));
+async function atender(req, res) {
   const url = new URL(req.url, 'http://x');
   // Avisos de Kick (webhooks), firmados por Kick: la dirección que va en la app de kick.com/settings/developer
   if (url.pathname === '/webhooks/kick' && req.method === 'POST') {
@@ -1259,13 +1296,15 @@ const servidor = http.createServer(async (req, res) => {
     if (req.method !== 'POST') return json(res, { ok: false, error: 'Método no permitido' }, 405);
     const c = await claveConFreno(req);
     if (!c.ok) return json(res, { ok: false, error: c.error }, c.codigo);
-    return json(res, { ok: true, url: urlAlertasTwitch() });
+    // Sin PANEL_CLAVE propia la contraseña es la de ejemplo del repo: el token no se da
+    return json(res, { ok: true, url: process.env.PANEL_CLAVE ? urlAlertasTwitch() : null });
   }
   // El puente del PC del espectador manda aquí la partida cada segundo (con la contraseña del panel)
   if (url.pathname === '/api/partida') {
     if (req.method === 'GET') return json(res, resumenPartida());
     if (req.method !== 'POST') return json(res, { ok: false, error: 'Método no permitido' }, 405);
-    if (req.headers['x-clave'] !== CLAVE) return json(res, { ok: false, error: 'Contraseña incorrecta' }, 401);
+    const c = comprobarClave(ipDe(req), req.headers['x-clave']);
+    if (!c.ok) return json(res, { ok: false, error: c.error }, c.codigo);
     try {
       const cuerpo = await leerCuerpo(req, 3e6);
       if (enPrueba() && !cuerpo.sinPartida) pararPrueba();  // llega una partida de verdad: fuera la prueba
@@ -1333,7 +1372,7 @@ const servidor = http.createServer(async (req, res) => {
     res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('No encontrado');
   }
-});
+}
 
 // Dos WebSocket en el mismo servidor: /ws (panel, overlays) y /realizador (puente entre los PCs del realizador)
 const wss = new WebSocketServer({ noServer: true });
@@ -1345,6 +1384,7 @@ servidor.on('upgrade', (req, socket, head) => {
   else socket.destroy();
 });
 wss.on('connection', (ws, req) => {
+  ws.ip = ipDe(req);
   clientes.add(ws);
   ws.canal = new URL(req.url, 'http://localhost').searchParams.get('canal');
   ws.send(JSON.stringify({ tipo: 'hola', version: VERSION }));
@@ -1362,8 +1402,9 @@ wss.on('connection', (ws, req) => {
   ws.on('message', async raw => {
     let m;
     try { m = JSON.parse(raw); } catch { return; }
-    if (m.tipo !== 'accion') return;
-    if (m.clave !== CLAVE) return ws.send(JSON.stringify({ tipo: 'respuesta', id: m.id, ok: false, error: 'Contraseña incorrecta' }));
+    if (!m || m.tipo !== 'accion') return;
+    const c = comprobarClave(ws.ip, m.clave);
+    if (!c.ok) return ws.send(JSON.stringify({ tipo: 'respuesta', id: m.id, ok: false, error: c.error }));
     try {
       const r = await accion(m.accion, m.datos);
       ws.send(JSON.stringify({ tipo: 'respuesta', id: m.id, ...r }));
