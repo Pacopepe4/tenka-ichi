@@ -159,6 +159,7 @@ export function textoLiga(liga, clanes) {
     lineas.push(`Cambios de horario (mandan sobre lo anterior): ${cambiados.map(([id, c]) => {
       const p = cruce(id);
       if (c.mesa) return `${p ? `${nom(p.azul)} vs ${nom(p.rojo)}` : id} no se juega: se le da a ${nom(c.ganador)} (${c.mesa})`;
+      if (c.aplazado) return `${p ? `${nom(p.azul)} vs ${nom(p.rojo)}` : id} está aplazado, con la fecha nueva por anunciar`;
       return `${p ? `${nom(p.azul)} vs ${nom(p.rojo)}` : id} el ${c.fecha} a las ${c.hora}`;
     }).join('; ')}.`);
   }
