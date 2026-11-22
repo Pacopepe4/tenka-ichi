@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Arcade · Gokudō</title>
+<link rel="icon" href="/marca/gokudo.png">
+<link rel="stylesheet" href="/marca.css">
+<link rel="stylesheet" href="/obs-gokudo.css">
+<!-- Modo arcade (22/11): el directo personal de un miembro de Gokudō jugando su partida normal del LoL. Fuente de
+     navegador de OBS de 1920×1080, transparente, encima de la captura del juego. Solo pinta el marco de su cámara (con
+     la placa de nombre y @, como en el overlay de liga) y la pestaña 極道 de Gokudō: ni estadísticas ni nada de la liga.
+     Abajo a la izquierda, donde el LoL pone el chat (que queda tapado), sin tocar habilidades, objetos ni minimapa.
+       ?nombre=Livir          el nombre de la placa
+       ?usuario=liviir_       su usuario (sale con @ delante)
+       ?color=E0303A          el color del tubo y del sello (hex sin #); por defecto, el bermellón de Gokudō
+       ?x=16&y=856&ancho=320  dónde va el hueco de la cámara (esquina de arriba a la izquierda) y su ancho (16:9)
+       ?guia=1                el hueco rayado con su medida, para encajar la webcam en OBS (quitarlo en directo)
+     La colección de OBS para importar está al lado: gokudo-arcade-livir.json (LEEME.md) -->
+<style>
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: transparent; }
+  :root { --color: var(--shu); --color-claro: var(--shu-claro); --x: 16px; --y: 856px; --ancho: 320px; --alto: 180px; }
+  /* El hueco de la cámara (transparente: la webcam va debajo en OBS) con su marco, el tubo arriba y la placa debajo */
+  .camara { position: absolute; left: var(--x); top: var(--y); width: var(--ancho); border-radius: 8px 8px 0 0;
+    box-shadow: 0 0 0 1px rgba(12, 13, 19, .9), 0 0 0 2px var(--sumi-linea), 0 -10px 30px rgba(0, 0, 0, .4);
+    animation: entra .7s cubic-bezier(.2, .8, .2, 1) both .16s; }
+  .camara::before { content: ''; position: absolute; left: 10px; right: 10px; top: -6px; height: 3px; border-radius: 2px;
+    background: var(--color-claro); box-shadow: 0 0 6px var(--color-claro), 0 0 14px var(--color); }
+  .ventana { position: relative; height: var(--alto); }
+  .placa { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 12px; background: rgba(15, 16, 23, .97);
+    border-top: 1px solid var(--sumi-linea); overflow: hidden; }
+  .sello { display: grid; place-items: center; width: 32px; height: 32px; flex: none; border-radius: 8px; background: var(--sumi);
+    box-shadow: 0 0 0 1.5px var(--sumi-linea), 0 0 8px color-mix(in srgb, var(--color) 45%, transparent); }
+  .sello img { width: 24px; height: 24px; object-fit: contain; }
+  .nombre { min-width: 0; font-family: var(--dela); font-size: 23px; color: var(--washi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .usuario { min-width: 0; margin-left: auto; font-family: var(--gothic); font-weight: 700; font-size: 17px; color: var(--hai); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .usuario:empty { display: none; }
+  /* La pestaña 極道 de Gokudō, encima del marco a la izquierda (la misma que la del marco del minimapa) */
+  .marca { position: absolute; left: 0; bottom: calc(100% + 6px); height: 30px; display: flex; align-items: center; gap: 8px;
+    padding: 0 12px 2px 10px; background: rgba(15, 16, 23, .95); border-radius: 8px 8px 0 0; box-shadow: 0 0 0 1px var(--sumi-linea); }
+  .marca b { font-family: var(--pincel); font-weight: 400; font-size: 20px; line-height: 1; color: var(--shu-neon); text-shadow: 0 0 4px var(--shu-claro), 0 0 12px var(--shu); }
+  .marca span { font-family: var(--gothic); font-weight: 700; font-size: 11px; letter-spacing: .26em; color: var(--hai); }
+  /* Guía para encajar la webcam en OBS */
+  .guia { display: none; position: absolute; inset: 0; place-items: center;
+    background: repeating-linear-gradient(45deg, rgba(231, 223, 210, .12) 0 12px, transparent 12px 24px); }
+  .guia span { padding: 5px 10px; border-radius: 6px; background: rgba(12, 13, 19, .85); font: 700 15px/1.4 var(--gothic); color: var(--washi); text-align: center; }
+  body.con-guia .guia { display: grid; }
+  @keyframes entra { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .camara { animation: none; } }
+</style>
+</head>
+<body>
+  <div class="camara" id="camara">
+    <div class="marca"><b>極道</b><span>GOKUDŌ</span></div>
+    <div class="ventana"><div class="guia"><span id="medida"></span></div></div>
+    <div class="placa">
+      <span class="sello"><img src="/marca/gokudo.png" alt=""></span>
+      <span class="nombre" id="nombre"></span>
+      <span class="usuario" id="usuario"></span>
+    </div>
+  </div>
+<script type="module">
+import { ajustesArcade } from './arcade.js';
+const a = ajustesArcade(location.search);
+const raiz = document.documentElement.style;
+raiz.setProperty('--x', `${a.x}px`); raiz.setProperty('--y', `${a.y}px`);
+raiz.setProperty('--ancho', `${a.ancho}px`); raiz.setProperty('--alto', `${a.alto}px`);
+if (a.color) { raiz.setProperty('--color', a.color); raiz.setProperty('--color-claro', a.color); }
+document.getElementById('nombre').textContent = a.nombre;
+document.getElementById('usuario').textContent = a.usuario;
+document.getElementById('medida').textContent = `Webcam: ${a.ancho}×${a.alto} en x ${a.x}, y ${a.y}`;
+document.body.classList.toggle('con-guia', a.guia);
+</script>
+</body>
+</html>
