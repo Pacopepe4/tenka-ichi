@@ -447,6 +447,12 @@ export function crearTorneo({
       }),
     };
   }
+  // Los partidos con el día o la hora cambiados en el panel, ya resueltos ({ J2-1: { fecha, hora } }): la web, la cuenta
+  // atrás, el !partido de Kick y los tickets los enseñan en vez de la hora de la temporada (el 22/11 se retrasó 30 min)
+  function cambios() {
+    const d = cargar();
+    return Object.fromEntries(lista().filter(p => d.horario[p.id]).map(p => [p.id, { fecha: p.fecha, hora: p.hora }]));
+  }
   const ver = id => { partido(id); const c = cargar().partidos[id]; return c ? { modo: c.modo || null, codigo: c.codigo || null, sala: c.sala || null, drafts: c.drafts || null } : null; };
 
   async function cambiarHorario(id, { fecha = null, hora = null } = {}) {
@@ -466,5 +472,5 @@ export function crearTorneo({
     return estado();
   }
 
-  return { modo, estado, ver, generar, guardarDrafts, pegarDrafts, pegarCodigos, entregar, resultado, aviso, cambiarHorario, olvidar, firma };
+  return { modo, estado, cambios, ver, generar, guardarDrafts, pegarDrafts, pegarCodigos, entregar, resultado, aviso, cambiarHorario, olvidar, firma };
 }

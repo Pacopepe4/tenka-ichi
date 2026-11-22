@@ -75,11 +75,14 @@ export function textoPartido({ formato, calendario, nombre }, ahora = Date.now()
   for (const j of formato.liguilla) {
     const cruces = calendario?.jornadas?.[j.jornada - 1] || null;
     const horas = horasDelDia(cruces?.length || 1, formato.hora, formato.margen);
-    if (cruces) cruces.forEach((c, k) => partidos.push({ ronda: j.nombre, fecha: j.fecha, hora: horas[k], cruce: `${nombre(c.azul)} contra ${nombre(c.rojo)}` }));
+    // formato.cambios: el día o la hora que el staff cambió en el panel para ese partido
+    if (cruces) cruces.forEach((c, k) => partidos.push({ ronda: j.nombre, fecha: formato.cambios?.[c.id]?.fecha || j.fecha,
+      hora: formato.cambios?.[c.id]?.hora || horas[k], cruce: `${nombre(c.azul)} contra ${nombre(c.rojo)}` }));
     else partidos.push({ ronda: j.nombre, fecha: j.fecha, hora: horas[0], cruce: null });
   }
   for (const r of formato.playoffs) partidos.push({ ronda: r.nombre, fecha: r.fecha, hora: formato.hora, cruce: null });
   for (const p of partidos) p.inicio = horaEspana(p.fecha, p.hora).getTime();
+  partidos.sort((a, b) => a.inicio - b.inicio);
 
   const enJuego = partidos.find(p => p.cruce && p.inicio <= ahora && ahora < p.inicio + formato.margen * 60000);
   const siguiente = partidos.find(p => p.inicio > ahora);

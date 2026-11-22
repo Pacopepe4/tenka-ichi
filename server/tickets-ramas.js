@@ -153,6 +153,14 @@ export function textoLiga(liga, clanes) {
   if (f.liguilla?.length) lineas.push(`Fechas de la liguilla: ${f.liguilla.map(j => `${j.nombre || `Jornada ${j.jornada}`} el ${j.fecha}`).join(', ')}.`);
   if (f.playoffs?.length) lineas.push(`Playoffs: ${f.playoffs.map(p => `${p.nombre || p.ronda} el ${p.fecha}`).join(', ')}.`);
   if (f.hora) lineas.push(`El primer partido de cada día es a las ${f.hora} (hora de España) y los demás, cada ${f.margen || 45} minutos.`);
+  const cambiados = Object.entries(f.cambios || {});
+  if (cambiados.length && liga.calendario) {
+    const cruce = id => (liga.calendario.jornadas || []).flat().find(c => c.id === id);
+    lineas.push(`Cambios de horario (mandan sobre lo anterior): ${cambiados.map(([id, c]) => {
+      const p = cruce(id);
+      return `${p ? `${nom(p.azul)} vs ${nom(p.rojo)}` : id} el ${c.fecha} a las ${c.hora}`;
+    }).join('; ')}.`);
+  }
   if (!liga.calendario) {
     lineas.push('El calendario de cruces todavía no se ha sorteado (se sortea en directo).');
     return lineas.join('\n');

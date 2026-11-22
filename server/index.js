@@ -147,10 +147,14 @@ alAlertar(alerta => {
   for (const ws of clientes) if (ws.readyState === 1 && ws.canal === 'alertas') ws.send(msg);
 });
 // Lo que contestan los comandos del chat de Kick que necesitan el fantasy o el calendario
+// Los partidos con la hora o el día cambiados en el panel (server/torneo.js): mandan sobre la hora de la temporada en la
+// portada, la cuenta atrás, el !partido de Kick y Twitch y lo que saben los tickets y el !pregunta (22/11: +30 min)
+const cambiosHorario = () => { try { return torneo.cambios(); } catch (e) { console.error('Cambios de horario:', e.message); return {}; } };
+const conCambios = d => ({ ...d, formato: { ...d.formato, cambios: cambiosHorario() } });
 contextoComandos(() => ({
   clasificacion: () => infoFantasy(null).clasificacion,
   puesto: id => infoFantasy({ id }).yo?.puesto || null,
-  partido: () => textoPartido({ formato: formatoTemporada(), calendario: calendarioActual(), nombre: id => CLANES.find(c => c.id === id)?.nombre || id }),
+  partido: () => textoPartido({ formato: { ...formatoTemporada(), cambios: cambiosHorario() }, calendario: calendarioActual(), nombre: id => CLANES.find(c => c.id === id)?.nombre || id }),
   // !pregunta: SrDirector con IA (más abajo, con el contexto de los bots)
   preguntar: x => preguntasChat.responder(x),
 }));
@@ -1121,7 +1125,7 @@ async function huella(archivo, s) {
 const baseContexto = process.env.CONTEXTO === '0' ? null : await crearBase().catch(e => { console.error('Contexto: sin base de datos:', e.message); return null; });
 const contextoBots = crearContexto({ db: baseContexto, embeddings: baseContexto ? crearEmbeddings() : null });
 let sincronizacion = null;
-const comandosDiscord = crearComandos({ tickets: { datosLiga: () => competicion(calendarioActual(), todas()),
+const comandosDiscord = crearComandos({ tickets: { datosLiga: () => conCambios(competicion(calendarioActual(), todas())),
   cartas: () => ({ catalogo: catalogo(), puntos: puntosDeJugadores() }),
   buscador: contextoBots, alAprender: () => sincronizacion?.aprendido() } });
 // Lo que se guarda en el contexto (server/contexto-fuentes.js); lo aprendido, cuando SrDirector ya lo ha leído de la hoja
@@ -1129,7 +1133,7 @@ sincronizacion = crearSincronizacion(contextoBots, { clanes: clanesConPlantilla,
   memoria: () => { const m = comandosDiscord.tickets?.memoria; return m?.cargada?.() ? m.todos() : null; } });
 alGuardarCronica(c => contextoBots.activo() && sincronizacion.cronica(c));
 // !pregunta en los chats de Kick y Twitch (server/preguntas-chat.js), con el mismo contexto
-const preguntasChat = crearPreguntasChat({ buscador: contextoBots, clanes: CLANES, datosLiga: () => competicion(calendarioActual(), todas()),
+const preguntasChat = crearPreguntasChat({ buscador: contextoBots, clanes: CLANES, datosLiga: () => conCambios(competicion(calendarioActual(), todas())),
   saber: () => readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'discord', 'tickets-saber.md'), 'utf8') });
 const chatTwitch = crearChatTwitch({ helix, conToken: conTokenCanal, canal: idCanalTwitch, preguntar: x => preguntasChat.responder(x),
   activo: () => Boolean(estadoCanal().conectado && estadoCanal().chat && preguntasChat.activo()) });
@@ -1199,7 +1203,7 @@ const servidor = http.createServer(async (req, res) => {
   }
   if (url.pathname === '/api/competicion') {
     res.writeHead(200, { 'Content-Type': TIPOS['.json'], 'Cache-Control': 'no-cache' });
-    const datos = sim ? competicion(sim.calendario, sim.partidas) : competicion(calendarioActual(), todas());
+    const datos = sim ? competicion(sim.calendario, sim.partidas) : conCambios(competicion(calendarioActual(), todas()));
     return res.end(JSON.stringify({ ...datos, simulacion: Boolean(sim) }));
   }
   // El postdraft del overlay: lo que lleva cada jugador con su campeón y en general, su carta y los dos clanes

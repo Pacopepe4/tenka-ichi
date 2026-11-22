@@ -1,5 +1,5 @@
 // Portada pública: baraja de clanes, ficha de cada clan y resumen de la liga
-import { cargarCampeones, cargarClanes, conectarDirecto, icono, logo, compite, fechaCorta, horasDelDia } from '/comun.js';
+import { cargarCampeones, cargarClanes, conectarDirecto, icono, logo, compite, fechaCorta, horasJornada } from '/comun.js';
 import { cartaHTML, escapar } from '/carta.js';
 import { montarSorteo } from '/sorteo.js';
 
@@ -238,7 +238,7 @@ function pintarLiga() {
     const pintarJornada = () => {
       $('.jornadas').innerHTML = Array.from({ length: total }, (_, i) =>
         `<button role="tab" aria-selected="${i === actual}" data-i="${i}">Jornada ${i + 1}<small> · ${fechaCorta(formato.liguilla[i]?.fecha)}</small></button>`).join('');
-      const horas = horasDelDia(sorteadas[actual]?.length || 0, formato.hora, formato.margen);
+      const horas = horasJornada(formato, sorteadas[actual] || [], formato.liguilla[actual]?.fecha);
       $('.cruces').innerHTML = sorteadas[actual]?.map((c, i) => {
         const r = cls.resultados[c.id];
         const lado = (id, color) => `<span class="lado-cruce ${r ? (r.ganador === id ? 'gana' : 'pierde') : ''}" ${tinte(id)}><i class="punto ${color}" title="Lado ${color}"></i>${escudo(id)}${nombre(id)}</span>`;
