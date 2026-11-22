@@ -33,20 +33,29 @@ function elemento(f, n, caja) {
   };
 }
 
-export function urlArcade({ nombre, usuario, web = 'https://gokudo.es' }) {
+// Las cajas de la interfaz del LoL de cada uno (x,y,ancho,alto a 1920×1080), medidas en una captura suya. Las de Livir,
+// de su directo del 22/11: el HUD más estrecho y a la izquierda que el de serie (desde las estadísticas, x 528, hasta el
+// botón de la tienda; con las flechas de subir de nivel dentro), y el minimapa (con sus botones de la izquierda) de 1645
+// a la esquina desde y 835
+export const CAJAS = {
+  livir: { barra: '528,944,746,136', mapa: '1645,835,275,245', marcador: '1557,0,363,28' },
+};
+
+export function urlArcade({ nombre, usuario, web = 'https://gokudo.es', cajas = null }) {
   const u = new URL('/arcade/', web);
   if (nombre) u.searchParams.set('nombre', nombre);
   if (usuario) u.searchParams.set('usuario', usuario);
-  return u.href;
+  for (const k of ['barra', 'mapa', 'marcador']) if (cajas?.[k]) u.searchParams.set(k, cajas[k]);
+  return u.href.replace(/%2C/gi, ',');  // las comas, legibles, para poder pegarla a mano
 }
 
-export function coleccionArcade({ nombre = 'Livir', usuario = 'liviir_', web = 'https://gokudo.es' } = {}) {
+export function coleccionArcade({ nombre = 'Livir', usuario = 'liviir_', web = 'https://gokudo.es', cajas = CAJAS[String(nombre).toLowerCase()] || null } = {}) {
   const a = ajustesArcade(new URLSearchParams({ nombre, usuario }).toString());
   const juego = fuente('Juego LoL', 'game_capture', { capture_mode: 'window', window: VENTANA_LOL, priority: 2, capture_cursor: true, allow_transparency: false });
   // La webcam: el dispositivo se elige una vez (doble clic); suelta la cámara cuando no se ve
   const camara = fuente(`Camara ${a.nombre}`, 'dshow_input', { deactivate_when_not_showing: true });
   const overlay = fuente('Overlay Gokudō arcade', 'browser_source', {
-    url: urlArcade({ nombre, usuario, web }), width: ANCHO, height: ALTO, fps: 30, shutdown: false,
+    url: urlArcade({ nombre, usuario, web, cajas }), width: ANCHO, height: ALTO, fps: 30, shutdown: false,
     restart_when_active: false, reroute_audio: false, css: TRANSPARENTE,
   });
   const escenaNombre = 'Partida';

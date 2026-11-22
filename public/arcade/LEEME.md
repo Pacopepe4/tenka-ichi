@@ -27,9 +27,9 @@ Abre OBS con la colección **Gokudō · Arcade (Livir)**, entra en tu partida de
 
 El overlay pone el marco de Gokudō (filo fino, placa de noche y tubo bermellón) **por fuera** del minimapa, de la barra de habilidades y objetos y del marcador pequeño de arriba a la derecha. No tapa nada de dentro.
 
-**De serie van colocados para la interfaz del LoL a 1920×1080 con la escala de serie**, porque aún no tenemos una captura de tu partida. Puede que no cuadren al píxel.
+**En tu colección (Livir) ya van ajustados a tu interfaz**, medidos en tu directo del 22/11: la barra de 528 a 1274 desde y 944, el minimapa (con sus botones) de x 1645 e y 835 a la esquina, y el marcador de arriba. Para otros, de serie van colocados para la interfaz a 1920×1080 con la escala de serie.
 
-1. **Para que cuadren con tu interfaz**, mándanos una foto de una partida tuya (tecla **F12** en partida; se guarda en la carpeta `Screenshots` del LoL) y los ajustamos.
+1. **Si cambias la escala de tu interfaz o de tu minimapa**, mándanos otra foto de una partida (tecla **F12**; se guarda en la carpeta `Screenshots` del LoL) y los volvemos a ajustar.
 2. **O ajústalos tú** en la URL de la fuente **Overlay Gokudō arcade** (doble clic, campo URL). Añade `&guia=1` para ver las zonas rayadas con su medida:
    - `&hud=1.1`: si tu escala de interfaz es mayor (o menor, con 0.9). Mueve la barra y el marcador.
    - `&minimapa=0.9`: si tu minimapa es más pequeño (o más grande, con 1.1). Crece o encoge desde la esquina.

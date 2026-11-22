@@ -10,7 +10,7 @@
   "sources": [
     {
       "name": "Partida",
-      "uuid": "7b1922ee-f48f-4459-b98a-1468e7920af7",
+      "uuid": "724bfafc-6a38-4705-a7e5-ada6b8ec67af",
       "id": "scene",
       "versioned_id": "scene",
       "settings": {
@@ -19,7 +19,7 @@
         "items": [
           {
             "name": "Juego LoL",
-            "source_uuid": "27f1ea9b-443e-4d6f-82ba-3a78aec37e1c",
+            "source_uuid": "9a58cf03-872e-472e-8dc5-f3035253d220",
             "visible": true,
             "locked": false,
             "rot": 0,
@@ -57,7 +57,7 @@
           },
           {
             "name": "Camara Livir",
-            "source_uuid": "f8e1dd5c-e9fb-4514-a6e2-15d71e6860f1",
+            "source_uuid": "4de2b15e-5f47-4afa-829a-bf24898d99c4",
             "visible": true,
             "locked": false,
             "rot": 0,
@@ -96,7 +96,7 @@
           },
           {
             "name": "Overlay Gokudō arcade",
-            "source_uuid": "08a75294-652e-4296-8bd5-ab24e2a6c380",
+            "source_uuid": "7465b975-3426-4ff0-ad99-9c3635be191d",
             "visible": true,
             "locked": false,
             "rot": 0,
@@ -147,7 +147,7 @@
     },
     {
       "name": "Juego LoL",
-      "uuid": "27f1ea9b-443e-4d6f-82ba-3a78aec37e1c",
+      "uuid": "9a58cf03-872e-472e-8dc5-f3035253d220",
       "id": "game_capture",
       "versioned_id": "game_capture",
       "settings": {
@@ -170,7 +170,7 @@
     },
     {
       "name": "Camara Livir",
-      "uuid": "f8e1dd5c-e9fb-4514-a6e2-15d71e6860f1",
+      "uuid": "4de2b15e-5f47-4afa-829a-bf24898d99c4",
       "id": "dshow_input",
       "versioned_id": "dshow_input",
       "settings": {
@@ -189,11 +189,11 @@
     },
     {
       "name": "Overlay Gokudō arcade",
-      "uuid": "08a75294-652e-4296-8bd5-ab24e2a6c380",
+      "uuid": "7465b975-3426-4ff0-ad99-9c3635be191d",
       "id": "browser_source",
       "versioned_id": "browser_source",
       "settings": {
-        "url": "https://gokudo.es/arcade/?nombre=Livir&usuario=liviir_",
+        "url": "https://gokudo.es/arcade/?nombre=Livir&usuario=liviir_&barra=528,944,746,136&mapa=1645,835,275,245&marcador=1557,0,363,28",
         "width": 1920,
         "height": 1080,
         "fps": 30,
@@ -217,7 +217,7 @@
   "groups": [],
   "DesktopAudioDevice1": {
     "name": "Audio del escritorio",
-    "uuid": "ecb3967f-da1f-46b0-bcdc-bc0b211a3eea",
+    "uuid": "81391d19-41a2-409e-b3fd-a1c6a13f9640",
     "id": "wasapi_output_capture",
     "versioned_id": "wasapi_output_capture",
     "settings": {
@@ -236,7 +236,7 @@
   },
   "AuxAudioDevice1": {
     "name": "Mic/Aux",
-    "uuid": "77d8cbac-7bf5-4736-9f60-48ff661eaeb3",
+    "uuid": "9c5b54b4-4469-4148-8470-beb462d5493a",
     "id": "wasapi_input_capture",
     "versioned_id": "wasapi_input_capture",
     "settings": {

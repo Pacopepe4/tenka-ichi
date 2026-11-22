@@ -9,7 +9,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { puertoLibre, esperarWeb, pararWeb } from './web-de-prueba.js';
 import { ajustesArcade, FABRICA, zonasArcade, ZONAS_FABRICA } from '../public/arcade/arcade.js';
-import { coleccionArcade, urlArcade } from '../scripts/arcade-obs.js';
+import { coleccionArcade, urlArcade, CAJAS } from '../scripts/arcade-obs.js';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -44,7 +44,7 @@ test('la colección de OBS: juego, webcam en el hueco del overlay y overlay; sin
   const cam = escena.settings.items[1], a = ajustesArcade('?nombre=Livir');
   assert.deepEqual([cam.pos.x, cam.pos.y, cam.bounds.x, cam.bounds.y, cam.bounds_crop], [a.x, a.y, a.ancho, a.alto, true]);
   assert.equal(c.sources.find(s => s.name === 'Camara Livir').settings.deactivate_when_not_showing, true);
-  assert.equal(c.sources.find(s => s.name === 'Overlay Gokudō arcade').settings.url, 'https://gokudo.es/arcade/?nombre=Livir&usuario=liviir_');
+  assert.equal(c.sources.find(s => s.name === 'Overlay Gokudō arcade').settings.url, 'https://gokudo.es/arcade/?nombre=Livir&usuario=liviir_&barra=528,944,746,136&mapa=1645,835,275,245&marcador=1557,0,363,28');
   const texto = JSON.stringify(c);
   assert.doesNotMatch(texto, /alertas|twitch|kick|token/i, 'las alertas son las de su canal: no va nada de Gokudō');
   assert.equal(urlArcade({ nombre: 'Livir', usuario: 'liviir_', web: 'http://localhost:3000' }), 'http://localhost:3000/arcade/?nombre=Livir&usuario=liviir_');
@@ -114,4 +114,25 @@ test('la página pinta los marcos por fuera (box-shadow) y las zonas con guia=1'
   assert.match(html, /import \{ ajustesArcade, zonasArcade \} from '\.\/arcade\.js'/);
   assert.match(html, /\.marco \{[^}]*box-shadow: 0 0 0 2px var\(--sumi-linea\)/);
   assert.match(html, /body\.con-guia \.marco \.zona \{ display: grid; \}/);
+});
+
+test('22/11: las cajas de Livir (medidas en su directo) van en su colección, caben y no tocan su cámara ni su barra de iconos', () => {
+  const url = coleccionArcade({ nombre: 'Livir', usuario: 'liviir_' }).sources.find(s => s.name === 'Overlay Gokudō arcade').settings.url;
+  const z = zonasArcade(new URL(url).search);
+  assert.deepEqual(z.barra, { x: 528, y: 944, ancho: 746, alto: 136 });
+  assert.deepEqual(z.mapa, { x: 1645, y: 835, ancho: 275, alto: 245 });
+  assert.deepEqual(z.marcador, { x: 1557, y: 0, ancho: 363, alto: 28 });
+  assert.deepEqual([z.mapa.x + z.mapa.ancho, z.mapa.y + z.mapa.alto], [1920, 1080], 'el minimapa, hasta la esquina');
+  const a = ajustesArcade('');
+  const filo = 8;
+  const cruzan = (p, q) => p.x - filo < q.x + q.ancho && q.x < p.x + p.ancho + filo && p.y - filo < q.y + q.alto && q.y < p.y + p.alto + filo;
+  const cam = { x: a.x, y: a.y - 36, ancho: a.ancho, alto: 1080 - (a.y - 36) };
+  const iconos = { x: 0, y: 30, ancho: 95, alto: 820 };  // su barra vertical de la izquierda: ni se tapa ni se enmarca
+  for (const k of ['barra', 'mapa', 'marcador']) {
+    assert.ok(!cruzan(z[k], cam), `${k} no toca la cámara`);
+    assert.ok(!cruzan(z[k], iconos), `${k} no toca su barra de iconos`);
+  }
+  // Sin cajas propias, las de serie
+  assert.equal(urlArcade({ nombre: 'Otro', usuario: 'otro' }), 'https://gokudo.es/arcade/?nombre=Otro&usuario=otro');
+  assert.ok(CAJAS.livir);
 });
