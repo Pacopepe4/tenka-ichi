@@ -201,14 +201,15 @@ body.oculto .sello::before, body.oculto .retrato::before { animation-play-state:
 /* El panel va dentro de su zona, que ocupa el lienzo entero y va siempre encogida hacia abajo y al centro (la escala
    la pone el marcador: ESCALA_LINEAS en comun.js). La gráfica de oro va en
    esta misma zona y con la misma caja: las dos salen exactamente en el mismo hueco */
-.zona-lineas { position: absolute; inset: 0; pointer-events: none; transform-origin: 50% 100%; transform: scale(var(--escala-lineas, .78)); }
+/* 22/11: encogida desde la esquina de abajo a la izquierda; el panel va en x --x-lineas del lienzo (CAJA_LINEAS) */
+.zona-lineas { position: absolute; inset: 0; pointer-events: none; transform-origin: 0 100%; transform: scale(var(--escala-lineas, .62)); }
 /* Entra subiendo desde el borde, con las filas escalonadas; se va bajando */
-.lineas { position: absolute; bottom: 0; left: 50%; width: 1560px; transform: translateX(-50%); transform-origin: 50% 100%;
+.lineas { position: absolute; bottom: 0; left: calc(var(--x-lineas, 344px) / var(--escala-lineas, .62)); width: 1560px; transform-origin: 50% 100%;
   animation: subir var(--t-lento) var(--curva) both; }
 .lineas.sale { animation: bajar var(--t-medio) var(--curva-salida) both; }
 .lineas.sale .fila { animation: none; }
-@keyframes subir { from { opacity: 0; transform: translate(-50%, 40px); } to { opacity: 1; transform: translate(-50%, 0); } }
-@keyframes bajar { to { opacity: 0; transform: translate(-50%, 36px); } }
+@keyframes subir { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes bajar { to { opacity: 0; transform: translateY(36px); } }
 .lineas-cabeza { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; height: 64px; padding: 0 24px; }
 .lineas-cabeza .equipo { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .lineas-cabeza .equipo.rojo { justify-content: flex-end; }
@@ -321,9 +322,10 @@ body.guia .medidas-cam { display: grid; place-items: center; position: absolute;
 .ficha.azul { left: 72px; transition: left var(--t-medio) var(--curva); }
 /* Con la cámara del caster fuera (abajo a la izquierda, hasta x 336), la del lado azul se aparta a su derecha */
 body.con-camara-partida .ficha.azul { left: 360px; }
-/* La del lado rojo no pisa el marco del minimapa, abajo a la derecha (ZONA_MINIMAPA en comun.js: desde x 1620 y desde
-   y 780); antes iba a 72 px del borde y se metía en él */
-.ficha.rojo { right: 324px; grid-template-columns: 400px 290px; }
+/* La del lado rojo no pisa el marco del minimapa, abajo a la derecha (ZONA_MINIMAPA en comun.js: desde x 1641 y desde
+   y 767); antes iba a 72 px del borde y se metía en él. Con la cámara de Istar fuera (de x 1313 a 1633), a su izquierda */
+.ficha.rojo { right: 324px; grid-template-columns: 400px 290px; transition: right var(--t-medio) var(--curva); }
+body.con-camara-partida-2 .ficha.rojo { right: 623px; }
 .ficha.rojo .ficha-carta { order: 2; }
 .ficha.sale { animation: fichaSale var(--t-medio) var(--curva-salida) both; }
 @keyframes fichaEntra { from { opacity: 0; transform: translateY(30px); } }
@@ -353,7 +355,7 @@ body.con-camara-partida .ficha.azul { left: 360px; }
 /* ---------- Gráfica de oro: en el mismo hueco que el línea por línea ----------
    Va dentro de .zona-lineas y mide lo mismo que el panel (1560×436: 64 de cabeza, 344 de gráfica y 28 de eje), pegada
    abajo; así, al cambiar de una a otra, no se mueve nada de sitio. Entra y sale igual que él */
-.grafica { position: absolute; bottom: 0; left: 50%; width: 1560px; height: 436px; transform: translateX(-50%); transform-origin: 50% 100%;
+.grafica { position: absolute; bottom: 0; left: calc(var(--x-lineas, 344px) / var(--escala-lineas, .62)); width: 1560px; height: 436px; transform-origin: 50% 100%;
   animation: subir var(--t-lento) var(--curva) both; }
 .grafica.sale { animation: bajar var(--t-medio) var(--curva-salida) both; }
 .grafica-cabeza { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; height: 64px; padding: 0 22px; }

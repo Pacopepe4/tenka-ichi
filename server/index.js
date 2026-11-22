@@ -754,6 +754,32 @@ const sinTildes = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]
 const idDeFamilia = t => CLANES.find(c => c.id === String(t || '').toUpperCase() || sinTildes(c.nombre) === sinTildes(t))?.id || null;
 const nombreFamilia = id => CLANES.find(c => c.id === id)?.nombre || id;
 
+// La contraseña del panel en el cuerpo ({ clave }), con freno: quien falla muchas seguidas desde la misma dirección espera
+async function claveConFreno(req) {
+  const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+  const ahora = Date.now(), f = fallosClave.get(ip);
+  // Las direcciones que fallaron una vez y no volvieron se quedaban para siempre: de vez en cuando se barren las pasadas
+  if (fallosClave.size > 500) for (const [k, v] of fallosClave) if (ahora - v.desde > FRENO_CLAVE.ventana) fallosClave.delete(k);
+  if (f && ahora - f.desde > FRENO_CLAVE.ventana) fallosClave.delete(ip);
+  if ((fallosClave.get(ip)?.n || 0) >= FRENO_CLAVE.fallos) return { ok: false, error: 'Demasiados intentos', codigo: 429 };
+  let cuerpo;
+  try { cuerpo = await leerCuerpo(req, 2000); } catch (e) { return { ok: false, error: e.message, codigo: 400 }; }
+  if (cuerpo.clave === CLAVE) { fallosClave.delete(ip); return { ok: true }; }
+  const g = fallosClave.get(ip) || { n: 0, desde: ahora };
+  g.n++;
+  fallosClave.set(ip, g);
+  return { ok: false, error: 'Contraseña incorrecta', codigo: 401 };
+}
+
+// La URL de las alertas de Twitch, solo si es una dirección https de Twitch (lo que da «Copiar URL de origen del navegador»)
+function urlAlertasTwitch(entorno = process.env) {
+  const v = String(entorno.TWITCH_ALERTAS_URL || '').trim();
+  try {
+    const u = new URL(v);
+    return u.protocol === 'https:' && /(^|.)twitch.tv$/i.test(u.hostname) ? u.href : null;
+  } catch { return null; }
+}
+
 // POST /api/cronicas/partida, con Authorization: Bearer CRONICAS_CLAVE.
 // Cuerpo: { texto, resumen, titulo?, azul?, rojo?, discord? }. Sin las familias, es la última partida guardada. Con
 // discord: false se guarda y sale en la portada, pero no se publica en #resultados
@@ -1217,19 +1243,17 @@ const servidor = http.createServer(async (req, res) => {
   // La entrada del panel (public/panel/entrada.js) pregunta aquí si la contraseña vale. Quien falla muchas seguidas espera
   if (url.pathname === '/api/clave') {
     if (req.method !== 'POST') return json(res, { ok: false, error: 'Método no permitido' }, 405);
-    const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
-    const ahora = Date.now(), f = fallosClave.get(ip);
-    // Las direcciones que fallaron una vez y no volvieron se quedaban para siempre: de vez en cuando se barren las pasadas
-    if (fallosClave.size > 500) for (const [k, v] of fallosClave) if (ahora - v.desde > FRENO_CLAVE.ventana) fallosClave.delete(k);
-    if (f && ahora - f.desde > FRENO_CLAVE.ventana) fallosClave.delete(ip);
-    if ((fallosClave.get(ip)?.n || 0) >= FRENO_CLAVE.fallos) return json(res, { ok: false, error: 'Demasiados intentos' }, 429);
-    let cuerpo;
-    try { cuerpo = await leerCuerpo(req, 2000); } catch (e) { return json(res, { ok: false, error: e.message }, 400); }
-    if (cuerpo.clave === CLAVE) { fallosClave.delete(ip); return json(res, { ok: true }); }
-    const g = fallosClave.get(ip) || { n: 0, desde: ahora };
-    g.n++;
-    fallosClave.set(ip, g);
-    return json(res, { ok: false, error: 'Contraseña incorrecta' }, 401);
+    const c = await claveConFreno(req);
+    return c.ok ? json(res, { ok: true }) : json(res, { ok: false, error: c.error }, c.codigo);
+  }
+  // Alertas de Twitch (22/11): la URL de origen del navegador del grupo «Gokudō» lleva un token, así que no va en el repo
+  // ni en el zip del realizador. La guarda Pacopepe en TWITCH_ALERTAS_URL del .env del server y el realizador la pide
+  // aquí al configurar OBS, con la contraseña del panel (POST, nunca en la dirección). Sin variable: url null
+  if (url.pathname === '/api/realizador/alertas-twitch') {
+    if (req.method !== 'POST') return json(res, { ok: false, error: 'Método no permitido' }, 405);
+    const c = await claveConFreno(req);
+    if (!c.ok) return json(res, { ok: false, error: c.error }, c.codigo);
+    return json(res, { ok: true, url: urlAlertasTwitch() });
   }
   // El puente del PC del espectador manda aquí la partida cada segundo (con la contraseña del panel)
   if (url.pathname === '/api/partida') {

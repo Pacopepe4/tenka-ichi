@@ -626,6 +626,13 @@ En la zona de la liga, donde salía el anuncio del sorteo del calendario (ahora 
 - En la hoja, pestaña «Cronicas». El panel (Liga y gachapon › Crónicas de las partidas) dice cuántas hay, qué falta configurar y si la última se publicó.
 - El botón «Entrar en el Discord» de la portada sale cuando se pone la invitación del servidor en `DISCORD_INVITACION` (`public/inicio.js`).
 
+### Alertas de Twitch en el OBS del realizador
+
+El grupo de alertas «Gokudō» de Twitch (dashboard.twitch.tv › Alertas de stream) se ve en OBS con una fuente de navegador cuya URL lleva un **token**: no va en el repo, ni en el zip del realizador, ni en ningún commit.
+
+- **Dónde vive:** en el `.env` del server, `TWITCH_ALERTAS_URL`. La pega Pacopepe desde el menú ⋮ del grupo › «Copiar URL de origen del navegador». Solo vale una dirección `https` de `twitch.tv`.
+- **Cómo llega a OBS:** al instalar o actualizar, el realizador pide `POST /api/realizador/alertas-twitch` con `{ "clave": <contraseña del panel> }` (con el mismo freno que la entrada del panel) y crea la fuente «Alertas Twitch» en sus escenas. Sin la variable, la respuesta trae `url: null` y no se crea nada.
+
 ### Probarlo sin Discord ni Twitch de verdad
 
 `npm test` arranca la web con datos temporales contra un **Discord falso** (`scripts/entrada-discord-falso.js`), un **Twitch falso** (`scripts/twitch-falso.js`), un **Kick falso** (`scripts/kick-falso.js`) y un **Google Sheets falso** (`scripts/sheets-falso.js`):

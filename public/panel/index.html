@@ -321,14 +321,19 @@
     <section id="ajustes-directo" data-fases="preparar directo">
       <h2>Ajustes del directo</h2>
       <details class="plegable camara-partida">
-        <summary>Cámara del caster en partida</summary>
+        <summary>Cámaras de los casters en partida</summary>
         <div class="fila-camara-partida">
-          <label class="casilla"><input type="checkbox" id="camaraPartidaActiva"><span class="donde"><b>Sacar la cámara</b><span class="medida" id="camaraPartidaMedida"></span></span></label>
-          <input id="camaraPartidaNombre" aria-label="Nombre del caster de la cámara en partida" placeholder="Nombre del caster" maxlength="40">
-          <input id="camaraPartidaDetalle" aria-label="Detalle de la cámara en partida" placeholder="@usuario" maxlength="60">
+          <label class="casilla"><input type="checkbox" id="camaraPartidaActiva"><span class="donde"><b>Caster 1, a la izquierda</b><span class="medida" id="camaraPartidaMedida"></span></span></label>
+          <input id="camaraPartidaNombre" aria-label="Nombre del caster 1 en partida" placeholder="Nombre del caster" maxlength="40">
+          <input id="camaraPartidaDetalle" aria-label="Detalle del caster 1 en partida" placeholder="@usuario" maxlength="60">
         </div>
-        <div class="fila"><button id="guardarCamaraPartida" class="secundario">Poner el nombre en el overlay</button></div>
-        <p class="ayuda">Un marco de caster abajo a la izquierda del marcador de partida (abajo a la derecha va el minimapa), con el nombre que escribas. Va por su cuenta: sale mientras esté marcada y haya partida, con línea por línea o sin él. En OBS, pon la cámara por debajo del overlay y encájala en su hueco con la medida que tiene al lado.</p>
+        <div class="fila-camara-partida">
+          <label class="casilla"><input type="checkbox" id="camaraPartida2Activa"><span class="donde"><b>Caster 2, junto al minimapa</b><span class="medida" id="camaraPartida2Medida"></span></span></label>
+          <input id="camaraPartida2Nombre" aria-label="Nombre del caster 2 en partida" placeholder="Nombre del caster" maxlength="40">
+          <input id="camaraPartida2Detalle" aria-label="Detalle del caster 2 en partida" placeholder="@usuario" maxlength="60">
+        </div>
+        <div class="fila"><button id="guardarCamaraPartida" class="secundario">Poner los nombres en el overlay</button></div>
+        <p class="ayuda">Marcos de caster abajo en el marcador de partida: el 1 a la izquierda del línea por línea y el 2 (solo si hay segundo caster) a su derecha, junto al minimapa. Cada uno va por su cuenta: sale mientras esté marcado y haya partida, con línea por línea o sin él. En OBS las cámaras las pone el realizador del PC 2 en su hueco y las enciende y apaga con estas casillas; el dispositivo de cada una se elige a mano («Camara casters» y «Camara casters 2»).</p>
       </details>
       <details class="plegable">
         <summary>Qué sale en el marcador</summary>
