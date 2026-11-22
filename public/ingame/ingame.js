@@ -473,6 +473,7 @@ function pintarLaterales(p) {
   const caja = $('.laterales');
   const ver = Boolean(p.enfriamientos);
   caja.hidden = !ver;
+  document.body.classList.toggle('con-laterales', ver);
   if (!ver) return;
   for (const lado of ['azul', 'rojo']) {
     const columna = caja.querySelector(`.lateral.${lado}`);

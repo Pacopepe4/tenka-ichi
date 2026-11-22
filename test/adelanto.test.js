@@ -95,6 +95,13 @@ test('los enfriamientos de la D, la F y la R se cuentan en el segundo de la emis
   assert.equal(enfriamientosEn('Nadie', 100), undefined, 'sin datos de ese jugador');
 });
 
+test('22/11: al empezar la partida todo está listo, aunque el PC 1 diga que algo se lanzó en los primeros segundos', () => {
+  recibirAdelanto({ ...delPc1(600), hechizos: [{ nombre: 'A1', equipo: 'azul', d: [[0.5, null]], f: [[4, null]], r: [] }] });
+  assert.deepEqual(enfriamientosEn('A1', 39), { d: null, f: null, r: null });
+  recibirAdelanto({ ...delPc1(600), hechizos: [{ nombre: 'A1', equipo: 'azul', d: [[0.5, null], [120, 420]], f: [], r: [] }] });
+  assert.deepEqual(enfriamientosEn('A1', 200).d, { quedan: 220 }, 'lo de después sí cuenta');
+});
+
 test('las larvas del PC 1 cuentan para su familia y el marcador enseña los enfriamientos solo con datos del PC 1', () => {
   let p = paquete(400, { A1: 30 });
   assert.equal(p.enfriamientos, false, 'sin PC 1, no hay columnas de enfriamientos');

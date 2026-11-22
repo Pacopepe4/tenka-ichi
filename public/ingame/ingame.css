@@ -67,9 +67,12 @@ body.en-pelea .ficha { visibility: hidden; }
 /* La ficha de un jugador sale abajo en ese mismo lado: mientras está, las columnas se apartan */
 body:has(.ficha:not([hidden])) .laterales { opacity: 0; }
 .lateral { position: absolute; top: 318px; display: flex; flex-direction: column; gap: 8px; animation: moduloEntra var(--t-medio) var(--curva) both; }
-.lateral.azul { left: 12px; --lado: var(--clan-azul, var(--azul-lado)); }
-.lateral.rojo { right: 12px; --lado: var(--clan-rojo, var(--rojo-lado)); --desde: 14px; }
-.lat-jugador { display: flex; align-items: center; gap: 5px; }
+/* Pegadas al borde de la pantalla (22/11, Pacopepe: «más pegados a la esquina»); el marco lo pone cada estilo */
+.lateral.azul { left: 0; --lado: var(--clan-azul, var(--azul-lado)); }
+.lateral.rojo { right: 0; --lado: var(--clan-rojo, var(--rojo-lado)); --desde: 14px; }
+.lat-jugador { position: relative; z-index: 1; display: flex; align-items: center; gap: 5px; }
+/* Con las columnas a la vista, el línea por línea ya no repite los hechizos de invocador ni la R (22/11) */
+body.con-laterales .lineas .sums, body.con-laterales .lineas .retrato .definitiva { display: none !important; }
 .rojo .lat-jugador { flex-direction: row-reverse; }
 .lat-retrato { position: relative; width: 52px; height: 52px; flex: none; }
 .lat-campeon { display: block; width: 100%; height: 100%; object-fit: cover; }
