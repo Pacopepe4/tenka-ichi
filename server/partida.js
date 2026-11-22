@@ -202,6 +202,26 @@ const misionDe = j => {
   return objeto ? { objeto: objeto.itemID } : null;
 };
 
+// ¿Ha completado su misión de rol? (22/11, Pacopepe: que se note en todas, no solo en las que dan hueco). Se mira lo que
+// tiene ahora, no el momento del cambio, así vale aunque la repetición salte. Comprobado con las partidas del 15 y el
+// 16/11 (registro del PC 1):
+//  - jungla: el Castigo cambia de nombre interno al mejorarse (SummonerSmite → SummonerSmiteAvatar…)
+//  - medio: las botas de nivel 3 (3170-3179), que solo da su misión
+//  - ADC y apoyo: el objeto del hueco nuevo (el 7)
+//  - top: el hueco nuevo si no lleva Teleportar; con Teleportar no hay señal fiable (el desatado les llega a todos los
+//    que lo llevan al minuto 10, a los de medio también), así que solo cuenta si pasa del nivel 18, que es el tope
+//    para quien no la ha hecho
+const internoHechizo = h => /SummonerSpell_(.+?)_DisplayName/.exec(h?.rawDisplayName || '')?.[1] || '';
+const castigoMejorado = j => ['summonerSpellOne', 'summonerSpellTwo'].some(k => /^(S\d+_)?SummonerSmite.+/.test(internoHechizo(j.summonerSpells?.[k])));
+const botasNivel3 = j => (j.items || []).some(o => o.itemID >= 3170 && o.itemID <= 3179);
+export function misionHecha(rol, j) {
+  if (!j) return false;
+  if (rol === 'TOP') return Boolean(j.mision) || (j.nivel || 0) > 18;
+  if (rol === 'JUNGLA') return Boolean(j.castigoMejorado);
+  if (rol === 'MEDIO') return Boolean(j.botas3);
+  return Boolean(j.mision);
+}
+
 // Estructuras: Turret_T1_…/Barracks_T1_… son del lado azul (ORDER) y T2 del rojo (CHAOS)
 const duenoEstructura = nombre => (/_T1_|_T1L|_T100/.test(nombre) ? 'azul' : /_T2_|_T2L|_T200/.test(nombre) ? 'rojo' : null);
 const carril = nombre => (/_L\d?|_L_/.test(nombre) ? 'top' : /_R\d?|_R_/.test(nombre) ? 'bot' : 'mid');
@@ -380,7 +400,8 @@ export function resumen() {
       primeraSangre: false, triples: 0, quadras: 0, pentas: 0, torres: 0, puntos: null, kp: null,
       muerto: Boolean(j.isDead), reaparece: Math.round(j.respawnTimer || 0), objetos: porHuecos(j.items), racha: 0,
       posicion: j.position || '', aplastar: tieneAplastar(j),
-      hechizos: hechizosDe(j), runa: j.runes?.keystone?.id ?? null, mision: misionDe(j) };
+      hechizos: hechizosDe(j), runa: j.runes?.keystone?.id ?? null, mision: misionDe(j),
+      castigoMejorado: castigoMejorado(j), botas3: botasNivel3(j) };
     // Enfriamientos de la D, la F y la R en la emisión, leídos de la pantalla por el PC 1 (server/adelanto.js)
     jugador.enfriamientos = conAdelanto ? enfriamientosEn(nombreJugador(j), bruto.tiempo) || null : null;
     jugadores[lado].push(jugador);
@@ -388,6 +409,13 @@ export function resumen() {
   }
   const porRol = { azul: porLineas(jugadores.azul, 'azul'), rojo: porLineas(jugadores.rojo, 'rojo') };
   const lineas = ROLES.map((rol, i) => ({ rol, azul: porRol.azul[i], rojo: porRol.rojo[i] }));
+  // La misión de rol, según el puesto de cada fila; los datos de paso no salen al overlay
+  for (const l of lineas) for (const lado of ['azul', 'rojo']) {
+    const j = l[lado];
+    if (!j) continue;
+    j.misionHecha = misionHecha(l.rol, j);
+    delete j.castigoMejorado; delete j.botas3;
+  }
 
   const base = () => ({ kills: 0, oro: 0, oroObjetos: 0, torres: 0, inhibidores: 0, dragones: [], alma: null, puntoDeAlma: false, ancestrales: 0,
     larvas: 0, heraldos: 0, barones: 0, atakhan: 0 });
@@ -724,10 +752,12 @@ export function empezarPrueba({ picks, jugadores }, alPaquete) {
         riotIdGameName: j.nombre, summonerName: j.nombre, team: j.team, position: POSICIONES_PRUEBA[j.rol], level: j.nivel,
         isDead: j.muertoHasta > t, respawnTimer: Math.max(0, j.muertoHasta - t),
         summonerSpells: Object.fromEntries(['summonerSpellOne', 'summonerSpellTwo'].map((k, n) =>
-          [k, { rawDisplayName: `GeneratedTip_SummonerSpell_Summoner${SUMS_PRUEBA[j.rol][n]}_DisplayName` }])),
+          // El Castigo del jungla se mejora a los 5:30 (su misión de rol), como en el cliente: cambia de nombre interno
+          [k, { rawDisplayName: `GeneratedTip_SummonerSpell_Summoner${SUMS_PRUEBA[j.rol][n] === 'Smite' && t >= 330 ? 'SmiteAvatarDefensive' : SUMS_PRUEBA[j.rol][n]}_DisplayName` }])),
         runes: { keystone: { id: RUNAS_PRUEBA[j.rol] } },
         // Objetos en sus huecos, el abalorio en el 6 (el apoyo, con la lente) y el hueco de misión en el 7
-        items: [...j.items.map((o, slot) => ({ ...o, slot })), { itemID: j.rol === 4 ? 3364 : 3340, count: 1, slot: 6 },
+        // Las botas de nivel 3 del medio a los 14:00 (su misión de rol), en el hueco que quede
+        items: [...(j.rol === 2 && t >= 840 ? [...j.items.slice(0, 5), { itemID: 3171, count: 1 }] : j.items).map((o, slot) => ({ ...o, slot })), { itemID: j.rol === 4 ? 3364 : 3340, count: 1, slot: 6 },
           ...(MISION_PRUEBA[j.rol] ? [{ itemID: MISION_PRUEBA[j.rol], count: 1, slot: 7 }] : [])],
         scores: { kills: j.k, deaths: j.d, assists: j.a, creepScore: j.cs, wardScore: j.vision } })),
       eventos,

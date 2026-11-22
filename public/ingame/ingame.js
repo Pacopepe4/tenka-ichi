@@ -482,7 +482,7 @@ function pintarLaterales(p) {
     if (columna.dataset.firma !== firma) {
       columna.dataset.firma = firma;
       columna.innerHTML = jugadores.map(j => `<div class="lat-jugador">
-        <span class="lat-retrato"><img class="lat-campeon" alt=""><i class="lat-hechizo lat-r" data-k="r"><img alt=""><b></b></i></span>
+        <span class="lat-retrato"><img class="lat-campeon" alt=""><i class="lat-mision" aria-hidden="true"></i><i class="lat-hechizo lat-r" data-k="r"><img alt=""><b></b></i></span>
         <span class="lat-sums"><i class="lat-hechizo" data-k="d"><img alt=""><b></b></i><i class="lat-hechizo" data-k="f"><img alt=""><b></b></i></span>
       </div>`).join('');
       columna.querySelectorAll('.lat-jugador').forEach((fila, i) => {
@@ -495,6 +495,7 @@ function pintarLaterales(p) {
     columna.querySelectorAll('.lat-jugador').forEach((fila, i) => {
       const j = jugadores[i];
       fila.classList.toggle('muerto', Boolean(j?.muerto));
+      marcarMision(fila.querySelector('.lat-mision'), j?.misionHecha, `lat-${lado}-${i}`);
       fila.querySelector('.lat-r').hidden = !(j?.campeon && estadoDefinitiva(j.campeon, j.nivel).encendida);
       for (const k of ENFRIABLES) {
         const el = fila.querySelector(`[data-k="${k}"]`), cd = j?.enfriamientos?.[k] || null;
@@ -503,6 +504,20 @@ function pintarLaterales(p) {
         el.classList.toggle('largo', Boolean(cd && cd.quedan >= 100));  // tres cifras: letra más pequeña para que quepan
       }
     });
+  }
+}
+
+// La misión de rol completada (misionHecha, server/partida.js): clase «hecha» y, solo al pasar de no a sí con la partida
+// ya vista, «recien» un momento para el destello. «clave» es el puesto (lado e índice): si cambia quién juega ahí, se
+// empieza de cero sin destello
+const misionesVistas = new Map();
+function marcarMision(el, hecha, clave) {
+  const antes = misionesVistas.get(clave);
+  misionesVistas.set(clave, Boolean(hecha));
+  el.classList.toggle('hecha', Boolean(hecha));
+  if (hecha && antes === false && !el.classList.contains('recien')) {
+    el.classList.add('recien');
+    setTimeout(() => el.classList.remove('recien'), 1600);
   }
 }
 
@@ -563,6 +578,8 @@ function pintarLineas(mostrar) {
       const mision = caja.querySelector('.mision');
       pintarIcono(mision.querySelector('img'), j.mision?.objeto && `/ddragon/objeto/${j.mision.objeto}.png`);
       mision.classList.toggle('vacio', !j.mision);
+      // Misión de rol completada (22/11): sello 済, o halo si trae objeto, con un destello la vez que se completa
+      marcarMision(mision, j.misionHecha, `${lado}-${i}`);
       // El nombre del panel para ese puesto, si lo hay; si no, el del cliente
       texto(caja.querySelector('.nombre'), estado?.equipos?.[lado]?.jugadores?.[i] || j.nombre);
       texto(caja.querySelector('.kda-cifras'), `${j.k} / ${j.d} / ${j.a}`);

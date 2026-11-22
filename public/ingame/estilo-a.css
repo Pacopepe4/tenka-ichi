@@ -167,6 +167,26 @@
 [data-estilo="a"] .runa { border-radius: 50%; background: rgba(12, 13, 19, .7); box-shadow: 0 0 0 1px var(--sumi-linea); }
 [data-estilo="a"] .mision { box-shadow: 0 0 0 1px #4A4B5E; }
 [data-estilo="a"] .mision.vacio { box-shadow: inset 0 0 0 1px var(--sumi-linea); }
+/* Misión de rol completada (22/11): sin objeto, el sello 済 en bermellón de neón en su hueco; con objeto (ADC, apoyo, el
+   top sin Teleportar), el hueco con halo. Al completarse, se estampa con un destello una sola vez */
+[data-estilo="a"] .mision.hecha { box-shadow: 0 0 0 1.5px var(--shu-claro), 0 0 8px var(--shu); }
+[data-estilo="a"] .mision.hecha.vacio { position: relative; background: rgba(12, 13, 19, .9); }
+[data-estilo="a"] .mision.hecha.vacio::after { content: '済'; position: absolute; inset: 0; display: grid; place-items: center;
+  font-family: var(--pincel); font-style: normal; font-size: 19px; line-height: 1; color: var(--shu-neon); text-shadow: var(--neon-suave); }
+[data-estilo="a"] .mision.recien { animation: misionHecha 1.4s var(--golpe) 1; }
+[data-estilo="a"] .lat-mision { position: absolute; z-index: 2; top: -5px; width: 20px; height: 20px; display: none; place-items: center; border-radius: 50%;
+  font-style: normal; background: rgba(12, 13, 19, .95); box-shadow: 0 0 0 1.5px var(--shu-claro), 0 0 8px var(--shu); }
+[data-estilo="a"] .lat-mision::after { content: '済'; font-family: var(--pincel); font-size: 13px; line-height: 1; color: var(--shu-neon); }
+[data-estilo="a"] .azul .lat-mision { right: -6px; }
+[data-estilo="a"] .rojo .lat-mision { left: -6px; }
+[data-estilo="a"] .lat-mision.hecha { display: grid; }
+[data-estilo="a"] .lat-mision.recien { animation: misionHecha 1.4s var(--golpe) 1; }
+@keyframes misionHecha {
+  0% { transform: scale(1.9); opacity: 0; filter: brightness(2.2); }
+  30% { transform: scale(.92); opacity: 1; filter: brightness(1.8); }
+  55% { transform: scale(1.06); }
+  100% { transform: scale(1); filter: none; }
+}
 /* En medio: puntos del fantasy (el que va por delante, del color de su familia) y la diferencia de oro */
 [data-estilo="a"] .puntos b { font-family: var(--dela); font-size: 27px; color: var(--hai); }
 [data-estilo="a"] .rotulo-pts { font-size: 16px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--hai); }

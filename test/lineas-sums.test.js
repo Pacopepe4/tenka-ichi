@@ -58,3 +58,27 @@ test('el hueco de misión (el 7) no se cuela entre los objetos y sale aparte; si
   assert.deepEqual(a5.mision, { objeto: 2055 });
   assert.equal(linea(p, 3, 'azul').mision, null);
 });
+
+test('22/11: la misión de rol completada se marca en todos los puestos, cada uno con su señal', () => {
+  const sinNada = paquete(jugadores({
+    A1: { summonerSpells: { summonerSpellOne: hechizo('S12_SummonerTeleportUpgrade'), summonerSpellTwo: hechizo('SummonerFlash') }, level: 18 },
+    A2: { summonerSpells: { summonerSpellOne: hechizo('SummonerSmite'), summonerSpellTwo: hechizo('SummonerFlash') } },
+    A3: { items: [{ itemID: 3020, count: 1, slot: 1 }] },
+  }));
+  assert.deepEqual([0, 1, 2, 3, 4].map(i => linea(sinNada, i, 'azul').misionHecha), [false, false, false, false, false],
+    'el Teleportar desatado del minuto 10 no es la misión del top; el Castigo de siempre y las botas de nivel 2 tampoco');
+  const hechas = paquete(jugadores({
+    A1: { level: 19 },                                                                                                // top: pasa del 18
+    R1: { items: [{ itemID: 1001, count: 1, slot: 7 }] },                                                            // top sin Teleportar: su hueco
+    A2: { summonerSpells: { summonerSpellOne: hechizo('SummonerSmiteAvatarDefensive'), summonerSpellTwo: hechizo('SummonerFlash') } },
+    A3: { items: [{ itemID: 3171, count: 1, slot: 1 }] },                                                            // medio: botas de nivel 3
+    A4: { items: [{ itemID: 3006, count: 1, slot: 7 }] },                                                            // ADC: su hueco
+  }));
+  assert.equal(linea(hechas, 0, 'azul').misionHecha, true);
+  assert.equal(linea(hechas, 0, 'rojo').misionHecha, true);
+  assert.equal(linea(hechas, 1, 'azul').misionHecha, true, 'el Castigo mejorado');
+  assert.equal(linea(hechas, 2, 'azul').misionHecha, true);
+  assert.equal(linea(hechas, 3, 'azul').misionHecha, true);
+  assert.equal(linea(hechas, 4, 'azul').misionHecha, false);
+  assert.equal('castigoMejorado' in linea(hechas, 1, 'azul'), false, 'los datos de paso no salen al overlay');
+});
