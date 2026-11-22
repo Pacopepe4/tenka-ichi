@@ -65,10 +65,10 @@ export class HistorialCs {
 //  - jungla: el Castigo cambia de nombre (SummonerSmite → SummonerSmiteAvatar…, el mejorado)
 //  - top: no hay señal fiable. El Teleport desatado no es su misión: les llega al minuto 10 a todos los que lo llevan
 //    (22/11: en las partidas del 15 y el 16/11 cambió a los 602 s en un top y dos medios a la vez)
-//  - botas de nivel 3 (las de la misión de mid; 3170-3179)
+//  - botas de nivel 3 (las de la misión de mid; 3170-3176: la 3177 es la Espada del guardián y la 3179 la Guja sombría)
 // Solo cuenta un cambio después de la primera lectura: si se entra con la partida empezada, lo que ya estaba no sale.
 const CRUDO = s => String(s?.rawDisplayName || s?.displayName || '');
-const BOTAS_3 = id => id >= 3170 && id <= 3179;
+const BOTAS_3 = id => id >= 3170 && id <= 3176;
 export class SeguidorMisiones {
   constructor() { this.limpiar(); }
   limpiar() { this.porJugador = new Map(); this.hechas = []; }

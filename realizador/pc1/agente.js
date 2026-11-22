@@ -210,6 +210,31 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
   };
   explorador.on('mision', m => { ejecutor.buzon?.apuntar('explorador', 'mision', m); log(`Misión de rol: ${m.nombre} (${m.campeon || '?'}), ${m.detalle}`); mandarAdelanto(); });
   explorador.on('jugadores', lista => { cerebro.jugadores = lista; ejecutor.hayCambios(); });
+  // Si cambia el nombre interno de la D o la F de alguien (Teleportar desatado al minuto 10, Castigo mejorado, Destello
+  // hextech), su icono es otro: el lector de pantalla olvida lo aprendido de esa casilla (EGM 22/11, M1). Los marcos van
+  // en el orden de la Live Client por equipo, como en hechizosAdelanto
+  const nombreDe = c => c.riotIdGameName || (c.riotId || '').split('#')[0] || c.summonerName;
+  const internos = c => [c.summonerSpells?.summonerSpellOne, c.summonerSpells?.summonerSpellTwo].map(h => String(h?.rawDisplayName || h?.displayName || ''));
+  const hechizosVistos = new Map();
+  lectura.hechizosVistos = hechizosVistos;
+  explorador.on('lista', (lista, t) => {
+    if (!lectura.lector) return;
+    for (const equipo of ['azul', 'rojo']) {
+      explorador.jugadores.filter(j => j.equipo === equipo).slice(0, 5).forEach((j, k) => {
+        const c = lista.find(x => nombreDe(x) === j.jugador);
+        if (!c) return;
+        const ahora = internos(c), clave = `${equipo}-${k}`, antes = hechizosVistos.get(clave);
+        hechizosVistos.set(clave, ahora);
+        if (!antes) return;
+        ['d', 'f'].forEach((s, n) => {
+          if (antes[n] && ahora[n] && antes[n] !== ahora[n] && lectura.hechizos.olvidar(equipo, k, s, t)) {
+            log(`Lector de pantalla: el hechizo ${s.toUpperCase()} de ${j.jugador} ha cambiado de icono; su enfriamiento abierto se cierra`);
+            lectura.cambios = true;
+          }
+        });
+      });
+    }
+  });
 
   // «Adelanto» para la web: saltos de CS y objetivos, cada 5 s y en cuanto hay un objetivo nuevo. Siempre todo lo
   // de la partida (la web lo trata como idempotente). Solo con la conexión del panel y en partida.
@@ -239,6 +264,7 @@ export function arrancarAgente(o, { perfilMinimo = false, log = console.log, exp
     lectura.marcador.limpiar();
     lectura.larvas = 0;
     lectura.hechizos.limpiar();
+    lectura.hechizosVistos?.clear();
     if (lectura.lector) { conexiones.pantalla = false; lectura.lector.arrancar(); }
     log(`Partida encontrada (${info.modo || 'modo desconocido'}). Registro en ${buzon.carpeta}`);
   });

@@ -131,6 +131,7 @@ const SEGUIDAS = 2;          // fotos seguidas iguales para dar por bueno un cam
 // por debajo de este tanto del brillo que tiene listo (el más alto que se le ha visto, de dos fotos seguidas) para entrar
 const APAGADO = 0.8;
 const ENTERO = 0.95;          // ...y vuelve a estar listo con este tanto del brillo, aunque quede blanco en el dibujo
+const ENFRIAMIENTO_MAXIMO = 420;  // s: más que el de cualquier hechizo de invocador o R (Teleportar, 360; las R largas, menos)
 
 // Contadores del marcador: cuando el número de un equipo cambia a uno que no se había visto, ese equipo lo ha cogido.
 // Los contadores solo suben, así que un número ya visto (un parpadeo, la interfaz que vuelve) no cuenta otra vez.
@@ -164,6 +165,16 @@ export class SeguidorMarcador {
 export class SeguidorHechizos {
   constructor() { this.limpiar(); }
   limpiar() { this.estado = new Map(); }
+  // El icono de esa casilla ha cambiado (Teleportar desatado al minuto 10, Castigo mejorado, Destello hextech…): lo
+  // aprendido no vale (EGM 22/11, M1). Un tramo abierto se cierra y la siguiente foto vuelve a ser la referencia de listo
+  olvidar(equipo, k, s, t) {
+    const e = this.estado.get(`${equipo}-${k}-${s}`);
+    if (!e) return false;
+    const abierto = e.tramos.length && e.tramos.at(-1)[1] === null;
+    if (abierto) e.tramos.at(-1)[1] = Math.max(t, e.tramos.at(-1)[0] + 0.1);
+    Object.assign(e, { enfriando: null, veces: 0, desde: null, listo: 0, previo: null });
+    return Boolean(abierto);
+  }
   apuntar(t, marcos) {
     let cambio = false;
     for (const m of marcos) {
@@ -171,6 +182,10 @@ export class SeguidorHechizos {
         const clave = `${m.equipo}-${m.k}-${s}`;
         let e = this.estado.get(clave);
         if (!e) { e = { equipo: m.equipo, k: m.k, s, enfriando: null, veces: 0, desde: null, tramos: [], listo: 0, previo: null }; this.estado.set(clave, e); }
+        // Red de seguridad (M1): ningún enfriamiento dura más de ENFRIAMIENTO_MAXIMO. Si uno sigue abierto, era el icono
+        // (cambió, o un brillo largo): se cierra y se vuelve a aprender. Vale también para la R, que la Live Client no da
+        const abierto = e.enfriando === true && e.tramos.at(-1)?.[1] === null ? e.tramos.at(-1) : null;
+        if (abierto && t - abierto[0] > ENFRIAMIENTO_MAXIMO) { this.olvidar(m.equipo, m.k, s, t); cambio = true; }
         // Brillo de listo: el más alto visto, contando cada foto con la anterior (un destello suelto no cuenta). La primera
         // foto es la referencia: al empezar a mirar, todo se da por listo (al principio de la partida lo está)
         const medio = m[s].medio ?? 0;

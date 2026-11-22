@@ -19,6 +19,9 @@ import { arrancarPanel } from '../pc1/panel.js';
 import { POR_DEFECTO as BORDES, ajusteBorde, suavizar, zoomConBorde, posicionSeguido } from './bordes.js';
 import { Tenka } from '../pc1/tenka.js';
 import { CamarasDraft, CamarasPartida } from './camaras.js';
+import { pedirAlertasTwitch } from '../comun/alertas-twitch.js';
+import { webDe } from '../comun/app.js';
+import { ALERTAS_TWITCH } from '../instalar/configurar-obs.js';
 import { GrabadorLol, cursorEnClip } from './grabador.js';
 import { Actualizador, codigoSala } from '../comun/app.js';
 import { abrirObs, obsCorriendo } from './abrir-obs.js';
@@ -342,6 +345,26 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
   // Y las de los casters en la escena de juego, encendidas con las casillas del panel (22/11)
   const camarasPartida = obs ? new CamarasPartida({ obs, escena: o.obs?.escenaJuego || 'Juego', registrar }) : null;
   tenka?.on?.('estado', e => camarasPartida?.desdeTenka(e));
+  // Alertas de Twitch al día (EGM 22/11, M4 y M6): al conectar OBS (y cada media hora) se pide la URL a la web y, si la
+  // fuente de OBS no la tiene, se le pone. Así un token nuevo en el server llega sin reinstalar, y tras «Desconfigurar
+  // OBS» (que la quita de la colección) vuelve sola. La URL no se escribe en el registro
+  let twitchRevisada = 0;
+  async function revisarAlertasTwitch() {
+    if (!obs?.listo) { twitchRevisada = 0; return; }
+    if (Date.now() - twitchRevisada < 30 * 60 * 1000) return;
+    twitchRevisada = Date.now();
+    const r = await pedirAlertasTwitch({ web: webDe(o), clave: o.clave });
+    if (typeof r.url !== 'string') {
+      if (r.error) registrar(`[obs] alertas de Twitch: no se ha podido preguntar a la web (${r.error})`);
+      return;
+    }
+    try {
+      const { inputSettings } = await obs.pedir('GetInputSettings', { inputName: ALERTAS_TWITCH });
+      if (inputSettings?.url === r.url) return;
+      await obs.pedir('SetInputSettings', { inputName: ALERTAS_TWITCH, inputSettings: { url: r.url } });
+      registrar('[obs] alertas de Twitch puestas al día con la web');
+    } catch { registrar(`[obs] no hay fuente «${ALERTAS_TWITCH}» en OBS: cierra OBS y pasa INSTALAR-PC2.bat (o 4-configurar-obs.bat) para crearla`); }
+  }
   function elegirCamaras(lista) {
     if (!camaras) throw new Error('Este PC no lleva OBS');
     camaras.elegir(lista);
@@ -843,6 +866,7 @@ export function crearRele(o, { registrar: registrarFuera = console.log, obs: con
     resumen.actualizar({ draft: Boolean(draftDeTenka(tenka?.estado)), enJuego: emision.fase === 'previa' || emision.fase === 'directo' });
     camaras?.paso().catch(() => {});
     camarasPartida?.paso().catch(() => {});
+    revisarAlertasTwitch().catch(() => {});
   }
   // ---------- fases del directo (pc2/fases.js) ----------
   // Pone la escena que dice fases (las suyas, o las pedidas a mano), saca al aire lo que lleva fases con la emisión

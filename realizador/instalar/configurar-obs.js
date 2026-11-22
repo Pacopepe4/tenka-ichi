@@ -134,6 +134,8 @@ function elemento(f, n, centro) {
     align: centro ? 0 : 5,  // 0 = centro, 5 = arriba a la izquierda
     // 2 = ajustar dentro; 3 = cubrir el recuadro (las cámaras llenan su hueco)
     bounds_type: centro ? 0 : caja ? 3 : 2, bounds_align: 0, bounds: centro ? { x: 0, y: 0 } : caja ? { x: caja.w, y: caja.h } : { x: ANCHO, y: ALTO },
+    // Cubrir el recuadro sin salirse (EGM 22/11, B4c): una webcam 4:3 en un hueco 16:9 se recorta (OBS 30.1 o posterior)
+    ...(caja ? { bounds_crop: true } : {}),
     crop_left: 0, crop_top: 0, crop_right: 0, crop_bottom: 0,
     id: n, group_item_backup: false, scale_filter: 'disable', blend_method: 'default', blend_type: 'normal',
     show_transition: { duration: 0 }, hide_transition: { duration: 0 }, private_settings: {},
@@ -186,7 +188,7 @@ export function urlOverlayFinal(overlay) {
   } catch { return ''; }
 }
 
-export function crearColeccion({ escenas, fuenteRepeticion, fuenteResumen = 'Resumen clip', placaResumen = PLACA_RESUMEN, fuenteTraileres = FUENTE_TRAILERES, overlay = '', recursos = null, alertas = '', alertasTwitch = '', huecoTwitch = HUECO_ALERTAS_TWITCH, minimapa = {}, volumenMusica = -12 }) {
+export function crearColeccion({ escenas, fuenteRepeticion, fuenteResumen = 'Resumen clip', placaResumen = PLACA_RESUMEN, fuenteTraileres = FUENTE_TRAILERES, overlay = '', recursos = null, alertas = '', alertasTwitch = null, huecoTwitch = HUECO_ALERTAS_TWITCH, minimapa = {}, volumenMusica = -12, camarasAntes = {} }) {
   // Un volumen que no es un número (un texto, null…) daría la música a todo volumen: −12 dB
   if (typeof volumenMusica !== 'number' || !Number.isFinite(volumenMusica)) volumenMusica = -12;
   const juego = fuente('Juego LoL', 'game_capture', {
@@ -211,10 +213,14 @@ export function crearColeccion({ escenas, fuenteRepeticion, fuenteResumen = 'Res
     css: 'body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }',
   }) : rotulo('Rotulo resumen', 'RESUMEN', 64);
   const fondo = fuente('Fondo', 'color_source', { color: 0xFF130D0C, width: ANCHO, height: ALTO }, { version: 'color_source_v3' });
-  const camara = fuente('Camara casters', 'dshow_input', {});
-  // La del segundo caster (22/11): solo en la escena de juego, junto al minimapa; el dispositivo se elige a mano
-  const camara2 = fuente(FUENTES_PARTIDA[1], 'dshow_input', {});
-  const [hueco1, hueco2] = camarasPartida();
+  // Webcams (EGM 22/11, B4): conservan el dispositivo y lo demás que se eligió en OBS (camarasAntes: los ajustes de la
+  // colección anterior), y sueltan la cámara cuando no se ven, para que la misma webcam pueda estar en el draft y en la
+  // partida sin que una de las dos salga en negro
+  const webcam = nombre => fuente(nombre, 'dshow_input', { ...(camarasAntes[nombre] || {}), deactivate_when_not_showing: true });
+  const camara = webcam('Camara casters');
+  // La del segundo caster (22/11): solo en la escena de juego, junto al minimapa
+  const camara2 = webcam(FUENTES_PARTIDA[1]);
+  const [hueco1, hueco2] = camarasPartida(minimapa);
   // Sin la carpeta obs/ (pruebas antiguas), un rótulo de texto; con ella, el overlay de REPLAY (apagado: lo
   // enciende el realizador al entrar en la repetición)
   const rRepeticion = recursos
@@ -227,7 +233,7 @@ export function crearColeccion({ escenas, fuenteRepeticion, fuenteResumen = 'Res
   const rCasters = rotulo('Rotulo casters', 'GOKUDŌ · LIGA DE FAMILIAS', 72);
   const rPausa = rotulo('Rotulo pausa', 'PAUSA · volvemos enseguida', 96);
   // Draft: las cámaras debajo y el overlay (que en el draft pinta su fondo con los huecos recortados) encima
-  const camarasDraft = CAMARAS_DRAFT.map(n => fuente(n, 'dshow_input', {}));
+  const camarasDraft = CAMARAS_DRAFT.map(webcam);
   const huecos = disposicionCamaras(4);
 
   // Alertas de Kick (seguidores, subs, kicks…): página de la web, transparente, encima de todo en todas las escenas
@@ -236,8 +242,10 @@ export function crearColeccion({ escenas, fuenteRepeticion, fuenteResumen = 'Res
     reroute_audio: true, css: 'body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }',
   }) : null;
   // Las de Twitch: su URL (con token) llega del server al instalar; en su hueco y con sonido en la emisión (pista 1)
-  const fTwitch = alertasTwitch ? fuente(ALERTAS_TWITCH, 'browser_source', {
-    url: alertasTwitch, width: huecoTwitch.w, height: huecoTwitch.h, fps: 30, shutdown: false, restart_when_active: false,
+  // Con configurarObs siempre está, vacía hasta que llega la URL (EGM 22/11, M4): el relé del PC 2 se la pone al arrancar
+  // si falta o cambia. alertasTwitch null: sin fuente
+  const fTwitch = alertasTwitch !== null ? fuente(ALERTAS_TWITCH, 'browser_source', {
+    url: alertasTwitch || '', width: huecoTwitch.w, height: huecoTwitch.h, fps: 30, shutdown: false, restart_when_active: false,
     reroute_audio: true, css: 'body { background-color: rgba(0, 0, 0, 0); margin: 0px auto; overflow: hidden; }',
   }, { pistas: 1 }) : null;
   const conAlertas = partes => [...partes, ...(fTwitch ? [[fTwitch, huecoTwitch]] : []), ...(fAlertas ? [[fAlertas]] : [])];
@@ -347,6 +355,38 @@ export function alertasTwitchAnteriores(rutaColeccion) {
     const f = (JSON.parse(leerTexto(rutaColeccion)).sources || []).find(x => x.name === ALERTAS_TWITCH);
     return esUrlTwitch(f?.settings?.url) ? f.settings.url : '';
   } catch { return ''; }
+}
+
+// Los ajustes de las webcams (dshow) de la colección del realizador que ya había, por nombre: el dispositivo elegido a
+// mano, su resolución… (EGM 22/11, B4a: antes cada «Actualizar» las dejaba sin dispositivo)
+export function camarasAnteriores(rutaColeccion) {
+  try {
+    const r = {};
+    for (const f of JSON.parse(leerTexto(rutaColeccion)).sources || []) {
+      if (f?.id === 'dshow_input' && f.name && f.settings && typeof f.settings === 'object') r[f.name] = f.settings;
+    }
+    return r;
+  } catch { return {}; }
+}
+
+// La colección sin el token de las alertas de Twitch, para las copias de seguridad (EGM 22/11, M6)
+export function sinTokenTwitch(texto) {
+  try {
+    const c = JSON.parse(texto);
+    for (const f of c.sources || []) if (f?.name === ALERTAS_TWITCH && f.settings) f.settings.url = '';
+    return JSON.stringify(c);
+  } catch { return texto; }
+}
+
+// El marco del minimapa de fábrica (opciones.json): el mapa del LoL del PC 2, medido el 22/11. Uno que no cabe entero
+// en pantalla (un opciones.local.json viejo con { lado: 270, margen: 0 } mezclado con el x e y nuevos) se cambia por este
+export const MINIMAPA_FABRICA = { lado: 258, x: 1651, y: 811 };
+export function minimapaQueCabe(m = {}) {
+  const lado = Number(m.lado) || 280, ancho = Number(m.ancho) || lado, alto = Number(m.alto) || lado;
+  const margen = Number.isFinite(Number(m.margen)) ? Number(m.margen) : 10, grosor = Number.isFinite(Number(m.grosor)) ? Number(m.grosor) : 10;
+  const x = Number.isFinite(Number(m.x)) ? Number(m.x) : 1920 - margen - ancho;
+  const y = Number.isFinite(Number(m.y)) ? Number(m.y) : 1080 - margen - alto;
+  return x - grosor >= 0 && y - grosor >= 0 && x + ancho + grosor <= 1920 && y + alto + grosor <= 1080;
 }
 
 export function buscarOverlay(carpetaEscenas, acepta = () => true) {
@@ -528,14 +568,29 @@ export function configurarObs({ carpeta, opciones, rutaLocal, overlay, overlayPo
   const rutaColeccion = join(escenas, `${NOMBRE}.json`);
   // Alertas de Twitch: la URL que da el server (alertasTwitch). Si no se le pudo preguntar (undefined), la de la
   // instalación anterior; si contesta que no hay (null), sin fuente. La URL lleva token: nunca va a «hechos»
-  const twitch = alertasTwitch === undefined ? alertasTwitchAnteriores(rutaColeccion) : (alertasTwitch || '');
-  guardarCopia(rutaColeccion, `${NOMBRE}.json`);
+  // M3 (EGM 22/11): si la web dice que no hay (null), tampoco se quita la que hubiera; para quitarla, a mano en OBS
+  const twitch = alertasTwitch || alertasTwitchAnteriores(rutaColeccion);
+  const camarasAntes = camarasAnteriores(rutaColeccion);
+  // La copia de seguridad de la colección, sin el token de Twitch (M6)
+  if (existsSync(rutaColeccion)) {
+    mkdirSync(copia, { recursive: true });
+    writeFileSync(join(copia, `${NOMBRE}.json`), sinTokenTwitch(leerTexto(rutaColeccion)));
+  }
+  // M10: un marco del minimapa que no cabe en pantalla se cambia por el de fábrica
+  let minimapa = o.minimapa || {};
+  if (!minimapaQueCabe(minimapa)) {
+    hechos.push(`Marco del minimapa: el de opciones (${JSON.stringify(minimapa)}) se salía de la pantalla; va el de fábrica (${MINIMAPA_FABRICA.lado} en x ${MINIMAPA_FABRICA.x}, y ${MINIMAPA_FABRICA.y}). Quítalo de opciones.local.json`);
+    minimapa = MINIMAPA_FABRICA;
+  }
   // Las alertas de Kick salen de la misma web que el overlay (/alertas/), salvo que opciones.json diga otra
   let alertas = alDia(o.alertas ?? '');
   if (o.alertas === undefined && /^https?:/i.test(url)) { try { alertas = new URL('/alertas/', url).href; } catch { /* sin dirección */ } }
-  escribir(rutaColeccion, JSON.stringify(crearColeccion({ escenas: nombres, fuenteRepeticion: o.fuenteRepeticion, fuenteResumen: o.fuenteResumen || 'Resumen clip', placaResumen: o.placaResumen || PLACA_RESUMEN, fuenteTraileres: o.fuenteTraileres || FUENTE_TRAILERES, overlay: url, alertas, alertasTwitch: twitch, huecoTwitch: o.alertasTwitchHueco || HUECO_ALERTAS_TWITCH, minimapa: o.minimapa || {}, volumenMusica: o.volumenMusica ?? -12, recursos: recursos && existsSync(recursos) ? recursos : null }), null, 4));
+  escribir(rutaColeccion, JSON.stringify(crearColeccion({ escenas: nombres, fuenteRepeticion: o.fuenteRepeticion, fuenteResumen: o.fuenteResumen || 'Resumen clip', placaResumen: o.placaResumen || PLACA_RESUMEN, fuenteTraileres: o.fuenteTraileres || FUENTE_TRAILERES, overlay: url, alertas, alertasTwitch: twitch || '', huecoTwitch: { ...HUECO_ALERTAS_TWITCH, ...(o.alertasTwitchHueco || {}) }, camarasAntes, minimapa, volumenMusica: o.volumenMusica ?? -12, recursos: recursos && existsSync(recursos) ? recursos : null }), null, 4));
   hechos.push(`Colección "${NOMBRE}": ${Object.values(nombres).join(', ')}`);
-  if (twitch) hechos.push(`Alertas de Twitch encima de la cámara de casters (${alertasTwitch === undefined ? 'las de antes: la web no ha contestado' : 'desde la web'})`);
+  if (twitch) hechos.push(`Alertas de Twitch encima de la cámara de casters (${alertasTwitch ? 'desde la web' : 'las de antes'})`);
+  if (alertasTwitch === null) hechos.push(twitch ? 'La web no tiene TWITCH_ALERTAS_URL: se dejan las alertas de Twitch que había' : 'Alertas de Twitch: la web no tiene TWITCH_ALERTAS_URL (ponla en el .env del server y vuelve a configurar OBS)');
+  const elegidas = Object.keys(camarasAntes).filter(n => camarasAntes[n]?.video_device_id);
+  if (elegidas.length) hechos.push(`Webcams con su dispositivo de antes: ${elegidas.join(', ')}`);
   if (recursos && existsSync(recursos)) hechos.push(`Transiciones de la repetición ("${TRANSICIONES.entrada}", "${TRANSICIONES.salida}") y "${OVERLAY_REPLAY}"`);
   if (alertas) hechos.push(`Alertas de Kick en todas las escenas (${alertas})`);
   // Grafismos y música de las fases del directo: lo que no está va con el fondo y un rótulo (o sin música)
@@ -652,12 +707,19 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     process.exit(1);
   }
   try {
+    // Las alertas de Twitch también aquí (EGM 22/11, M4), no solo al instalar o actualizar
+    const { pedirAlertasTwitch } = await import('../comun/alertas-twitch.js');
+    const { webDe } = await import('../comun/app.js');
+    const opciones = cargarOpciones();
+    const alertas = await pedirAlertasTwitch({ web: webDe(opciones), clave: opciones.clave });
+    if (alertas.error) console.log(`  (alertas de Twitch sin preguntar a la web: ${alertas.error}; se dejan las que hubiera)`);
     const r = configurarObs({
       carpeta,
-      opciones: cargarOpciones(),
+      opciones,
       rutaLocal: join(RAIZ, 'opciones.local.json'),
       overlay: arg('--overlay'),
       carpetaClips: join(homedir(), 'Videos', NOMBRE),
+      alertasTwitch: alertas.url,
     });
     console.log(`OBS configurado en ${carpeta}:`);
     for (const h of r.hechos) console.log(`  - ${h}`);

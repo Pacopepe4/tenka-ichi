@@ -12,7 +12,7 @@ import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, copyFi
 import { join } from 'node:path';
 import { execFile } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
-import { leerIni, carpetaObs, NOMBRE } from './configurar-obs.js';
+import { leerIni, carpetaObs, NOMBRE, sinTokenTwitch } from './configurar-obs.js';
 import { ponerEnIni } from './configurar-lol.js';
 
 const leer = ruta => (existsSync(ruta) ? readFileSync(ruta, 'utf8').replace(/^﻿/, '') : '');
@@ -103,7 +103,18 @@ export function cerrarObs({ esperaMs = 20000, ejecutar = execFile } = {}) {
 // Todo junto: cerrar OBS si está abierto y dejar lo del dueño
 export async function desconfigurarObs({ carpeta = carpetaObs(), cerrar = cerrarObs } = {}) {
   if (!(await cerrar())) return { ok: false, hechos: [], faltan: ['OBS no se ha cerrado (¿está emitiendo o tiene un aviso abierto?): ciérralo a mano y vuelve a pulsar'] };
-  return restaurarDueno({ carpeta });
+  const r = restaurarDueno({ carpeta });
+  // El OBS es de otra persona: la colección del realizador se queda (para la próxima vez), pero sin el token de las
+  // alertas de Twitch (EGM 22/11, M6). El relé lo vuelve a pedir a la web al arrancar
+  const coleccion = join(carpeta, 'basic', 'scenes', 'Realizador.json');
+  try {
+    if (existsSync(coleccion)) {
+      const antes = readFileSync(coleccion, 'utf8');
+      const despues = sinTokenTwitch(antes);
+      if (despues !== antes) { writeFileSync(coleccion, despues); r.hechos.push('Quitado el token de las alertas de Twitch de la colección del realizador (lo vuelve a pedir al arrancar)'); }
+    }
+  } catch (e) { r.faltan.push(`No se pudo quitar el token de las alertas de Twitch: ${e.message}`); }
+  return r;
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {

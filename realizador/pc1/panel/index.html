@@ -335,6 +335,12 @@
       </div>
       <div class="como">Se elige una vez. Cuando el panel de Gokudō tenga un draft en marcha, el realizador pone la escena <b>Draft</b> con estas cámaras en los huecos del overlay. Cuántas salen y qué es cada una se cambia en el panel de Gokudō, apartado <b>Cámaras</b>.</div>
     </section>
+    <section>
+      <h2>Cámaras de los casters en partida</h2>
+      <p class="sub" id="camarasPartidaEstado">Esperando al panel de Gokudō…</p>
+      <div class="error" id="camarasPartidaError" hidden></div>
+      <div class="como">En la escena <b>Juego</b> van «Camara casters» (abajo a la izquierda) y «Camara casters 2» (junto al minimapa). El realizador las enciende cuando en el panel de Gokudō están marcadas, hay partida y el marcador está a la vista; el dispositivo de cada una se elige una vez en OBS y se conserva al actualizar.</div>
+    </section>
   </div>
 
   <div class="pestana" id="registroP" hidden>
@@ -839,6 +845,14 @@
     pintarFases();
     if (pc1) { pintarRealizacion(); pintarIa(); }
     if (f.camaras) pintarCamaras();
+    if (f.camarasPartida) {
+      const cp = f.camarasPartida;
+      $('camarasPartidaEstado').textContent = cp.activas
+        ? cp.activas.map((a, i) => `Caster ${i + 1}: ${a ? 'en el aire' : 'apagada'}`).join(' · ')
+        : 'Esperando al panel de Gokudō…';
+      $('camarasPartidaError').hidden = !cp.error;
+      $('camarasPartidaError').textContent = cp.error || '';
+    }
     pintarRegistro();
     pintarApp();
     pintarPc2();

@@ -208,7 +208,11 @@ Tus colecciones y perfiles de siempre no se tocan (siguen en los menús de OBS),
 
 **Clave de retransmisión (Kick):** `INSTALAR-PC2.bat` la pide (Enter para dejar la que ya tenga OBS) y la guarda solo en `opciones.local.json` de ese PC (`obs.emision.clave`), que nunca va en las descargas ni en git; `configurar-obs` la pone en el `service.json` del perfil `Realizador` con el servidor de `obs.emision.servidor` (el de Kick por defecto). No sale nunca en pantalla.
 
-Queda a mano: la URL del overlay si no la encuentra en tus escenas (doble clic en `Overlay Gokudō`, o `obs.overlay` en `opciones.json`, o `--overlay URL`) y elegir la cámara en `Camara casters`.
+Queda a mano: la URL del overlay si no la encuentra en tus escenas (doble clic en `Overlay Gokudō`, o `obs.overlay` en `opciones.json`, o `--overlay URL`) y elegir una vez el dispositivo de cada webcam (`Camara casters`, `Camara casters 2` y las `Camara draft N`). Desde el 22/11 el dispositivo se conserva al actualizar, y cada webcam suelta la cámara cuando no se ve (así la misma puede estar en el draft y en la partida).
+
+**Cámaras de los casters en partida (22/11):** en la escena `Juego` van `Camara casters` (abajo a la izquierda, la misma fuente que la escena de casters) y `Camara casters 2` (a la izquierda del marco del minimapa; su x sale de `obs.minimapa`). Van apagadas y el relé las enciende con lo que manda la web (`camarasEnAire`): marcadas en el panel de Gokudō, con partida en marcha y el marcador a la vista. Su estado y sus errores salen en el panel del PC 2, pestaña Cámaras.
+
+**Alertas de Twitch (22/11):** la fuente `Alertas Twitch` (320×210 en x 16, y 644, encima de la cámara de casters) va en todas las escenas menos Repetición y Resumen. Su URL lleva un token y vive solo en `TWITCH_ALERTAS_URL` del `.env` del server: el realizador la pide a la web con la contraseña del panel al instalar o actualizar, al configurar OBS y cada vez que arranca el relé (que se la pone a la fuente si falta o ha cambiado). Para cambiar el token basta con cambiar la variable y reiniciar la web; el PC 2 la coge al arrancar. Las copias de seguridad de la colección van sin el token, y «Desconfigurar OBS» lo quita de la colección del realizador.
 
 Para cada directo, `windows/5-abrir-obs.bat` abre OBS con el búfer de repetición ya en marcha: sin búfer no hay repeticiones.
 

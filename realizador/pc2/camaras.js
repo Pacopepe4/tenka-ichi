@@ -110,50 +110,76 @@ export class CamarasDraft {
 // ---------- Cámaras de los casters en partida (22/11) ----------
 // En la escena de juego: la de Livir abajo a la izquierda y la de Istar (segundo caster) entre el línea por línea y el
 // minimapa. Los mismos huecos que el overlay de partida (camaraPartida en public/comun.js de la web; si allí se mueven,
-// aquí también). La 1 es la misma fuente que la escena de casters («Camara casters»: una cámara solo la puede abrir una
-// fuente); la 2, «Camara casters 2». El dispositivo de cada una se elige a mano en OBS. Se encienden y apagan con las
-// casillas del panel de Gokudō (ingame.camaras[0] y [1]), como el marco del overlay
+// aquí también). La 1 es la misma fuente que la escena de casters («Camara casters»); la 2, «Camara casters 2». El
+// dispositivo de cada una se elige a mano en OBS y se conserva al actualizar.
+// Se encienden y apagan con lo que manda la web: camarasEnAire (EGM 22/11, B5: marcada en el panel, con partida en
+// marcha y el marcador a la vista, lo mismo que pinta el overlay). Con una web anterior, que no lo manda, con la casilla
 export const FUENTES_PARTIDA = ['Camara casters', 'Camara casters 2'];
-export function camarasPartida() {
+// La de Istar va a la izquierda del marco del minimapa: su x sale del minimapa (x del hueco − 10 de filo − 8 de aire −
+// 320), así que si se recalibra el minimapa, la cámara se mueve con él (EGM M10). Con el de fábrica, 1313
+export function camarasPartida(minimapa = {}) {
   const w = 320, h = 180, y = 1080 - 44 - h;
-  return [{ x: 16, y, w, h }, { x: 1313, y, w, h }];
+  const xMapa = Number.isFinite(Number(minimapa?.x)) ? Number(minimapa.x) : 1651;
+  return [{ x: 16, y, w, h }, { x: xMapa - 10 - 8 - w, y, w, h }];
 }
 
 export class CamarasPartida {
-  constructor({ obs, escena = 'Juego', registrar = () => {} }) {
+  constructor({ obs, escena = 'Juego', registrar = () => {}, coleccion = 'Realizador' }) {
     this.obs = obs;
     this.escena = escena;
     this.registrar = registrar;
-    this.activas = [false, false];
+    this.coleccion = coleccion;
+    // null hasta que llega el primer estado de la web (EGM M11): si el relé se reinicia en pleno directo, no apaga las
+    // cámaras que estaban en el aire antes de saber qué dice el panel
+    this.activas = null;
     this.aplicado = null;
     this.error = null;
+    this.ultimoError = null;
     this.ocupado = false;
   }
 
   desdeTenka(e) {
-    const c = e?.ingame?.camaras;
-    if (Array.isArray(c)) this.activas = [0, 1].map(i => Boolean(c[i]?.activa));
+    if (Array.isArray(e?.camarasEnAire)) this.activas = [0, 1].map(i => Boolean(e.camarasEnAire[i]));
+    else if (Array.isArray(e?.ingame?.camaras)) this.activas = [0, 1].map(i => Boolean(e.ingame.camaras[i]?.activa));
   }
 
-  publico() { return { activas: [...this.activas], error: this.error }; }
+  publico() { return { activas: this.activas ? [...this.activas] : null, error: this.error }; }
+
+  // Un error se apunta en el registro una vez (hasta que cambie o se arregle), para que alguien lo vea (EGM B6)
+  fallo(texto) {
+    this.error = texto;
+    if (texto !== this.ultimoError) this.registrar(`[cámaras] ${texto}`);
+    this.ultimoError = texto;
+  }
 
   // Cada vuelta del relé: solo hace algo si ha cambiado lo que hay que encender
   async paso() {
     if (!this.obs?.listo) { this.aplicado = null; return; }
-    if (this.ocupado || Date.now() < (this.reintentoEn || 0)) return;
+    if (!this.activas || this.ocupado || Date.now() < (this.reintentoEn || 0)) return;
     const firma = JSON.stringify(this.activas);
     if (firma === this.aplicado) return;
     this.ocupado = true;
     try {
+      // Solo en la colección del realizador: con la del dueño del OBS (tras «Desconfigurar OBS») no se toca nada suyo
+      const { currentSceneCollectionName: coleccion } = await this.obs.pedir('GetSceneCollectionList');
+      if (coleccion && coleccion !== this.coleccion) {
+        this.fallo(`OBS tiene abierta la colección «${coleccion}», no la del realizador: las cámaras de los casters no se tocan`);
+        this.reintentoEn = Date.now() + 10000;
+        return;
+      }
       for (let i = 0; i < FUENTES_PARTIDA.length; i++) {
-        const { sceneItemId } = await this.obs.pedir('GetSceneItemId', { sceneName: this.escena, sourceName: FUENTES_PARTIDA[i] });
+        let sceneItemId;
+        try { ({ sceneItemId } = await this.obs.pedir('GetSceneItemId', { sceneName: this.escena, sourceName: FUENTES_PARTIDA[i] })); } catch {
+          throw new Error(`Falta «${FUENTES_PARTIDA[i]}» en la escena ${this.escena}: cierra OBS y pasa INSTALAR-PC2.bat (o 4-configurar-obs.bat)`);
+        }
         await this.obs.pedir('SetSceneItemEnabled', { sceneName: this.escena, sceneItemId, sceneItemEnabled: this.activas[i] });
       }
       this.aplicado = firma;
       this.error = null;
+      this.ultimoError = null;
       this.registrar(`[cámaras] escena ${this.escena}: ${this.activas.map((a, i) => `caster ${i + 1} ${a ? 'fuera' : 'quitado'}`).join(', ')}`);
     } catch (e) {
-      this.error = `Cámaras de los casters en partida: ${e.message}. Vuelve a configurar OBS («Actualizar»)`;
+      this.fallo(`Cámaras de los casters en partida: ${e.message}`);
       this.aplicado = null;
       this.reintentoEn = Date.now() + 10000;
     } finally { this.ocupado = false; }

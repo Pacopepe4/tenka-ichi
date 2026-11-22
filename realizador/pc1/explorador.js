@@ -111,6 +111,8 @@ export class Explorador extends EventEmitter {
       if (!this.jugadores.length || this.tiempo.t < 5) this.ponerJugadores(lista);
       if (this.cs.apuntar(this.tiempo.t, lista)) this.emit('cs');
       for (const m of this.misiones.apuntar(this.tiempo.t, lista)) this.emit('mision', m);
+      // La lista entera, para quien la necesite (el agente mira si cambia el icono de algún hechizo de invocador)
+      this.emit('lista', lista, this.tiempo.t);
     }
 
     const datos = await pedirJSON(`${this.url}/liveclientdata/eventdata?eventID=${this.siguienteId}`, { tiempoMs: 2000 });
